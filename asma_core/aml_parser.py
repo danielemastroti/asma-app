@@ -391,7 +391,7 @@ class AMLParser:
             tokens = l.strip().split()
             if not tokens:
                 return False
-            valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t))
+            valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t.strip("[](),|")))
             return (valid_chords / len(tokens)) >= 0.7
 
         while i < len(raw_lines):
@@ -407,7 +407,7 @@ class AMLParser:
                 i += 2
             elif is_chord_line(curr_line):
                 # Isolated chord line without lyrics -> convert to grid line
-                chords = curr_line.strip().split()
+                chords = [t.strip("[](),|") for t in curr_line.strip().split() if t.strip("[](),|")]
                 aml_lines.append(f"| {' | '.join(chords)} |")
                 i += 1
             else:
@@ -426,7 +426,9 @@ class AMLParser:
         # Find positions of all chord tokens
         tokens = []
         for match in re.finditer(r"\S+", chord_line):
-            tokens.append((match.start(), match.group(0)))
+            chord_str = match.group(0).strip("[](),|")
+            if chord_str:
+                tokens.append((match.start(), chord_str))
 
         # Find word boundaries in lyric_line
         words = []

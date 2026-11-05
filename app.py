@@ -528,10 +528,10 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
 
     with tab_web:
         st.write("#### 🌐 Importazione Automatica da Internet (Siti Italiani ed Internazionali)")
-        st.caption("Estrae automaticamente accordi e testi da Accordi e Spartiti, Skitarrate, Chordie, Ultimate-Guitar e pagine web pubbliche.")
+        st.caption("Estrae automaticamente accordi e testi da Accordi e Spartiti, Ultimate-Guitar, Skitarrate, Chordie e pagine web pubbliche.")
 
-        url_input = st.text_input("Incolla URL della pagina dello spartito:", placeholder="https://www.accordiespartiti.it/accordi/italiani/nomadi/canzone-per-unamica/")
-        if url_input and st.button("Scarica e Converti in AML"):
+        url_input = st.text_input("Incolla URL diretto della pagina dello spartito:", placeholder="https://www.accordiespartiti.it/accordi/italiani/nomadi/canzone-per-unamica/")
+        if url_input and st.button("📥 Scarica da URL e Converti in AML"):
             with st.spinner("Scaricamento e parsing della pagina web..."):
                 try:
                     song_web = WebSongImporter.fetch_from_url(url_input)
@@ -542,17 +542,62 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                     st.error(f"Errore durante l'importazione da Web: {str(err)}")
 
         st.divider()
-        st.write("#### Oppure cerca per Titolo / Artista:")
+        st.write("#### 🔍 Ricerca Brano Online sui Portali (Italiani ed Internazionali)")
+        st.caption("Interroga in tempo reale Accordi e Spartiti, Ultimate-Guitar e i principali archivi web per trovare e importare lo spartito reale.")
+
         c_w1, c_w2 = st.columns(2)
         with c_w1:
-            search_title = st.text_input("Titolo Brano:", "Knockin' On Heaven's Door")
+            search_title = st.text_input("Titolo Brano:", "Albachiara")
         with c_w2:
-            search_artist = st.text_input("Artista:", "Bob Dylan")
-        if st.button("🔍 Cerca Bozza Online"):
-            draft = WebSongImporter.search_online_and_import(search_title, search_artist)
-            saved = storage.save_song(draft, st.session_state["current_user_email"], st.session_state["current_user_name"], "Bozza creata da ricerca web")
-            st.success(f"Creata bozza per '{draft.title}'. Puoi rifinirla nell'Editor!")
-            st.session_state["selected_song_uuid"] = saved.uuid
+            search_artist = st.text_input("Artista (opzionale):", "Vasco Rossi")
+
+        c_btn1, c_btn2 = st.columns([1, 1])
+        with c_btn1:
+            do_search = st.button("🔍 Cerca Brano sui Portali", use_container_width=True)
+        with c_btn2:
+            auto_import = st.button("⚡ Importa Subito il Miglior Risultato", use_container_width=True)
+
+        if do_search:
+            with st.spinner("Ricerca in corso sui portali di accordi..."):
+                found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
+                st.session_state["web_search_candidates"] = found_candidates
+                if not found_candidates:
+                    st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
+
+        if auto_import:
+            with st.spinner("Ricerca e importazione del brano migliore in corso..."):
+                try:
+                    imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
+                    saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
+                    st.session_state["selected_song_uuid"] = saved.uuid
+                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`")
+                    st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
+                except Exception as err:
+                    st.error(f"Errore durante l'importazione automatica: {str(err)}")
+
+        # Visualizza risultati candidati trovati
+        candidates = st.session_state.get("web_search_candidates", [])
+        if candidates:
+            st.write(f"##### 📋 Risultati trovati sul Web ({len(candidates)} spartiti disponibili):")
+            for idx, cand in enumerate(candidates):
+                with st.container():
+                    col_info, col_act = st.columns([4, 1])
+                    with col_info:
+                        st.markdown(f"**{cand['title']}** — *{cand.get('artist', '')}*  \n🏷️ Portale: `{cand['portal']}` | [Apri Pagina Originale ↗]({cand['url']})")
+                    with col_act:
+                        if st.button("📥 Importa", key=f"imp_cand_{idx}", use_container_width=True):
+                            with st.spinner("Scaricamento e parsing in AML..."):
+                                try:
+                                    s_obj = WebSongImporter.fetch_from_url(cand["url"])
+                                    if (not s_obj.artist or s_obj.artist == "Artista Sconosciuto") and cand.get("artist"):
+                                        s_obj.artist = cand["artist"]
+                                    if (not s_obj.title or s_obj.title == "Brano da Web") and cand.get("title"):
+                                        s_obj.title = cand["title"]
+                                    saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], f"Importato da {cand['portal']}")
+                                    st.session_state["selected_song_uuid"] = saved.uuid
+                                    st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`)!")
+                                except Exception as e_imp:
+                                    st.error(f"Errore importazione: {str(e_imp)}")
 
     with tab_imp:
         st.write("#### Importazione da File PDF, ChordPro o Formato Tradizionale")
