@@ -82,39 +82,83 @@ from asma_core.manual_engine import ManualEngine
 from asma_core.changelog_engine import ChangelogEngine
 from asma_core.ai_service import BandAIService
 from asma_core.gist_client import GistClient
+from asma_core.auth_manager import AuthManager, UserRole, User
+from asma_core.backup_engine import BackupEngine
 
 # Initialize Singletons
 storage = StorageManager()
 lock_mgr = LockManager()
 audit = AuditLogger()
 gist_client = GistClient()
+auth_mgr = AuthManager()
 
-# Initialize Session State
-if "current_user_name" not in st.session_state:
-    st.session_state["current_user_name"] = "Daniele Rossi"
+# Initialize Session State & User Identity (SRS Cap. 3 & Cap. 10)
 if "current_user_email" not in st.session_state:
     st.session_state["current_user_email"] = "daniele@band.org"
-if "current_user_role" not in st.session_state:
-    st.session_state["current_user_role"] = "ADMIN"
+
+current_user = auth_mgr.get_user_by_email(st.session_state["current_user_email"])
+if not current_user:
+    current_user = auth_mgr.authenticate_or_register_google(st.session_state["current_user_email"], "Daniele Rossi")
+
+st.session_state["current_user_name"] = current_user.name
+st.session_state["current_user_role"] = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+
 if "selected_song_uuid" not in st.session_state:
     st.session_state["selected_song_uuid"] = None
 if "selected_setlist_uuid" not in st.session_state:
     st.session_state["selected_setlist_uuid"] = None
 
 # TOP FIXED HEADER (SRS Cap. 3.5 & 5.3)
+role_colors = {
+    "ADMIN": "#FFD600",
+    "BAND_MEMBER": "#00E5FF",
+    "VIEWER": "#AAAAAA"
+}
+role_col = role_colors.get(current_user.role.value, "#FFFFFF")
+
 col_h1, col_h2, col_h3 = st.columns([2, 1, 1])
 with col_h1:
     st.markdown(f"""
     <div style="display:flex; align-items:center; gap:16px;">
-      <span class="user-badge">👤 {st.session_state['current_user_name']} ({st.session_state['current_user_role']})</span>
+      <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
       <span class="status-badge">🟢 ONLINE</span>
       <span class="version-tag">Versione: <b>ASMA 2026.11.05</b></span>
     </div>
     """, unsafe_allow_html=True)
 with col_h3:
-    st.caption(f"Storage: In-Memory SQLite + Gist | Health: OK")
+    st.caption(f"Storage: SQLite+Gist | Permessi: {'Full Write' if current_user.can_edit() else 'Read Only'}")
 
 st.divider()
+
+# SIDEBAR: Autenticazione & Selezione Profilo (SRS Cap. 3 & 10)
+with st.sidebar:
+    st.markdown("### 🔐 Autenticazione & Utente")
+    all_users = auth_mgr.list_users()
+    user_emails = [u.email for u in all_users]
+    curr_idx = user_emails.index(current_user.email) if current_user.email in user_emails else 0
+
+    selected_account = st.selectbox(
+        "Profilo Attivo (Test Ruoli):",
+        user_emails,
+        index=curr_idx,
+        format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]"
+    )
+    if selected_account != st.session_state["current_user_email"]:
+        st.session_state["current_user_email"] = selected_account
+        st.rerun()
+
+    with st.expander("🔑 Accedi con Google (OAuth2)"):
+        st.caption("Autenticazione federata Google per musicisti e collaboratori.")
+        in_email = st.text_input("Email Google:", placeholder="mario@gmail.com")
+        in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi")
+        if st.button("Simula Accesso Google OAuth", type="primary"):
+            if in_email:
+                new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
+                st.session_state["current_user_email"] = new_u.email
+                st.success(f"Accesso riuscito come {new_u.name}!")
+                st.rerun()
+
+    st.divider()
 
 # LEVEL 1 NAVIGATION MENU (SRS Cap. 5.4)
 menu_choice = st.sidebar.radio(
@@ -192,7 +236,7 @@ elif menu_choice == "📚 Repertori":
 
     c_btn1, c_btn2 = st.columns([1, 4])
     with c_btn1:
-        if st.button("➕ Crea Nuovo Brano"):
+        if st.button("➕ Crea Nuovo Brano", disabled=not current_user.can_edit()):
             new_s = Song(title="Nuovo Brano", key_current="C", aml_content="{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...")
             saved = storage.save_song(new_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
             storage.move_song_to_repertoire(saved.uuid, selected_rep.uuid)
@@ -219,20 +263,20 @@ elif menu_choice == "📚 Repertori":
         selected_s_id = st.selectbox("Apri Brano nell'Editor:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
         col_act1, col_act2, col_act3 = st.columns(3)
         with col_act1:
-            if st.button("📝 Modifica Brano nell'Editor"):
+            if st.button("📝 Apri Brano nell'Editor"):
                 st.session_state["selected_song_uuid"] = selected_s_id
                 st.info("Passa alla scheda 'Editor & Split-View' dal menu a sinistra.")
         with col_act2:
             other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
             if other_reps:
                 dest_rep = st.selectbox("Sposta brano nel repertorio:", [r.name for r in other_reps])
-                if st.button("➡️ Sposta Brano"):
+                if st.button("➡️ Sposta Brano", disabled=not current_user.can_edit()):
                     target_r = next(r for r in other_reps if r.name == dest_rep)
                     storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
                     st.rerun()
         with col_act3:
-            if st.button("🗑️ Sposta nel Cestino"):
+            if st.button("🗑️ Sposta nel Cestino", disabled=not current_user.can_delete()):
                 storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
                 st.rerun()
@@ -267,6 +311,9 @@ elif menu_choice == "📝 Editor & Split-View":
 
     if current_lock.is_locked and current_lock.locked_by_email != user_email:
         st.error(f"🔒 Brano bloccato in modifica da **{current_lock.locked_by_name}** ({current_lock.locked_by_email}). Modalità sola lettura.")
+        can_edit = False
+    elif not current_user.can_edit():
+        st.warning("⚠️ Modalità Sola Lettura: L'utente corrente ha ruolo VIEWER (Ospite). I controlli di modifica e salvataggio sono disattivati.")
         can_edit = False
     else:
         lock_mgr.acquire_lock(song.uuid, user_email, user_name)
@@ -408,7 +455,7 @@ elif menu_choice == "📑 Scalette Live":
         with st.form("new_setlist_form"):
             new_title = st.text_input("Nuova Scaletta Titolo:", "Scaletta Tour Estate 2027")
             new_date = st.text_input("Data:", "15/07/2027")
-            submit_set = st.form_submit_button("Crea Scaletta")
+            submit_set = st.form_submit_button("Crea Scaletta", disabled=not current_user.can_edit())
             if submit_set:
                 new_set = Setlist(title=new_title, date=new_date)
                 storage.save_setlist(new_set, st.session_state["current_user_email"], st.session_state["current_user_name"])
@@ -425,7 +472,7 @@ elif menu_choice == "📑 Scalette Live":
 
                 if all_songs:
                     add_song_id = st.selectbox("Aggiungi brano alla sequenza:", list(song_map.keys()), format_func=lambda x: song_map[x]["title"])
-                    if st.button("➕ Inserisci in Scaletta"):
+                    if st.button("➕ Inserisci in Scaletta", disabled=not current_user.can_edit()):
                         active_setlist.items.append(SetlistItem(song_uuid=add_song_id))
                         storage.save_setlist(active_setlist, st.session_state["current_user_email"], st.session_state["current_user_name"])
                         st.success("Brano aggiunto alla scaletta!")
@@ -750,78 +797,152 @@ elif menu_choice == "📖 Manuale & Changelog":
 elif menu_choice == "⚙️ Amministrazione & Log":
     st.subheader("⚙️ Pannello di Controllo Amministrativo (Solo ADMIN)")
 
-    tab_locks, tab_audit, tab_trash, tab_gist, tab_health = st.tabs([
-        "🔒 Gestione Lock Attivi",
-        "📜 Audit Trail Immutabile",
-        "🗑️ Cestino (Retention 30gg)",
-        "☁️ Sincronizzazione GitHub Gist",
-        "🏥 Health & Telemetria"
-    ])
+    if not current_user.can_admin():
+        st.error(f"⛔ **Accesso Negato**: Questa sezione è riservata esclusivamente agli amministratori. Il tuo account ({current_user.email}) ha il ruolo di **{current_user.role.value}**.")
+        st.info("Per accedere, seleziona un profilo ADMIN nella barra laterale o chiedi a un amministratore di aggiornare i tuoi privilegi.")
+    else:
+        tab_locks, tab_audit, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
+            "🔒 Gestione Lock Attivi",
+            "📜 Audit Trail Immutabile",
+            "👥 Utenti & Ruoli Band",
+            "💾 Backup & Ripristino",
+            "🗑️ Cestino (Retention 30gg)",
+            "☁️ Sincronizzazione GitHub Gist",
+            "🏥 Health & Telemetria"
+        ])
 
-    with tab_locks:
-        st.write("#### Lock Concorrenza Attivi")
-        active_locks = lock_mgr.get_active_locks()
-        if active_locks:
-            st.dataframe(active_locks, use_container_width=True)
-            for l in active_locks:
-                if st.button(f"Sblocca Forzatamente {l['song_uuid']}", key=f"force_unlock_{l['song_uuid']}"):
-                    lock_mgr.release_lock(l["song_uuid"], "admin@band.org", force=True)
-                    st.success("Sbloccato con successo.")
-                    st.rerun()
-        else:
-            st.success("Nessun lock attivo al momento. Tutti i brani sono liberi per la modifica.")
+        with tab_locks:
+            st.write("#### Lock Concorrenza Attivi")
+            active_locks = lock_mgr.get_active_locks()
+            if active_locks:
+                st.dataframe(active_locks, use_container_width=True)
+                for l in active_locks:
+                    if st.button(f"Sblocca Forzatamente {l['song_uuid']}", key=f"force_unlock_{l['song_uuid']}"):
+                        lock_mgr.release_lock(l["song_uuid"], current_user.email, force=True)
+                        st.success("Sbloccato con successo.")
+                        st.rerun()
+            else:
+                st.success("Nessun lock attivo al momento. Tutti i brani sono liberi per la modifica.")
 
-    with tab_audit:
-        st.write("#### Registro Audit Trail Immutabile")
-        entries = audit.get_entries(limit=50)
-        if entries:
-            st.dataframe([e.to_dict() for e in entries], use_container_width=True)
-        else:
-            st.info("Nessuna voce di audit.")
+        with tab_audit:
+            st.write("#### Registro Audit Trail Immutabile")
+            entries = audit.get_entries(limit=50)
+            if entries:
+                st.dataframe([e.to_dict() for e in entries], use_container_width=True)
+            else:
+                st.info("Nessuna voce di audit.")
 
-    with tab_trash:
-        st.write("#### Elementi Eliminati (Soft-Delete a 30 giorni)")
-        st.info("I brani nel cestino vengono conservati per 30 giorni prima dell'eliminazione definitiva.")
-        deleted_songs = storage.list_songs(include_deleted=True)
-        soft_deleted = [s for s in deleted_songs if s.get("is_deleted") == 1]
-        if soft_deleted:
-            st.dataframe(soft_deleted, use_container_width=True)
-            for sd in soft_deleted:
-                if st.button(f"Ripristina '{sd['title']}'", key=f"restore_trash_{sd['uuid']}"):
-                    storage.restore_song(sd["uuid"], st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    st.success(f"Brano '{sd['title']}' ripristinato!")
-                    st.rerun()
-        else:
-            st.write("Il cestino è attualmente vuoto.")
+        with tab_users:
+            st.write("#### 👥 Gestione Utenti, Ruoli & Permessi Band (SRS Cap. 3 & 10)")
+            users = auth_mgr.list_users()
+            u_data = []
+            for u in users:
+                u_data.append({
+                    "Email": u.email,
+                    "Nome": u.name,
+                    "Ruolo": u.role.value,
+                    "Provider": u.provider,
+                    "Attivo": "Sì" if u.is_active else "No"
+                })
+            st.dataframe(u_data, use_container_width=True)
 
-    with tab_gist:
-        st.write("#### Sincronizzazione Remota GitHub Gist (SRS Cap. 18.9 & 22.8)")
-        st.caption("Sincronizza l'intero archivio musicale con il tuo repository Gist a costo zero.")
-        is_conn, msg = gist_client.test_connection()
-        if is_conn:
-            st.success(f"🟢 Stato Connessione Gist: {msg}")
-            if st.button("☁️ Sincronizza Tutti i File su Gist Adesso", type="primary"):
-                # Gist push
-                all_s = storage.list_songs()
-                push_dict = {f"{s['uuid']}.json": json.dumps(s) for s in all_s}
-                push_ok, push_msg = gist_client.push_files(push_dict)
-                if push_ok:
-                    st.success(push_msg)
-                else:
-                    st.error(push_msg)
-        else:
-            st.warning(f"🟡 Stato Gist: {msg}")
-            st.info("Per abilitare la sincronizzazione automatica remota, configura le variabili di ambiente `GITHUB_TOKEN` e `GIST_ID` o aggiungile a `.streamlit/secrets.toml`.")
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                st.write("##### ✏️ Modifica Ruolo Utente Esistente")
+                target_user_email = st.selectbox("Seleziona Utente:", [u.email for u in users], key="target_u_email")
+                new_role_choice = st.selectbox("Nuovo Ruolo:", [r.value for r in UserRole], key="new_r_choice")
+                if st.button("Aggiorna Ruolo Utente", type="primary"):
+                    try:
+                        auth_mgr.update_user_role(target_user_email, UserRole(new_role_choice), current_user.email)
+                        st.success(f"Ruolo di {target_user_email} aggiornato a {new_role_choice}!")
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(str(ex))
+            with col_u2:
+                st.write("##### ➕ Registra Nuovo Musicista")
+                new_u_email = st.text_input("Email Nuovo Utente:", placeholder="batteria@band.org")
+                new_u_name = st.text_input("Nome e Cognome:", placeholder="Luca Rossi")
+                new_u_role = st.selectbox("Ruolo Iniziale:", [r.value for r in UserRole], index=1)
+                if st.button("Aggiungi Utente alla Band"):
+                    if new_u_email:
+                        reg_user = auth_mgr.authenticate_or_register_google(new_u_email, new_u_name)
+                        auth_mgr.update_user_role(reg_user.email, UserRole(new_u_role), current_user.email)
+                        st.success(f"Utente {reg_user.name} registrato con successo!")
+                        st.rerun()
 
-    with tab_health:
-        st.write("#### Endpoint di Controllo Salute `/health`")
-        st.json({
-            "status": "healthy",
-            "version": "2026.11.05",
-            "uptime_target": "99.9%",
-            "storage_status": "ok",
-            "in_memory_index": "active",
-            "pdf_engine": "ok",
-            "gist_sync": "configured" if gist_client.is_configured else "offline_local",
-            "ai_mode": BandAIService.get_current_mode()
-        })
+        with tab_backup:
+            st.write("#### 💾 Backup & Ripristino Disaster Recovery (SRS Cap. 10.15, 10.16 & 17.5)")
+            st.caption("Esegui un backup atomico compresso (.ZIP) di tutto il catalogo musicale, impostazioni, eventi e storico revisioni, oppure ripristina un punto di ripristino precedente.")
+
+            b_c1, b_c2 = st.columns(2)
+            with b_c1:
+                st.write("##### 📦 Esporta Backup Completo")
+                backup_bytes = BackupEngine.create_full_backup_zip()
+                now_iso = datetime.now().strftime("%Y%m%d_%H%M%S")
+                st.download_button(
+                    "💾 Scarica Backup ZIP Completo",
+                    data=backup_bytes,
+                    file_name=f"ASMA_BACKUP_{now_iso}.zip",
+                    mime="application/zip",
+                    type="primary",
+                    use_container_width=True
+                )
+                st.info("Include: brani AML, revisioni, scalette, repertori, eventi live, log di audit e utenti.")
+
+            with b_c2:
+                st.write("##### 🔄 Ripristina da File Backup ZIP")
+                uploaded_backup = st.file_uploader("Carica file ZIP di backup ASMA:", type=["zip"], key="backup_upload")
+                if uploaded_backup and st.button("⚠️ Avvia Ripristino Completo"):
+                    with st.spinner("Verifica integrità ed estrazione dei file in corso..."):
+                        ok, msg = BackupEngine.restore_from_backup_zip(uploaded_backup.read())
+                        if ok:
+                            st.success(msg)
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+        with tab_trash:
+            st.write("#### Elementi Eliminati (Soft-Delete a 30 giorni)")
+            st.info("I brani nel cestino vengono conservati per 30 giorni prima dell'eliminazione definitiva.")
+            deleted_songs = storage.list_songs(include_deleted=True)
+            soft_deleted = [s for s in deleted_songs if s.get("is_deleted") == 1]
+            if soft_deleted:
+                st.dataframe(soft_deleted, use_container_width=True)
+                for sd in soft_deleted:
+                    if st.button(f"Ripristina '{sd['title']}'", key=f"restore_trash_{sd['uuid']}"):
+                        storage.restore_song(sd["uuid"], current_user.email, current_user.name)
+                        st.success(f"Brano '{sd['title']}' ripristinato!")
+                        st.rerun()
+            else:
+                st.write("Il cestino è attualmente vuoto.")
+
+        with tab_gist:
+            st.write("#### Sincronizzazione Remota GitHub Gist (SRS Cap. 18.9 & 22.8)")
+            st.caption("Sincronizza l'intero archivio musicale con il tuo repository Gist a costo zero.")
+            is_conn, msg = gist_client.test_connection()
+            if is_conn:
+                st.success(f"🟢 Stato Connessione Gist: {msg}")
+                if st.button("☁️ Sincronizza Tutti i File su Gist Adesso", type="primary"):
+                    all_s = storage.list_songs()
+                    push_dict = {f"{s['uuid']}.json": json.dumps(s) for s in all_s}
+                    push_ok, push_msg = gist_client.push_files(push_dict)
+                    if push_ok:
+                        st.success(push_msg)
+                    else:
+                        st.error(push_msg)
+            else:
+                st.warning(f"🟡 Stato Gist: {msg}")
+                st.info("Per abilitare la sincronizzazione automatica remota, configura le variabili di ambiente `GITHUB_TOKEN` e `GIST_ID` o aggiungile a `.streamlit/secrets.toml`.")
+
+        with tab_health:
+            st.write("#### Endpoint di Controllo Salute `/health`")
+            st.json({
+                "status": "healthy",
+                "version": "2026.11.05",
+                "uptime_target": "99.9%",
+                "storage_status": "ok",
+                "in_memory_index": "active",
+                "pdf_engine": "ok",
+                "gist_sync": "configured" if gist_client.is_configured else "offline_local",
+                "ai_mode": BandAIService.get_current_mode()
+            })

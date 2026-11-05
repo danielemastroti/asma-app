@@ -115,6 +115,11 @@ class StorageManager:
                     except Exception:
                         pass
 
+    def reload_from_disk(self) -> None:
+        """Forces full reload of in-memory SQLite index from JSON files on disk."""
+        with self._mutex:
+            self._load_all_into_index()
+
     def _upsert_index_record(self, song: Song, repertoire_uuids: Optional[List[str]] = None) -> None:
         reps_str = json.dumps(repertoire_uuids or [])
         tags_str = ",".join(song.tags)
