@@ -323,6 +323,102 @@ class StorageManager:
             self.audit.log("PURGE_ALL", "TRASH", "all", user_email, user_name, {"purged_count": count})
             return count
 
+    # --- TAGS MANAGEMENT (SRS Cap. 4.3 & 17.30) ---
+
+    def list_all_tags(self) -> Dict[str, int]:
+        """Returns all distinct tags across active songs mapped to their usage count."""
+        tag_counts: Dict[str, int] = {}
+        for s_dict in self.list_songs(include_deleted=False):
+            song = self.get_song(s_dict["uuid"])
+            if song and song.tags:
+                for t in song.tags:
+                    clean_t = t.strip()
+                    if clean_t:
+                        tag_counts[clean_t] = tag_counts.get(clean_t, 0) + 1
+        return dict(sorted(tag_counts.items(), key=lambda x: x[0]))
+
+    def rename_tag_globally(
+        self,
+        old_tag: str,
+        new_tag: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> int:
+        """Renames or merges a tag across all active songs."""
+        old_clean = old_tag.strip()
+        new_clean = new_tag.strip()
+        if not old_clean or not new_clean or old_clean == new_clean:
+            return 0
+
+        updated_count = 0
+        for s_dict in self.list_songs(include_deleted=False):
+            song = self.get_song(s_dict["uuid"])
+            if song and old_clean in song.tags:
+                new_tags: List[str] = []
+                for t in song.tags:
+                    t_str = t.strip()
+                    if t_str == old_clean:
+                        if new_clean not in new_tags:
+                            new_tags.append(new_clean)
+                    elif t_str not in new_tags:
+                        new_tags.append(t_str)
+                song.tags = new_tags
+                self.save_song(song, user_email, user_name, f"Ridenominazione tag '{old_clean}' -> '{new_clean}'")
+                updated_count += 1
+
+        self.audit.log("RENAME_TAG", "SYSTEM", old_clean, user_email, user_name, {
+            "old_tag": old_clean,
+            "new_tag": new_clean,
+            "updated_songs": updated_count
+        })
+        return updated_count
+
+    def delete_tag_globally(
+        self,
+        target_tag: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> int:
+        """Removes a tag from all active songs."""
+        clean_tag = target_tag.strip()
+        if not clean_tag:
+            return 0
+
+        updated_count = 0
+        for s_dict in self.list_songs(include_deleted=False):
+            song = self.get_song(s_dict["uuid"])
+            if song and clean_tag in song.tags:
+                song.tags = [t.strip() for t in song.tags if t.strip() != clean_tag]
+                self.save_song(song, user_email, user_name, f"Rimozione globale tag '{clean_tag}'")
+                updated_count += 1
+
+        self.audit.log("DELETE_TAG", "SYSTEM", clean_tag, user_email, user_name, {
+            "tag": clean_tag,
+            "updated_songs": updated_count
+        })
+        return updated_count
+
+    def add_tag_to_songs(
+        self,
+        tag: str,
+        song_uuids: List[str],
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> int:
+        """Applies a tag to multiple songs in bulk."""
+        clean_tag = tag.strip()
+        if not clean_tag:
+            return 0
+
+        count = 0
+        for uid in song_uuids:
+            song = self.get_song(uid)
+            if song and clean_tag not in song.tags:
+                song.tags.append(clean_tag)
+                self.save_song(song, user_email, user_name, f"Assegnazione tag '{clean_tag}'")
+                count += 1
+        return count
+
     # --- SEARCH & FILTER (SQL in-memory < 2ms) ---
 
     def search_songs(

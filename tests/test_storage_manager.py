@@ -174,6 +174,42 @@ class TestStorageManager(unittest.TestCase):
         purged = self.storage.empty_trash()
         self.assertEqual(purged, 1)
 
+    def test_tag_management(self):
+        """Test listing, renaming, deleting and bulk-assigning tags across songs."""
+        s1 = Song(title="Song One", tags=["rock", "live"])
+        s2 = Song(title="Song Two", tags=["rock", "ballad"])
+        s3 = Song(title="Song Three", tags=["pop"])
+
+        self.storage.save_song(s1)
+        self.storage.save_song(s2)
+        self.storage.save_song(s3)
+
+        # 1. List tags with frequency
+        tags_dict = self.storage.list_all_tags()
+        self.assertEqual(tags_dict.get("rock"), 2)
+        self.assertEqual(tags_dict.get("live"), 1)
+        self.assertEqual(tags_dict.get("ballad"), 1)
+        self.assertEqual(tags_dict.get("pop"), 1)
+
+        # 2. Rename / merge tag globally
+        updated = self.storage.rename_tag_globally("rock", "hard-rock")
+        self.assertEqual(updated, 2)
+        tags_after_rename = self.storage.list_all_tags()
+        self.assertNotIn("rock", tags_after_rename)
+        self.assertEqual(tags_after_rename.get("hard-rock"), 2)
+
+        # 3. Add tag to songs in bulk
+        count = self.storage.add_tag_to_songs("summer2026", [s1.uuid, s3.uuid])
+        self.assertEqual(count, 2)
+        tags_after_add = self.storage.list_all_tags()
+        self.assertEqual(tags_after_add.get("summer2026"), 2)
+
+        # 4. Delete tag globally
+        del_count = self.storage.delete_tag_globally("hard-rock")
+        self.assertEqual(del_count, 2)
+        tags_after_del = self.storage.list_all_tags()
+        self.assertNotIn("hard-rock", tags_after_del)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -465,6 +465,8 @@ elif menu_choice == "📝 Editor & Split-View":
                 storage.save_song(song, user_email, user_name, "Conversione notazione internazionale")
                 st.rerun()
 
+        tags_input = st.text_input("🏷️ Tag del Brano (separati da virgola):", value=", ".join(song.tags or []), disabled=not can_edit, help="Es: ballad, rock, acustico, bis")
+
         aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit)
         rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit)
 
@@ -477,6 +479,7 @@ elif menu_choice == "📝 Editor & Split-View":
                 song.bpm = bpm_input
                 song.genre = genre_input
                 song.capo = capo_input
+                song.tags = [t.strip().lower() for t in tags_input.split(",") if t.strip()]
                 song.aml_content = aml_editor_text
                 saved = storage.save_song(song, user_email, user_name, rev_comment)
                 st.success(f"Salvato con successo! Nuova Revisione #{saved.current_revision}")
@@ -877,7 +880,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
 elif menu_choice == "🔍 Ricerca Globale":
     st.subheader("🔍 Ricerca Globale Multi-Criterio (< 2ms)")
 
-    c_q1, c_q2, c_q3, c_q4 = st.columns(4)
+    c_q1, c_q2, c_q3, c_q4, c_q5 = st.columns(5)
     with c_q1:
         search_txt = st.text_input("Parola chiave (titolo/autore/testo):", "")
     with c_q2:
@@ -886,13 +889,17 @@ elif menu_choice == "🔍 Ricerca Globale":
         search_bpm = st.number_input("BPM Massimo:", min_value=0, max_value=300, value=250)
     with c_q4:
         search_genre = st.text_input("Genere:", "")
+    with c_q5:
+        available_tags = ["Tutti"] + list(storage.list_all_tags().keys())
+        search_tag = st.selectbox("Filtra per Tag:", available_tags)
 
     t0 = time.perf_counter()
     res = storage.search_songs(
         query_text=search_txt or None,
         key=search_key or None,
         bpm_max=search_bpm if search_bpm > 0 else None,
-        genre=search_genre or None
+        genre=search_genre or None,
+        tag=search_tag if search_tag != "Tutti" else None
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -970,9 +977,10 @@ elif menu_choice == "⚙️ Amministrazione & Log":
         st.error(f"⛔ **Accesso Negato**: Questa sezione è riservata esclusivamente agli amministratori. Il tuo account ({current_user.email}) ha il ruolo di **{current_user.role.value}**.")
         st.info("Per accedere, seleziona un profilo ADMIN nella barra laterale o chiedi a un amministratore di aggiornare i tuoi privilegi.")
     else:
-        tab_locks, tab_audit, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
+        tab_locks, tab_audit, tab_tags, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
             "🔒 Gestione Lock Attivi",
             "📜 Audit Trail Immutabile",
+            "🏷️ Gestione Tag & Tassonomia",
             "👥 Utenti & Ruoli Band",
             "💾 Backup & Ripristino",
             "🗑️ Cestino (Retention 30gg)",
@@ -1000,6 +1008,86 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 st.dataframe([e.to_dict() for e in entries], use_container_width=True)
             else:
                 st.info("Nessuna voce di audit.")
+
+        with tab_tags:
+            st.write("#### 🏷️ Gestione Centralizzata Tag & Tassonomia (Solo ADMIN)")
+            st.caption("Organizza, raggruppa, rinomina o elimina tag a livello globale in tutti i brani del catalogo musicale.")
+
+            tag_counts = storage.list_all_tags()
+            total_tags = len(tag_counts)
+            total_tagged_instances = sum(tag_counts.values())
+
+            m_t1, m_t2, m_t3 = st.columns(3)
+            with m_t1:
+                st.metric("Tag Distinti", total_tags)
+            with m_t2:
+                st.metric("Applicazioni Complessive", total_tagged_instances)
+            with m_t3:
+                most_used = max(tag_counts.items(), key=lambda x: x[1])[0] if tag_counts else "Nessuno"
+                st.metric("Tag Più Utilizzato", most_used)
+
+            st.write("##### 📋 Elenco Tag e Frequenza d'Uso")
+            if tag_counts:
+                tag_rows = [{"Tag": k, "Numero Brani": v} for k, v in tag_counts.items()]
+                st.dataframe(tag_rows, use_container_width=True)
+            else:
+                st.info("Nessun tag assegnato ai brani nel catalogo.")
+
+            st.divider()
+
+            col_tag_op1, col_tag_op2, col_tag_op3 = st.columns(3)
+            with col_tag_op1:
+                st.write("##### ✏️ Rinomina o Unisci Tag (Merge)")
+                st.caption("Rinomina un tag in tutti i brani in cui compare. Se il nuovo nome esiste già, i tag verranno unificati.")
+                if tag_counts:
+                    source_tag = st.selectbox("Seleziona Tag da rinominare:", list(tag_counts.keys()), key="src_tag_sel")
+                    target_tag = st.text_input("Nuovo Nome Tag:", placeholder="es. acoustic-live", key="target_tag_input")
+                    if st.button("Rinomina Tag Globalmente", type="primary"):
+                        if target_tag.strip():
+                            updated = storage.rename_tag_globally(source_tag, target_tag, current_user.email, current_user.name)
+                            st.success(f"Tag '{source_tag}' rinominato in '{target_tag.strip()}' su {updated} brani!")
+                            st.rerun()
+                        else:
+                            st.warning("Inserisci un nuovo nome valido per il tag.")
+                else:
+                    st.info("Nessun tag disponibile da rinominare.")
+
+            with col_tag_op2:
+                st.write("##### 🗑️ Eliminazione Globale Tag")
+                st.caption("Rimuove completamente un tag da tutti i brani del catalogo musicale.")
+                if tag_counts:
+                    tag_to_delete = st.selectbox("Seleziona Tag da eliminare:", list(tag_counts.keys()), key="del_tag_sel")
+                    with st.popover("🗑️ Elimina Tag dal Catalogo", use_container_width=True):
+                        st.warning(f"Vuoi davvero rimuovere il tag **'{tag_to_delete}'** da tutti i brani che lo contengono?")
+                        if st.button("Conferma Rimozione Globale", type="secondary", key="btn_confirm_del_tag"):
+                            removed = storage.delete_tag_globally(tag_to_delete, current_user.email, current_user.name)
+                            st.success(f"Tag '{tag_to_delete}' rimosso con successo da {removed} brani!")
+                            st.rerun()
+                else:
+                    st.info("Nessun tag disponibile da eliminare.")
+
+            with col_tag_op3:
+                st.write("##### 🏷️ Assegnazione Massiva Tag (Bulk)")
+                st.caption("Assegna rapidamente un tag a una selezione multipla di brani.")
+                all_active_songs = storage.list_songs(include_deleted=False)
+                if all_active_songs:
+                    song_map = {s["uuid"]: s["title"] for s in all_active_songs}
+                    selected_uuids = st.multiselect(
+                        "Seleziona brani a cui assegnare il tag:",
+                        options=list(song_map.keys()),
+                        format_func=lambda x: song_map[x],
+                        key="bulk_tag_songs"
+                    )
+                    bulk_tag_name = st.text_input("Tag da assegnare:", placeholder="es. scaletta-estiva", key="bulk_tag_name")
+                    if st.button("Assegna Tag ai Brani Selezionati"):
+                        if bulk_tag_name.strip() and selected_uuids:
+                            added = storage.add_tag_to_songs(bulk_tag_name, selected_uuids, current_user.email, current_user.name)
+                            st.success(f"Tag '{bulk_tag_name.strip()}' assegnato a {added} brani!")
+                            st.rerun()
+                        else:
+                            st.warning("Seleziona almeno un brano e specifica un tag.")
+                else:
+                    st.info("Nessun brano attivo disponibile nel catalogo.")
 
         with tab_users:
             st.write("#### 👥 Gestione Utenti, Ruoli & Permessi Band (SRS Cap. 3 & 10)")
