@@ -7,5 +7,50 @@
     "comment": "Inizializzazione catalogo",
     "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: G}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| G | D | Am | Am |\n| G | D | C | C |\n\n{verse}\n[G]Mama, take this [D]badge off of [Am]me\n[G]I can't [D]use it any[C]more\n[G]It's gettin' [D]dark, too dark for me to [Am]see\n[G]I feel I'm [D]knockin' on heaven's [C]door\n\n{chorus}\n[G]Knock, knock, [D]knockin' on heaven's [Am]door\n[G]Knock, knock, [D]knockin' on heaven's [C]door\n",
     "timestamp": "2026-11-05T18:40:10.351911+00:00"
+  },
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 2,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Trasposizione -1 semitono",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: F#}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| F# | C# | Abm | Abm |\n| F# | C# | B | B |\n\n{verse}\n[F#]Mama, take this [C#]badge off of [Abm]me\n[F#]I can't [C#]use it any[B]more\n[F#]It's gettin' [C#]dark, too dark for me to [Abm]see\n[F#]I feel I'm [C#]knockin' on heaven's [B]door\n\n{chorus}\n[F#]Knock, knock, [C#]knockin' on heaven's [Abm]door\n[F#]Knock, knock, [C#]knockin' on heaven's [B]door\n",
+    "timestamp": "2026-11-05T18:42:37.059822+00:00"
+  },
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 3,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Trasposizione +1 semitono",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: G}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| G | D | Am | Am |\n| G | D | C | C |\n\n{verse}\n[G]Mama, take this [D]badge off of [Am]me\n[G]I can't [D]use it any[C]more\n[G]It's gettin' [D]dark, too dark for me to [Am]see\n[G]I feel I'm [D]knockin' on heaven's [C]door\n\n{chorus}\n[G]Knock, knock, [D]knockin' on heaven's [Am]door\n[G]Knock, knock, [D]knockin' on heaven's [C]door\n",
+    "timestamp": "2026-11-05T18:42:38.432962+00:00"
+  },
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 4,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Conversione notazione italiana",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: SOL}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| SOL | RE | LAm | LAm |\n| SOL | RE | DO | DO |\n\n{verse}\n[SOL]Mama, take this [RE]badge off of [LAm]me\n[SOL]I can't [RE]use it any[DO]more\n[SOL]It's gettin' [RE]dark, too dark for me to [LAm]see\n[SOL]I feel I'm [RE]knockin' on heaven's [DO]door\n\n{chorus}\n[SOL]Knock, knock, [RE]knockin' on heaven's [LAm]door\n[SOL]Knock, knock, [RE]knockin' on heaven's [DO]door\n",
+    "timestamp": "2026-11-05T18:42:43.451818+00:00"
+  },
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 5,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Conversione notazione internazionale",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: G}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| G | D | Am | Am |\n| G | D | C | C |\n\n{verse}\n[G]Mama, take this [D]badge off of [Am]me\n[G]I can't [D]use it any[C]more\n[G]It's gettin' [D]dark, too dark for me to [Am]see\n[G]I feel I'm [D]knockin' on heaven's [C]door\n\n{chorus}\n[G]Knock, knock, [D]knockin' on heaven's [Am]door\n[G]Knock, knock, [D]knockin' on heaven's [C]door\n",
+    "timestamp": "2026-11-05T18:42:48.366323+00:00"
+  },
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 6,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Modifica accordi e sezioni",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: G}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| G | D | Am | Am |\n| G | D | C | C |\n\n{verse}\n[G]Mama, take this [D]badge off of [Am]me\n[G]I can't [D]use it any[C]more\n[G]It's gettin' [D]dark, too dark for me to [Am]see\n[G]I feel I'm [D]knockin' on heaven's [C]door\n\n{chorus}\n[G]Knock, knock, [D]knockin' on heaven's [Am]door\n[G]Knock, knock, [D]knockin' on heaven's [C]door\n",
+    "timestamp": "2026-11-05T18:43:08.542711+00:00"
   }
 ]

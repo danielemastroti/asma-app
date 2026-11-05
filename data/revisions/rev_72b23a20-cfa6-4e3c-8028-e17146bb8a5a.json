@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "72b23a20-cfa6-4e3c-8028-e17146bb8a5a",
+    "revision_number": 1,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Bozza creata da ricerca web",
+    "aml_snapshot": "{title: Lo Spettacolo}\n{artist: Litfiba}\n{key: G}\n{tempo: 120}\n{time: 4/4}\n\n{intro}\n| G | D | Em | C |\n\n{verse}\n[G]Testo del brano trovato online... [D]\n[Em]Seconda riga con gli accordi posizionati [C]\n\n{chorus}\n[C]Ritornello da [D]completare con [G]la band!\n",
+    "timestamp": "2026-11-05T18:45:20.479475+00:00"
+  }
+]

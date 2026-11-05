@@ -1,0 +1,34 @@
+[
+  {
+    "email": "daniele@band.org",
+    "name": "Daniele Rossi (Admin)",
+    "role": "ADMIN",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Daniele",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "marco.chitarra@band.org",
+    "name": "Marco Bassi (Chitarra / Band)",
+    "role": "BAND_MEMBER",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Marco",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "sara.voce@band.org",
+    "name": "Sara Voci (Cantante / Band)",
+    "role": "BAND_MEMBER",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Sara",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "ospite@band.org",
+    "name": "Ospite / Fan (Solo Lettura)",
+    "role": "VIEWER",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Ospite",
+    "is_active": true,
+    "provider": "google"
+  }
+]
