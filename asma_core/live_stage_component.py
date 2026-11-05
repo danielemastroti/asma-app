@@ -26,6 +26,19 @@ class LiveStageComponent:
         """
         Builds a self-contained HTML/CSS/JS application that runs client-side inside the browser.
         """
+        import base64
+        import os
+        logo_b64 = ""
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "band_logo.png")
+        if not os.path.exists(logo_path):
+            logo_path = "assets/band_logo.png"
+        if os.path.exists(logo_path):
+            try:
+                with open(logo_path, "rb") as f:
+                    logo_b64 = "data:image/png;base64," + base64.b64encode(f.read()).decode("utf-8")
+            except Exception:
+                pass
+
         # Pre-process songs into structured JSON for client-side rendering
         client_songs: List[Dict[str, Any]] = []
         for s in songs:
@@ -321,7 +334,8 @@ class LiveStageComponent:
 
 <!-- TOP HUD -->
 <div id="stage-hud">
-  <div class="hud-group">
+  <div class="hud-group" style="display:flex; align-items:center; gap:10px;">
+    {f'<img src="{logo_b64}" style="height:26px; object-fit:contain;" alt="Logo" />' if logo_b64 else ''}
     <button class="btn" onclick="prevSong()">◀ Prec (1)</button>
     <span id="hud-counter" style="font-weight: bold;">Brano 1 di 1</span>
     <button class="btn" onclick="nextSong()">Succ (2) ▶</button>

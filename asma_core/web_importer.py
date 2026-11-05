@@ -60,13 +60,14 @@ class WebSongImporter:
                         cand_title = re.sub(r"(?i)\s*accordi(\s+100%\s+corretti)?.*", "", cand_title).strip()
                         if cand_title:
                             score = cls._compute_relevance(song_title, artist, cand_title, cand_artist)
-                            candidates.append({
-                                "title": cand_title,
-                                "artist": cand_artist or artist or "Artista Sconosciuto",
-                                "portal": "Accordi e Spartiti",
-                                "url": href,
-                                "score": score
-                            })
+                            if score > 0:
+                                candidates.append({
+                                    "title": cand_title,
+                                    "artist": cand_artist or artist or "Artista Sconosciuto",
+                                    "portal": "Accordi e Spartiti",
+                                    "url": href,
+                                    "score": score
+                                })
         except Exception:
             pass  # Fail gracefully to allow other sources
 
@@ -91,13 +92,14 @@ class WebSongImporter:
                                 cand_title = res.get("song_name", "")
                                 cand_artist = res.get("artist_name", "")
                                 score = cls._compute_relevance(song_title, artist, cand_title, cand_artist)
-                                candidates.append({
-                                    "title": cand_title,
-                                    "artist": cand_artist,
-                                    "portal": "Ultimate Guitar",
-                                    "url": tab_url,
-                                    "score": score
-                                })
+                                if score > 0:
+                                    candidates.append({
+                                        "title": cand_title,
+                                        "artist": cand_artist,
+                                        "portal": "Ultimate Guitar",
+                                        "url": tab_url,
+                                        "score": score
+                                    })
         except Exception:
             pass
 

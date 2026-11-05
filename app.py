@@ -26,9 +26,11 @@ if "health" in params or params.get("endpoint") == "health":
     st.stop()
 
 # Set Streamlit Page Configuration
+import os
+page_icon_val = "assets/band_logo.png" if os.path.exists("assets/band_logo.png") else "🎵"
 st.set_page_config(
-    page_title="ASMA Accordi 2.0",
-    page_icon="🎵",
+    page_title="THE New ASMA — Accordi 2.0",
+    page_icon=page_icon_val,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -116,22 +118,39 @@ role_colors = {
 }
 role_col = role_colors.get(current_user.role.value, "#FFFFFF")
 
-col_h1, col_h2, col_h3 = st.columns([2, 1, 1])
+col_h1, col_h2, col_h3 = st.columns([2.5, 0.5, 1])
 with col_h1:
-    st.markdown(f"""
-    <div style="display:flex; align-items:center; gap:16px;">
-      <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
-      <span class="status-badge">🟢 ONLINE</span>
-      <span class="version-tag">Versione: <b>ASMA 2026.11.05</b></span>
-    </div>
-    """, unsafe_allow_html=True)
+    if os.path.exists("assets/band_logo.png"):
+        col_lg, col_us = st.columns([1, 3.5])
+        with col_lg:
+            st.image("assets/band_logo.png", use_container_width=True)
+        with col_us:
+            st.markdown(f"""
+            <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+              <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
+              <span class="status-badge">🟢 ONLINE</span>
+              <span class="version-tag"><b>ASMA 2026.11.05</b></span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
+          <span class="status-badge">🟢 ONLINE</span>
+          <span class="version-tag">Versione: <b>ASMA 2026.11.05</b></span>
+        </div>
+        """, unsafe_allow_html=True)
 with col_h3:
     st.caption(f"Storage: SQLite+Gist | Permessi: {'Full Write' if current_user.can_edit() else 'Read Only'}")
 
 st.divider()
 
-# SIDEBAR: Autenticazione & Selezione Profilo (SRS Cap. 3 & 10)
+# SIDEBAR: Logo & Autenticazione & Selezione Profilo (SRS Cap. 3 & 10)
 with st.sidebar:
+    if os.path.exists("assets/band_logo.png"):
+        st.image("assets/band_logo.png", use_container_width=True)
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
     st.markdown("### 🔐 Autenticazione & Utente")
     all_users = auth_mgr.list_users()
     user_emails = [u.email for u in all_users]
@@ -182,7 +201,15 @@ menu_choice = st.sidebar.radio(
 # 1. HOME DASHBOARD
 # ------------------------------------------------------------------------------
 if menu_choice == "🏠 Home Dashboard":
-    st.subheader("🏠 Home Dashboard Band")
+    c_dash_logo, c_dash_txt = st.columns([1, 4])
+    with c_dash_logo:
+        if os.path.exists("assets/band_logo.png"):
+            st.image("assets/band_logo.png", use_container_width=True)
+    with c_dash_txt:
+        st.subheader("🏠 THE New ASMA — Dashboard Ufficiale")
+        st.caption("Piattaforma Digitale Integrata Band: Repertorio, Live Stage 60fps, Scalette, Editor AML & Accordi")
+
+    st.write("")
 
     songs = storage.list_songs()
     repertoires = storage.list_repertoires()

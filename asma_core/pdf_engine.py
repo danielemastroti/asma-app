@@ -5,6 +5,7 @@ Zero-AI Dependency. Conforms to SRS Cap. 13 and Blueprint Sec. 7.
 """
 
 from __future__ import annotations
+import os
 import io
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
@@ -222,7 +223,18 @@ class PDFEngine:
         story: List[Flowable] = []
 
         # Cover Page
-        story.append(Spacer(1, 20 * mm))
+        story.append(Spacer(1, 10 * mm))
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "band_logo.png")
+        if not os.path.exists(logo_path):
+            logo_path = "assets/band_logo.png"
+        if os.path.exists(logo_path):
+            try:
+                from reportlab.platypus import Image as RLImage
+                story.append(RLImage(logo_path, width=50 * mm, height=20 * mm))
+                story.append(Spacer(1, 6 * mm))
+            except Exception:
+                pass
+
         story.append(Paragraph(f"<b>SCALETTA LIVE: {setlist.title.upper()}</b>", styles["DocTitle"]))
         if setlist.date:
             story.append(Paragraph(f"Data Esecuzione: <b>{setlist.date}</b>", styles["SectionText"]))
@@ -379,6 +391,35 @@ class PDFEngine:
         if song.capo > 0:
             meta_str += f" | <b>Capo:</b> {song.capo}° tasto"
         meta_p = Paragraph(meta_str, styles["SectionText"])
+
+        logo_flowable = None
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "band_logo.png")
+        if not os.path.exists(logo_path):
+            logo_path = "assets/band_logo.png"
+        if os.path.exists(logo_path):
+            try:
+                from reportlab.platypus import Image as RLImage
+                logo_flowable = RLImage(logo_path, width=28 * mm, height=11 * mm)
+            except Exception:
+                pass
+
+        if logo_flowable:
+            table_data = [
+                [title_p, logo_flowable],
+                [artist_p, meta_p]
+            ]
+            col1_w = usable_width * 0.65
+            col2_w = usable_width * 0.35
+            t = Table(table_data, colWidths=[col1_w, col2_w])
+            t.setStyle(TableStyle([
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('ALIGN', (1, 1), (1, 1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('LINEBELOW', (0, 1), (-1, 1), 1.0, colors.HexColor("#333333"))
+            ]))
+            return t
 
         table_data = [
             [title_p, meta_p],
