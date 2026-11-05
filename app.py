@@ -38,6 +38,168 @@ st.set_page_config(
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
 <style>
+  /* Ensure page content starts below the top fixed bar */
+  .main .block-container {
+    padding-top: 54px !important;
+  }
+
+  /* TOP FIXED BAR (Always Visible & Animated) */
+  .asma-top-fixed-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 42px;
+    background: rgba(13, 17, 23, 0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 2px solid #0288D1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    z-index: 999999;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Glowing laser progress line on top edge */
+  .asma-laser-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, #0288D1, #00E5FF, #FFD600, #00E676, #00E5FF, #0288D1);
+    background-size: 300% 100%;
+    animation: asma-laser-flow 3s ease infinite;
+  }
+
+  @keyframes asma-laser-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .asma-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .asma-brand-name {
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: #FFFFFF;
+  }
+  .asma-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.4);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #00E676;
+    transition: all 0.3s ease;
+  }
+  .asma-led-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #00E676;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #00E676;
+    animation: asma-led-pulse 1.8s infinite;
+  }
+  @keyframes asma-led-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px #00E676; }
+    50% { opacity: 0.35; transform: scale(0.85); box-shadow: 0 0 2px #00E676; }
+  }
+
+  /* Center Equalizer Soundwave Animation */
+  .asma-bar-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .asma-eq-container {
+    display: flex;
+    align-items: flex-end;
+    height: 16px;
+    gap: 3px;
+  }
+  .asma-eq-bar {
+    width: 3px;
+    background: #00E5FF;
+    border-radius: 2px;
+    animation: asma-eq-bounce 1.2s ease-in-out infinite alternate;
+  }
+  .eq-1 { height: 6px; animation-delay: 0.0s; }
+  .eq-2 { height: 12px; animation-delay: 0.2s; background: #00E676; }
+  .eq-3 { height: 16px; animation-delay: 0.4s; background: #FFD600; }
+  .eq-4 { height: 9px; animation-delay: 0.1s; background: #00E5FF; }
+  .eq-5 { height: 14px; animation-delay: 0.3s; background: #FF5252; }
+  .eq-6 { height: 7px; animation-delay: 0.5s; background: #00E676; }
+  .eq-7 { height: 11px; animation-delay: 0.25s; background: #00E5FF; }
+
+  @keyframes asma-eq-bounce {
+    0% { height: 3px; }
+    50% { height: 16px; }
+    100% { height: 7px; }
+  }
+  .asma-eq-label {
+    font-size: 11px;
+    color: #94A3B8;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .asma-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .asma-user-chip {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+  }
+
+  /* Style Streamlit's native status widget when running */
+  [data-testid="stStatusWidget"] {
+    position: fixed !important;
+    top: 6px !important;
+    right: 20px !important;
+    z-index: 1000001 !important;
+    background: rgba(2, 136, 209, 0.95) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #00E5FF !important;
+    border-radius: 16px !important;
+    padding: 2px 10px !important;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.7) !important;
+    animation: asma-widget-glow 1s infinite alternate !important;
+  }
+  @keyframes asma-widget-glow {
+    0% { box-shadow: 0 0 8px rgba(0, 229, 255, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(0, 229, 255, 1); }
+  }
+
+  /* Finestra di Stato Terminal Box */
+  .asma-terminal-box {
+    background: #0b0f19;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 12px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7);
+  }
+
   .top-header {
     background-color: #1A1A1A;
     border-bottom: 2px solid #333333;
@@ -75,6 +237,7 @@ from asma_core.aml_parser import AMLParser
 from asma_core.storage_manager import StorageManager
 from asma_core.lock_manager import LockManager
 from asma_core.audit_logger import AuditLogger
+from asma_core.operation_logger import OperationLogger, OperationLogEntry
 from asma_core.pdf_engine import PDFEngine
 from asma_core.live_stage_component import LiveStageComponent
 from asma_core.export_engine import ExportEngine
@@ -91,6 +254,7 @@ from asma_core.backup_engine import BackupEngine
 storage = StorageManager()
 lock_mgr = LockManager()
 audit = AuditLogger()
+op_logger = OperationLogger()
 gist_client = GistClient()
 auth_mgr = AuthManager()
 
@@ -118,7 +282,79 @@ role_colors = {
 }
 role_col = role_colors.get(current_user.role.value, "#FFFFFF")
 
-col_h1, col_h2, col_h3 = st.columns([2.5, 0.5, 1])
+def log_op(icon: str, category: str, message: str, level: str = "SUCCESS"):
+    """Helper to log an operation into the live status console."""
+    user_str = f"{current_user.name} [{current_user.role.value}]" if 'current_user' in locals() and current_user else "System"
+    op_logger.log(icon, category, message, level=level, user=user_str)
+
+if "session_boot_logged" not in st.session_state:
+    st.session_state["session_boot_logged"] = True
+    log_op("🟢", "SISTEMA", f"Accesso sessione effettuato da {current_user.name} ({current_user.email}) - Ruolo: {current_user.role.value}", "SUCCESS")
+
+def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main", compact: bool = False):
+    """Renders the interactive status window printing executed operations."""
+    if compact:
+        entries = logger_inst.get_entries(limit=18)
+        html_lines = "".join(e.to_terminal_line() for e in entries) if entries else "<div style='color:#888;'>Nessuna operazione registrata.</div>"
+        st.markdown(f"<div class='asma-terminal-box' style='max-height: 220px;'>{html_lines}</div>", unsafe_allow_html=True)
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_btn", use_container_width=True):
+                logger_inst.clear()
+                st.rerun()
+        with col_c2:
+            st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_btn", use_container_width=True)
+    else:
+        st.write("##### 📟 Finestra di Stato & Monitor Operazioni Eseguite")
+        c1, c2, c3 = st.columns([2, 1, 1.2])
+        with c1:
+            cat_filter = st.selectbox("Filtra per Categoria:", logger_inst.get_categories(), key=f"{key_prefix}_cat")
+        with c2:
+            limit_val = st.selectbox("Numero Eventi:", [15, 30, 50, 100], index=1, key=f"{key_prefix}_limit")
+        with c3:
+            st.write("")
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_full", use_container_width=True):
+                    logger_inst.clear()
+                    st.rerun()
+            with b2:
+                st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_full", use_container_width=True)
+
+        filtered = logger_inst.get_entries(limit=limit_val, category=cat_filter)
+        html_lines = "".join(e.to_terminal_line() for e in filtered) if filtered else "<div style='color:#888; padding:10px;'>Nessun evento registrato per questa categoria.</div>"
+        st.markdown(f"<div class='asma-terminal-box' style='max-height: 320px;'>{html_lines}</div>", unsafe_allow_html=True)
+
+# TOP FIXED ANIMATED WORKING BAR (Always visible at the very top of viewport)
+st.markdown(f"""
+<div class="asma-top-fixed-bar">
+  <div class="asma-laser-line"></div>
+  <div class="asma-bar-left">
+    <span class="asma-brand-name">⚡ THE New ASMA</span>
+    <div class="asma-status-pill" id="asma-status-pill">
+      <span class="asma-led-dot"></span>
+      <span id="asma-status-text">SISTEMA ONLINE</span>
+    </div>
+  </div>
+  <div class="asma-bar-center">
+    <div class="asma-eq-container" title="Attività Live Motore ASMA">
+      <span class="asma-eq-bar eq-1"></span>
+      <span class="asma-eq-bar eq-2"></span>
+      <span class="asma-eq-bar eq-3"></span>
+      <span class="asma-eq-bar eq-4"></span>
+      <span class="asma-eq-bar eq-5"></span>
+      <span class="asma-eq-bar eq-6"></span>
+      <span class="asma-eq-bar eq-7"></span>
+    </div>
+    <span class="asma-eq-label" id="asma-work-label">MOTORE ACCORDI & PALCO ATTIVO</span>
+  </div>
+  <div class="asma-bar-right">
+    <span class="asma-user-chip" style="color:{role_col};">👤 {current_user.name} [{current_user.role.value}]</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+col_h1, col_h2, col_h3 = st.columns([2.5, 0.5, 1.2])
 with col_h1:
     if os.path.exists("assets/band_logo.png"):
         col_lg, col_us = st.columns([1, 3.5])
@@ -142,6 +378,8 @@ with col_h1:
         """, unsafe_allow_html=True)
 with col_h3:
     st.caption(f"Storage: SQLite+Gist | Permessi: {'Full Write' if current_user.can_edit() else 'Read Only'}")
+    with st.popover(f"📟 Finestra Stato ({op_logger.count()})", use_container_width=True):
+        render_status_console(op_logger, key_prefix="header_pop", compact=False)
 
 st.divider()
 
@@ -164,6 +402,9 @@ with st.sidebar:
     )
     if selected_account != st.session_state["current_user_email"]:
         st.session_state["current_user_email"] = selected_account
+        u_sel = auth_mgr.get_user_by_email(selected_account)
+        if u_sel:
+            log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
         st.rerun()
 
     with st.expander("🔑 Accedi con Google (OAuth2)"):
@@ -174,6 +415,7 @@ with st.sidebar:
             if in_email:
                 new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
                 st.session_state["current_user_email"] = new_u.email
+                log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
                 st.success(f"Accesso riuscito come {new_u.name}!")
                 st.rerun()
 
@@ -196,6 +438,10 @@ menu_choice = st.sidebar.radio(
         "⚙️ Amministrazione & Log"
     ]
 )
+
+st.sidebar.divider()
+with st.sidebar.expander(f"📟 Finestra di Stato & Log ({op_logger.count()})", expanded=True):
+    render_status_console(op_logger, key_prefix="sidebar_con", compact=True)
 
 # ------------------------------------------------------------------------------
 # 1. HOME DASHBOARD
@@ -273,6 +519,7 @@ elif menu_choice == "📚 Repertori":
                 if new_r_name:
                     created_rep = Repertoire(name=new_r_name, description=new_r_desc)
                     storage.save_repertoire(created_rep, current_user.email, current_user.name)
+                    log_op("📚", "REPERTORIO", f"Creato nuovo repertorio '{new_r_name}'", "SUCCESS")
                     st.success(f"Repertorio '{new_r_name}' creato!")
                     st.rerun()
 
@@ -281,6 +528,7 @@ elif menu_choice == "📚 Repertori":
                 st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
                 if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
                     storage.delete_repertoire(selected_rep.uuid, current_user.email, current_user.name)
+                    log_op("🗑️", "REPERTORIO", f"Eliminato repertorio '{selected_rep.name}'", "WARNING")
                     st.success(f"Repertorio '{selected_rep.name}' eliminato.")
                     st.rerun()
 
@@ -300,6 +548,7 @@ elif menu_choice == "📚 Repertori":
             saved = storage.save_song(new_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
             storage.move_song_to_repertoire(saved.uuid, selected_rep.uuid)
             st.session_state["selected_song_uuid"] = saved.uuid
+            log_op("➕", "BRANO", f"Creato nuovo brano '{saved.title}' nel repertorio '{selected_rep.name}'", "SUCCESS")
             st.success(f"Creato brano '{saved.title}'")
             st.rerun()
 
@@ -314,6 +563,7 @@ elif menu_choice == "📚 Repertori":
                 )
                 if st.button("➕ Aggiungi al Repertorio", disabled=not current_user.can_edit()):
                     storage.move_song_to_repertoire(s_to_add_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    log_op("📥", "REPERTORIO", f"Brano associato al repertorio '{selected_rep.name}'", "INFO")
                     st.success("Brano associato con successo a questo repertorio!")
                     st.rerun()
 
@@ -430,6 +680,7 @@ elif menu_choice == "📝 Editor & Split-View":
                     st.write("")
                     if st.button("Collega", disabled=not can_edit):
                         storage.move_song_to_repertoire(song.uuid, target_r_obj.uuid, user_email, user_name)
+                        log_op("📚", "REPERTORIO", f"Brano '{song.title}' associato a '{target_r_obj.name}'", "INFO")
                         st.success(f"Brano associato a '{target_r_obj.name}'!")
                         st.rerun()
 
@@ -443,6 +694,7 @@ elif menu_choice == "📝 Editor & Split-View":
                 song.aml_content = new_doc.to_aml()
                 song.key_current = MusicEngine.transpose_chord(song.key_current, semitones=-1)
                 storage.save_song(song, user_email, user_name, "Trasposizione -1 semitono")
+                log_op("⬇️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto -1 semitono in {song.key_current}", "SUCCESS")
                 st.rerun()
         with tr_c2:
             if st.button("⬆️ +1 Semitono", disabled=not can_edit):
@@ -451,18 +703,21 @@ elif menu_choice == "📝 Editor & Split-View":
                 song.aml_content = new_doc.to_aml()
                 song.key_current = MusicEngine.transpose_chord(song.key_current, semitones=1)
                 storage.save_song(song, user_email, user_name, "Trasposizione +1 semitono")
+                log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +1 semitono in {song.key_current}", "SUCCESS")
                 st.rerun()
         with tr_c3:
             if st.button("🇮🇹 Converti in ITA", disabled=not can_edit):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "ITA").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione italiana")
+                log_op("🇮🇹", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Italiana", "INFO")
                 st.rerun()
         with tr_c4:
             if st.button("🌐 Converti in INT", disabled=not can_edit):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "INT").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione internazionale")
+                log_op("🌐", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Internazionale", "INFO")
                 st.rerun()
 
         tags_input = st.text_input("🏷️ Tag del Brano (separati da virgola):", value=", ".join(song.tags or []), disabled=not can_edit, help="Es: ballad, rock, acustico, bis")
@@ -482,11 +737,13 @@ elif menu_choice == "📝 Editor & Split-View":
                 song.tags = [t.strip().lower() for t in tags_input.split(",") if t.strip()]
                 song.aml_content = aml_editor_text
                 saved = storage.save_song(song, user_email, user_name, rev_comment)
+                log_op("💾", "SALVATAGGIO", f"Salvata Nuova Revisione #{saved.current_revision} per '{song.title}'", "SUCCESS")
                 st.success(f"Salvato con successo! Nuova Revisione #{saved.current_revision}")
                 st.rerun()
         with col_s2:
             if st.button("🔓 Rilascia Lock", use_container_width=True):
                 lock_mgr.release_lock(song.uuid, user_email)
+                log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{song.title}'", "INFO")
                 st.info("Lock rilasciato.")
                 st.rerun()
         with col_s3:
@@ -495,6 +752,7 @@ elif menu_choice == "📝 Editor & Split-View":
                 if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_editor_{song.uuid}"):
                     lock_mgr.release_lock(song.uuid, user_email, force=True)
                     storage.delete_song(song.uuid, user_email, user_name)
+                    log_op("🗑️", "CESTINO", f"Brano '{song.title}' spostato nel cestino (soft-delete 30gg)", "WARNING")
                     st.session_state["selected_song_uuid"] = None
                     st.success(f"Brano '{song.title}' spostato nel cestino.")
                     st.rerun()
@@ -570,6 +828,7 @@ elif menu_choice == "📑 Scalette Live":
                 new_set = Setlist(title=new_title, date=new_date)
                 storage.save_setlist(new_set, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.session_state["selected_setlist_uuid"] = new_set.uuid
+                log_op("📑", "SCALETTA", f"Creata scaletta live '{new_title}' ({new_date})", "SUCCESS")
                 st.success(f"Creata scaletta '{new_title}'")
                 st.rerun()
 
@@ -587,6 +846,7 @@ elif menu_choice == "📑 Scalette Live":
                         if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_set_{active_setlist.uuid}"):
                             storage.delete_setlist(active_setlist.uuid, current_user.email, current_user.name)
                             st.session_state["selected_setlist_uuid"] = None
+                            log_op("🗑️", "SCALETTA", f"Eliminata scaletta '{active_setlist.title}'", "WARNING")
                             st.success("Scaletta eliminata con successo.")
                             st.rerun()
 
@@ -595,6 +855,9 @@ elif menu_choice == "📑 Scalette Live":
                     if st.button("➕ Inserisci in Scaletta", disabled=not current_user.can_edit()):
                         active_setlist.items.append(SetlistItem(song_uuid=add_song_id))
                         storage.save_setlist(active_setlist, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                        log_op("➕", "SCALETTA", f"Aggiunto brano '{song_map[add_song_id]['title']}' a '{active_setlist.title}'", "INFO")
+                        st.success("Brano aggiunto alla scaletta!")
+                        st.rerun()
                         st.success("Brano aggiunto alla scaletta!")
                         st.rerun()
 
@@ -743,9 +1006,11 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                     if target_rep:
                         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     rep_msg = f" ed inserito nel repertorio **'{target_rep.name}'**" if target_rep else ""
+                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' ({saved.artist}) da URL web", "SUCCESS")
                     st.success(f"Brano importato e salvato con successo: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
                     st.session_state["selected_song_uuid"] = saved.uuid
                 except Exception as err:
+                    log_op("❌", "WEB IMPORT", f"Errore import URL: {str(err)}", "ERROR")
                     st.error(f"Errore durante l'importazione da Web: {str(err)}")
 
         st.divider()
@@ -768,6 +1033,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             with st.spinner("Ricerca in corso sui portali di accordi..."):
                 found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
                 st.session_state["web_search_candidates"] = found_candidates
+                log_op("🔍", "WEB IMPORT", f"Ricerca online per '{search_title}': trovati {len(found_candidates)} spartiti", "INFO")
                 if not found_candidates:
                     st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
 
@@ -780,9 +1046,11 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.session_state["selected_song_uuid"] = saved.uuid
                     rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
+                    log_op("⚡", "WEB IMPORT", f"Importazione rapida completata: '{saved.title}' ({saved.artist})", "SUCCESS")
                     st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
                     st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
                 except Exception as err:
+                    log_op("❌", "WEB IMPORT", f"Errore import automatico: {str(err)}", "ERROR")
                     st.error(f"Errore durante l'importazione automatica: {str(err)}")
 
         # Visualizza risultati candidati trovati
@@ -808,8 +1076,10 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                                         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                                     st.session_state["selected_song_uuid"] = saved.uuid
                                     rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' da {cand['portal']}", "SUCCESS")
                                     st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`){rep_msg}!")
                                 except Exception as e_imp:
+                                    log_op("❌", "WEB IMPORT", f"Errore importazione candidato: {str(e_imp)}", "ERROR")
                                     st.error(f"Errore importazione: {str(e_imp)}")
 
     with tab_imp:
@@ -1045,6 +1315,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     if st.button("Rinomina Tag Globalmente", type="primary"):
                         if target_tag.strip():
                             updated = storage.rename_tag_globally(source_tag, target_tag, current_user.email, current_user.name)
+                            log_op("✏️", "TAG", f"Tag '{source_tag}' rinominato globalmente in '{target_tag.strip()}' su {updated} brani", "SUCCESS")
                             st.success(f"Tag '{source_tag}' rinominato in '{target_tag.strip()}' su {updated} brani!")
                             st.rerun()
                         else:
@@ -1061,6 +1332,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                         st.warning(f"Vuoi davvero rimuovere il tag **'{tag_to_delete}'** da tutti i brani che lo contengono?")
                         if st.button("Conferma Rimozione Globale", type="secondary", key="btn_confirm_del_tag"):
                             removed = storage.delete_tag_globally(tag_to_delete, current_user.email, current_user.name)
+                            log_op("🗑️", "TAG", f"Tag '{tag_to_delete}' eliminato da {removed} brani", "WARNING")
                             st.success(f"Tag '{tag_to_delete}' rimosso con successo da {removed} brani!")
                             st.rerun()
                 else:
@@ -1082,6 +1354,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     if st.button("Assegna Tag ai Brani Selezionati"):
                         if bulk_tag_name.strip() and selected_uuids:
                             added = storage.add_tag_to_songs(bulk_tag_name, selected_uuids, current_user.email, current_user.name)
+                            log_op("🏷️", "TAG", f"Tag '{bulk_tag_name.strip()}' assegnato in bulk a {added} brani", "SUCCESS")
                             st.success(f"Tag '{bulk_tag_name.strip()}' assegnato a {added} brani!")
                             st.rerun()
                         else:
@@ -1111,6 +1384,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 if st.button("Aggiorna Ruolo Utente", type="primary"):
                     try:
                         auth_mgr.update_user_role(target_user_email, UserRole(new_role_choice), current_user.email)
+                        log_op("👥", "UTENTI", f"Ruolo di {target_user_email} aggiornato a {new_role_choice}", "INFO")
                         st.success(f"Ruolo di {target_user_email} aggiornato a {new_role_choice}!")
                         st.rerun()
                     except Exception as ex:
@@ -1124,6 +1398,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     if new_u_email:
                         reg_user = auth_mgr.authenticate_or_register_google(new_u_email, new_u_name)
                         auth_mgr.update_user_role(reg_user.email, UserRole(new_u_role), current_user.email)
+                        log_op("➕", "UTENTI", f"Registrato utente {reg_user.name} ({new_u_role})", "SUCCESS")
                         st.success(f"Utente {reg_user.name} registrato!")
                         st.rerun()
             with col_u3:
@@ -1136,6 +1411,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                         if st.button("Conferma Eliminazione Account", type="secondary"):
                             try:
                                 auth_mgr.delete_user(user_to_delete, current_user.email)
+                                log_op("🗑️", "UTENTI", f"Eliminato account {user_to_delete}", "WARNING")
                                 st.success(f"Utente '{user_to_delete}' eliminato con successo.")
                                 st.rerun()
                             except Exception as err:
@@ -1152,6 +1428,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 st.write("##### 📦 Esporta Backup Completo")
                 backup_bytes = BackupEngine.create_full_backup_zip()
                 now_iso = datetime.now().strftime("%Y%m%d_%H%M%S")
+                log_op("📦", "BACKUP", f"Creato archivio backup completo ({len(backup_bytes)} bytes)", "INFO")
                 st.download_button(
                     "💾 Scarica Backup ZIP Completo",
                     data=backup_bytes,
@@ -1168,6 +1445,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 if uploaded_backup and st.button("⚠️ Avvia Ripristino Completo"):
                     with st.spinner("Verifica integrità ed estrazione dei file in corso..."):
                         ok, msg = BackupEngine.restore_from_backup_zip(uploaded_backup.read())
+                        log_op("🔄", "BACKUP", f"Ripristino backup: {msg}", "SUCCESS" if ok else "ERROR")
                         if ok:
                             st.success(msg)
                             st.rerun()
@@ -1188,6 +1466,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                         st.warning("Vuoi eliminare definitivamente TUTTI i brani nel cestino? L'operazione è irreversibile.")
                         if st.button("Conferma Svuota Cestino", type="secondary", disabled=not current_user.can_admin()):
                             purged = storage.empty_trash(current_user.email, current_user.name)
+                            log_op("🧹", "CESTINO", f"Cestino svuotato: eliminati definitivamente {purged} brani", "WARNING")
                             st.success(f"Cestino svuotato: {purged} brani eliminati definitivamente.")
                             st.rerun()
 
@@ -1199,6 +1478,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     with c_sd2:
                         if st.button("🔄 Ripristina", key=f"restore_{sd['uuid']}", use_container_width=True):
                             storage.restore_song(sd["uuid"], current_user.email, current_user.name)
+                            log_op("♻️", "RIPRISTINO", f"Brano '{sd['title']}' ripristinato dal cestino", "SUCCESS")
                             st.success(f"Brano '{sd['title']}' ripristinato nell'archivio!")
                             st.rerun()
                     with c_sd3:
@@ -1206,6 +1486,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                             st.write(f"Eliminare definitivamente **'{sd['title']}'**?")
                             if st.button("Conferma", key=f"purge_{sd['uuid']}", type="secondary", disabled=not current_user.can_admin()):
                                 storage.purge_song_permanently(sd["uuid"], current_user.email, current_user.name)
+                                log_op("🔥", "CESTINO", f"Brano '{sd['title']}' eliminato definitivamente", "WARNING")
                                 st.success(f"Brano '{sd['title']}' eliminato definitivamente.")
                                 st.rerun()
             else:
@@ -1221,6 +1502,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     all_s = storage.list_songs()
                     push_dict = {f"{s['uuid']}.json": json.dumps(s) for s in all_s}
                     push_ok, push_msg = gist_client.push_files(push_dict)
+                    log_op("☁️", "SYNC GIST", f"Gist push: {push_msg}", "SUCCESS" if push_ok else "ERROR")
                     if push_ok:
                         st.success(push_msg)
                     else:
@@ -1241,3 +1523,12 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 "gist_sync": "configured" if gist_client.is_configured else "offline_local",
                 "ai_mode": BandAIService.get_current_mode()
             })
+
+# ------------------------------------------------------------------------------
+# FINESTRA DI STATO BOTTOM (Accessibile da tutte le sezioni di ASMA)
+# ------------------------------------------------------------------------------
+st.write("")
+st.divider()
+with st.expander(f"📟 Finestra di Stato — Registro Operazioni in Tempo Reale ({op_logger.count()} eventi registrati)", expanded=False):
+    render_status_console(op_logger, key_prefix="footer_console", compact=False)
+
