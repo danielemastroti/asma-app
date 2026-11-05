@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "da3aba7f-efa8-4d4c-b745-050c6a59b069",
+    "revision_number": 1,
+    "author_email": "admin@band.org",
+    "author_name": "Amministratore",
+    "comment": "Inizializzazione catalogo",
+    "aml_snapshot": "{title: Canzone per un'amica}\n{artist: Nomadi}\n{key: SOL}\n{tempo: 92}\n{time: 4/4}\n\n{intro}\n| SOL | RE | DO | SOL |\n\n{verse}\n[SOL]Lunga e diritta [RE]correva la strada,\nl'auto [DO]veloce cor[SOL]reva\nLa dolce estate era [MIm]già cominciata,\n[DO]vicino a lui sorri[RE]deva\n\n{chorus}\n[SOL]Non correre, [DO]diceva [SOL]bella,\nche c'è [RE]tempo per arrivare\n[SOL]Non correre, [DO]diceva [SOL]bella,\nche c'è [RE]tempo per arri[SOL]vare\n",
+    "timestamp": "2026-11-05T18:40:10.308712+00:00"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "uuid": "86e98df2-f0c2-4088-9b8d-eee12d6762c0",
+  "title": "Sultans of Swing",
+  "artist": "Dire Straits",
+  "author": "Mark Knopfler",
+  "genre": "Rock",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 148,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "Dm",
+  "key_current": "Dm",
+  "notation_system": "INT",
+  "tags": [
+    "rock",
+    "chitarra",
+    "fingerpicking"
+  ],
+  "shared_notes": "Suonare in fingerpicking stile Mark Knopfler.",
+  "aml_content": "{title: Sultans of Swing}\n{artist: Dire Straits}\n{key: Dm}\n{tempo: 148}\n{time: 4/4}\n\n{intro}\n| Dm | C Bb | A | A |\n| Dm | C Bb | A | A |\n\n{verse}\nYou get a [Dm]shiver in the dark, it's raining [C]in the [Bb]park but mean[A]time\n[Dm]South of the river you stop and you [C]hold every[Bb]thing [A]\n[F]A band is blowing Dixie double [C]four time\n[Bb]You feel alright when you hear the music [Dm]ring [Bb] [C]\n\n{chorus}\nAnd then you [Dm]step inside, but you don't [C]see too many [Bb]faces [A]\nComing in [Dm]out of the rain to hear the [C]jazz go [Bb]down [A]\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-05T18:40:10.322903+00:00",
+  "updated_at": "2026-11-05T18:40:10.322903+00:00"
+}

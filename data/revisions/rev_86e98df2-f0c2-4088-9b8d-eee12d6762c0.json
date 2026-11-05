@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "86e98df2-f0c2-4088-9b8d-eee12d6762c0",
+    "revision_number": 1,
+    "author_email": "admin@band.org",
+    "author_name": "Amministratore",
+    "comment": "Inizializzazione catalogo",
+    "aml_snapshot": "{title: Sultans of Swing}\n{artist: Dire Straits}\n{key: Dm}\n{tempo: 148}\n{time: 4/4}\n\n{intro}\n| Dm | C Bb | A | A |\n| Dm | C Bb | A | A |\n\n{verse}\nYou get a [Dm]shiver in the dark, it's raining [C]in the [Bb]park but mean[A]time\n[Dm]South of the river you stop and you [C]hold every[Bb]thing [A]\n[F]A band is blowing Dixie double [C]four time\n[Bb]You feel alright when you hear the music [Dm]ring [Bb] [C]\n\n{chorus}\nAnd then you [Dm]step inside, but you don't [C]see too many [Bb]faces [A]\nComing in [Dm]out of the rain to hear the [C]jazz go [Bb]down [A]\n",
+    "timestamp": "2026-11-05T18:40:10.322903+00:00"
+  }
+]

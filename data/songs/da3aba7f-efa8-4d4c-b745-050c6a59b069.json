@@ -1,0 +1,32 @@
+{
+  "uuid": "da3aba7f-efa8-4d4c-b745-050c6a59b069",
+  "title": "Canzone per un'amica",
+  "artist": "Nomadi",
+  "author": "Francesco Guccini",
+  "genre": "Cantautore",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 92,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "SOL",
+  "key_current": "SOL",
+  "notation_system": "INT",
+  "tags": [
+    "live",
+    "italiano",
+    "acustico"
+  ],
+  "shared_notes": "Ingresso chitarra acustica e flauto.",
+  "aml_content": "{title: Canzone per un'amica}\n{artist: Nomadi}\n{key: SOL}\n{tempo: 92}\n{time: 4/4}\n\n{intro}\n| SOL | RE | DO | SOL |\n\n{verse}\n[SOL]Lunga e diritta [RE]correva la strada,\nl'auto [DO]veloce cor[SOL]reva\nLa dolce estate era [MIm]già cominciata,\n[DO]vicino a lui sorri[RE]deva\n\n{chorus}\n[SOL]Non correre, [DO]diceva [SOL]bella,\nche c'è [RE]tempo per arrivare\n[SOL]Non correre, [DO]diceva [SOL]bella,\nche c'è [RE]tempo per arri[SOL]vare\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-05T18:40:10.308712+00:00",
+  "updated_at": "2026-11-05T18:40:10.308712+00:00"
+}

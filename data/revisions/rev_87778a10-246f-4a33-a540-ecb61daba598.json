@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "87778a10-246f-4a33-a540-ecb61daba598",
+    "revision_number": 1,
+    "author_email": "admin@band.org",
+    "author_name": "Amministratore",
+    "comment": "Inizializzazione catalogo",
+    "aml_snapshot": "{title: Hotel California}\n{artist: Eagles}\n{key: Bm}\n{tempo: 74}\n{time: 4/4}\n\n{intro}\n| Bm | F#7 | A | E | G | D | Em | F#7 |\n\n{verse}\n[Bm]On a dark desert highway, [F#7]cool wind in my hair\n[A]Warm smell of colitas, [E]rising up through the air\n[G]Up ahead in the distance, [D]I saw a shimmering light\n[Em]My head grew heavy and my sight grew dim, [F#7]I had to stop for the night\n\n{chorus}\n[G]Welcome to the Hotel Cali[D]fornia\nSuch a [Em]lovely place, such a [F#7]lovely face\n[G]Plenty of room at the Hotel Cali[D]fornia\nAny [Em]time of year, you can [F#7]find it here\n\n{solo}\n| Bm | F#7 | A | E | G | D | Em | F#7 |\n{guitar: Assolo finale chitarra 1 (Felder) poi chitarra 2 (Walsh)}\n",
+    "timestamp": "2026-11-05T18:40:10.295418+00:00"
+  }
+]

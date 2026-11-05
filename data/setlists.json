@@ -1,0 +1,70 @@
+[
+  {
+    "uuid": "ea41dcfc-d361-4955-8676-38ab9a55227e",
+    "title": "Scaletta Tour Estate 2027",
+    "date": "15/07/2027",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "4d066c91-d6b3-4d3d-8162-a4e4bbbc301b",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-05T18:33:30.327693+00:00",
+    "updated_at": "2026-11-05T18:33:35.807549+00:00"
+  },
+  {
+    "uuid": "34bc9468-f2ef-41fa-bd76-a16ca38c7278",
+    "title": "Concerto Live Tour Estate 2027",
+    "date": "20/07/2027",
+    "description": "Scaletta ufficiale per il festival estivo principale.",
+    "items": [
+      {
+        "song_uuid": "87778a10-246f-4a33-a540-ecb61daba598",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": "Apertura potente"
+      },
+      {
+        "song_uuid": "da3aba7f-efa8-4d4c-b745-050c6a59b069",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": "Stacco acustico"
+      },
+      {
+        "song_uuid": "86e98df2-f0c2-4088-9b8d-eee12d6762c0",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": "Assolo chitarra"
+      },
+      {
+        "song_uuid": "7bd9b49d-3589-4624-a959-9065ab0fd68c",
+        "is_medley": true,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": "Medley canto libero"
+      },
+      {
+        "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+        "is_medley": true,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": "Chiusura con jam e saluti"
+      }
+    ],
+    "created_at": "2026-11-05T18:40:10.365912+00:00",
+    "updated_at": "2026-11-05T18:40:10.366913+00:00"
+  }
+]

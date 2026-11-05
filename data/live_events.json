@@ -1,0 +1,12 @@
+[
+  {
+    "uuid": "461cb5fb-3f7f-409d-b69e-a2972dc79b2c",
+    "name": "Summer Rock Festival 2027",
+    "venue": "Piazza del Popolo, Roma",
+    "event_date": "20/07/2027",
+    "setlist_uuid": "34bc9468-f2ef-41fa-bd76-a16ca38c7278",
+    "logistics_notes": "Arrivo furgone ore 15:00. Soundcheck ore 17:00. Inizio concerto ore 21:30. Forniti 4 monitor spia e D.I. box.",
+    "created_at": "2026-11-05T18:40:10.367903+00:00",
+    "updated_at": "2026-11-05T18:40:10.367903+00:00"
+  }
+]

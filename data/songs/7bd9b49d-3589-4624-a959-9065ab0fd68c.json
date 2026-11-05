@@ -1,0 +1,32 @@
+{
+  "uuid": "7bd9b49d-3589-4624-a959-9065ab0fd68c",
+  "title": "Il Mio Canto Libero",
+  "artist": "Lucio Battisti",
+  "author": "Mogol, Lucio Battisti",
+  "genre": "Pop / Cantautore",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 78,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "LA",
+  "key_current": "LA",
+  "notation_system": "INT",
+  "tags": [
+    "acustico",
+    "classico",
+    "coro"
+  ],
+  "shared_notes": "Crescendo continuo fino al finale corale a squarciagola.",
+  "aml_content": "{title: Il Mio Canto Libero}\n{artist: Lucio Battisti}\n{key: LA}\n{tempo: 78}\n{time: 4/4}\n\n{verse}\nIn un [LA]mondo che\nnon ci [FA#m]vuole più\nil mio [RE]canto libero [MI]sei tu\n\n{chorus}\nNasce il [LA]sole e l'ar[FA#m]cobaleno\nsopra un [RE]cielo limpido e se[MI]reno\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-05T18:40:10.337905+00:00",
+  "updated_at": "2026-11-05T18:40:10.337905+00:00"
+}

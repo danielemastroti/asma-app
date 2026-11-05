@@ -1,0 +1,30 @@
+{
+  "uuid": "e2e02f41-34e3-497d-8889-2fef463cae9e",
+  "title": "Lo Spettacolo ",
+  "artist": "Litfiba ",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "G",
+  "notation_system": "INT",
+  "tags": [
+    "bozza-web"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: Lo Spettacolo }\n{artist: Litfiba }\n{key: G}\n{tempo: 120}\n{time: 4/4}\n\n{intro}\n| G | D | Em | C |\n\n{verse}\n[G]Testo del brano trovato online... [D]\n[Em]Seconda riga con gli accordi posizionati [C]\n\n{chorus}\n[C]Ritornello da [D]completare con [G]la band!\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 3,
+  "created_at": "2026-11-05T18:37:22.726793+00:00",
+  "updated_at": "2026-11-05T18:38:03.876855+00:00"
+}

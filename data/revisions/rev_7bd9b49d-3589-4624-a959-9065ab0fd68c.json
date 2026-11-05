@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "7bd9b49d-3589-4624-a959-9065ab0fd68c",
+    "revision_number": 1,
+    "author_email": "admin@band.org",
+    "author_name": "Amministratore",
+    "comment": "Inizializzazione catalogo",
+    "aml_snapshot": "{title: Il Mio Canto Libero}\n{artist: Lucio Battisti}\n{key: LA}\n{tempo: 78}\n{time: 4/4}\n\n{verse}\nIn un [LA]mondo che\nnon ci [FA#m]vuole più\nil mio [RE]canto libero [MI]sei tu\n\n{chorus}\nNasce il [LA]sole e l'ar[FA#m]cobaleno\nsopra un [RE]cielo limpido e se[MI]reno\n",
+    "timestamp": "2026-11-05T18:40:10.337905+00:00"
+  }
+]

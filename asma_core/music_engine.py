@@ -1,0 +1,399 @@
+"""
+ASMA Accordi Next Generation - Music Engine
+Mathematical, Deterministic Pure-Python Music Theory Engine
+Zero-AI Dependency. Conforms to SRS Cap. 8 and Blueprint Sec. 6.
+"""
+
+from __future__ import annotations
+import re
+from typing import Tuple, Optional, List, Dict, Union
+
+# Pitch Class Mapping (0 = C / DO)
+PITCH_CLASSES_INT_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+PITCH_CLASSES_INT_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+
+PITCH_CLASSES_ITA_SHARP = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"]
+PITCH_CLASSES_ITA_FLAT  = ["DO", "REb", "RE", "MIb", "MI", "FA", "SOLb", "SOL", "LAb", "LA", "SIb", "SI"]
+
+# Root note to Pitch Class index
+ROOT_TO_PC: Dict[str, int] = {
+    # International
+    "C": 0, "B#": 0,
+    "C#": 1, "DB": 1,
+    "D": 2,
+    "D#": 3, "EB": 3,
+    "E": 4, "FB": 4,
+    "F": 5, "E#": 5,
+    "F#": 6, "GB": 6,
+    "G": 7,
+    "G#": 8, "AB": 8,
+    "A": 9,
+    "A#": 10, "BB": 10,
+    "B": 11, "CB": 11,
+    # Italian
+    "DO": 0, "SI#": 0,
+    "DO#": 1, "REB": 1,
+    "RE": 2,
+    "RE#": 3, "MIB": 3,
+    "MI": 4, "FAB": 4,
+    "FA": 5, "MI#": 5,
+    "FA#": 6, "SOLB": 6,
+    "SOL": 7,
+    "SOL#": 8, "LAB": 8,
+    "LA": 9,
+    "LA#": 10, "SIB": 10,
+    "SI": 11, "DOB": 11,
+}
+
+# Circle of fifths positions (0 = C, 1 = G, 2 = D, 3 = A, 4 = E, 5 = B, 6 = F#/Gb, 7 = Db/C#, 8 = Ab/G#, 9 = Eb/D#, 10 = Bb/A#, 11 = F)
+CIRCLE_OF_FIFTHS: Dict[int, int] = {
+    0: 0,   # C
+    7: 1,   # G
+    2: 2,   # D
+    9: 3,   # A
+    4: 4,   # E
+    11: 5,  # B
+    6: 6,   # F#
+    1: 7,   # C# / Db
+    8: 8,   # Ab
+    3: 9,   # Eb
+    10: 10, # Bb
+    5: 11,  # F
+}
+
+# Keys preferring sharps vs flats in standard circle of fifths
+SHARP_KEYS = {7, 2, 9, 4, 11, 6}  # G, D, A, E, B, F#
+FLAT_KEYS  = {5, 10, 3, 8, 1}     # F, Bb, Eb, Ab, Db
+
+# Root note extraction regex pattern (case-insensitive)
+# Supports Italian (DO, RE, MI, FA, SOL, LA, SI) and International (C, D, E, F, G, A, B)
+ROOT_REGEX = re.compile(
+    r"^(SOL|DO|RE|MI|FA|LA|SI|[A-G])(#|b|bb|##)?",
+    re.IGNORECASE
+)
+
+
+class ParsedChord:
+    """Represents a structured, parsed musical chord."""
+    def __init__(
+        self,
+        raw_root: str,
+        accidental: str,
+        quality_and_extension: str,
+        raw_bass: Optional[str] = None,
+        bass_accidental: Optional[str] = None,
+        is_italian: bool = False
+    ):
+        self.raw_root = raw_root.upper()
+        self.accidental = accidental
+        self.quality_and_extension = quality_and_extension
+        self.raw_bass = raw_bass.upper() if raw_bass else None
+        self.bass_accidental = bass_accidental or ""
+        self.is_italian = is_italian
+
+    @property
+    def full_root(self) -> str:
+        return f"{self.raw_root}{self.accidental}"
+
+    @property
+    def pitch_class(self) -> int:
+        norm = self.full_root.upper()
+        if norm in ROOT_TO_PC:
+            return ROOT_TO_PC[norm]
+        raise ValueError(f"Root note sconosciuta: '{self.full_root}'")
+
+    @property
+    def bass_pitch_class(self) -> Optional[int]:
+        if not self.raw_bass:
+            return None
+        norm = f"{self.raw_bass}{self.bass_accidental}".upper()
+        if norm in ROOT_TO_PC:
+            return ROOT_TO_PC[norm]
+        return None
+
+    def __repr__(self) -> str:
+        bass_part = f"/{self.raw_bass}{self.bass_accidental}" if self.raw_bass else ""
+        return f"ParsedChord({self.full_root}{self.quality_and_extension}{bass_part}, ita={self.is_italian})"
+
+
+class MusicEngine:
+    """Core Mathematical Music Theory Engine."""
+
+    @staticmethod
+    def is_italian_note(note_str: str) -> bool:
+        """Determines whether a note or chord begins with Italian solfège nomenclature."""
+        upper = note_str.strip().upper()
+        for prefix in ["SOL", "DO", "RE", "MI", "FA", "LA", "SI"]:
+            if upper.startswith(prefix):
+                return True
+        return False
+
+    @classmethod
+    def parse_chord(cls, chord_str: str) -> Optional[ParsedChord]:
+        """
+        Parses a chord string into its constituent parts:
+        root, accidental, quality/extension, and optional slash bass.
+        Example: 'DO7+', 'F#m7b5', 'C/E', 'SOLm/SIb', 'LA-'
+        """
+        clean = chord_str.strip()
+        if not clean or clean in ["/", "%", "|", "-", "--"]:
+            return None
+
+        # Check for slash bass
+        parts = clean.split("/")
+        main_part = parts[0].strip()
+        bass_part = parts[1].strip() if len(parts) > 1 else None
+
+        # Match root note
+        match = ROOT_REGEX.match(main_part)
+        if not match:
+            return None
+
+        raw_root = match.group(1).upper()
+        accidental = match.group(2) or ""
+        remainder = main_part[match.end():]
+
+        is_italian = raw_root in ["DO", "RE", "MI", "FA", "SOL", "LA", "SI"]
+
+        # Parse bass if present
+        raw_bass = None
+        bass_accidental = ""
+        if bass_part:
+            bass_match = ROOT_REGEX.match(bass_part)
+            if bass_match:
+                raw_bass = bass_match.group(1).upper()
+                bass_accidental = bass_match.group(2) or ""
+
+        return ParsedChord(
+            raw_root=raw_root,
+            accidental=accidental,
+            quality_and_extension=remainder,
+            raw_bass=raw_bass,
+            bass_accidental=bass_accidental,
+            is_italian=is_italian
+        )
+
+    @classmethod
+    def normalize_italian_qualities(cls, quality_ext: str) -> str:
+        """
+        Normalizes Italian informal shorthand qualities into international standard:
+        LA- -> LAm
+        DO7+ -> DOmaj7
+        DO+ -> DOaug
+        """
+        q = quality_ext
+        # Replace trailing or leading minus with 'm' (e.g. '-' -> 'm', '-7' -> 'm7')
+        if q == "-":
+            return "m"
+        if q.startswith("-"):
+            return "m" + q[1:]
+        # Replace 7+ with maj7
+        if "7+" in q:
+            return q.replace("7+", "maj7")
+        # Replace + with aug when isolated
+        if q == "+":
+            return "aug"
+        return q
+
+    @classmethod
+    def convert_quality_to_italian(cls, quality_ext: str, prefer_traditional: bool = False) -> str:
+        """Converts international qualities into Italian conventions if preferred."""
+        if not prefer_traditional:
+            return quality_ext
+        q = quality_ext
+        if q == "m":
+            return "-"
+        if q == "maj7":
+            return "7+"
+        if q == "aug":
+            return "+"
+        return q
+
+    @classmethod
+    def format_pitch_class(
+        cls,
+        pc: int,
+        target_system: str = "INT",  # "INT" or "ITA"
+        prefer_flats: Optional[bool] = None,
+        key_context_pc: Optional[int] = None
+    ) -> str:
+        """
+        Formats a Pitch Class integer [0-11] into a formatted note name.
+        Uses circle-of-fifths key context and explicit flat/sharp overrides.
+        """
+        norm_pc = pc % 12
+        use_flats = False
+
+        if prefer_flats is not None:
+            use_flats = prefer_flats
+        elif key_context_pc is not None and key_context_pc in FLAT_KEYS:
+            use_flats = True
+        elif norm_pc in [10, 3, 8]:  # Bb, Eb, Ab are universally preferred as flats in common music
+            use_flats = True
+
+        if target_system.upper() == "ITA":
+            return PITCH_CLASSES_ITA_FLAT[norm_pc] if use_flats else PITCH_CLASSES_ITA_SHARP[norm_pc]
+        else:
+            return PITCH_CLASSES_INT_FLAT[norm_pc] if use_flats else PITCH_CLASSES_INT_SHARP[norm_pc]
+
+    @classmethod
+    def transpose_chord(
+        cls,
+        chord_str: str,
+        semitones: int,
+        target_system: Optional[str] = None,  # "INT", "ITA" or None (preserve)
+        prefer_flats: Optional[bool] = None,
+        destination_key: Optional[str] = None
+    ) -> str:
+        """
+        Transposes an individual chord by a given number of semitones [-12, +12].
+        Correctly preserves qualities, extensions, and transposes slash bass.
+        """
+        parsed = cls.parse_chord(chord_str)
+        if not parsed:
+            return chord_str
+
+        # Calculate new pitch class
+        new_pc = (parsed.pitch_class + semitones) % 12
+
+        # Determine target naming system (ITA or INT)
+        if target_system is not None:
+            out_system = target_system.upper()
+        else:
+            out_system = "ITA" if parsed.is_italian else "INT"
+
+        # Determine destination key context PC if provided
+        dest_key_pc = None
+        if destination_key:
+            dest_parsed = cls.parse_chord(destination_key)
+            if dest_parsed:
+                dest_key_pc = dest_parsed.pitch_class
+
+        # Format new root
+        new_root = cls.format_pitch_class(
+            new_pc,
+            target_system=out_system,
+            prefer_flats=prefer_flats,
+            key_context_pc=dest_key_pc
+        )
+
+        # Quality normalization
+        norm_quality = cls.normalize_italian_qualities(parsed.quality_and_extension)
+
+        # Transpose bass note if present
+        new_bass_str = ""
+        if parsed.bass_pitch_class is not None:
+            new_bass_pc = (parsed.bass_pitch_class + semitones) % 12
+            new_bass_note = cls.format_pitch_class(
+                new_bass_pc,
+                target_system=out_system,
+                prefer_flats=prefer_flats,
+                key_context_pc=dest_key_pc
+            )
+            new_bass_str = f"/{new_bass_note}"
+
+        return f"{new_root}{norm_quality}{new_bass_str}"
+
+    @classmethod
+    def convert_notation(
+        cls,
+        chord_str: str,
+        to_system: str  # "ITA" or "INT"
+    ) -> str:
+        """Converts chord notation system without changing pitch (0 semitones)."""
+        return cls.transpose_chord(chord_str, semitones=0, target_system=to_system)
+
+    @classmethod
+    def calculate_semitone_delta(cls, from_key: str, to_key: str) -> int:
+        """
+        Calculates the minimum semitone difference between two keys:
+        Returns value in range [-5, +6].
+        """
+        p_from = cls.parse_chord(from_key)
+        p_to = cls.parse_chord(to_key)
+        if not p_from or not p_to:
+            raise ValueError(f"Tonalità invalida: '{from_key}' o '{to_key}'")
+
+        diff = (p_to.pitch_class - p_from.pitch_class) % 12
+        if diff > 6:
+            diff -= 12
+        return diff
+
+    @classmethod
+    def calculate_harmonic_compatibility(
+        cls,
+        key_a: str,
+        bpm_a: int,
+        key_b: str,
+        bpm_b: int
+    ) -> Tuple[float, Dict[str, Any]]:
+        """
+        Calculates medley compatibility between two songs based on Circle of Fifths
+        harmonic distance and tempo difference (Cap. 11.6).
+        Returns a score from 0.0 (incompatible) to 1.0 (perfect fit).
+        """
+        p_a = cls.parse_chord(key_a)
+        p_b = cls.parse_chord(key_b)
+        if not p_a or not p_b:
+            return 0.0, {"error": "Invalid keys"}
+
+        # Circle of fifths distance
+        pos_a = CIRCLE_OF_FIFTHS.get(p_a.pitch_class, 0)
+        pos_b = CIRCLE_OF_FIFTHS.get(p_b.pitch_class, 0)
+        fifths_dist = min(abs(pos_a - pos_b), 12 - abs(pos_a - pos_b))
+
+        # Harmonic score: 1.0 for distance 0, 0.8 for dist 1 (subdominant/dominant/relative), decreases further
+        harmonic_score = max(0.0, 1.0 - (fifths_dist * 0.2))
+
+        # BPM difference percentage
+        max_bpm = max(bpm_a, bpm_b, 1)
+        bpm_diff_pct = (abs(bpm_a - bpm_b) / max_bpm) * 100.0
+        rhythm_score = max(0.0, 1.0 - (bpm_diff_pct / 30.0))
+
+        total_score = (harmonic_score * 0.6) + (rhythm_score * 0.4)
+
+        return round(total_score, 2), {
+            "fifths_distance": fifths_dist,
+            "bpm_diff_percent": round(bpm_diff_pct, 1),
+            "harmonic_score": round(harmonic_score, 2),
+            "rhythm_score": round(rhythm_score, 2),
+            "recommended_transition": (
+                "Transizione diretta fluida" if fifths_dist <= 1 and bpm_diff_pct <= 10.0
+                else "Consigliata modulazione o pausa ritmica"
+            )
+        }
+
+    @classmethod
+    def identify_progression(cls, chord_sequence: List[str]) -> Dict[str, Any]:
+        """
+        Identifies whether a sequence of chords represents a standard harmonic turnaround
+        (e.g., I-V-vi-IV, I-vi-IV-V, ii-V-I).
+        """
+        parsed_list = [cls.parse_chord(c) for c in chord_sequence if cls.parse_chord(c)]
+        if not parsed_list or len(parsed_list) < 2:
+            return {"is_progression": False, "chords": chord_sequence}
+
+        # Root pitch classes
+        pcs = [p.pitch_class for p in parsed_list]
+        base_pc = pcs[0]
+
+        # Intervals relative to base
+        intervals = [(pc - base_pc) % 12 for pc in pcs]
+
+        known_patterns = {
+            (0, 9, 5, 7): "Giro di DO classico (I - vi - IV - V)",
+            (0, 7, 9, 5): "Pop Progression (I - V - vi - IV)",
+            (0, 5, 7):    "Blues / Rock Cadence (I - IV - V)",
+            (2, 7, 0):    "Jazz Turnaround (ii - V - I)",
+            (9, 5, 0, 7): "Andalusia / Minor progression (vi - IV - I - V)"
+        }
+
+        pattern_tuple = tuple(intervals)
+        description = known_patterns.get(pattern_tuple, "Progressione armonica personalizzata")
+
+        return {
+            "is_progression": True,
+            "pattern_intervals": intervals,
+            "description": description,
+            "chords": [p.full_root + p.quality_and_extension for p in parsed_list]
+        }

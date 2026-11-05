@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "1b984f5e-7b03-4097-b593-6321670e9913",
+    "revision_number": 1,
+    "author_email": "admin@band.org",
+    "author_name": "Amministratore",
+    "comment": "Inizializzazione catalogo",
+    "aml_snapshot": "{title: Knockin' On Heaven's Door}\n{artist: Bob Dylan}\n{key: G}\n{tempo: 110}\n{time: 4/4}\n\n{intro}\n| G | D | Am | Am |\n| G | D | C | C |\n\n{verse}\n[G]Mama, take this [D]badge off of [Am]me\n[G]I can't [D]use it any[C]more\n[G]It's gettin' [D]dark, too dark for me to [Am]see\n[G]I feel I'm [D]knockin' on heaven's [C]door\n\n{chorus}\n[G]Knock, knock, [D]knockin' on heaven's [Am]door\n[G]Knock, knock, [D]knockin' on heaven's [C]door\n",
+    "timestamp": "2026-11-05T18:40:10.351911+00:00"
+  }
+]

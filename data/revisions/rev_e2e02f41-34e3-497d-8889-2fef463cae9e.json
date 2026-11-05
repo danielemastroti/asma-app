@@ -1,0 +1,29 @@
+[
+  {
+    "song_uuid": "e2e02f41-34e3-497d-8889-2fef463cae9e",
+    "revision_number": 1,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Bozza creata da ricerca web",
+    "aml_snapshot": "{title: Lo Spettacolo }\n{artist: Litfiba }\n{key: G}\n{tempo: 120}\n{time: 4/4}\n\n{intro}\n| G | D | Em | C |\n\n{verse}\n[G]Testo del brano trovato online... [D]\n[Em]Seconda riga con gli accordi posizionati [C]\n\n{chorus}\n[C]Ritornello da [D]completare con [G]la band!\n",
+    "timestamp": "2026-11-05T18:37:22.726793+00:00"
+  },
+  {
+    "song_uuid": "e2e02f41-34e3-497d-8889-2fef463cae9e",
+    "revision_number": 2,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Modifica accordi e sezioni",
+    "aml_snapshot": "{title: Lo Spettacolo }\n{artist: Litfiba }\n{key: G}\n{tempo: 120}\n{time: 4/4}\n\n{intro}\n| G | D | Em | C |\n\n{verse}\n[G]Testo del brano trovato online... [D]\n[Em]Seconda riga con gli accordi posizionati [C]\n\n{chorus}\n[C]Ritornello da [D]completare con [G]la band!\n",
+    "timestamp": "2026-11-05T18:38:00.174792+00:00"
+  },
+  {
+    "song_uuid": "e2e02f41-34e3-497d-8889-2fef463cae9e",
+    "revision_number": 3,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi",
+    "comment": "Modifica accordi e sezioni",
+    "aml_snapshot": "{title: Lo Spettacolo }\n{artist: Litfiba }\n{key: G}\n{tempo: 120}\n{time: 4/4}\n\n{intro}\n| G | D | Em | C |\n\n{verse}\n[G]Testo del brano trovato online... [D]\n[Em]Seconda riga con gli accordi posizionati [C]\n\n{chorus}\n[C]Ritornello da [D]completare con [G]la band!\n",
+    "timestamp": "2026-11-05T18:38:03.876855+00:00"
+  }
+]
