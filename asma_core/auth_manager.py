@@ -194,6 +194,30 @@ class AuthManager:
         self._save_users()
         return True
 
+    def delete_user(self, target_email: str, admin_email: str) -> bool:
+        """Deletes a user account. Only permitted by an ADMIN."""
+        admin = self.get_user_by_email(admin_email)
+        if not admin or not admin.can_admin():
+            raise PermissionError("Solo un ADMIN può eliminare gli utenti.")
+
+        clean_target = target_email.strip().lower()
+        if clean_target == admin_email.strip().lower():
+            raise ValueError("Non puoi eliminare il tuo stesso account amministratore.")
+
+        if clean_target not in self._users:
+            return False
+
+        # Protect against deleting the last admin
+        target_user = self._users[clean_target]
+        if target_user.role == UserRole.ADMIN:
+            admin_count = sum(1 for u in self._users.values() if u.role == UserRole.ADMIN)
+            if admin_count <= 1:
+                raise ValueError("Impossibile eliminare l'unico account amministratore del sistema.")
+
+        del self._users[clean_target]
+        self._save_users()
+        return True
+
     def build_google_oauth_url(self, client_id: str, redirect_uri: str, state: str = "asma_auth") -> str:
         """Generates Google OAuth2 authorization URL (SRS Cap. 3.2)."""
         import urllib.parse

@@ -1015,9 +1015,9 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 })
             st.dataframe(u_data, use_container_width=True)
 
-            col_u1, col_u2 = st.columns(2)
+            col_u1, col_u2, col_u3 = st.columns(3)
             with col_u1:
-                st.write("##### ✏️ Modifica Ruolo Utente Esistente")
+                st.write("##### ✏️ Modifica Ruolo")
                 target_user_email = st.selectbox("Seleziona Utente:", [u.email for u in users], key="target_u_email")
                 new_role_choice = st.selectbox("Nuovo Ruolo:", [r.value for r in UserRole], key="new_r_choice")
                 if st.button("Aggiorna Ruolo Utente", type="primary"):
@@ -1028,16 +1028,32 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     except Exception as ex:
                         st.error(str(ex))
             with col_u2:
-                st.write("##### ➕ Registra Nuovo Musicista")
+                st.write("##### ➕ Registra Musicista")
                 new_u_email = st.text_input("Email Nuovo Utente:", placeholder="batteria@band.org")
                 new_u_name = st.text_input("Nome e Cognome:", placeholder="Luca Rossi")
                 new_u_role = st.selectbox("Ruolo Iniziale:", [r.value for r in UserRole], index=1)
-                if st.button("Aggiungi Utente alla Band"):
+                if st.button("Aggiungi Utente"):
                     if new_u_email:
                         reg_user = auth_mgr.authenticate_or_register_google(new_u_email, new_u_name)
                         auth_mgr.update_user_role(reg_user.email, UserRole(new_u_role), current_user.email)
-                        st.success(f"Utente {reg_user.name} registrato con successo!")
+                        st.success(f"Utente {reg_user.name} registrato!")
                         st.rerun()
+            with col_u3:
+                st.write("##### 🗑️ Elimina Utente")
+                deletable_users = [u.email for u in users if u.email.lower() != current_user.email.lower()]
+                if deletable_users:
+                    user_to_delete = st.selectbox("Seleziona Utente da Rimuovere:", deletable_users, key="user_to_del")
+                    with st.popover("🗑️ Elimina Account", use_container_width=True):
+                        st.warning(f"Vuoi davvero eliminare l'account di **{user_to_delete}**?")
+                        if st.button("Conferma Eliminazione Account", type="secondary"):
+                            try:
+                                auth_mgr.delete_user(user_to_delete, current_user.email)
+                                st.success(f"Utente '{user_to_delete}' eliminato con successo.")
+                                st.rerun()
+                            except Exception as err:
+                                st.error(str(err))
+                else:
+                    st.info("Nessun altro utente rimovibile (sei l'unico amministratore connesso).")
 
         with tab_backup:
             st.write("#### 💾 Backup & Ripristino Disaster Recovery (SRS Cap. 10.15, 10.16 & 17.5)")

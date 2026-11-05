@@ -67,6 +67,21 @@ class TestAuthAndBackup(unittest.TestCase):
         promoted = self.auth_mgr.get_user_by_email("ospite@band.org")
         self.assertEqual(promoted.role, UserRole.BAND_MEMBER)
 
+    def test_delete_user(self):
+        """Test user deletion rules and admin constraints."""
+        # Non-admin cannot delete
+        with self.assertRaises(PermissionError):
+            self.auth_mgr.delete_user("ospite@band.org", admin_email="marco.chitarra@band.org")
+
+        # Admin cannot delete themselves
+        with self.assertRaises(ValueError):
+            self.auth_mgr.delete_user("daniele@band.org", admin_email="daniele@band.org")
+
+        # Admin deletes user successfully
+        del_ok = self.auth_mgr.delete_user("ospite@band.org", admin_email="daniele@band.org")
+        self.assertTrue(del_ok)
+        self.assertIsNone(self.auth_mgr.get_user_by_email("ospite@band.org"))
+
     def test_backup_and_restore_cycle(self):
         """Test full atomic ZIP backup creation and disaster recovery restore."""
         # Setup storage in test dir
