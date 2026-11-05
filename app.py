@@ -254,11 +254,39 @@ elif menu_choice == "📚 Repertori":
     st.subheader("📚 Gestione Repertori")
 
     repertoires = storage.list_repertoires()
-    rep_names = [r.name for r in repertoires]
-    selected_rep_name = st.selectbox("Seleziona Repertorio:", rep_names)
-    selected_rep = next(r for r in repertoires if r.name == selected_rep_name)
+    col_rep_top1, col_rep_top2 = st.columns([3, 1])
+    with col_rep_top1:
+        if repertoires:
+            selected_rep_name = st.selectbox("Seleziona Repertorio:", [r.name for r in repertoires])
+            selected_rep = next(r for r in repertoires if r.name == selected_rep_name)
+            st.write(f"*{selected_rep.description}*")
+        else:
+            st.info("Nessun repertorio esistente. Crea il tuo primo repertorio.")
+            selected_rep = None
 
-    st.write(f"*{selected_rep.description}*")
+    with col_rep_top2:
+        with st.popover("➕ Nuovo Repertorio", use_container_width=True):
+            st.write("##### Crea Nuovo Repertorio")
+            new_r_name = st.text_input("Nome:", placeholder="Es. Repertorio Acustico")
+            new_r_desc = st.text_input("Descrizione:", placeholder="Brani per set acustico")
+            if st.button("Crea Repertorio", type="primary", disabled=not current_user.can_edit()):
+                if new_r_name:
+                    created_rep = Repertoire(name=new_r_name, description=new_r_desc)
+                    storage.save_repertoire(created_rep, current_user.email, current_user.name)
+                    st.success(f"Repertorio '{new_r_name}' creato!")
+                    st.rerun()
+
+        if selected_rep:
+            with st.popover("🗑️ Elimina Repertorio", use_container_width=True):
+                st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
+                if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
+                    storage.delete_repertoire(selected_rep.uuid, current_user.email, current_user.name)
+                    st.success(f"Repertorio '{selected_rep.name}' eliminato.")
+                    st.rerun()
+
+    if not selected_rep:
+        st.stop()
+
     rep_songs = [storage.get_song(s_id) for s_id in selected_rep.song_uuids if storage.get_song(s_id)]
 
     # Sezione Aggiunta Brani al Repertorio
@@ -440,9 +468,9 @@ elif menu_choice == "📝 Editor & Split-View":
         aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit)
         rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit)
 
-        col_s1, col_s2 = st.columns(2)
+        col_s1, col_s2, col_s3 = st.columns([1.5, 1, 1.2])
         with col_s1:
-            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit):
+            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, use_container_width=True):
                 song.title = title_input
                 song.artist = artist_input
                 song.key_current = key_input
@@ -454,10 +482,19 @@ elif menu_choice == "📝 Editor & Split-View":
                 st.success(f"Salvato con successo! Nuova Revisione #{saved.current_revision}")
                 st.rerun()
         with col_s2:
-            if st.button("🔓 Rilascia Lock ed Esci"):
+            if st.button("🔓 Rilascia Lock", use_container_width=True):
                 lock_mgr.release_lock(song.uuid, user_email)
                 st.info("Lock rilasciato.")
                 st.rerun()
+        with col_s3:
+            with st.popover("🗑️ Elimina Brano", use_container_width=True):
+                st.warning(f"Vuoi spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
+                if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_editor_{song.uuid}"):
+                    lock_mgr.release_lock(song.uuid, user_email, force=True)
+                    storage.delete_song(song.uuid, user_email, user_name)
+                    st.session_state["selected_song_uuid"] = None
+                    st.success(f"Brano '{song.title}' spostato nel cestino.")
+                    st.rerun()
 
     with col_prev:
         st.write("#### 👁️ Anteprima Device-Aware & PDF")
@@ -538,7 +575,17 @@ elif menu_choice == "📑 Scalette Live":
         if curr_set_id:
             active_setlist = next((s for s in setlists if s.uuid == curr_set_id), None)
             if active_setlist:
-                st.write(f"### Scaletta: **{active_setlist.title}** ({active_setlist.date})")
+                c_title_s, c_del_s = st.columns([3, 1])
+                with c_title_s:
+                    st.write(f"### Scaletta: **{active_setlist.title}** ({active_setlist.date})")
+                with c_del_s:
+                    with st.popover("🗑️ Elimina Scaletta", use_container_width=True):
+                        st.warning(f"Vuoi davvero eliminare la scaletta **'{active_setlist.title}'**?")
+                        if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_set_{active_setlist.uuid}"):
+                            storage.delete_setlist(active_setlist.uuid, current_user.email, current_user.name)
+                            st.session_state["selected_setlist_uuid"] = None
+                            st.success("Scaletta eliminata con successo.")
+                            st.rerun()
 
                 if all_songs:
                     add_song_id = st.selectbox("Aggiungi brano alla sequenza:", list(song_map.keys()), format_func=lambda x: song_map[x]["title"])
@@ -549,12 +596,34 @@ elif menu_choice == "📑 Scalette Live":
                         st.rerun()
 
                 st.write("#### Sequenza di Esecuzione:")
-                for idx, item in enumerate(active_setlist.items, start=1):
-                    s_info = song_map.get(item.song_uuid)
-                    title = s_info["title"] if s_info else "Sconosciuto"
-                    key = item.custom_key or (s_info["key_current"] if s_info else "-")
-                    bpm = item.custom_bpm or (s_info["bpm"] if s_info else "-")
-                    st.write(f"**{idx}. {title}** &bull; Key: `{key}` &bull; BPM: `{bpm}`")
+                if active_setlist.items:
+                    for idx, item in enumerate(active_setlist.items):
+                        s_info = song_map.get(item.song_uuid)
+                        title = s_info["title"] if s_info else "Sconosciuto"
+                        key = item.custom_key or (s_info["key_current"] if s_info else "-")
+                        bpm = item.custom_bpm or (s_info["bpm"] if s_info else "-")
+
+                        r_c1, r_c2, r_c3, r_c4 = st.columns([5, 1, 1, 1])
+                        with r_c1:
+                            st.markdown(f"**{idx + 1}. {title}** &bull; Key: `{key}` &bull; BPM: `{bpm}`")
+                        with r_c2:
+                            if idx > 0 and st.button("⬆️", key=f"up_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta prima"):
+                                active_setlist.items[idx], active_setlist.items[idx - 1] = active_setlist.items[idx - 1], active_setlist.items[idx]
+                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                                st.rerun()
+                        with r_c3:
+                            if idx < len(active_setlist.items) - 1 and st.button("⬇️", key=f"down_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta dopo"):
+                                active_setlist.items[idx], active_setlist.items[idx + 1] = active_setlist.items[idx + 1], active_setlist.items[idx]
+                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                                st.rerun()
+                        with r_c4:
+                            if st.button("❌", key=f"rem_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Rimuovi brano dalla scaletta"):
+                                active_setlist.items.pop(idx)
+                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                                st.success(f"Brano '{title}' rimosso dalla scaletta.")
+                                st.rerun()
+                else:
+                    st.info("Nessun brano nella sequenza. Aggiungine uno con il menu sopra.")
 
                 st.divider()
                 c_p1, c_p2 = st.columns(2)
@@ -1002,17 +1071,39 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                             st.error(msg)
 
         with tab_trash:
-            st.write("#### Elementi Eliminati (Soft-Delete a 30 giorni)")
-            st.info("I brani nel cestino vengono conservati per 30 giorni prima dell'eliminazione definitiva.")
+            st.write("#### 🗑️ Cestino Brani Eliminati (Soft-Delete a 30 giorni)")
+            st.info("I brani eliminati vengono conservati qui prima dell'eventuale eliminazione definitiva.")
             deleted_songs = storage.list_songs(include_deleted=True)
             soft_deleted = [s for s in deleted_songs if s.get("is_deleted") == 1]
             if soft_deleted:
                 st.dataframe(soft_deleted, use_container_width=True)
+
+                col_tr_top1, col_tr_top2 = st.columns([3, 1])
+                with col_tr_top2:
+                    with st.popover("🧹 Svuota Cestino", use_container_width=True):
+                        st.warning("Vuoi eliminare definitivamente TUTTI i brani nel cestino? L'operazione è irreversibile.")
+                        if st.button("Conferma Svuota Cestino", type="secondary", disabled=not current_user.can_admin()):
+                            purged = storage.empty_trash(current_user.email, current_user.name)
+                            st.success(f"Cestino svuotato: {purged} brani eliminati definitivamente.")
+                            st.rerun()
+
+                st.write("##### Azioni per Singolo Brano:")
                 for sd in soft_deleted:
-                    if st.button(f"Ripristina '{sd['title']}'", key=f"restore_trash_{sd['uuid']}"):
-                        storage.restore_song(sd["uuid"], current_user.email, current_user.name)
-                        st.success(f"Brano '{sd['title']}' ripristinato!")
-                        st.rerun()
+                    c_sd1, c_sd2, c_sd3 = st.columns([3, 1, 1.2])
+                    with c_sd1:
+                        st.write(f"🎵 **{sd['title']}** — {sd.get('artist', '')} (Key: `{sd.get('key_current', '-')}`)")
+                    with c_sd2:
+                        if st.button("🔄 Ripristina", key=f"restore_{sd['uuid']}", use_container_width=True):
+                            storage.restore_song(sd["uuid"], current_user.email, current_user.name)
+                            st.success(f"Brano '{sd['title']}' ripristinato nell'archivio!")
+                            st.rerun()
+                    with c_sd3:
+                        with st.popover("🔥 Elimina", use_container_width=True):
+                            st.write(f"Eliminare definitivamente **'{sd['title']}'**?")
+                            if st.button("Conferma", key=f"purge_{sd['uuid']}", type="secondary", disabled=not current_user.can_admin()):
+                                storage.purge_song_permanently(sd["uuid"], current_user.email, current_user.name)
+                                st.success(f"Brano '{sd['title']}' eliminato definitivamente.")
+                                st.rerun()
             else:
                 st.write("Il cestino è attualmente vuoto.")
 

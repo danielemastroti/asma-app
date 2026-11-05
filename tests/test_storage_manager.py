@@ -130,5 +130,50 @@ class TestStorageManager(unittest.TestCase):
         self.assertIn(song.uuid, def_rep_updated.song_uuids)
 
 
+    def test_delete_repertoire_and_setlist(self):
+        """Test deleting repertoires and setlists cleanly without losing songs."""
+        song = Song(title="Shared Song", key_current="E")
+        self.storage.save_song(song)
+
+        # 1. Create and delete repertoire
+        rep = Repertoire(name="Test Repertoire To Delete", song_uuids=[song.uuid])
+        self.storage.save_repertoire(rep)
+        self.assertIn(rep.uuid, [r.uuid for r in self.storage.list_repertoires()])
+
+        deleted_ok = self.storage.delete_repertoire(rep.uuid)
+        self.assertTrue(deleted_ok)
+        self.assertNotIn(rep.uuid, [r.uuid for r in self.storage.list_repertoires()])
+        # Song itself must not be deleted
+        self.assertIsNotNone(self.storage.get_song(song.uuid))
+
+        # 2. Create and delete setlist
+        setlist = Setlist(title="Setlist To Delete", items=[SetlistItem(song_uuid=song.uuid)])
+        self.storage.save_setlist(setlist)
+        self.assertIn(setlist.uuid, [s.uuid for s in self.storage.list_setlists()])
+
+        set_del_ok = self.storage.delete_setlist(setlist.uuid)
+        self.assertTrue(set_del_ok)
+        self.assertNotIn(setlist.uuid, [s.uuid for s in self.storage.list_setlists()])
+
+    def test_purge_permanently_and_empty_trash(self):
+        """Test hard delete and emptying trash."""
+        song1 = Song(title="Trash Song 1")
+        song2 = Song(title="Trash Song 2")
+        self.storage.save_song(song1)
+        self.storage.save_song(song2)
+
+        # Soft delete both
+        self.storage.delete_song(song1.uuid)
+        self.storage.delete_song(song2.uuid)
+
+        # Purge song1 permanently
+        self.storage.purge_song_permanently(song1.uuid)
+        self.assertIsNone(self.storage.restore_song(song1.uuid))
+
+        # Empty trash purges song2
+        purged = self.storage.empty_trash()
+        self.assertEqual(purged, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

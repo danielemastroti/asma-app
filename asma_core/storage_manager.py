@@ -287,6 +287,42 @@ class StorageManager:
             )
             return song
 
+    def purge_song_permanently(
+        self,
+        song_uuid: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> bool:
+        """Permanently deletes a soft-deleted song and its revisions from trash."""
+        with self._mutex:
+            trash_path = os.path.join(self._trash_dir, f"song_{song_uuid}.json")
+            if os.path.exists(trash_path):
+                os.remove(trash_path)
+            rev_file = os.path.join(self._revs_dir, f"rev_{song_uuid}.json")
+            if os.path.exists(rev_file):
+                os.remove(rev_file)
+            self.audit.log("PURGE", "SONG", song_uuid, user_email, user_name, {})
+            return True
+
+    def empty_trash(
+        self,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> int:
+        """Permanently purges all items currently in trash."""
+        with self._mutex:
+            count = 0
+            if os.path.exists(self._trash_dir):
+                for f in os.listdir(self._trash_dir):
+                    if f.endswith(".json"):
+                        try:
+                            os.remove(os.path.join(self._trash_dir, f))
+                            count += 1
+                        except Exception:
+                            pass
+            self.audit.log("PURGE_ALL", "TRASH", "all", user_email, user_name, {"purged_count": count})
+            return count
+
     # --- SEARCH & FILTER (SQL in-memory < 2ms) ---
 
     def search_songs(
@@ -424,6 +460,18 @@ class StorageManager:
     def _save_repertoires_file(self, repertoires: List[Repertoire]) -> None:
         with open(self._repertoires_file, "w", encoding="utf-8") as f:
             json.dump([r.to_dict() for r in repertoires], f, indent=2, ensure_ascii=False)
+
+    def delete_repertoire(self, repertoire_uuid: str, user_email: str = "system", user_name: str = "System") -> bool:
+        """Deletes a repertoire without deleting the songs contained within it."""
+        reps = self.list_repertoires()
+        target_rep = next((r for r in reps if r.uuid == repertoire_uuid), None)
+        if not target_rep:
+            return False
+        reps = [r for r in reps if r.uuid != repertoire_uuid]
+        self._save_repertoires_file(reps)
+        self._load_all_into_index()
+        self.audit.log("DELETE", "REPERTOIRE", repertoire_uuid, user_email, user_name, {"name": target_rep.name})
+        return True
 
     def move_song_to_repertoire(
         self,

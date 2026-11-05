@@ -30,9 +30,7 @@
     "uuid": "8adffe68-7605-40a2-b215-6b7ab6991880",
     "name": "Acustico",
     "description": "Arrangiamenti acustici da club",
-    "song_uuids": [
-      "7bd9b49d-3589-4624-a959-9065ab0fd68c"
-    ],
+    "song_uuids": [],
     "created_at": "2026-11-05T18:17:35.131951+00:00",
     "updated_at": "2026-11-05T18:17:35.131951+00:00"
   }
