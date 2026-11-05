@@ -112,6 +112,15 @@ class PDFEngine:
 
     @classmethod
     def get_page_size(cls, profile: DeviceProfile) -> Tuple[float, float]:
+        if getattr(profile, "width_mm", 0) > 0 and getattr(profile, "height_mm", 0) > 0:
+            if profile.orientation == "landscape":
+                w = max(profile.width_mm, profile.height_mm) * mm
+                h = min(profile.width_mm, profile.height_mm) * mm
+            else:
+                w = min(profile.width_mm, profile.height_mm) * mm
+                h = max(profile.width_mm, profile.height_mm) * mm
+            return (w, h)
+
         target = profile.target_device.lower()
         if target == "smartphone":
             return PAGE_SIZES["smartphone"]

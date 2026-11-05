@@ -185,6 +185,9 @@ class DeviceProfile:
     uuid: str = field(default_factory=generate_uuid)
     name: str = "Standard Profile"
     target_device: str = "pc_a4"  # smartphone, tablet, ipad, pc_a4
+    device_type: str = "printable_a4"  # smartphone, tablet, printable_a4
+    width_mm: float = 210.0
+    height_mm: float = 297.0
     font_lyrics: str = "Helvetica"
     font_chords: str = "Helvetica-Bold"
     font_size_lyrics: float = 12.0
@@ -196,6 +199,7 @@ class DeviceProfile:
     zoom: float = 1.0
     orientation: str = "portrait"  # portrait, landscape
     columns: int = 1
+    is_custom: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclasses.asdict(self)

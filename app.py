@@ -249,12 +249,14 @@ from asma_core.ai_service import BandAIService
 from asma_core.gist_client import GistClient
 from asma_core.auth_manager import AuthManager, UserRole, User
 from asma_core.backup_engine import BackupEngine
+from asma_core.device_manager import DeviceManager
 
 # Initialize Singletons
 storage = StorageManager()
 lock_mgr = LockManager()
 audit = AuditLogger()
 op_logger = OperationLogger()
+device_mgr = DeviceManager()
 gist_client = GistClient()
 auth_mgr = AuthManager()
 
@@ -406,6 +408,18 @@ with st.sidebar:
         if u_sel:
             log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
         st.rerun()
+
+    dev_list = device_mgr.list_devices()
+    dev_names = [d.name for d in dev_list]
+    curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
+    pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
+    selected_device_name = st.selectbox(
+        "📱 Il tuo Dispositivo:",
+        dev_names,
+        index=pref_idx,
+        help="Seleziona il tuo modello hardware per adattare automaticamente impaginazione e leggibilità."
+    )
+    st.session_state["user_preferred_device"] = selected_device_name
 
     with st.expander("🔑 Accedi con Google (OAuth2)"):
         st.caption("Autenticazione federata Google per musicisti e collaboratori.")
@@ -759,14 +773,26 @@ elif menu_choice == "📝 Editor & Split-View":
 
     with col_prev:
         st.write("#### 👁️ Anteprima Device-Aware & PDF")
-        profile_choice = st.selectbox("Profilo Dispositivo:", ["pc_a4", "tablet", "ipad", "smartphone"])
-        prof = DeviceProfile(target_device=profile_choice)
+        configured_devs = device_mgr.list_devices()
+        dev_choices = {d.uuid: d.name for d in configured_devs}
+        user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
+        default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
+
+        selected_dev_uuid = st.selectbox(
+            "Profilo Dispositivo & Schermo:",
+            list(dev_choices.keys()),
+            index=default_dev_idx,
+            format_func=lambda x: dev_choices[x]
+        )
+        prof = device_mgr.get_device(selected_dev_uuid) or DeviceProfile()
+
+        st.caption(f"📐 **Layout Hardware:** `{prof.orientation.capitalize()}` | Colonne: `{prof.columns}` | Dimensioni: `{prof.width_mm:.1f}x{prof.height_mm:.1f} mm`")
 
         pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, use_cache=False)
         st.download_button(
-            label="📄 Scarica PDF Stampabile",
+            label=f"📄 Scarica PDF Stampabile ({prof.name})",
             data=pdf_bytes,
-            file_name=f"{song.title.replace(' ', '_')}_{profile_choice}.pdf",
+            file_name=f"{song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
             mime="application/pdf",
             use_container_width=True
         )
@@ -1247,10 +1273,11 @@ elif menu_choice == "⚙️ Amministrazione & Log":
         st.error(f"⛔ **Accesso Negato**: Questa sezione è riservata esclusivamente agli amministratori. Il tuo account ({current_user.email}) ha il ruolo di **{current_user.role.value}**.")
         st.info("Per accedere, seleziona un profilo ADMIN nella barra laterale o chiedi a un amministratore di aggiornare i tuoi privilegi.")
     else:
-        tab_locks, tab_audit, tab_tags, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
+        tab_locks, tab_audit, tab_tags, tab_devices, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
             "🔒 Gestione Lock Attivi",
             "📜 Audit Trail Immutabile",
             "🏷️ Gestione Tag & Tassonomia",
+            "📱 Dispositivi & Schermi Band",
             "👥 Utenti & Ruoli Band",
             "💾 Backup & Ripristino",
             "🗑️ Cestino (Retention 30gg)",
@@ -1361,6 +1388,116 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                             st.warning("Seleziona almeno un brano e specifica un tag.")
                 else:
                     st.info("Nessun brano attivo disponibile nel catalogo.")
+
+        with tab_devices:
+            st.write("#### 📱 Gestione Dispositivi & Schermi Hardware dei Musicisti (SRS Cap. 5.3 & 16.14)")
+            st.caption("Configura, aggiungi e rimuovi i profili dei dispositivi fisici (Pixel 8 pro, iPad, Galaxy Tab, Xiaomi Pad, smartphone generici e A4). L'engine grafico adatta automaticamente margini, colonne e font alle dimensioni millimetriche del display.")
+
+            all_devs = device_mgr.list_devices()
+            st.write(f"##### 📋 Dispositivi Attivi Configurati ({len(all_devs)})")
+
+            dev_rows = []
+            for d in all_devs:
+                dim_str = f"{d.width_mm:.1f} x {d.height_mm:.1f} mm" if d.width_mm and d.height_mm else "Standard"
+                dev_rows.append({
+                    "Nome Dispositivo": d.name,
+                    "Categoria": d.device_type.capitalize(),
+                    "Dimensioni Display": dim_str,
+                    "Orientamento": d.orientation.capitalize(),
+                    "Colonne": d.columns,
+                    "Font Accordi / Testo": f"{d.font_size_chords}pt / {d.font_size_lyrics}pt",
+                    "Margini": f"{d.margin_top_mm:.0f}mm",
+                    "Tipo": "Personalizzato" if d.is_custom else "Predefinito"
+                })
+            st.dataframe(dev_rows, use_container_width=True)
+
+            st.divider()
+
+            col_d_add, col_d_del, col_d_rst = st.columns([1.5, 1.2, 1.3])
+
+            with col_d_add:
+                st.write("##### ➕ Aggiungi Nuovo Dispositivo")
+                with st.form("form_add_device"):
+                    new_d_name = st.text_input("Nome Dispositivo:", placeholder="Es. Huawei MatePad 11")
+                    c_type_col1, c_type_col2 = st.columns(2)
+                    with c_type_col1:
+                        new_d_type = st.selectbox("Tipo:", ["tablet", "smartphone", "printable_a4"])
+                    with c_type_col2:
+                        new_d_orient = st.selectbox("Orientamento:", ["portrait", "landscape"])
+
+                    c_dim1, c_dim2 = st.columns(2)
+                    with c_dim1:
+                        new_d_w = st.number_input("Larghezza (mm):", min_value=50.0, max_value=500.0, value=170.0, step=1.0)
+                    with c_dim2:
+                        new_d_h = st.number_input("Altezza (mm):", min_value=50.0, max_value=500.0, value=250.0, step=1.0)
+
+                    c_fnt1, c_fnt2, c_cols = st.columns(3)
+                    with c_fnt1:
+                        new_fnt_c = st.number_input("Font Accordi:", min_value=7.0, max_value=24.0, value=12.0, step=0.5)
+                    with c_fnt2:
+                        new_fnt_l = st.number_input("Font Testo:", min_value=6.0, max_value=22.0, value=11.0, step=0.5)
+                    with c_cols:
+                        new_cols_cnt = st.selectbox("Colonne:", [1, 2], index=1 if new_d_type == "tablet" else 0)
+
+                    new_mrg = st.number_input("Margine laterale (mm):", min_value=2.0, max_value=30.0, value=8.0, step=1.0)
+
+                    btn_sub_dev = st.form_submit_button("Salva Nuovo Dispositivo", type="primary")
+                    if btn_sub_dev:
+                        if new_d_name.strip():
+                            try:
+                                dev_obj = DeviceProfile(
+                                    name=new_d_name.strip(),
+                                    target_device=new_d_type if new_d_type != "printable_a4" else "pc_a4",
+                                    device_type=new_d_type,
+                                    width_mm=new_d_w,
+                                    height_mm=new_d_h,
+                                    orientation=new_d_orient,
+                                    columns=new_cols_cnt,
+                                    font_size_lyrics=new_fnt_l,
+                                    font_size_chords=new_fnt_c,
+                                    margin_top_mm=new_mrg,
+                                    margin_bottom_mm=new_mrg,
+                                    margin_left_mm=new_mrg,
+                                    margin_right_mm=new_mrg,
+                                    is_custom=True
+                                )
+                                device_mgr.add_device(dev_obj, current_user.email, current_user.name)
+                                log_op("📱", "DISPOSITIVI", f"Aggiunto nuovo profilo dispositivo: '{new_d_name.strip()}'", "SUCCESS")
+                                st.success(f"Dispositivo '{new_d_name.strip()}' aggiunto con successo!")
+                                st.rerun()
+                            except Exception as err:
+                                st.error(str(err))
+                        else:
+                            st.warning("Inserisci un nome valido per il dispositivo.")
+
+            with col_d_del:
+                st.write("##### 🗑️ Rimuovi Dispositivo")
+                st.caption("Elimina un profilo hardware dall'elenco disponibile per i musicisti.")
+                if all_devs:
+                    dev_to_del = st.selectbox("Seleziona Dispositivo da Eliminare:", all_devs, format_func=lambda d: f"{d.name} ({d.device_type})", key="sel_del_dev")
+                    with st.popover("🗑️ Conferma Rimozione Dispositivo", use_container_width=True):
+                        st.warning(f"Vuoi davvero eliminare il dispositivo **'{dev_to_del.name}'**?")
+                        if st.button("Elimina Dispositivo", type="secondary", key="btn_confirm_del_dev"):
+                            try:
+                                device_mgr.remove_device(dev_to_del.uuid, current_user.email, current_user.name)
+                                log_op("🗑️", "DISPOSITIVI", f"Rimosso profilo dispositivo: '{dev_to_del.name}'", "WARNING")
+                                st.success(f"Dispositivo '{dev_to_del.name}' rimosso!")
+                                st.rerun()
+                            except Exception as e_del:
+                                st.error(str(e_del))
+                else:
+                    st.info("Nessun dispositivo disponibile.")
+
+            with col_d_rst:
+                st.write("##### 🔄 Ripristina Predefiniti Band")
+                st.caption("Ripristina l'elenco ufficiale dei dispositivi standard (Pixel 8 Pro, iPad, Tab S7/S8/S9, A4, Xiaomi, Oppo, iPhone, Android).")
+                with st.popover("🔄 Ripristina Tutti i Dispositivi Predefiniti", use_container_width=True):
+                    st.warning("Questa operazione ripristinerà gli 8 profili hardware predefiniti della band. Continuare?")
+                    if st.button("Conferma Ripristino Standard", type="primary"):
+                        device_mgr.reset_defaults(current_user.email, current_user.name)
+                        log_op("🔄", "DISPOSITIVI", "Ripristinati gli 8 profili dispositivi predefiniti della band", "INFO")
+                        st.success("Profili hardware ripristinati con successo!")
+                        st.rerun()
 
         with tab_users:
             st.write("#### 👥 Gestione Utenti, Ruoli & Permessi Band (SRS Cap. 3 & 10)")
