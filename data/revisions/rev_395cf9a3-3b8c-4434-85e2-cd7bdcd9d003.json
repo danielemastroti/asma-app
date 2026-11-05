@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "395cf9a3-3b8c-4434-85e2-cd7bdcd9d003",
+    "revision_number": 1,
+    "author_email": "marco.chitarra@band.org",
+    "author_name": "Marco Bassi (Chitarra / Band)",
+    "comment": "Salvataggio brano",
+    "aml_snapshot": "{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...",
+    "timestamp": "2026-11-05T19:54:55.552251+00:00"
+  }
+]

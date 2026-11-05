@@ -234,7 +234,11 @@ elif menu_choice == "📚 Repertori":
     st.write(f"*{selected_rep.description}*")
     rep_songs = [storage.get_song(s_id) for s_id in selected_rep.song_uuids if storage.get_song(s_id)]
 
-    c_btn1, c_btn2 = st.columns([1, 4])
+    # Sezione Aggiunta Brani al Repertorio
+    all_archive_songs = storage.list_songs()
+    unassigned_songs = [s for s in all_archive_songs if s["uuid"] not in selected_rep.song_uuids]
+
+    c_btn1, c_btn2 = st.columns([1, 2])
     with c_btn1:
         if st.button("➕ Crea Nuovo Brano", disabled=not current_user.can_edit()):
             new_s = Song(title="Nuovo Brano", key_current="C", aml_content="{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...")
@@ -243,6 +247,20 @@ elif menu_choice == "📚 Repertori":
             st.session_state["selected_song_uuid"] = saved.uuid
             st.success(f"Creato brano '{saved.title}'")
             st.rerun()
+
+    with c_btn2:
+        if unassigned_songs:
+            with st.expander("📥 Inserisci brano esistente dell'archivio in questo repertorio"):
+                s_to_add_id = st.selectbox(
+                    "Seleziona brano da collegare:",
+                    [s["uuid"] for s in unassigned_songs],
+                    format_func=lambda uid: next(f"{s['title']} ({s.get('artist', 'Sconosciuto')})" for s in unassigned_songs if s["uuid"] == uid),
+                    key=f"sel_add_{selected_rep.uuid}"
+                )
+                if st.button("➕ Aggiungi al Repertorio", disabled=not current_user.can_edit()):
+                    storage.move_song_to_repertoire(s_to_add_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    st.success("Brano associato con successo a questo repertorio!")
+                    st.rerun()
 
     if rep_songs:
         rows = []
@@ -260,22 +278,27 @@ elif menu_choice == "📚 Repertori":
             })
         st.dataframe(rows, use_container_width=True)
 
-        selected_s_id = st.selectbox("Apri Brano nell'Editor:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
-        col_act1, col_act2, col_act3 = st.columns(3)
+        selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
+        col_act1, col_act2, col_act3, col_act4 = st.columns(4)
         with col_act1:
-            if st.button("📝 Apri Brano nell'Editor"):
+            if st.button("📝 Apri nell'Editor"):
                 st.session_state["selected_song_uuid"] = selected_s_id
                 st.info("Passa alla scheda 'Editor & Split-View' dal menu a sinistra.")
         with col_act2:
             other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
             if other_reps:
-                dest_rep = st.selectbox("Sposta brano nel repertorio:", [r.name for r in other_reps])
+                dest_rep = st.selectbox("Sposta in altro repertorio:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
                 if st.button("➡️ Sposta Brano", disabled=not current_user.can_edit()):
                     target_r = next(r for r in other_reps if r.name == dest_rep)
                     storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
                     st.rerun()
         with col_act3:
+            if st.button("❌ Rimuovi da Repertorio", disabled=not current_user.can_edit()):
+                storage.remove_song_from_repertoire(selected_s_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                st.success("Brano rimosso dal repertorio (rimane presente nell'archivio generale).")
+                st.rerun()
+        with col_act4:
             if st.button("🗑️ Sposta nel Cestino", disabled=not current_user.can_delete()):
                 storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
@@ -295,8 +318,10 @@ elif menu_choice == "📝 Editor & Split-View":
         st.stop()
 
     song_choices = {s["uuid"]: s["title"] for s in songs}
-    curr_uuid = st.session_state.get("selected_song_uuid") or list(song_choices.keys())[0]
-    selected_uuid = st.selectbox("Seleziona Brano da modificare:", list(song_choices.keys()), index=list(song_choices.keys()).index(curr_uuid), format_func=lambda x: song_choices[x])
+    curr_uuid = st.session_state.get("selected_song_uuid")
+    keys_list = list(song_choices.keys())
+    default_idx = keys_list.index(curr_uuid) if (curr_uuid and curr_uuid in keys_list) else 0
+    selected_uuid = st.selectbox("Seleziona Brano da modificare:", keys_list, index=default_idx, format_func=lambda x: song_choices[x])
     st.session_state["selected_song_uuid"] = selected_uuid
 
     song = storage.get_song(selected_uuid)
@@ -334,6 +359,24 @@ elif menu_choice == "📝 Editor & Split-View":
         with meta_c3:
             genre_input = st.text_input("Genere:", value=song.genre, disabled=not can_edit)
             capo_input = st.number_input("Capo tasto:", value=song.capo, disabled=not can_edit)
+
+        # Visualizzazione e Associazione Repertori
+        all_reps = storage.list_repertoires()
+        assigned_reps = [r for r in all_reps if song.uuid in r.song_uuids]
+        rep_labels = ", ".join([r.name for r in assigned_reps]) if assigned_reps else "Nessun repertorio (Non assegnato)"
+        st.caption(f"📚 **Repertori associati:** `{rep_labels}`")
+        unassigned_reps = [r for r in all_reps if song.uuid not in r.song_uuids]
+        if unassigned_reps:
+            with st.expander("➕ Associa questo brano a un altro Repertorio"):
+                col_r_sel, col_r_btn = st.columns([3, 1])
+                with col_r_sel:
+                    target_r_obj = st.selectbox("Seleziona repertorio:", unassigned_reps, format_func=lambda r: r.name, key=f"add_r_edit_{song.uuid}")
+                with col_r_btn:
+                    st.write("")
+                    if st.button("Collega", disabled=not can_edit):
+                        storage.move_song_to_repertoire(song.uuid, target_r_obj.uuid, user_email, user_name)
+                        st.success(f"Brano associato a '{target_r_obj.name}'!")
+                        st.rerun()
 
         # Transposition Quick Tools
         st.write("**Trasposizione Rapida:**")
@@ -571,6 +614,21 @@ elif menu_choice == "📅 Eventi Live":
 elif menu_choice == "📥 Importa & 📤 Esporta":
     st.subheader("📥 Importazione Multi-Formato & 📤 Esportazione Interoperabile")
 
+    # Scelta del Repertorio di Destinazione per l'importazione
+    all_reps = storage.list_repertoires()
+    col_rep_sel, col_rep_info = st.columns([2, 1])
+    with col_rep_sel:
+        target_rep = st.selectbox(
+            "📂 Assegna automaticamente i brani importati a questo Repertorio:",
+            all_reps,
+            format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)"
+        ) if all_reps else None
+    with col_rep_info:
+        if target_rep:
+            st.caption(f"I brani importati verranno archiviati in: **{target_rep.name}**")
+        else:
+            st.warning("Nessun repertorio attivo. I brani resteranno nell'archivio generale.")
+
     tab_web, tab_imp, tab_exp = st.tabs(["🌐 Import da Web / URL", "📥 Import PDF & Testo", "📤 Esporta per App Esterne"])
 
     with tab_web:
@@ -583,7 +641,10 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 try:
                     song_web = WebSongImporter.fetch_from_url(url_input)
                     saved = storage.save_song(song_web, st.session_state["current_user_email"], st.session_state["current_user_name"], "Importazione da Web URL")
-                    st.success(f"Brano importato e salvato con successo: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`")
+                    if target_rep:
+                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    rep_msg = f" ed inserito nel repertorio **'{target_rep.name}'**" if target_rep else ""
+                    st.success(f"Brano importato e salvato con successo: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
                     st.session_state["selected_song_uuid"] = saved.uuid
                 except Exception as err:
                     st.error(f"Errore durante l'importazione da Web: {str(err)}")
@@ -616,8 +677,11 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 try:
                     imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
                     saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
+                    if target_rep:
+                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.session_state["selected_song_uuid"] = saved.uuid
-                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`")
+                    rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
+                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
                     st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
                 except Exception as err:
                     st.error(f"Errore durante l'importazione automatica: {str(err)}")
@@ -641,8 +705,11 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                                     if (not s_obj.title or s_obj.title == "Brano da Web") and cand.get("title"):
                                         s_obj.title = cand["title"]
                                     saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], f"Importato da {cand['portal']}")
+                                    if target_rep:
+                                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                                     st.session_state["selected_song_uuid"] = saved.uuid
-                                    st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`)!")
+                                    rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                                    st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`){rep_msg}!")
                                 except Exception as e_imp:
                                     st.error(f"Errore importazione: {str(e_imp)}")
 
@@ -656,7 +723,10 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 pdf_bytes = uploaded_pdf.read()
                 imported_s = ImportEngine.import_from_pdf_bytes(pdf_bytes, filename=uploaded_pdf.name)
                 saved = storage.save_song(imported_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                st.success(f"Estratto e salvato con successo come '{saved.title}'!")
+                if target_rep:
+                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                st.success(f"Estratto e salvato con successo come '{saved.title}'{rep_msg}!")
                 st.session_state["selected_song_uuid"] = saved.uuid
         else:
             pasted_text = st.text_area("Incolla qui il testo dello spartito:", height=200)
@@ -666,7 +736,10 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 else:
                     s_obj = ImportEngine.import_from_traditional(pasted_text)
                 saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                st.success(f"Brano importato e salvato: **{saved.title}** (Key: {saved.key_current})")
+                if target_rep:
+                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                st.success(f"Brano importato e salvato: **{saved.title}** (Key: {saved.key_current}){rep_msg}")
 
     with tab_exp:
         st.write("#### Esportazione per MobileSheets, SongBookPro, OnSong")

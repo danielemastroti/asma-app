@@ -446,6 +446,25 @@ class StorageManager:
             return True
         return True
 
+    def remove_song_from_repertoire(
+        self,
+        song_uuid: str,
+        repertoire_uuid: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> bool:
+        """Removes a song from a specific repertoire without deleting the song from the system."""
+        reps = self.list_repertoires()
+        rep = next((r for r in reps if r.uuid == repertoire_uuid), None)
+        if not rep or song_uuid not in rep.song_uuids:
+            return False
+
+        rep.song_uuids.remove(song_uuid)
+        self._save_repertoires_file(reps)
+        self._load_all_into_index()
+        self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
+        return True
+
     # --- SETLISTS CRUD ---
 
     def list_setlists(self) -> List[Setlist]:
