@@ -370,11 +370,11 @@ def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main"
         st.markdown(f"<div class='asma-terminal-box' style='max-height: 220px;'>{html_lines}</div>", unsafe_allow_html=True)
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_btn", use_container_width=True):
+            if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_btn", width="stretch"):
                 logger_inst.clear()
                 st.rerun()
         with col_c2:
-            st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_btn", use_container_width=True)
+            st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_btn", width="stretch")
     else:
         st.write("##### 📟 Finestra di Stato & Monitor Operazioni Eseguite")
         c1, c2, c3 = st.columns([2, 1, 1.2])
@@ -386,11 +386,11 @@ def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main"
             st.write("")
             b1, b2 = st.columns(2)
             with b1:
-                if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_full", use_container_width=True):
+                if st.button("🧹 Pulisci", key=f"{key_prefix}_clr_full", width="stretch"):
                     logger_inst.clear()
                     st.rerun()
             with b2:
-                st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_full", use_container_width=True)
+                st.download_button("📋 Esporta", data=logger_inst.export_text(), file_name="asma_operazioni.log", mime="text/plain", key=f"{key_prefix}_exp_full", width="stretch")
 
         filtered = logger_inst.get_entries(limit=limit_val, category=cat_filter)
         html_lines = "".join(e.to_terminal_line() for e in filtered) if filtered else "<div style='color:#888; padding:10px;'>Nessun evento registrato per questa categoria.</div>"
@@ -514,7 +514,7 @@ with st.container(key="top_navbar_container"):
             st.rerun()
 
     with col_t4:
-        with st.popover(f"📟 Log ({op_logger.count()})", use_container_width=True):
+        with st.popover(f"📟 Log ({op_logger.count()})", width="stretch"):
             render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
     # Row 2: Sticky Navigation Pills
@@ -543,7 +543,7 @@ menu_choice = st.session_state["main_menu_choice"]
 # ==============================================================================
 with st.sidebar:
     if os.path.exists("assets/band_logo.png"):
-        st.image("assets/band_logo.png", use_container_width=True)
+        st.image("assets/band_logo.png", width="stretch")
         st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
     st.markdown("### 🔐 Autenticazione & Utente")
@@ -608,7 +608,7 @@ if menu_choice == "🏠 Home Dashboard":
     c_dash_logo, c_dash_txt = st.columns([1, 4])
     with c_dash_logo:
         if os.path.exists("assets/band_logo.png"):
-            st.image("assets/band_logo.png", use_container_width=True)
+            st.image("assets/band_logo.png", width="stretch")
     with c_dash_txt:
         st.subheader("🏠 THE New ASMA — Dashboard Ufficiale")
         st.caption("Piattaforma Digitale Integrata Band: Repertorio, Live Stage 60fps, Scalette, Editor AML & Accordi")
@@ -669,7 +669,7 @@ elif menu_choice == "📚 Repertori":
             selected_rep = None
 
     with col_rep_top2:
-        with st.popover("➕ Nuovo Repertorio", use_container_width=True):
+        with st.popover("➕ Nuovo Repertorio", width="stretch"):
             st.write("##### Crea Nuovo Repertorio")
             new_r_name = st.text_input("Nome:", placeholder="Es. Repertorio Acustico")
             new_r_desc = st.text_input("Descrizione:", placeholder="Brani per set acustico")
@@ -682,7 +682,7 @@ elif menu_choice == "📚 Repertori":
                     st.rerun()
 
         if selected_rep:
-            with st.popover("🗑️ Elimina Repertorio", use_container_width=True):
+            with st.popover("🗑️ Elimina Repertorio", width="stretch"):
                 st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
                 if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
                     storage.delete_repertoire(selected_rep.uuid, current_user.email, current_user.name)
@@ -739,7 +739,7 @@ elif menu_choice == "📚 Repertori":
                 "Revisione": f"Rev #{s.current_revision}",
                 "Lock": lock_display
             })
-        st.dataframe(rows, use_container_width=True)
+        st.dataframe(rows, width="stretch")
 
         selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
         selected_lock = lock_mgr.check_lock(selected_s_id)
@@ -747,14 +747,14 @@ elif menu_choice == "📚 Repertori":
 
         col_act1, col_act2, col_act3, col_act4, col_act5 = st.columns(5)
         with col_act1:
-            if st.button("📝 Apri nell'Editor", use_container_width=True):
+            if st.button("📝 Apri nell'Editor", width="stretch"):
                 st.session_state["selected_song_uuid"] = selected_s_id
                 st.session_state.pop(f"released_lock_{selected_s_id}", None)
                 st.info("Passa alla scheda 'Editor Brani' dal menu a sinistra.")
         with col_act2:
             if selected_lock.is_locked:
                 can_unlock = (selected_lock.locked_by_email == current_user.email) or current_user.is_admin()
-                if st.button("🔓 Rilascia Lock", disabled=not can_unlock, use_container_width=True, help=f"Bloccato da {selected_lock.locked_by_name}"):
+                if st.button("🔓 Rilascia Lock", disabled=not can_unlock, width="stretch", help=f"Bloccato da {selected_lock.locked_by_name}"):
                     lock_mgr.release_lock(selected_s_id, current_user.email, force=current_user.is_admin())
                     st.session_state[f"released_lock_{selected_s_id}"] = True
                     s_title = selected_song_obj.title if selected_song_obj else selected_s_id
@@ -767,18 +767,18 @@ elif menu_choice == "📚 Repertori":
             other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
             if other_reps:
                 dest_rep = st.selectbox("Sposta in:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
-                if st.button("➡️ Sposta", disabled=not current_user.can_edit(), use_container_width=True):
+                if st.button("➡️ Sposta", disabled=not current_user.can_edit(), width="stretch"):
                     target_r = next(r for r in other_reps if r.name == dest_rep)
                     storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
                     st.rerun()
         with col_act4:
-            if st.button("❌ Rimuovi", disabled=not current_user.can_edit(), use_container_width=True):
+            if st.button("❌ Rimuovi", disabled=not current_user.can_edit(), width="stretch"):
                 storage.remove_song_from_repertoire(selected_s_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.success("Brano rimosso dal repertorio (rimane presente nell'archivio generale).")
                 st.rerun()
         with col_act5:
-            if st.button("🗑️ Cestino", disabled=not current_user.can_delete(), use_container_width=True):
+            if st.button("🗑️ Cestino", disabled=not current_user.can_delete(), width="stretch"):
                 storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
                 st.rerun()
@@ -918,7 +918,7 @@ elif menu_choice == "📝 Editor Brani":
 
         col_s1, col_s2, col_s3 = st.columns([1.5, 1, 1.2])
         with col_s1:
-            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, use_container_width=True):
+            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, width="stretch"):
                 song.title = title_input
                 song.artist = artist_input
                 song.key_current = key_input
@@ -932,14 +932,14 @@ elif menu_choice == "📝 Editor Brani":
                 st.success(f"Salvato con successo! Nuova Revisione #{saved.current_revision}")
                 st.rerun()
         with col_s2:
-            if st.button("🔓 Rilascia Lock", use_container_width=True):
+            if st.button("🔓 Rilascia Lock", width="stretch"):
                 lock_mgr.release_lock(song.uuid, user_email)
                 st.session_state[f"released_lock_{song.uuid}"] = True
                 log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{song.title}'", "INFO")
                 st.info("Lock rilasciato.")
                 st.rerun()
         with col_s3:
-            with st.popover("🗑️ Elimina Brano", use_container_width=True):
+            with st.popover("🗑️ Elimina Brano", width="stretch"):
                 st.warning(f"Vuoi spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
                 if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_editor_{song.uuid}"):
                     lock_mgr.release_lock(song.uuid, user_email, force=True)
@@ -989,7 +989,7 @@ elif menu_choice == "📝 Editor Brani":
                 data=pdf_bytes,
                 file_name=f"{preview_song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                width="stretch"
             )
         with col_exp_sb:
             st.download_button(
@@ -997,7 +997,7 @@ elif menu_choice == "📝 Editor Brani":
                 data=ExportEngine.export_for_songbookpro(preview_song),
                 file_name=f"{preview_song.title.replace(' ', '_')}.pro",
                 mime="text/plain",
-                use_container_width=True,
+                width="stretch",
                 help="Formato ChordPro nativo compatibile con SongBook Pro per tablet/smartphone"
             )
 
@@ -1014,7 +1014,7 @@ elif menu_choice == "📝 Editor Brani":
                 st.image(
                     img_bytes,
                     caption=f"Pagina {page_num + 1} di {num_pages} — Formato {prof.name}",
-                    use_container_width=True
+                    width="stretch"
                 )
         except Exception as ex_pdf:
             st.warning(f"Impossibile renderizzare l'anteprima visiva del PDF ({ex_pdf}). Puoi comunque scaricare il file PDF generato sopra.")
@@ -1089,7 +1089,7 @@ elif menu_choice == "📑 Scalette Live":
                 with c_title_s:
                     st.write(f"### Scaletta: **{active_setlist.title}** ({active_setlist.date})")
                 with c_del_s:
-                    with st.popover("🗑️ Elimina Scaletta", use_container_width=True):
+                    with st.popover("🗑️ Elimina Scaletta", width="stretch"):
                         st.warning(f"Vuoi davvero eliminare la scaletta **'{active_setlist.title}'**?")
                         if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_set_{active_setlist.uuid}"):
                             storage.delete_setlist(active_setlist.uuid, current_user.email, current_user.name)
@@ -1167,7 +1167,7 @@ elif menu_choice == "📑 Scalette Live":
                             data=set_pdf,
                             file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}_{set_prof.name.replace(' ', '_')}.pdf",
                             mime="application/pdf",
-                            use_container_width=True,
+                            width="stretch",
                             help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
                         )
 
@@ -1179,7 +1179,7 @@ elif menu_choice == "📑 Scalette Live":
                                 data=set_sb,
                                 file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pro",
                                 mime="text/plain",
-                                use_container_width=True,
+                                width="stretch",
                                 help="File unico con tutti i brani della scaletta separati da pagina per SongBook Pro"
                             )
                         with col_zip_exp:
@@ -1189,14 +1189,14 @@ elif menu_choice == "📑 Scalette Live":
                                 data=live_zip,
                                 file_name=f"LivePack_{active_setlist.title.replace(' ', '_')}.zip",
                                 mime="application/zip",
-                                use_container_width=True,
+                                width="stretch",
                                 help="Archivio completo contenente il PDF scaletta, singoli PDF, file AML e file per SongBook Pro"
                             )
                     else:
                         st.info("Aggiungi brani alla sequenza per abilitare l'esportazione del PDF e per SongBook Pro.")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("🎤 Avvia Modalità Palco (Live Stage)", type="primary", use_container_width=True):
+                if st.button("🎤 Avvia Modalità Palco (Live Stage)", type="primary", width="stretch"):
                     st.session_state["launch_stage"] = True
                     st.info("Passa a 'Modalità Palco' dal menu a sinistra.")
 
@@ -1322,9 +1322,9 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
 
         c_btn1, c_btn2 = st.columns([1, 1])
         with c_btn1:
-            do_search = st.button("🔍 Cerca Brano sui Portali", use_container_width=True)
+            do_search = st.button("🔍 Cerca Brano sui Portali", width="stretch")
         with c_btn2:
-            auto_import = st.button("⚡ Importa Subito il Miglior Risultato", use_container_width=True)
+            auto_import = st.button("⚡ Importa Subito il Miglior Risultato", width="stretch")
 
         if do_search:
             with st.spinner("Ricerca in corso sui portali di accordi..."):
@@ -1360,7 +1360,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                     with col_info:
                         st.markdown(f"**{cand['title']}** — *{cand.get('artist', '')}*  \n🏷️ Portale: `{cand['portal']}` | [Apri Pagina Originale ↗]({cand['url']})")
                     with col_act:
-                        if st.button("📥 Importa", key=f"imp_cand_{idx}", use_container_width=True):
+                        if st.button("📥 Importa", key=f"imp_cand_{idx}", width="stretch"):
                             with st.spinner("Scaricamento e parsing in AML..."):
                                 try:
                                     s_obj = WebSongImporter.fetch_from_url(cand["url"])
@@ -1417,16 +1417,16 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             c_e1, c_e2, c_e3, c_e4 = st.columns(4)
             with c_e1:
                 sb_content = ExportEngine.export_for_songbookpro(target_song)
-                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", use_container_width=True)
+                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", width="stretch")
             with c_e2:
                 ms_content = ExportEngine.export_for_mobilesheets(target_song)
-                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", use_container_width=True)
+                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", width="stretch")
             with c_e3:
                 cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
-                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", use_container_width=True)
+                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", width="stretch")
             with c_e4:
                 onsong_content = ExportEngine.export_for_onsong(target_song)
-                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", use_container_width=True)
+                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", width="stretch")
 
             st.divider()
             st.write("#### 📦 Offline Live Pack ZIP (SRS Cap. 14.29)")
@@ -1475,7 +1475,7 @@ elif menu_choice == "🔍 Ricerca Globale":
 
     st.caption(f"⚡ Ricerca eseguita in **{elapsed_ms:.3f} ms** su SQLite in-memory | Trovati: **{len(res)}**")
     if res:
-        st.dataframe(res, use_container_width=True)
+        st.dataframe(res, width="stretch")
     else:
         st.info("Nessun brano corrisponde ai criteri.")
 
@@ -1564,7 +1564,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             st.write("#### Lock Concorrenza Attivi")
             active_locks = lock_mgr.get_active_locks()
             if active_locks:
-                st.dataframe(active_locks, use_container_width=True)
+                st.dataframe(active_locks, width="stretch")
                 for l in active_locks:
                     if st.button(f"Sblocca Forzatamente {l['song_uuid']}", key=f"force_unlock_{l['song_uuid']}"):
                         lock_mgr.release_lock(l["song_uuid"], current_user.email, force=True)
@@ -1577,7 +1577,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             st.write("#### Registro Audit Trail Immutabile")
             entries = audit.get_entries(limit=50)
             if entries:
-                st.dataframe([e.to_dict() for e in entries], use_container_width=True)
+                st.dataframe([e.to_dict() for e in entries], width="stretch")
             else:
                 st.info("Nessuna voce di audit.")
 
@@ -1636,7 +1636,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     "Descrizione": t.description,
                     "Rimozione Consentita": "Sì" if t.is_removable else "No (Fisso)"
                 })
-            st.dataframe(tag_table_data, use_container_width=True)
+            st.dataframe(tag_table_data, width="stretch")
 
             st.divider()
 
@@ -1710,7 +1710,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 removable_tags = [t for t in all_aml_tags if t.is_removable]
                 if removable_tags:
                     tag_to_remove = st.selectbox("Seleziona Tag da Eliminare:", [t.tag for t in removable_tags], format_func=lambda x: f"{x} ({aml_tag_mgr.get_tag(x).category})", key="sel_tag_del")
-                    with st.popover("🗑️ Conferma Rimozione Tag AML", use_container_width=True):
+                    with st.popover("🗑️ Conferma Rimozione Tag AML", width="stretch"):
                         st.warning(f"Vuoi davvero eliminare il tag AML **'{tag_to_remove}'**?")
                         if st.button("Elimina Definitivamente Tag", type="secondary"):
                             try:
@@ -1725,7 +1725,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
 
                 st.write("---")
                 st.caption("Ripristina tutti i tag AML di fabbrica (Direttive, Sezioni, Tag Strumentali, Accordi Inline, Griglie).")
-                with st.popover("🔄 Ripristina Sintassi AML di Fabbrica", use_container_width=True):
+                with st.popover("🔄 Ripristina Sintassi AML di Fabbrica", width="stretch"):
                     st.warning("Vuoi ripristinare il catalogo completo dei tag AML ai valori predefiniti di fabbrica?")
                     if st.button("Conferma Ripristino Sintassi AML", type="primary"):
                         aml_tag_mgr.reset_to_defaults(current_user.email, current_user.name)
@@ -1753,7 +1753,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             st.write("##### 📋 Elenco Tag e Frequenza d'Uso")
             if tag_counts:
                 tag_rows = [{"Tag": k, "Numero Brani": v} for k, v in tag_counts.items()]
-                st.dataframe(tag_rows, use_container_width=True)
+                st.dataframe(tag_rows, width="stretch")
             else:
                 st.info("Nessun tag assegnato ai brani nel catalogo.")
 
@@ -1782,7 +1782,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 st.caption("Rimuove completamente un tag da tutti i brani del catalogo musicale.")
                 if tag_counts:
                     tag_to_delete = st.selectbox("Seleziona Tag da eliminare:", list(tag_counts.keys()), key="del_tag_sel")
-                    with st.popover("🗑️ Elimina Tag dal Catalogo", use_container_width=True):
+                    with st.popover("🗑️ Elimina Tag dal Catalogo", width="stretch"):
                         st.warning(f"Vuoi davvero rimuovere il tag **'{tag_to_delete}'** da tutti i brani che lo contengono?")
                         if st.button("Conferma Rimozione Globale", type="secondary", key="btn_confirm_del_tag"):
                             removed = storage.delete_tag_globally(tag_to_delete, current_user.email, current_user.name)
@@ -1836,7 +1836,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     "Margini": f"{d.margin_top_mm:.0f}mm",
                     "Tipo": "Personalizzato" if d.is_custom else "Predefinito"
                 })
-            st.dataframe(dev_rows, use_container_width=True)
+            st.dataframe(dev_rows, width="stretch")
 
             st.divider()
 
@@ -1902,7 +1902,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 st.caption("Elimina un profilo hardware dall'elenco disponibile per i musicisti.")
                 if all_devs:
                     dev_to_del = st.selectbox("Seleziona Dispositivo da Eliminare:", all_devs, format_func=lambda d: f"{d.name} ({d.device_type})", key="sel_del_dev")
-                    with st.popover("🗑️ Conferma Rimozione Dispositivo", use_container_width=True):
+                    with st.popover("🗑️ Conferma Rimozione Dispositivo", width="stretch"):
                         st.warning(f"Vuoi davvero eliminare il dispositivo **'{dev_to_del.name}'**?")
                         if st.button("Elimina Dispositivo", type="secondary", key="btn_confirm_del_dev"):
                             try:
@@ -1918,7 +1918,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             with col_d_rst:
                 st.write("##### 🔄 Ripristina Predefiniti Band")
                 st.caption("Ripristina l'elenco ufficiale dei dispositivi standard (Pixel 8 Pro, iPad, Tab S7/S8/S9, A4, Xiaomi, Oppo, iPhone, Android).")
-                with st.popover("🔄 Ripristina Tutti i Dispositivi Predefiniti", use_container_width=True):
+                with st.popover("🔄 Ripristina Tutti i Dispositivi Predefiniti", width="stretch"):
                     st.warning("Questa operazione ripristinerà gli 8 profili hardware predefiniti della band. Continuare?")
                     if st.button("Conferma Ripristino Standard", type="primary"):
                         device_mgr.reset_defaults(current_user.email, current_user.name)
@@ -1938,7 +1938,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     "Provider": u.provider,
                     "Attivo": "Sì" if u.is_active else "No"
                 })
-            st.dataframe(u_data, use_container_width=True)
+            st.dataframe(u_data, width="stretch")
 
             col_u1, col_u2, col_u3 = st.columns(3)
             with col_u1:
@@ -1970,7 +1970,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 deletable_users = [u.email for u in users if u.email.lower() != current_user.email.lower()]
                 if deletable_users:
                     user_to_delete = st.selectbox("Seleziona Utente da Rimuovere:", deletable_users, key="user_to_del")
-                    with st.popover("🗑️ Elimina Account", use_container_width=True):
+                    with st.popover("🗑️ Elimina Account", width="stretch"):
                         st.warning(f"Vuoi davvero eliminare l'account di **{user_to_delete}**?")
                         if st.button("Conferma Eliminazione Account", type="secondary"):
                             try:
@@ -1999,7 +1999,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     file_name=f"ASMA_BACKUP_{now_iso}.zip",
                     mime="application/zip",
                     type="primary",
-                    use_container_width=True
+                    width="stretch"
                 )
                 st.info("Include: brani AML, revisioni, scalette, repertori, eventi live, log di audit e utenti.")
 
@@ -2022,11 +2022,11 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             deleted_songs = storage.list_songs(include_deleted=True)
             soft_deleted = [s for s in deleted_songs if s.get("is_deleted") == 1]
             if soft_deleted:
-                st.dataframe(soft_deleted, use_container_width=True)
+                st.dataframe(soft_deleted, width="stretch")
 
                 col_tr_top1, col_tr_top2 = st.columns([3, 1])
                 with col_tr_top2:
-                    with st.popover("🧹 Svuota Cestino", use_container_width=True):
+                    with st.popover("🧹 Svuota Cestino", width="stretch"):
                         st.warning("Vuoi eliminare definitivamente TUTTI i brani nel cestino? L'operazione è irreversibile.")
                         if st.button("Conferma Svuota Cestino", type="secondary", disabled=not current_user.can_admin()):
                             purged = storage.empty_trash(current_user.email, current_user.name)
@@ -2040,13 +2040,13 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     with c_sd1:
                         st.write(f"🎵 **{sd['title']}** — {sd.get('artist', '')} (Key: `{sd.get('key_current', '-')}`)")
                     with c_sd2:
-                        if st.button("🔄 Ripristina", key=f"restore_{sd['uuid']}", use_container_width=True):
+                        if st.button("🔄 Ripristina", key=f"restore_{sd['uuid']}", width="stretch"):
                             storage.restore_song(sd["uuid"], current_user.email, current_user.name)
                             log_op("♻️", "RIPRISTINO", f"Brano '{sd['title']}' ripristinato dal cestino", "SUCCESS")
                             st.success(f"Brano '{sd['title']}' ripristinato nell'archivio!")
                             st.rerun()
                     with c_sd3:
-                        with st.popover("🔥 Elimina", use_container_width=True):
+                        with st.popover("🔥 Elimina", width="stretch"):
                             st.write(f"Eliminare definitivamente **'{sd['title']}'**?")
                             if st.button("Conferma", key=f"purge_{sd['uuid']}", type="secondary", disabled=not current_user.can_admin()):
                                 storage.purge_song_permanently(sd["uuid"], current_user.email, current_user.name)
