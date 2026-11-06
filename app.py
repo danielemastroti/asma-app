@@ -1497,7 +1497,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
             target_song = storage.get_song(exp_song_id)
 
-            clean_exp_title = re.sub(r'[\\/*?:"<>|]', '', target_song.title).strip() or 'Brano'
+            clean_exp_title = re.sub(r'[\\/*?:"<>|]', '', target_song.title).strip().upper() or 'BRANO'
             c_e1, c_e2, c_e3, c_e4 = st.columns(4)
             with c_e1:
                 sb_content = ExportEngine.export_for_songbookpro(target_song)
@@ -1725,7 +1725,7 @@ elif menu_choice == "📝 Brani":
         )
 
         # Nome del file: SOLO ed ESCLUSIVAMENTE il titolo del brano con la relativa estensione (vietato device, accordi, testo, ecc.)
-        clean_title = re.sub(r'[\\/*?:"<>|]', '', preview_song.title).strip() or 'Brano'
+        clean_title = re.sub(r'[\\/*?:"<>|]', '', preview_song.title).strip().upper() or 'BRANO'
         clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', prof.name).strip('_') or 'device'
 
         # Profilo A4 per la modalità Stampa (sempre A4 portrait)
