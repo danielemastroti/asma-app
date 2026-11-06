@@ -407,6 +407,113 @@ st.markdown("""
     color: #888888;
     font-size: 13px;
   }
+
+  /* Global compact st.metric styles */
+  [data-testid="stMetric"] {
+    background: rgba(30, 41, 59, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+  }
+  [data-testid="stMetricValue"] {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: #00E5FF !important;
+    line-height: 1.1 !important;
+  }
+  [data-testid="stMetricLabel"] {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #94A3B8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+  }
+
+  /* Responsive Compact KPI Cards Grid */
+  .asma-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  @media (max-width: 768px) {
+    .asma-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+  }
+  .asma-kpi-card {
+    background: rgba(30, 41, 59, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .asma-kpi-card:hover {
+    border-color: rgba(0, 229, 255, 0.4);
+    transform: translateY(-1px);
+  }
+  .asma-kpi-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .asma-kpi-icon {
+    font-size: 13px;
+  }
+  .asma-kpi-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .asma-kpi-val {
+    font-size: 21px;
+    font-weight: 700;
+    color: #00E5FF;
+    line-height: 1.1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Two separate columns for Home Dashboard sections (Side-by-side on PC and Tablets) */
+  div[class*="st-key-home_dashboard_sections"] [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+  div[class*="st-key-home_dashboard_sections"] [data-testid="stColumn"] {
+    flex: 1 1 50% !important;
+    width: 50% !important;
+    min-width: 0 !important;
+  }
+  @media (max-width: 600px) {
+    div[class*="st-key-home_dashboard_sections"] [data-testid="stHorizontalBlock"] {
+      flex-direction: column !important;
+    }
+    div[class*="st-key-home_dashboard_sections"] [data-testid="stColumn"] {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+    }
+  }
+
+  /* Sleek box for dashboard sections */
+  .asma-dash-card {
+    background: rgba(19, 26, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -723,46 +830,108 @@ menu_choice = st.session_state["main_menu_choice"]
 # 1. HOME DASHBOARD
 # ------------------------------------------------------------------------------
 if menu_choice == "🏠 Home Dashboard":
-    st.subheader("🏠 THE New ASMA — Dashboard Ufficiale")
-    st.caption("Piattaforma Digitale Integrata Band: Repertorio, Live Stage 60fps, Scalette, Editor AML & Accordi")
-
-    st.write("")
+    # Compact Header Bar
+    st.markdown(
+        """<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span style="font-size:16px; font-weight:700; color:#FFFFFF;">🏠 Dashboard Band</span>
+            <span style="font-size:11px; color:#94A3B8;">Repertorio &bull; Scalette &bull; Live Stage 60fps &bull; AML</span>
+          </div>
+        </div>""",
+        unsafe_allow_html=True
+    )
 
     songs = storage.list_songs()
     repertoires = storage.list_repertoires()
     setlists = storage.list_setlists()
     events = storage.list_events()
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Brani in Archivio", len(songs))
-    c2.metric("Repertori Attivi", len(repertoires))
-    c3.metric("Scalette Live", len(setlists))
-    c4.metric("Eventi Programmati", len(events))
+    # Compact KPI Metrics Cards (4 columns on PC/Tablet, 2x2 on Mobile, never 1 giant stack)
+    st.markdown(
+        f"""<div class="asma-kpi-grid">
+          <div class="asma-kpi-card">
+            <div class="asma-kpi-header">
+              <span class="asma-kpi-icon">🎵</span>
+              <span class="asma-kpi-title">Brani in Archivio</span>
+            </div>
+            <div class="asma-kpi-val">{len(songs)}</div>
+          </div>
+          <div class="asma-kpi-card">
+            <div class="asma-kpi-header">
+              <span class="asma-kpi-icon">📚</span>
+              <span class="asma-kpi-title">Repertori Attivi</span>
+            </div>
+            <div class="asma-kpi-val">{len(repertoires)}</div>
+          </div>
+          <div class="asma-kpi-card">
+            <div class="asma-kpi-header">
+              <span class="asma-kpi-icon">📑</span>
+              <span class="asma-kpi-title">Scalette Live</span>
+            </div>
+            <div class="asma-kpi-val">{len(setlists)}</div>
+          </div>
+          <div class="asma-kpi-card">
+            <div class="asma-kpi-header">
+              <span class="asma-kpi-icon">📅</span>
+              <span class="asma-kpi-title">Eventi Programmati</span>
+            </div>
+            <div class="asma-kpi-val">{len(events)}</div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True
+    )
 
-    st.divider()
+    # Separate Two-Column Dashboard Layout (Side-by-side on PC and Tablets)
+    with st.container(key="home_dashboard_sections"):
+        col_recent, col_live = st.columns([1, 1], gap="medium")
 
-    col_recent, col_live = st.columns([1, 1])
+        with col_recent:
+            st.markdown(
+                """<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                  <span style="font-size:14px;">🕒</span>
+                  <b style="font-size:13.5px; color:#FFFFFF;">Ultime Attività & Modifiche</b>
+                </div>""",
+                unsafe_allow_html=True
+            )
+            recent_logs = audit.get_entries(limit=5)
+            if recent_logs:
+                log_lines = []
+                for log in recent_logs:
+                    time_part = log.timestamp[11:19] if len(log.timestamp) >= 19 else log.timestamp
+                    log_lines.append(
+                        f"<div style='font-size:11.5px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.05); color:#CBD5E1;'>"
+                        f"<code style='color:#00E5FF; background:rgba(0,229,255,0.08); padding:1px 4px; border-radius:3px;'>{time_part}</code> "
+                        f"<b style='color:#FFFFFF;'>{log.action}</b> su <span style='color:#94A3B8;'>{log.entity_type}</span> da <i>{log.user_name}</i>"
+                        f"</div>"
+                    )
+                st.markdown(f"<div class='asma-dash-card'>{''.join(log_lines)}</div>", unsafe_allow_html=True)
+            else:
+                st.info("Nessuna attività recente registrata.")
 
-    with col_recent:
-        st.write("### 🕒 Ultime Attività & Modifiche")
-        recent_logs = audit.get_entries(limit=5)
-        if recent_logs:
-            for log in recent_logs:
-                st.write(f"- `{log.timestamp[11:19]}` **{log.action}** su {log.entity_type} da *{log.user_name}*")
-        else:
-            st.info("Nessuna attività recente registrata.")
-
-    with col_live:
-        st.write("### 🎤 Accesso Rapido Palco")
-        if setlists:
-            latest_setlist = setlists[-1]
-            st.success(f"Prossima scaletta pronta: **{latest_setlist.title}** ({len(latest_setlist.items)} brani)")
-            if st.button("🚀 Avvia Subito Modalità Palco", type="primary"):
-                st.session_state["selected_setlist_uuid"] = latest_setlist.uuid
-                st.session_state["launch_stage"] = True
-                st.rerun()
-        else:
-            st.info("Nessuna scaletta creata. Crea una scaletta per iniziare.")
+        with col_live:
+            st.markdown(
+                """<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                  <span style="font-size:14px;">🎤</span>
+                  <b style="font-size:13.5px; color:#FFFFFF;">Accesso Rapido Palco</b>
+                </div>""",
+                unsafe_allow_html=True
+            )
+            if setlists:
+                latest_setlist = setlists[-1]
+                st.markdown(
+                    f"""<div class="asma-dash-card" style="margin-bottom:8px;">
+                      <div style="font-size:11px; color:#94A3B8; text-transform:uppercase; letter-spacing:0.4px;">Prossima Scaletta Pronta</div>
+                      <div style="font-size:14px; font-weight:700; color:#00E676; margin:3px 0 6px 0;">{latest_setlist.title} <span style="font-size:11px; color:#CBD5E1; font-weight:normal;">({len(latest_setlist.items)} brani)</span></div>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+                if st.button("🚀 Avvia Subito Modalità Palco", type="primary", key="home_btn_launch_stage", width="stretch"):
+                    st.session_state["selected_setlist_uuid"] = latest_setlist.uuid
+                    st.session_state["launch_stage"] = True
+                    st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
+                    st.rerun()
+            else:
+                st.info("Nessuna scaletta creata. Crea una scaletta per iniziare.")
 
 # ------------------------------------------------------------------------------
 # 2. GESTIONE REPERTORI
