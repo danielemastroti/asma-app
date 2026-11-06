@@ -60,7 +60,7 @@ st.markdown("""
 
   /* Top clearance so fixed header NEVER overlaps subheaders, metrics or second-level tabs */
   .main .block-container, [data-testid="stMainBlockContainer"] {
-    padding-top: 86px !important;
+    padding-top: 104px !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
     max-width: 100% !important;
@@ -68,7 +68,7 @@ st.markdown("""
   }
   @media (max-width: 768px) {
     .main .block-container, [data-testid="stMainBlockContainer"] {
-      padding-top: 88px !important;
+      padding-top: 106px !important;
       padding-left: 10px !important;
       padding-right: 10px !important;
     }
@@ -142,13 +142,16 @@ st.markdown("""
     }
   }
 
-  /* ULTRA COMPACT NAVIGATION PILLS (Single line scrollable, strictly non-wrapping) */
-  div[class*="st-key-top_nav_pills_widget"] {
+  /* ULTRA COMPACT TWO-ROW NAVIGATION PILLS (Always 2 Rows, Ultra-Sleek) */
+  div[class*="top_nav_pills_r1"],
+  div[class*="top_nav_pills_r2"] {
     width: 100% !important;
-    margin-top: 2px !important;
-    margin-bottom: 0px !important;
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+    padding: 0 !important;
   }
-  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"] {
+  div[class*="top_nav_pills_r1"] [data-testid="stPills"],
+  div[class*="top_nav_pills_r2"] [data-testid="stPills"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -156,36 +159,57 @@ st.markdown("""
     overflow-y: hidden !important;
     gap: 3px !important;
     justify-content: flex-start !important;
-    padding-bottom: 1px !important;
+    padding: 0 0 1px 0 !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
-  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"]::-webkit-scrollbar {
+  div[class*="top_nav_pills_r1"] [data-testid="stPills"]::-webkit-scrollbar,
+  div[class*="top_nav_pills_r2"] [data-testid="stPills"]::-webkit-scrollbar {
     display: none !important;
   }
-  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"],
-  div[class*="st-key-top_nav_pills_widget"] button {
+  div[class*="top_nav_pills_r1"] [data-testid="stPill"],
+  div[class*="top_nav_pills_r1"] button,
+  div[class*="top_nav_pills_r2"] [data-testid="stPill"],
+  div[class*="top_nav_pills_r2"] button {
     background: rgba(30, 41, 59, 0.85) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: #E2E8F0 !important;
     font-size: 11px !important;
     font-weight: 600 !important;
-    padding: 2px 8px !important;
-    height: 25px !important;
-    min-height: 25px !important;
-    border-radius: 12px !important;
+    padding: 1px 7px !important;
+    height: 23px !important;
+    min-height: 23px !important;
+    border-radius: 11px !important;
     transition: all 0.15s ease-in-out !important;
     cursor: pointer !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
     line-height: 1 !important;
   }
-  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"]:hover,
-  div[class*="st-key-top_nav_pills_widget"] button:hover {
+  div[class*="top_nav_pills_r1"] [data-testid="stPill"]:hover,
+  div[class*="top_nav_pills_r1"] button:hover,
+  div[class*="top_nav_pills_r2"] [data-testid="stPill"]:hover,
+  div[class*="top_nav_pills_r2"] button:hover {
     background: rgba(2, 136, 209, 0.3) !important;
     border-color: #00E5FF !important;
     color: #FFFFFF !important;
     transform: translateY(-1px) !important;
+  }
+  div[class*="top_nav_pills_r1"] [aria-selected="true"],
+  div[class*="top_nav_pills_r1"] [aria-pressed="true"],
+  div[class*="top_nav_pills_r1"] [aria-checked="true"],
+  div[class*="top_nav_pills_r1"] [data-selected="true"],
+  div[class*="top_nav_pills_r1"] button[kind="primary"],
+  div[class*="top_nav_pills_r2"] [aria-selected="true"],
+  div[class*="top_nav_pills_r2"] [aria-pressed="true"],
+  div[class*="top_nav_pills_r2"] [aria-checked="true"],
+  div[class*="top_nav_pills_r2"] [data-selected="true"],
+  div[class*="top_nav_pills_r2"] button[kind="primary"] {
+    background: linear-gradient(135deg, #0288D1, #0091EA) !important;
+    border-color: #00E5FF !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.6) !important;
+    font-weight: 700 !important;
   }
 
   /* Second-level tabs styling (Never cut off or truncated) */
@@ -956,22 +980,46 @@ with st.container(key="top_navbar_container"):
     if active_item not in MENU_ITEMS:
         active_item = MENU_ITEMS[0]
 
-    top_pill_selection = st.pills(
-        "Menu Navigazione Principale",
-        options=MENU_ITEMS,
-        format_func=lambda x: MENU_COMPACT_LABELS.get(x, x),
-        default=active_item,
+    MENU_ITEMS_ROW1 = MENU_ITEMS[:6]
+    MENU_ITEMS_ROW2 = MENU_ITEMS[6:]
+
+    def _fmt_label(x):
+        return MENU_COMPACT_LABELS.get(x, x)
+
+    # Row 1 of Navigation Pills (6 items: Home, Import/Export, Brani, AI, Cerca, Repertori)
+    d1 = active_item if active_item in MENU_ITEMS_ROW1 else None
+    sel_r1 = st.pills(
+        "Nav Row 1",
+        options=MENU_ITEMS_ROW1,
+        format_func=_fmt_label,
+        default=d1,
         selection_mode="single",
-        required=True,
         wrap=False,
-        key="top_nav_pills_widget",
+        key=f"top_nav_pills_r1_{active_item}",
         label_visibility="collapsed"
     )
-    if top_pill_selection and top_pill_selection != st.session_state["main_menu_choice"]:
-        st.session_state["main_menu_choice"] = top_pill_selection
+
+    # Row 2 of Navigation Pills (5 items: Scalette, Palco, Eventi, Guida, Admin)
+    d2 = active_item if active_item in MENU_ITEMS_ROW2 else None
+    sel_r2 = st.pills(
+        "Nav Row 2",
+        options=MENU_ITEMS_ROW2,
+        format_func=_fmt_label,
+        default=d2,
+        selection_mode="single",
+        wrap=False,
+        key=f"top_nav_pills_r2_{active_item}",
+        label_visibility="collapsed"
+    )
+
+    if sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
+        st.session_state["main_menu_choice"] = sel_r1
+        st.rerun()
+    elif sel_r2 and sel_r2 != st.session_state["main_menu_choice"]:
+        st.session_state["main_menu_choice"] = sel_r2
         st.rerun()
 
-menu_choice = st.session_state["main_menu_choice"]
+    menu_choice = st.session_state["main_menu_choice"]
 
 # ------------------------------------------------------------------------------
 # 1. HOME DASHBOARD
