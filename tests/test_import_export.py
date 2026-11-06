@@ -84,6 +84,27 @@ class TestImportExportEngine(unittest.TestCase):
         self.assertEqual(song.key_current, "Dm")
         self.assertEqual(song.bpm, 148)
 
+    def test_save_file_to_destination(self):
+        """Test saving export file to local or Google Drive destination."""
+        import tempfile
+        import os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_bytes = b"%PDF-1.4 Mock PDF Content"
+            file_name = "test_song.pdf"
+            saved_path = ExportEngine.save_file_to_destination(test_bytes, tmpdir, file_name)
+            self.assertTrue(os.path.exists(saved_path))
+            with open(saved_path, "rb") as f:
+                self.assertEqual(f.read(), test_bytes)
+
+        # Check default paths don't fail
+        loc_dir = ExportEngine.get_default_local_export_dir()
+        self.assertIsInstance(loc_dir, str)
+        self.assertTrue(len(loc_dir) > 0)
+
+        gd_dir = ExportEngine.get_default_gdrive_export_dir()
+        self.assertIsInstance(gd_dir, str)
+        self.assertTrue(len(gd_dir) > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

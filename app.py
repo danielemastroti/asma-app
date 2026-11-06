@@ -1244,67 +1244,247 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 unsafe_allow_html=True
             )
 
-            # Due scelte compatte per il download: con accordi (musicisti) e solo testo (cantante)
+            # Selezione Destinazione Salvataggio PDF (SRS Cap. 14)
+            st.markdown(
+                """<div style="display:flex; align-items:center; gap:6px; margin-top:4px; margin-bottom:6px;">
+                  <span style="font-size:12px;">📍</span>
+                  <b style="font-size:12px; color:#FFFFFF;">Destinazione di Esportazione:</b>
+                </div>""",
+                unsafe_allow_html=True
+            )
+            dest_choices = [
+                "📥 Download Diretto Browser (Dispositivo)",
+                "📁 Cartella Disco Locale",
+                "☁️ Google Drive (Cloud Sincronizzato)"
+            ]
+            curr_dest = st.session_state.get("pdf_dest_mode", _client_prefs.get("pdf_dest_mode", dest_choices[0]))
+            if curr_dest not in dest_choices:
+                curr_dest = dest_choices[0]
+
+            sel_dest = st.pills(
+                "Destinazione Salvataggio:",
+                dest_choices,
+                default=curr_dest,
+                key="pdf_dest_pill_sel",
+                label_visibility="collapsed"
+            )
+            if not sel_dest:
+                sel_dest = curr_dest
+            if sel_dest != st.session_state.get("pdf_dest_mode"):
+                st.session_state["pdf_dest_mode"] = sel_dest
+                _client_prefs["pdf_dest_mode"] = sel_dest
+                save_client_preferences(_client_prefs)
+
+            # Configurazioni percorso per Cartella Locale o Google Drive
+            if sel_dest == "📁 Cartella Disco Locale":
+                col_loc_in, col_loc_pop = st.columns([3, 1], gap="small", vertical_alignment="bottom")
+                with col_loc_in:
+                    loc_path_val = st.session_state.get("pdf_local_dir", _client_prefs.get("pdf_local_dir", ExportEngine.get_default_local_export_dir()))
+                    new_loc = st.text_input(
+                        "Percorso Cartella Locale:",
+                        value=loc_path_val,
+                        key="input_pdf_local_dir",
+                        help="Inserisci il percorso assoluto o relativo sul disco (es. C:\\Spartiti o ./exports/pdf)"
+                    )
+                    if new_loc != loc_path_val:
+                        st.session_state["pdf_local_dir"] = new_loc
+                        _client_prefs["pdf_local_dir"] = new_loc
+                        save_client_preferences(_client_prefs)
+                with col_loc_pop:
+                    with st.popover("⚡ Percorsi Rapidi", width="stretch"):
+                        st.write("**Seleziona cartella:**")
+                        if st.button("📁 App (./exports/pdf)", key="pk_loc_app", width="stretch"):
+                            st.session_state["pdf_local_dir"] = ExportEngine.get_default_local_export_dir()
+                            _client_prefs["pdf_local_dir"] = st.session_state["pdf_local_dir"]
+                            save_client_preferences(_client_prefs)
+                            st.rerun()
+                        if st.button("💻 Desktop Utente", key="pk_loc_dsk", width="stretch"):
+                            st.session_state["pdf_local_dir"] = os.path.join(os.path.expanduser("~"), "Desktop", "ASMA_PDF")
+                            _client_prefs["pdf_local_dir"] = st.session_state["pdf_local_dir"]
+                            save_client_preferences(_client_prefs)
+                            st.rerun()
+                        if st.button("📑 Documenti", key="pk_loc_doc", width="stretch"):
+                            st.session_state["pdf_local_dir"] = os.path.join(os.path.expanduser("~"), "Documents", "ASMA_PDF")
+                            _client_prefs["pdf_local_dir"] = st.session_state["pdf_local_dir"]
+                            save_client_preferences(_client_prefs)
+                            st.rerun()
+
+            elif sel_dest == "☁️ Google Drive (Cloud Sincronizzato)":
+                col_gd_in, col_gd_pop = st.columns([3, 1], gap="small", vertical_alignment="bottom")
+                with col_gd_in:
+                    gd_path_val = st.session_state.get("pdf_gdrive_dir", _client_prefs.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir()))
+                    new_gd = st.text_input(
+                        "Percorso Cartella Sincronizzata Google Drive:",
+                        value=gd_path_val,
+                        key="input_pdf_gdrive_dir",
+                        help="Cartella sincronizzata di Google Drive per disponibilità immediata su tutti i tablet e smartphone"
+                    )
+                    if new_gd != gd_path_val:
+                        st.session_state["pdf_gdrive_dir"] = new_gd
+                        _client_prefs["pdf_gdrive_dir"] = new_gd
+                        save_client_preferences(_client_prefs)
+                with col_gd_pop:
+                    with st.popover("⚡ Rileva Drive", width="stretch"):
+                        st.write("**Posizioni standard:**")
+                        if st.button("☁️ Drive G: (G:\\Il mio Drive\\ASMA_PDF)", key="pk_gd_g", width="stretch"):
+                            st.session_state["pdf_gdrive_dir"] = "G:\\Il mio Drive\\ASMA_PDF"
+                            _client_prefs["pdf_gdrive_dir"] = st.session_state["pdf_gdrive_dir"]
+                            save_client_preferences(_client_prefs)
+                            st.rerun()
+                        if st.button("☁️ ~/Google Drive/ASMA_PDF", key="pk_gd_home", width="stretch"):
+                            st.session_state["pdf_gdrive_dir"] = os.path.expanduser("~/Google Drive/ASMA_PDF")
+                            _client_prefs["pdf_gdrive_dir"] = st.session_state["pdf_gdrive_dir"]
+                            save_client_preferences(_client_prefs)
+                            st.rerun()
+                st.caption("💡 I file salvati nella cartella sincronizzata di Google Drive sono accessibili in tempo reale da tablet Huawei, iPad e smartphone tramite l'app Google Drive.")
+
+            # Due scelte compatte per il download / salvataggio: con accordi (musicisti) e solo testo (cantante)
             c_down1, c_down2 = st.columns(2, gap="small")
 
             if exp_type == "Singolo Brano" and target_obj_song:
+                fname_m = f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf"
+                fname_s = f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf"
+
                 # 1. Con Accordi per Musicisti
                 with c_down1:
                     pdf_music = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=True, use_cache=False)
-                    st.download_button(
-                        "🎸 Scarica PDF con Accordi (Musicisti)",
-                        data=pdf_music,
-                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
-                        mime="application/pdf",
-                        type="primary",
-                        width="stretch",
-                        key=f"dl_pdf_music_{target_obj_song.uuid}_{target_profile.name}"
-                    )
+                    if sel_dest == "📥 Download Diretto Browser (Dispositivo)":
+                        st.download_button(
+                            "🎸 Scarica PDF con Accordi (Musicisti)",
+                            data=pdf_music,
+                            file_name=fname_m,
+                            mime="application/pdf",
+                            type="primary",
+                            width="stretch",
+                            key=f"dl_pdf_music_{target_obj_song.uuid}_{target_profile.name}"
+                        )
+                    elif sel_dest == "📁 Cartella Disco Locale":
+                        if st.button("🎸 💾 Salva con Accordi nel Percorso", key=f"btn_save_loc_m_{target_obj_song.uuid}", type="primary", width="stretch"):
+                            try:
+                                saved_p = ExportEngine.save_file_to_destination(pdf_music, st.session_state.get("pdf_local_dir", ExportEngine.get_default_local_export_dir()), fname_m)
+                                st.success(f"✅ Salvato: `{saved_p}`")
+                                log_op("💾", "EXPORT", f"PDF salvato in cartella locale: {saved_p}", "SUCCESS")
+                            except Exception as _e:
+                                st.error(f"Errore di salvataggio: {_e}")
+                        st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_music, file_name=fname_m, mime="application/pdf", key=f"dl_sub_m_{target_obj_song.uuid}", width="stretch")
+                    else:  # Google Drive
+                        if st.button("🎸 ☁️ Sincronizza con Accordi su Drive", key=f"btn_save_gd_m_{target_obj_song.uuid}", type="primary", width="stretch"):
+                            try:
+                                saved_p = ExportEngine.save_file_to_destination(pdf_music, st.session_state.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir()), fname_m)
+                                st.success(f"✅ Sincronizzato su Google Drive: `{saved_p}`")
+                                log_op("☁️", "DRIVE", f"PDF sincronizzato in Google Drive: {saved_p}", "SUCCESS")
+                            except Exception as _e:
+                                st.error(f"Errore sincronizzazione: {_e}")
+                        st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_music, file_name=fname_m, mime="application/pdf", key=f"dl_sub_gd_m_{target_obj_song.uuid}", width="stretch")
+
                     st.caption("Accordi allineati, griglia a battute, tonalità e stacchi. Protezione atomica da salto pagina.")
 
                 # 2. Solo Testo per Cantante
                 with c_down2:
                     pdf_singer = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=False, use_cache=False)
-                    st.download_button(
-                        "🎤 Scarica PDF Solo Testo (Cantante)",
-                        data=pdf_singer,
-                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
-                        mime="application/pdf",
-                        type="secondary",
-                        width="stretch",
-                        key=f"dl_pdf_singer_{target_obj_song.uuid}_{target_profile.name}"
-                    )
+                    if sel_dest == "📥 Download Diretto Browser (Dispositivo)":
+                        st.download_button(
+                            "🎤 Scarica PDF Solo Testo (Cantante)",
+                            data=pdf_singer,
+                            file_name=fname_s,
+                            mime="application/pdf",
+                            type="secondary",
+                            width="stretch",
+                            key=f"dl_pdf_singer_{target_obj_song.uuid}_{target_profile.name}"
+                        )
+                    elif sel_dest == "📁 Cartella Disco Locale":
+                        if st.button("🎤 💾 Salva Solo Testo nel Percorso", key=f"btn_save_loc_s_{target_obj_song.uuid}", type="secondary", width="stretch"):
+                            try:
+                                saved_p = ExportEngine.save_file_to_destination(pdf_singer, st.session_state.get("pdf_local_dir", ExportEngine.get_default_local_export_dir()), fname_s)
+                                st.success(f"✅ Salvato: `{saved_p}`")
+                                log_op("💾", "EXPORT", f"PDF cantante salvato in cartella locale: {saved_p}", "SUCCESS")
+                            except Exception as _e:
+                                st.error(f"Errore di salvataggio: {_e}")
+                        st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_singer, file_name=fname_s, mime="application/pdf", key=f"dl_sub_s_{target_obj_song.uuid}", width="stretch")
+                    else:  # Google Drive
+                        if st.button("🎤 ☁️ Sincronizza Solo Testo su Drive", key=f"btn_save_gd_s_{target_obj_song.uuid}", type="secondary", width="stretch"):
+                            try:
+                                saved_p = ExportEngine.save_file_to_destination(pdf_singer, st.session_state.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir()), fname_s)
+                                st.success(f"✅ Sincronizzato su Google Drive: `{saved_p}`")
+                                log_op("☁️", "DRIVE", f"PDF cantante sincronizzato in Google Drive: {saved_p}", "SUCCESS")
+                            except Exception as _e:
+                                st.error(f"Errore sincronizzazione: {_e}")
+                        st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_singer, file_name=fname_s, mime="application/pdf", key=f"dl_sub_gd_s_{target_obj_song.uuid}", width="stretch")
+
                     st.caption("Puro testo cantato e sezioni (Intro, Strofa, Ritornello), privo di accordi e griglie.")
 
             elif exp_type == "Intera Scaletta" and target_obj_setlist:
                 sl_songs = [storage.get_song(it.song_uuid) for it in target_obj_setlist.items if storage.get_song(it.song_uuid)]
                 if sl_songs:
+                    fname_sl_m = f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf"
+                    fname_sl_s = f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf"
+
                     # 1. Con Accordi per Musicisti
                     with c_down1:
                         pdf_music_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=True)
-                        st.download_button(
-                            f"🎸 Scarica Scaletta con Accordi ({len(sl_songs)} brani)",
-                            data=pdf_music_sl,
-                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
-                            mime="application/pdf",
-                            type="primary",
-                            width="stretch",
-                            key=f"dl_pdf_sl_music_{target_obj_setlist.uuid}_{target_profile.name}"
-                        )
+                        if sel_dest == "📥 Download Diretto Browser (Dispositivo)":
+                            st.download_button(
+                                f"🎸 Scarica Scaletta con Accordi ({len(sl_songs)} brani)",
+                                data=pdf_music_sl,
+                                file_name=fname_sl_m,
+                                mime="application/pdf",
+                                type="primary",
+                                width="stretch",
+                                key=f"dl_pdf_sl_music_{target_obj_setlist.uuid}_{target_profile.name}"
+                            )
+                        elif sel_dest == "📁 Cartella Disco Locale":
+                            if st.button(f"🎸 💾 Salva Scaletta nel Percorso ({len(sl_songs)} brani)", key=f"btn_save_loc_sl_m_{target_obj_setlist.uuid}", type="primary", width="stretch"):
+                                try:
+                                    saved_p = ExportEngine.save_file_to_destination(pdf_music_sl, st.session_state.get("pdf_local_dir", ExportEngine.get_default_local_export_dir()), fname_sl_m)
+                                    st.success(f"✅ Scaletta salvata: `{saved_p}`")
+                                    log_op("💾", "EXPORT", f"Scaletta con accordi salvata in: {saved_p}", "SUCCESS")
+                                except Exception as _e:
+                                    st.error(f"Errore di salvataggio: {_e}")
+                            st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_music_sl, file_name=fname_sl_m, mime="application/pdf", key=f"dl_sub_sl_m_{target_obj_setlist.uuid}", width="stretch")
+                        else:  # Google Drive
+                            if st.button(f"🎸 ☁️ Sincronizza Scaletta su Drive ({len(sl_songs)} brani)", key=f"btn_save_gd_sl_m_{target_obj_setlist.uuid}", type="primary", width="stretch"):
+                                try:
+                                    saved_p = ExportEngine.save_file_to_destination(pdf_music_sl, st.session_state.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir()), fname_sl_m)
+                                    st.success(f"✅ Scaletta sincronizzata su Google Drive: `{saved_p}`")
+                                    log_op("☁️", "DRIVE", f"Scaletta sincronizzata in Google Drive: {saved_p}", "SUCCESS")
+                                except Exception as _e:
+                                    st.error(f"Errore sincronizzazione: {_e}")
+                            st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_music_sl, file_name=fname_sl_m, mime="application/pdf", key=f"dl_sub_gd_sl_m_{target_obj_setlist.uuid}", width="stretch")
+
                         st.caption("Scaletta completa con copertina, indice brani e spartiti per musicisti.")
 
                     # 2. Solo Testo per Cantante
                     with c_down2:
                         pdf_singer_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=False)
-                        st.download_button(
-                            f"🎤 Scarica Scaletta Solo Testo ({len(sl_songs)} brani)",
-                            data=pdf_singer_sl,
-                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
-                            mime="application/pdf",
-                            type="secondary",
-                            width="stretch",
-                            key=f"dl_pdf_sl_singer_{target_obj_setlist.uuid}_{target_profile.name}"
-                        )
+                        if sel_dest == "📥 Download Diretto Browser (Dispositivo)":
+                            st.download_button(
+                                f"🎤 Scarica Scaletta Solo Testo ({len(sl_songs)} brani)",
+                                data=pdf_singer_sl,
+                                file_name=fname_sl_s,
+                                mime="application/pdf",
+                                type="secondary",
+                                width="stretch",
+                                key=f"dl_pdf_sl_singer_{target_obj_setlist.uuid}_{target_profile.name}"
+                            )
+                        elif sel_dest == "📁 Cartella Disco Locale":
+                            if st.button(f"🎤 💾 Salva Testo nel Percorso ({len(sl_songs)} brani)", key=f"btn_save_loc_sl_s_{target_obj_setlist.uuid}", type="secondary", width="stretch"):
+                                try:
+                                    saved_p = ExportEngine.save_file_to_destination(pdf_singer_sl, st.session_state.get("pdf_local_dir", ExportEngine.get_default_local_export_dir()), fname_sl_s)
+                                    st.success(f"✅ Scaletta cantante salvata: `{saved_p}`")
+                                    log_op("💾", "EXPORT", f"Scaletta cantante salvata in: {saved_p}", "SUCCESS")
+                                except Exception as _e:
+                                    st.error(f"Errore di salvataggio: {_e}")
+                            st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_singer_sl, file_name=fname_sl_s, mime="application/pdf", key=f"dl_sub_sl_s_{target_obj_setlist.uuid}", width="stretch")
+                        else:  # Google Drive
+                            if st.button(f"🎤 ☁️ Sincronizza Testo su Drive ({len(sl_songs)} brani)", key=f"btn_save_gd_sl_s_{target_obj_setlist.uuid}", type="secondary", width="stretch"):
+                                try:
+                                    saved_p = ExportEngine.save_file_to_destination(pdf_singer_sl, st.session_state.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir()), fname_sl_s)
+                                    st.success(f"✅ Scaletta cantante sincronizzata su Google Drive: `{saved_p}`")
+                                    log_op("☁️", "DRIVE", f"Scaletta cantante sincronizzata in Google Drive: {saved_p}", "SUCCESS")
+                                except Exception as _e:
+                                    st.error(f"Errore sincronizzazione: {_e}")
+                            st.download_button("📥 Scarica anche copia sul dispositivo", data=pdf_singer_sl, file_name=fname_sl_s, mime="application/pdf", key=f"dl_sub_gd_sl_s_{target_obj_setlist.uuid}", width="stretch")
+
                         st.caption("Scaletta completa solo testo per il cantante con copertina e indice.")
 
     with tab_web:
@@ -1686,16 +1866,39 @@ elif menu_choice == "📝 Brani":
         )
 
         pdf_bytes = PDFEngine.generate_song_pdf(preview_song, profile=prof, use_cache=False)
+        ed_pdf_name = f"{preview_song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf"
 
-        col_exp_pdf, col_exp_sb = st.columns(2)
+        col_exp_pdf, col_exp_dest, col_exp_sb = st.columns([1.4, 1.2, 1.4], gap="small")
         with col_exp_pdf:
             st.download_button(
                 label=f"📄 Scarica PDF ({prof.name})",
                 data=pdf_bytes,
-                file_name=f"{preview_song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
+                file_name=ed_pdf_name,
                 mime="application/pdf",
                 width="stretch"
             )
+        with col_exp_dest:
+            with st.popover("📁 Percorso / Drive", width="stretch", help="Salva direttamente in cartella locale o Google Drive"):
+                st.write("##### 📍 Salva in Percorso")
+                dest_t = st.radio("Destinazione:", ["📁 Cartella Locale", "☁️ Google Drive"], horizontal=True, key=f"ed_dest_t_{preview_song.uuid}")
+                if dest_t == "📁 Cartella Locale":
+                    loc_p = st.text_input("Cartella Disco:", value=st.session_state.get("pdf_local_dir", _client_prefs.get("pdf_local_dir", ExportEngine.get_default_local_export_dir())), key=f"ed_loc_{preview_song.uuid}")
+                    if st.button("💾 Salva in Locale", key=f"btn_ed_loc_{preview_song.uuid}", width="stretch", type="primary"):
+                        try:
+                            res_p = ExportEngine.save_file_to_destination(pdf_bytes, loc_p, ed_pdf_name)
+                            st.success(f"✅ Salvato: `{res_p}`")
+                            log_op("💾", "EXPORT", f"PDF salvato in: {res_p}", "SUCCESS")
+                        except Exception as e:
+                            st.error(f"Errore: {e}")
+                else:
+                    gd_p = st.text_input("Cartella Google Drive:", value=st.session_state.get("pdf_gdrive_dir", _client_prefs.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir())), key=f"ed_gd_{preview_song.uuid}")
+                    if st.button("☁️ Sincronizza su Drive", key=f"btn_ed_gd_{preview_song.uuid}", width="stretch", type="primary"):
+                        try:
+                            res_p = ExportEngine.save_file_to_destination(pdf_bytes, gd_p, ed_pdf_name)
+                            st.success(f"✅ Sincronizzato su Drive: `{res_p}`")
+                            log_op("☁️", "DRIVE", f"PDF sincronizzato: {res_p}", "SUCCESS")
+                        except Exception as e:
+                            st.error(f"Errore: {e}")
         with col_exp_sb:
             st.download_button(
                 label="🎸 Esporta per SongBook Pro (.pro)",
@@ -2075,14 +2278,39 @@ elif menu_choice == "📑 Scalette Live":
                 with c_set_act:
                     if loaded_songs:
                         set_pdf = PDFEngine.generate_setlist_pdf(active_setlist, loaded_songs, profile=set_prof)
-                        st.download_button(
-                            label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
-                            data=set_pdf,
-                            file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}_{set_prof.name.replace(' ', '_')}.pdf",
-                            mime="application/pdf",
-                            width="stretch",
-                            help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
-                        )
+                        sl_pdf_name = f"Scaletta_{active_setlist.title.replace(' ', '_')}_{set_prof.name.replace(' ', '_')}.pdf"
+                        col_sl_pdf_dl, col_sl_pdf_pop = st.columns([1.8, 1.2], gap="small")
+                        with col_sl_pdf_dl:
+                            st.download_button(
+                                label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
+                                data=set_pdf,
+                                file_name=sl_pdf_name,
+                                mime="application/pdf",
+                                width="stretch",
+                                help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
+                            )
+                        with col_sl_pdf_pop:
+                            with st.popover("📁 Salva su Percorso / Drive", width="stretch"):
+                                st.write("##### 📍 Salva Scaletta in Percorso")
+                                sl_dest_t = st.radio("Destinazione:", ["📁 Cartella Locale", "☁️ Google Drive"], horizontal=True, key=f"sl_dest_t_{active_setlist.uuid}")
+                                if sl_dest_t == "📁 Cartella Locale":
+                                    sl_loc_p = st.text_input("Cartella Disco:", value=st.session_state.get("pdf_local_dir", _client_prefs.get("pdf_local_dir", ExportEngine.get_default_local_export_dir())), key=f"sl_loc_{active_setlist.uuid}")
+                                    if st.button("💾 Salva Scaletta in Locale", key=f"btn_sl_loc_{active_setlist.uuid}", width="stretch", type="primary"):
+                                        try:
+                                            res_p = ExportEngine.save_file_to_destination(set_pdf, sl_loc_p, sl_pdf_name)
+                                            st.success(f"✅ Scaletta salvata: `{res_p}`")
+                                            log_op("💾", "EXPORT", f"Scaletta PDF salvata in: {res_p}", "SUCCESS")
+                                        except Exception as e:
+                                            st.error(f"Errore: {e}")
+                                else:
+                                    sl_gd_p = st.text_input("Cartella Google Drive:", value=st.session_state.get("pdf_gdrive_dir", _client_prefs.get("pdf_gdrive_dir", ExportEngine.get_default_gdrive_export_dir())), key=f"sl_gd_{active_setlist.uuid}")
+                                    if st.button("☁️ Sincronizza su Drive", key=f"btn_sl_gd_{active_setlist.uuid}", width="stretch", type="primary"):
+                                        try:
+                                            res_p = ExportEngine.save_file_to_destination(set_pdf, sl_gd_p, sl_pdf_name)
+                                            st.success(f"✅ Scaletta sincronizzata su Drive: `{res_p}`")
+                                            log_op("☁️", "DRIVE", f"Scaletta sincronizzata in Google Drive: {res_p}", "SUCCESS")
+                                        except Exception as e:
+                                            st.error(f"Errore: {e}")
 
                         col_sb_exp, col_zip_exp = st.columns(2)
                         with col_sb_exp:
