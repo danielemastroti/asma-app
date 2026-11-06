@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-05T20:18:03.815113+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "6a626885-3a23-48d5-8e1c-bd48d82eec44",
+  "data": {
+    "uuid": "6a626885-3a23-48d5-8e1c-bd48d82eec44",
+    "title": "Nuovo Brano",
+    "artist": "",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "C",
+    "key_current": "C",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-05T20:07:11.736188+00:00",
+    "updated_at": "2026-11-05T20:07:11.736188+00:00"
+  }
+}
