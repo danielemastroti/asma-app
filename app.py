@@ -42,9 +42,72 @@ st.markdown(asma_core.browser_polyfill.POLYFILL_SCRIPT, unsafe_allow_html=True)
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
 <style>
-  /* Ensure page content starts below the top fixed bar */
-  .main .block-container {
-    padding-top: 54px !important;
+  /* Ensure main block container allows sticky positioning and proper top padding */
+  .main, section[data-testid="stMain"], [data-testid="stAppViewContainer"] {
+    overflow-y: auto !important;
+  }
+  .main .block-container, [data-testid="stMainBlockContainer"] {
+    padding-top: 48px !important;
+    overflow: visible !important;
+  }
+
+  /* TOP STICKY NAVIGATION BAR (Always Fixed on Scroll for all devices) */
+  div[class*="st-key-top_navbar_container"] {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 42px !important; /* Immediately below the 42px fixed top animated working bar */
+    z-index: 99990 !important;
+    background: rgba(13, 17, 23, 0.98) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-bottom: 2px solid #0288D1 !important;
+    border-radius: 0 0 10px 10px !important;
+    padding: 6px 14px 10px 14px !important;
+    margin-top: -6px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.85) !important;
+  }
+
+  /* Style Navigation Pills inside the Sticky Top Bar */
+  div[class*="st-key-top_nav_pills_widget"] {
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    justify-content: flex-start !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"],
+  div[class*="st-key-top_nav_pills_widget"] button {
+    background: rgba(30, 41, 59, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: #E2E8F0 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 5px 13px !important;
+    border-radius: 20px !important;
+    transition: all 0.2s ease-in-out !important;
+    cursor: pointer !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"]:hover,
+  div[class*="st-key-top_nav_pills_widget"] button:hover {
+    background: rgba(2, 136, 209, 0.3) !important;
+    border-color: #00E5FF !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [aria-selected="true"],
+  div[class*="st-key-top_nav_pills_widget"] [aria-pressed="true"],
+  div[class*="st-key-top_nav_pills_widget"] [aria-checked="true"],
+  div[class*="st-key-top_nav_pills_widget"] [data-selected="true"],
+  div[class*="st-key-top_nav_pills_widget"] button[kind="primary"] {
+    background: linear-gradient(135deg, #0288D1, #0091EA) !important;
+    border-color: #00E5FF !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.6) !important;
+    font-weight: 700 !important;
   }
 
   /* TOP FIXED BAR (Always Visible & Animated) */
@@ -362,76 +425,158 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-col_h1, col_h2, col_h3 = st.columns([2.5, 0.5, 1.2])
-with col_h1:
-    if os.path.exists("assets/band_logo.png"):
-        col_lg, col_us = st.columns([1, 3.5])
-        with col_lg:
-            st.image("assets/band_logo.png", use_container_width=True)
-        with col_us:
-            st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
-              <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
-              <span class="status-badge">🟢 ONLINE</span>
-              <span class="version-tag"><b>ASMA 2026.11.05</b></span>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div style="display:flex; align-items:center; gap:16px;">
-          <span class="user-badge" style="color:{role_col};">👤 {current_user.name} ({current_user.role.value})</span>
-          <span class="status-badge">🟢 ONLINE</span>
-          <span class="version-tag">Versione: <b>ASMA 2026.11.05</b></span>
-        </div>
-        """, unsafe_allow_html=True)
-with col_h3:
-    st.caption(f"Storage: SQLite+Gist | Permessi: {'Full Write' if current_user.can_edit() else 'Read Only'}")
-    with st.popover(f"📟 Finestra Stato ({op_logger.count()})", use_container_width=True):
-        render_status_console(op_logger, key_prefix="header_pop", compact=False)
+MENU_ITEMS = [
+    "🏠 Home Dashboard",
+    "📚 Repertori",
+    "📝 Editor Brani",
+    "📑 Scalette Live",
+    "🎤 Modalità Palco (Live Stage)",
+    "📅 Eventi Live",
+    "📥 Importa & 📤 Esporta",
+    "🔍 Ricerca Globale",
+    "🤖 Band AI (Opzionale)",
+    "📖 Manuale & Changelog",
+    "⚙️ Amministrazione & Log"
+]
 
-st.divider()
+if "main_menu_choice" not in st.session_state:
+    st.session_state["main_menu_choice"] = "🏠 Home Dashboard"
 
-# SIDEBAR: Logo & Autenticazione & Selezione Profilo (SRS Cap. 3 & 10)
+all_users = auth_mgr.list_users()
+user_emails = [u.email for u in all_users]
+curr_user_idx = user_emails.index(current_user.email) if current_user.email in user_emails else 0
+
+dev_list = device_mgr.list_devices()
+dev_names = [d.name for d in dev_list]
+curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
+pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
+
+# ==============================================================================
+# TOP FIXED / STICKY NAVIGATION BAR (Always Fixed on Scroll for All Devices)
+# ==============================================================================
+with st.container(key="top_navbar_container"):
+    # Row 1: Brand & User Profile & Device & Operations Log Console
+    col_t1, col_t2, col_t3, col_t4 = st.columns([1.6, 1.4, 1.4, 0.9], gap="small", vertical_alignment="center")
+
+    with col_t1:
+        if os.path.exists("assets/band_logo.png"):
+            c_lg_mini, c_ttl_mini = st.columns([0.32, 1.68], vertical_alignment="center")
+            with c_lg_mini:
+                st.image("assets/band_logo.png", width=38)
+            with c_ttl_mini:
+                st.markdown(
+                    f"<div style='line-height:1.2;'>"
+                    f"<b style='font-size:13.5px; color:#FFFFFF;'>THE New ASMA</b> "
+                    f"<span style='font-size:10.5px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
+                    f"<span style='font-size:10.5px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+        else:
+            st.markdown(
+                f"<div style='line-height:1.2;'>"
+                f"<b style='font-size:14px; color:#FFFFFF;'>⚡ THE New ASMA</b> "
+                f"<span style='font-size:11px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
+                f"<span style='font-size:10.5px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
+    with col_t2:
+        top_selected_account = st.selectbox(
+            "👤 Utente:",
+            user_emails,
+            index=curr_user_idx,
+            format_func=lambda e: f"👤 {next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
+            key="top_bar_user_sel",
+            label_visibility="collapsed",
+            help="Seleziona il profilo utente per testare ruoli e permessi."
+        )
+        if top_selected_account != st.session_state["current_user_email"]:
+            st.session_state["current_user_email"] = top_selected_account
+            u_sel = auth_mgr.get_user_by_email(top_selected_account)
+            if u_sel:
+                log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
+            st.rerun()
+
+    with col_t3:
+        top_selected_device = st.selectbox(
+            "📱 Dispositivo:",
+            dev_names,
+            index=pref_idx,
+            format_func=lambda d: f"📱 {d}",
+            key="top_bar_device_sel",
+            label_visibility="collapsed",
+            help="Modello hardware per adattare impaginazione, colonne e leggibilità (es. Huawei MediaPad M5, iPad, Pixel)."
+        )
+        if top_selected_device != st.session_state.get("user_preferred_device"):
+            st.session_state["user_preferred_device"] = top_selected_device
+            st.rerun()
+
+    with col_t4:
+        with st.popover(f"📟 Log ({op_logger.count()})", use_container_width=True):
+            render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
+
+    # Row 2: Sticky Navigation Pills
+    active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
+    if active_item not in MENU_ITEMS:
+        active_item = MENU_ITEMS[0]
+
+    top_pill_selection = st.pills(
+        "Menu Navigazione Principale",
+        options=MENU_ITEMS,
+        default=active_item,
+        selection_mode="single",
+        required=True,
+        wrap=True,
+        key="top_nav_pills_widget",
+        label_visibility="collapsed"
+    )
+    if top_pill_selection and top_pill_selection != st.session_state["main_menu_choice"]:
+        st.session_state["main_menu_choice"] = top_pill_selection
+        st.rerun()
+
+menu_choice = st.session_state["main_menu_choice"]
+
+# ==============================================================================
+# SIDEBAR: Sincronizzata con la Barra Fissa Superiore
+# ==============================================================================
 with st.sidebar:
     if os.path.exists("assets/band_logo.png"):
         st.image("assets/band_logo.png", use_container_width=True)
         st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
     st.markdown("### 🔐 Autenticazione & Utente")
-    all_users = auth_mgr.list_users()
-    user_emails = [u.email for u in all_users]
-    curr_idx = user_emails.index(current_user.email) if current_user.email in user_emails else 0
-
-    selected_account = st.selectbox(
+    sidebar_account = st.selectbox(
         "Profilo Attivo (Test Ruoli):",
         user_emails,
-        index=curr_idx,
+        index=curr_user_idx,
+        key="sidebar_user_sel",
         format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]"
     )
-    if selected_account != st.session_state["current_user_email"]:
-        st.session_state["current_user_email"] = selected_account
-        u_sel = auth_mgr.get_user_by_email(selected_account)
+    if sidebar_account != st.session_state["current_user_email"]:
+        st.session_state["current_user_email"] = sidebar_account
+        u_sel = auth_mgr.get_user_by_email(sidebar_account)
         if u_sel:
             log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
         st.rerun()
 
-    dev_list = device_mgr.list_devices()
-    dev_names = [d.name for d in dev_list]
-    curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
-    pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
-    selected_device_name = st.selectbox(
+    sidebar_device = st.selectbox(
         "📱 Il tuo Dispositivo:",
         dev_names,
         index=pref_idx,
+        key="sidebar_device_sel",
         help="Seleziona il tuo modello hardware per adattare automaticamente impaginazione e leggibilità."
     )
-    st.session_state["user_preferred_device"] = selected_device_name
+    if sidebar_device != st.session_state.get("user_preferred_device"):
+        st.session_state["user_preferred_device"] = sidebar_device
+        st.rerun()
 
     with st.expander("🔑 Accedi con Google (OAuth2)"):
         st.caption("Autenticazione federata Google per musicisti e collaboratori.")
-        in_email = st.text_input("Email Google:", placeholder="mario@gmail.com")
-        in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi")
-        if st.button("Simula Accesso Google OAuth", type="primary"):
+        in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="sb_in_email")
+        in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="sb_in_name")
+        if st.button("Simula Accesso Google OAuth", type="primary", key="sb_btn_google"):
             if in_email:
                 new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
                 st.session_state["current_user_email"] = new_u.email
@@ -441,27 +586,20 @@ with st.sidebar:
 
     st.divider()
 
-# LEVEL 1 NAVIGATION MENU (SRS Cap. 5.4)
-menu_choice = st.sidebar.radio(
-    "MENU PRINCIPALE",
-    [
-        "🏠 Home Dashboard",
-        "📚 Repertori",
-        "📝 Editor Brani",
-        "📑 Scalette Live",
-        "🎤 Modalità Palco (Live Stage)",
-        "📅 Eventi Live",
-        "📥 Importa & 📤 Esporta",
-        "🔍 Ricerca Globale",
-        "🤖 Band AI (Opzionale)",
-        "📖 Manuale & Changelog",
-        "⚙️ Amministrazione & Log"
-    ]
-)
+    # Sincronizzazione con il menu principale a pills in alto
+    sidebar_choice = st.radio(
+        "MENU PRINCIPALE",
+        MENU_ITEMS,
+        index=MENU_ITEMS.index(menu_choice) if menu_choice in MENU_ITEMS else 0,
+        key="sidebar_menu_radio"
+    )
+    if sidebar_choice != st.session_state["main_menu_choice"]:
+        st.session_state["main_menu_choice"] = sidebar_choice
+        st.rerun()
 
-st.sidebar.divider()
-with st.sidebar.expander(f"📟 Finestra di Stato & Log ({op_logger.count()})", expanded=True):
-    render_status_console(op_logger, key_prefix="sidebar_con", compact=True)
+    st.sidebar.divider()
+    with st.sidebar.expander(f"📟 Finestra di Stato & Log ({op_logger.count()})", expanded=False):
+        render_status_console(op_logger, key_prefix="sidebar_con", compact=True)
 
 # ------------------------------------------------------------------------------
 # 1. HOME DASHBOARD
