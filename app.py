@@ -1786,7 +1786,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎸 Stampa A4: con Accordi",
                 data=pdf_a4_m,
-                file_name=f"{clean_title}_A4_Accordi.pdf",
+                file_name=f"{clean_title}.pdf",
                 mime="application/pdf",
                 type="primary",
                 width="stretch",
@@ -1796,7 +1796,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎤 Stampa A4: Solo Testo",
                 data=pdf_a4_s,
-                file_name=f"{clean_title}_A4_Cantante.pdf",
+                file_name=f"{clean_title}_Testo.pdf",
                 mime="application/pdf",
                 type="secondary",
                 width="stretch",
@@ -1816,7 +1816,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎸 Salva PDF: con Accordi",
                 data=pdf_dev_m,
-                file_name=f"{clean_title}_{clean_dev}_Accordi.pdf",
+                file_name=f"{clean_title}.pdf",
                 mime="application/pdf",
                 type="primary",
                 width="stretch",
@@ -1826,7 +1826,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎤 Salva PDF: Solo Testo",
                 data=pdf_dev_s,
-                file_name=f"{clean_title}_{clean_dev}_Cantante.pdf",
+                file_name=f"{clean_title}_Testo.pdf",
                 mime="application/pdf",
                 type="secondary",
                 width="stretch",
@@ -2251,7 +2251,7 @@ elif menu_choice == "📑 Scalette Live":
                         st.download_button(
                             label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
                             data=set_pdf,
-                            file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}_{set_prof.name.replace(' ', '_')}.pdf",
+                            file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pdf",
                             mime="application/pdf",
                             width="stretch",
                             help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
