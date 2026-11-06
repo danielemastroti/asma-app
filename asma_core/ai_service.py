@@ -164,6 +164,8 @@ class BandAIService:
            into natural 4-line stanzas separated by blank lines for clean music-stand layout.
         """
         lines = aml_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        body_lines = [l.strip() for l in aml_text.strip().splitlines()]
+        has_existing_blank_lines = any(not l for l in body_lines)
         new_lines: List[str] = []
         consecutive_text_lines = 0
 
@@ -190,7 +192,8 @@ class BandAIService:
                 consecutive_text_lines = 0
                 continue
 
-            if consecutive_text_lines >= 4:
+            # Inserisce righe vuote SOLO se il testo era un blocco continuo privo di qualsiasi riga vuota
+            if not has_existing_blank_lines and consecutive_text_lines >= 4:
                 new_lines.append("")
                 consecutive_text_lines = 0
 

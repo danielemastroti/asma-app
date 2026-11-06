@@ -518,16 +518,18 @@ class PDFEngine:
         Groups section items into KeepTogether blocks to prevent orphan lines.
         """
         flowables: List[Flowable] = []
-        current_section_block: List[Flowable] = []
+        pending_badge: Optional[Flowable] = None
+        last_was_inst_marker = False
 
-        def flush_section():
-            if current_section_block:
-                # If section block is compact (under 8 elements), keep together
-                if len(current_section_block) <= 8:
-                    flowables.append(KeepTogether(current_section_block[:]))
-                else:
-                    flowables.extend(current_section_block[:])
-                current_section_block.clear()
+        def add_flowable(item: Flowable):
+            nonlocal pending_badge
+            if pending_badge:
+                # Mantiene il badge di sezione unito alla prima riga evitando KeepTogether annidati (che forzano salti pagina indebiti)
+                content = item._content if isinstance(item, KeepTogether) else [item]
+                flowables.append(KeepTogether([pending_badge, Spacer(1, 1.5 * mm)] + content))
+                pending_badge = None
+            else:
+                flowables.append(item)
 
         for node in doc.nodes:
             if isinstance(node, DirectiveNode):
@@ -535,13 +537,13 @@ class PDFEngine:
                 continue
 
             elif isinstance(node, SectionNode):
-                flush_section()
-                # Separazione spaziale generosa e costante prima di ogni sezione (es. Chorus, Strofe, Bridge, Outro)
-                if flowables:
-                    if isinstance(flowables[-1], Spacer):
-                        flowables[-1] = Spacer(1, 6 * mm)
-                    else:
-                        flowables.append(Spacer(1, 6 * mm))
+                if pending_badge:
+                    flowables.append(pending_badge)
+                    pending_badge = None
+
+                # Separazione spaziale elegante e proporzionata prima di ogni nuova sezione
+                if flowables and not isinstance(flowables[-1], Spacer):
+                    flowables.append(Spacer(1, 3.5 * mm))
 
                 # Section badge
                 badge_text = f"&nbsp;&nbsp;<b>[{node.section_name.upper()}]</b>&nbsp;&nbsp;"
@@ -549,11 +551,11 @@ class PDFEngine:
                 badge_table = Table([[p]], colWidths=[usable_width])
                 badge_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2.5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ]))
-                current_section_block.append(badge_table)
-                current_section_block.append(Spacer(1, 2.5 * mm))
+                pending_badge = badge_table
+                last_was_inst_marker = False
 
             elif isinstance(node, ChordGridLineNode):
                 # Measure grid line: | Bm | F#7 | A | E | (o sequenza accordi MI | DO | LA)
@@ -570,17 +572,17 @@ class PDFEngine:
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ('GRID', (0, 0), (-1, -1), 1.0, colors.HexColor("#90A4AE")),
-                        ('TOPPADDING', (0, 0), (-1, -1), 3),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                     ]))
-                    current_section_block.append(KeepTogether([grid_table, Spacer(1, 1.5 * mm)]))
+                    add_flowable(KeepTogether([grid_table, Spacer(1, 0.8 * mm)]))
+                    last_was_inst_marker = False
                 else:
                     # Nel PDF solo testo per il cantante, le sequenze di accordi/battute sono segnalate come (Strumentale)
-                    if not (current_section_block and getattr(current_section_block[-1], "_is_instrumental_marker", False)):
+                    if not last_was_inst_marker:
                         p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
-                        inst_flow = KeepTogether([p_inst, Spacer(1, 1.5 * mm)])
-                        inst_flow._is_instrumental_marker = True
-                        current_section_block.append(inst_flow)
+                        add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
+                        last_was_inst_marker = True
 
             elif isinstance(node, ChordLyricLineNode):
                 # Interleaved chord-lyric line
@@ -602,7 +604,7 @@ class PDFEngine:
                 lyrics_str = "".join(lyric_line_parts).rstrip()
 
                 if include_chords and chords_str.strip():
-                    # Atomic 2-row table for chord line over lyric line: GUARANTEES THEY NEVER SEPARATE ACROSS PAGES
+                    # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
                     p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
                     p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
                     
@@ -613,19 +615,20 @@ class PDFEngine:
                         ('LEFTPADDING', (0, 0), (-1, -1), 0),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ]))
-                    current_section_block.append(KeepTogether([pair_table, Spacer(1, 1 * mm)]))
+                    add_flowable(KeepTogether([pair_table, Spacer(1, 0.8 * mm)]))
+                    last_was_inst_marker = False
                 else:
                     # Singer lyrics-only (or line with only lyrics)
                     if lyrics_str.strip():
                         p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"])
-                        current_section_block.append(KeepTogether([p_lyrics, Spacer(1, 1 * mm)]))
+                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]))
+                        last_was_inst_marker = False
                     elif chords_str.strip():
                         # Sequenza di soli accordi senza testo (es. MI | DO | LA) -> segnalato come (Strumentale)
-                        if not (current_section_block and getattr(current_section_block[-1], "_is_instrumental_marker", False)):
+                        if not last_was_inst_marker:
                             p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
-                            inst_flow = KeepTogether([p_inst, Spacer(1, 1.5 * mm)])
-                            inst_flow._is_instrumental_marker = True
-                            current_section_block.append(inst_flow)
+                            add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
+                            last_was_inst_marker = True
 
             elif isinstance(node, CustomTagNode):
                 # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
@@ -644,21 +647,26 @@ class PDFEngine:
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ]))
-                tag_flow = KeepTogether([tag_t, Spacer(1, 1 * mm)])
-                tag_flow._is_instrumental_marker = True
-                current_section_block.append(tag_flow)
+                add_flowable(KeepTogether([tag_t, Spacer(1, 0.8 * mm)]))
+                last_was_inst_marker = True
 
             elif isinstance(node, CommentNode):
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])
-                current_section_block.append(comm_p)
+                add_flowable(KeepTogether([comm_p, Spacer(1, 0.8 * mm)]))
+                last_was_inst_marker = False
 
             elif isinstance(node, EmptyLineNode):
-                flush_section()
-                # Separazione spaziale elegante tra strofe/blocchi di testo
+                if pending_badge:
+                    flowables.append(pending_badge)
+                    pending_badge = None
+                # Spaziatura contenuta tra strofe/paragrafi (senza creare vuoti enormi)
                 if flowables and not isinstance(flowables[-1], Spacer):
-                    flowables.append(Spacer(1, 4.5 * mm))
+                    flowables.append(Spacer(1, 2.0 * mm))
+                last_was_inst_marker = False
 
-        flush_section()
+        if pending_badge:
+            flowables.append(pending_badge)
+
         return flowables
 
     @classmethod
