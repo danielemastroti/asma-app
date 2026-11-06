@@ -441,8 +441,23 @@ class StorageManager:
             params.extend([clean_q, clean_q, clean_q])
 
         if key and key.strip():
-            conditions.append("key_current = ?")
-            params.append(key.strip())
+            k_raw = key.strip()
+            variants = {k_raw, k_raw.upper(), k_raw.capitalize()}
+            try:
+                from asma_core.music_engine import MusicEngine
+                ita_v = MusicEngine.convert_notation(k_raw, "ITA")
+                int_v = MusicEngine.convert_notation(k_raw, "INT")
+                if ita_v:
+                    variants.add(ita_v)
+                if int_v:
+                    variants.add(int_v)
+            except Exception:
+                pass
+            v_list = list(variants)
+            placeholders = ", ".join(["?"] * len(v_list))
+            conditions.append(f"(key_current IN ({placeholders}) OR key_original IN ({placeholders}))")
+            params.extend(v_list)
+            params.extend(v_list)
 
         if bpm_min is not None:
             conditions.append("bpm >= ?")

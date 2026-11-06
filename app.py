@@ -1753,15 +1753,19 @@ elif menu_choice == "📝 Brani":
                         st.success(f"Brano associato a '{target_r_obj.name}'!")
                         st.rerun()
 
-        # Transposition & Notation (Riga 1: Mezzi Toni, Riga 2: Notazione)
+        # Transposition & Notation (Riga 1: Mezzi Toni + Undo Originale, Riga 2: Notazione)
+        orig_ita = MusicEngine.convert_notation(song.key_original, "ITA")
+        curr_ita = MusicEngine.convert_notation(song.key_current, "ITA")
+        is_transposed = (song.key_current.upper() != song.key_original.upper())
+
         st.markdown(
-            """<div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px 0;">
+            f"""<div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px 0;">
               <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🎵 Trasposizione Tonalità (Mezzi Toni):</span>
-              <span style="font-size:10px; color:#38BDF8; font-weight:700;">1 click = 1 Mezzo Tono (½)</span>
+              <span style="font-size:10px; color:#38BDF8; font-weight:700;">Tonalità Originale: {orig_ita} &bull; Attuale: {curr_ita}</span>
             </div>""",
             unsafe_allow_html=True
         )
-        tr_r1_c1, tr_r1_c2 = st.columns(2, gap="small")
+        tr_r1_c1, tr_r1_c2, tr_r1_c3 = st.columns([1, 1, 1.2], gap="small")
         with tr_r1_c1:
             if st.button("⬇️ -½ Tono", help="Abbassa di 1 semitono (mezzo tono sotto)", disabled=not can_edit, width="stretch", key=f"tr_down_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
@@ -1780,6 +1784,19 @@ elif menu_choice == "📝 Brani":
                 storage.save_song(song, user_email, user_name, "Trasposizione +1 semitono (+½ tono)")
                 log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +½ tono (+1 semitono) in {song.key_current}", "SUCCESS")
                 st.rerun()
+        with tr_r1_c3:
+            btn_undo_label = f"↺ Undo ({orig_ita})"
+            if st.button(btn_undo_label, help=f"Annulla trasposizioni e ripristina la tonalità originale ({orig_ita})", disabled=(not can_edit or not is_transposed), width="stretch", key=f"tr_undo_{song.uuid}"):
+                delta = MusicEngine.calculate_semitone_delta(song.key_current, song.key_original)
+                if delta != 0:
+                    doc = AMLParser.parse(song.aml_content)
+                    new_doc = AMLParser.transpose_document(doc, semitones=delta)
+                    song.aml_content = new_doc.to_aml()
+                    song.key_current = song.key_original
+                    storage.save_song(song, user_email, user_name, f"Undo trasposizione: ripristinata tonalità originale ({orig_ita})")
+                    log_op("↺", "TRASPOSIZIONE", f"Brano '{song.title}' ripristinato alla tonalità originale {orig_ita}", "SUCCESS")
+                    st.success(f"Brano ripristinato alla tonalità originale ({orig_ita})!")
+                    st.rerun()
 
         st.markdown(
             """<div style="margin:4px 0 2px 0;">
@@ -2177,7 +2194,7 @@ elif menu_choice == "🔍 Ricerca Globale":
     with c_q1:
         search_txt = st.text_input("Parola chiave (titolo/autore/testo):", "")
     with c_q2:
-        search_key = st.text_input("Tonalità (es. C o G):", "")
+        search_key = st.text_input("Tonalità (es. DO, SOL, LAm):", "")
     with c_q3:
         search_bpm = st.number_input("BPM Massimo:", min_value=0, max_value=300, value=250)
     with c_q4:
@@ -2198,7 +2215,24 @@ elif menu_choice == "🔍 Ricerca Globale":
 
     st.caption(f"⚡ Ricerca eseguita in **{elapsed_ms:.3f} ms** su SQLite in-memory | Trovati: **{len(res)}**")
     if res:
-        st.dataframe(res, width="stretch")
+        # Formattazione rigorosamente in formato italiano per tutte le tonalità e colonne
+        formatted_res = []
+        for r in res:
+            raw_curr = r.get("key_current", "")
+            raw_orig = r.get("key_original", "")
+            ita_curr = MusicEngine.convert_notation(raw_curr, "ITA") if raw_curr else "-"
+            ita_orig = MusicEngine.convert_notation(raw_orig, "ITA") if raw_orig else "-"
+            formatted_res.append({
+                "Titolo": r.get("title", ""),
+                "Artista": r.get("artist", ""),
+                "Tonalità Attuale (ITA)": ita_curr,
+                "Tonalità Originale (ITA)": ita_orig,
+                "BPM": r.get("bpm", 120),
+                "Genere": r.get("genre", ""),
+                "Capotasto": r.get("capo", 0),
+                "Tag": ", ".join(r.get("tags") or []) if isinstance(r.get("tags"), list) else str(r.get("tags") or "")
+            })
+        st.dataframe(formatted_res, width="stretch")
     else:
         st.info("Nessun brano corrisponde ai criteri.")
 
