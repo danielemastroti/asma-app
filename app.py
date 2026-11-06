@@ -903,6 +903,54 @@ if "ui_zoom_level" not in st.session_state:
     else:
         st.session_state["ui_zoom_level"] = 0.82 if "huawei" in curr_pref.lower() else 1.0
 
+# Layout & Typography Preferences (SRS Cap. 13 & Cap. 17)
+if "layout_font_size" not in st.session_state:
+    st.session_state["layout_font_size"] = _client_prefs.get("layout_font_size", 12)
+if "layout_margin_lateral" not in st.session_state:
+    st.session_state["layout_margin_lateral"] = _client_prefs.get("layout_margin_lateral", 10)
+if "layout_columns" not in st.session_state:
+    st.session_state["layout_columns"] = _client_prefs.get("layout_columns", 1)
+if "layout_color_text" not in st.session_state:
+    st.session_state["layout_color_text"] = _client_prefs.get("layout_color_text", "#111111")
+if "layout_color_chords" not in st.session_state:
+    st.session_state["layout_color_chords"] = _client_prefs.get("layout_color_chords", "#B71C1C")
+if "layout_color_aml" not in st.session_state:
+    st.session_state["layout_color_aml"] = _client_prefs.get("layout_color_aml", "#4A148C")
+
+def get_layout_device_profile(base_profile_name: Optional[str] = None) -> DeviceProfile:
+    """Combines hardware device dimensions with custom Layout overrides (fonts, columns, margins, colors)."""
+    dev_name = base_profile_name or st.session_state.get("user_preferred_device", "Pixel 8 pro")
+    base = device_mgr.get_device_by_name(dev_name) or DeviceProfile()
+    f_size = float(st.session_state.get("layout_font_size", 12))
+    m_lat = float(st.session_state.get("layout_margin_lateral", 10))
+    cols = int(st.session_state.get("layout_columns", 1))
+    c_txt = st.session_state.get("layout_color_text", "#111111")
+    c_chd = st.session_state.get("layout_color_chords", "#B71C1C")
+    c_aml = st.session_state.get("layout_color_aml", "#4A148C")
+    return DeviceProfile(
+        uuid=base.uuid,
+        name=base.name,
+        target_device=base.target_device,
+        device_type=base.device_type,
+        width_mm=base.width_mm,
+        height_mm=base.height_mm,
+        font_lyrics=base.font_lyrics,
+        font_chords=base.font_chords,
+        font_size_lyrics=f_size,
+        font_size_chords=round(f_size * 1.08, 1),
+        margin_top_mm=base.margin_top_mm,
+        margin_bottom_mm=base.margin_bottom_mm,
+        margin_left_mm=m_lat,
+        margin_right_mm=m_lat,
+        zoom=st.session_state.get("ui_zoom_level", base.zoom),
+        orientation=base.orientation,
+        columns=cols,
+        is_custom=True,
+        color_lyrics=c_txt,
+        color_chords=c_chd,
+        color_aml_markup=c_aml
+    )
+
 active_zoom = st.session_state["ui_zoom_level"]
 st.markdown(f"""
 <style>
@@ -996,21 +1044,22 @@ with st.container(key="top_navbar_container"):
                     st.rerun()
 
     with col_btn_dev:
-        with st.popover(f"📱 {dev_short}", width="stretch", help="Dispositivo hardware e scala zoom"):
-            st.write("##### 📱 Configurazione Dispositivo Display")
-            st.caption("Adatta automaticamente margini, colonne e leggibilità al tuo schermo.")
+        with st.popover("📐 Layout", width="stretch", help="Configurazione Layout Display, Colonne e PDF"):
+            st.write("##### 📐 Layout Display & PDF")
+            st.caption("Formato dispositivo hardware, tipografia, colonne, margini e colori.")
+
             new_dev_sel = st.selectbox(
-                "Seleziona Modello Hardware:",
+                "Dispositivo Display Target:",
                 dev_names,
                 index=pref_idx,
-                key="pop_hub_dev_sel"
+                key="pop_layout_dev_sel",
+                help="Seleziona il modello hardware: adatta dimensioni mm, risoluzione e calibrazione video."
             )
             if new_dev_sel != st.session_state.get("user_preferred_device"):
                 st.session_state["user_preferred_device"] = new_dev_sel
                 st.query_params["device"] = new_dev_sel
                 _cp = load_client_preferences()
                 _cp["active_device"] = new_dev_sel
-                # Auto adjust zoom for Huawei
                 if "huawei" in new_dev_sel.lower():
                     st.session_state["ui_zoom_level"] = 0.82
                 elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
@@ -1019,29 +1068,139 @@ with st.container(key="top_navbar_container"):
                 save_client_preferences(_cp)
                 st.rerun()
 
-            st.divider()
-            st.write("###### 🔍 Scala Schermo (Zoom):")
-            st.caption("Rimpicciolisci o ingrandisci per adattare perfettamente la schermata al tablet:")
-            z_cols = st.columns(5)
-            zoom_presets = [("75%", 0.75), ("82%", 0.82), ("90%", 0.90), ("100%", 1.0), ("110%", 1.10)]
-            for z_i, (z_lbl, z_v) in enumerate(zoom_presets):
-                with z_cols[z_i]:
-                    is_active_z = abs(active_zoom - z_v) < 0.02
-                    b_type = "primary" if is_active_z else "secondary"
-                    if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
-                        st.session_state["ui_zoom_level"] = z_v
+            tab_lay_geom, tab_lay_col, tab_lay_zoom = st.tabs([
+                "📄 Formato & Testo",
+                "🎨 Colori",
+                "🔍 Zoom Display"
+            ])
+
+            with tab_lay_geom:
+                curr_f_size = int(st.session_state.get("layout_font_size", 12))
+                new_f_size = st.slider(
+                    "Dimensione Carattere (10 - 30 px):",
+                    min_value=10,
+                    max_value=30,
+                    value=curr_f_size,
+                    step=1,
+                    key="slider_layout_font_size",
+                    help="Dimensione in px del testo e degli accordi nel PDF"
+                )
+                if new_f_size != curr_f_size:
+                    st.session_state["layout_font_size"] = new_f_size
+                    _cp = load_client_preferences()
+                    _cp["layout_font_size"] = new_f_size
+                    save_client_preferences(_cp)
+                    st.rerun()
+
+                c_geom1, c_geom2 = st.columns(2, gap="small")
+                with c_geom1:
+                    curr_cols = int(st.session_state.get("layout_columns", 1))
+                    col_choice = st.radio(
+                        "Colonne PDF:",
+                        [1, 2],
+                        index=0 if curr_cols == 1 else 1,
+                        horizontal=True,
+                        format_func=lambda c: f"{c} Colonna" if c == 1 else f"{c} Colonne",
+                        key="radio_layout_columns"
+                    )
+                    if col_choice != curr_cols:
+                        st.session_state["layout_columns"] = col_choice
                         _cp = load_client_preferences()
-                        _cp["ui_zoom_level"] = z_v
+                        _cp["layout_columns"] = col_choice
                         save_client_preferences(_cp)
                         st.rerun()
 
-            curr_prof = device_mgr.get_device_by_name(curr_pref)
-            if curr_prof:
-                st.divider()
-                st.markdown(f"**Specifiche Display:** `{curr_prof.name}`<br>"
-                            f"📐 Risoluzione mm: `{curr_prof.width_mm:.1f} × {curr_prof.height_mm:.1f} mm` ({curr_prof.orientation})<br>"
-                            f"📖 Colonne: `{curr_prof.columns}` &bull; Testo: `{curr_prof.font_size_lyrics} pt` &bull; Accordi: `{curr_prof.font_size_chords} pt`",
-                            unsafe_allow_html=True)
+                with c_geom2:
+                    curr_m_lat = int(st.session_state.get("layout_margin_lateral", 10))
+                    new_m_lat = st.slider(
+                        "Margini Laterali (mm):",
+                        min_value=4,
+                        max_value=30,
+                        value=curr_m_lat,
+                        step=1,
+                        key="slider_layout_margin_lat"
+                    )
+                    if new_m_lat != curr_m_lat:
+                        st.session_state["layout_margin_lateral"] = new_m_lat
+                        _cp = load_client_preferences()
+                        _cp["layout_margin_lateral"] = new_m_lat
+                        save_client_preferences(_cp)
+                        st.rerun()
+
+                st.markdown(
+                    "<div style='font-size:11px; color:#94A3B8; background:rgba(255,255,255,0.04); padding:4px 8px; border-radius:4px; margin-top:4px;'>"
+                    "📐 <b>Margine superiore brano:</b> <code>58 px</code> (default fisso per testata)"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+            with tab_lay_col:
+                st.caption("Personalizza la tavolozza dei colori per il PDF:")
+                c_c1, c_c2, c_c3 = st.columns(3, gap="small")
+                with c_c1:
+                    curr_col_txt = st.session_state.get("layout_color_text", "#111111")
+                    new_col_txt = st.color_picker("Testo", value=curr_col_txt, key="cp_lay_text")
+                    if new_col_txt != curr_col_txt:
+                        st.session_state["layout_color_text"] = new_col_txt
+                        _cp = load_client_preferences()
+                        _cp["layout_color_text"] = new_col_txt
+                        save_client_preferences(_cp)
+                        st.rerun()
+
+                with c_c2:
+                    curr_col_chd = st.session_state.get("layout_color_chords", "#B71C1C")
+                    new_col_chd = st.color_picker("Accordi", value=curr_col_chd, key="cp_lay_chords")
+                    if new_col_chd != curr_col_chd:
+                        st.session_state["layout_color_chords"] = new_col_chd
+                        _cp = load_client_preferences()
+                        _cp["layout_color_chords"] = new_col_chd
+                        save_client_preferences(_cp)
+                        st.rerun()
+
+                with c_c3:
+                    curr_col_aml = st.session_state.get("layout_color_aml", "#4A148C")
+                    new_col_aml = st.color_picker("Markup AML", value=curr_col_aml, key="cp_lay_aml")
+                    if new_col_aml != curr_col_aml:
+                        st.session_state["layout_color_aml"] = new_col_aml
+                        _cp = load_client_preferences()
+                        _cp["layout_color_aml"] = new_col_aml
+                        save_client_preferences(_cp)
+                        st.rerun()
+
+                if st.button("🔄 Ripristina Colori Predefiniti", key="btn_reset_lay_colors", width="stretch"):
+                    st.session_state["layout_color_text"] = "#111111"
+                    st.session_state["layout_color_chords"] = "#B71C1C"
+                    st.session_state["layout_color_aml"] = "#4A148C"
+                    _cp = load_client_preferences()
+                    _cp["layout_color_text"] = "#111111"
+                    _cp["layout_color_chords"] = "#B71C1C"
+                    _cp["layout_color_aml"] = "#4A148C"
+                    save_client_preferences(_cp)
+                    st.rerun()
+
+            with tab_lay_zoom:
+                st.write("###### 🔍 Scala Schermo (Zoom Interfaccia):")
+                st.caption("Rimpicciolisci o ingrandisci per adattare l'interfaccia al tuo tablet:")
+                z_cols = st.columns(5)
+                zoom_presets = [("75%", 0.75), ("82%", 0.82), ("90%", 0.90), ("100%", 1.0), ("110%", 1.10)]
+                for z_i, (z_lbl, z_v) in enumerate(zoom_presets):
+                    with z_cols[z_i]:
+                        is_active_z = abs(active_zoom - z_v) < 0.02
+                        b_type = "primary" if is_active_z else "secondary"
+                        if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
+                            st.session_state["ui_zoom_level"] = z_v
+                            _cp = load_client_preferences()
+                            _cp["ui_zoom_level"] = z_v
+                            save_client_preferences(_cp)
+                            st.rerun()
+
+                curr_prof = device_mgr.get_device_by_name(curr_pref)
+                if curr_prof:
+                    st.divider()
+                    st.markdown(f"**Specifiche Hardware:** `{curr_prof.name}`<br>"
+                                f"📐 Risoluzione mm: `{curr_prof.width_mm:.1f} × {curr_prof.height_mm:.1f} mm` ({curr_prof.orientation})<br>"
+                                f"📖 Colonne PDF: `{st.session_state.get('layout_columns', 1)}` &bull; Font: `{st.session_state.get('layout_font_size', 12)} px`",
+                                unsafe_allow_html=True)
 
     with col_btn_log:
         with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
@@ -1232,7 +1391,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 curr_device_name = st.session_state.get("user_preferred_device", dev_name_list[0] if dev_name_list else "")
                 def_dev_idx = dev_name_list.index(curr_device_name) if curr_device_name in dev_name_list else 0
                 sel_dev_name = st.selectbox("Formato Display Target:", dev_name_list, index=def_dev_idx, key="pdf_exp_dev_sel")
-                target_profile = device_mgr.get_device_by_name(sel_dev_name) or DeviceProfile()
+                target_profile = get_layout_device_profile(sel_dev_name)
 
             # Specifiche compatte del display selezionato
             st.markdown(
@@ -1667,7 +1826,7 @@ elif menu_choice == "📝 Brani":
             index=default_dev_idx,
             format_func=lambda x: dev_choices[x]
         )
-        prof = device_mgr.get_device(selected_dev_uuid) or DeviceProfile()
+        prof = get_layout_device_profile(dev_choices.get(selected_dev_uuid))
 
         st.caption(f"📱 **Specifiche Dispositivo:** `{prof.name}` &bull; `{prof.width_mm:.1f} × {prof.height_mm:.1f} mm` ({prof.orientation}) &bull; Colonne: `{prof.columns}` &bull; Font Testo: `{prof.font_size_lyrics} pt`")
 
@@ -2069,7 +2228,7 @@ elif menu_choice == "📑 Scalette Live":
                         format_func=lambda x: dev_choices_set[x],
                         key=f"set_dev_sel_{active_setlist.uuid}"
                     )
-                    set_prof = device_mgr.get_device(selected_set_dev_uuid) or DeviceProfile()
+                    set_prof = get_layout_device_profile(dev_choices_set.get(selected_set_dev_uuid))
                     st.caption(f"📐 **Specifiche:** `{set_prof.name}` &bull; `{set_prof.width_mm:.1f}×{set_prof.height_mm:.1f} mm` ({set_prof.orientation})")
 
                 with c_set_act:

@@ -108,6 +108,30 @@ Such a [Em]lovely place, such a [F#7]lovely face
             pdf_bytes = PDFEngine.generate_song_pdf(self.song, profile=prof, use_cache=False)
             self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
 
+    def test_custom_layout_columns_fonts_and_colors(self):
+        """Test PDF generation with custom layout: 2 columns, custom font sizes, margins and colors."""
+        prof_2col = DeviceProfile(
+            name="Custom 2Col",
+            columns=2,
+            font_size_lyrics=18.0,
+            font_size_chords=20.0,
+            margin_left_mm=15.0,
+            margin_right_mm=15.0,
+            color_lyrics="#222222",
+            color_chords="#0D47A1",
+            color_aml_markup="#2E7D32"
+        )
+        pdf_2col = PDFEngine.generate_song_pdf(self.song, profile=prof_2col, use_cache=False)
+        self.assertTrue(pdf_2col.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_2col), 1000)
+
+        # Test extreme font sizes (10 to 30 px)
+        prof_min = DeviceProfile(name="MinFont", font_size_lyrics=10.0, font_size_chords=11.0)
+        prof_max = DeviceProfile(name="MaxFont", font_size_lyrics=30.0, font_size_chords=32.0)
+        pdf_min = PDFEngine.generate_song_pdf(self.song, profile=prof_min, use_cache=False)
+        pdf_max = PDFEngine.generate_song_pdf(self.song, profile=prof_max, use_cache=False)
+        self.assertTrue(pdf_min.startswith(b"%PDF-"))
+        self.assertTrue(pdf_max.startswith(b"%PDF-"))
 
 
 if __name__ == "__main__":

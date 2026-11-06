@@ -200,6 +200,9 @@ class DeviceProfile:
     orientation: str = "portrait"  # portrait, landscape
     columns: int = 1
     is_custom: bool = False
+    color_lyrics: str = "#111111"
+    color_chords: str = "#B71C1C"
+    color_aml_markup: str = "#4A148C"
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclasses.asdict(self)

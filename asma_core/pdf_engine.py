@@ -15,7 +15,8 @@ from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.units import mm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    SimpleDocTemplate, BaseDocTemplate, PageTemplate, Frame, FrameBreak,
+    Paragraph, Spacer, Table, TableStyle,
     KeepTogether, PageBreak, Flowable
 )
 from reportlab.pdfgen import canvas
@@ -154,32 +155,40 @@ class PDFEngine:
         buffer = io.BytesIO()
         pagesize = cls.get_page_size(prof)
 
-        # Margins converted from mm to points
-        top_m = prof.margin_top_mm * mm
+        # Top margin: exactly 58 pt (px) default for single songs, lateral margins from profile
+        top_m = 58.0
         bot_m = prof.margin_bottom_mm * mm
         left_m = prof.margin_left_mm * mm
         right_m = prof.margin_right_mm * mm
+        usable_w = pagesize[0] - left_m - right_m
+        usable_h = pagesize[1] - top_m - bot_m
 
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=pagesize,
-            leftMargin=left_m,
-            rightMargin=right_m,
-            topMargin=top_m,
-            bottomMargin=bot_m
-        )
+        cols = getattr(prof, "columns", 1) or 1
+        if cols == 2:
+            col_gap = 4.0 * mm
+            col_w = (usable_w - col_gap) / 2.0
+            content_w = col_w
+            f1 = Frame(left_m, bot_m, col_w, usable_h, id='c1', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
+            f2 = Frame(left_m + col_w + col_gap, bot_m, col_w, usable_h, id='c2', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
+            doc = BaseDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
+            doc.addPageTemplates([PageTemplate(id='TwoCol', frames=[f1, f2])])
+        else:
+            content_w = usable_w
+            f1 = Frame(left_m, bot_m, usable_w, usable_h, id='c1', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
+            doc = BaseDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
+            doc.addPageTemplates([PageTemplate(id='OneCol', frames=[f1])])
 
         styles = cls._build_style_sheet(prof, template_name)
         story: List[Flowable] = []
 
         # 1. Song Header Banner
-        header_table = cls._create_song_header_table(song, styles, prof, pagesize[0] - left_m - right_m, include_chords=include_chords)
+        header_table = cls._create_song_header_table(song, styles, prof, content_w, include_chords=include_chords)
         story.append(header_table)
-        story.append(Spacer(1, 4 * mm))
+        story.append(Spacer(1, 3 * mm))
 
         # 2. Parse AML Document and Render Flowables
         aml_doc = AMLParser.parse(song.aml_content)
-        content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, pagesize[0] - left_m - right_m, include_chords=include_chords)
+        content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, content_w, include_chords=include_chords, profile=prof)
         story.extend(content_flowables)
 
         # Custom Canvas Factory for page numbering and watermark
@@ -350,31 +359,32 @@ class PDFEngine:
 
     @classmethod
     def _build_style_sheet(cls, profile: DeviceProfile, template_name: str) -> Dict[str, ParagraphStyle]:
-        """Constructs typography styles conforming to the device profile and template."""
+        """Constructs typography styles conforming to the device profile, custom layout and template."""
         base_lyrics_size = profile.font_size_lyrics
         base_chords_size = profile.font_size_chords
 
-        # Color schemes based on template
-        if template_name.lower() == "stage":
-            chord_color = colors.HexColor("#D32F2F")  # High contrast bright red
-            bg_badge = colors.HexColor("#1A237E")    # Deep navy blue
-        else:
-            chord_color = colors.HexColor("#B71C1C")  # Professional dark crimson
-            bg_badge = colors.HexColor("#0D47A1")
+        # Profile custom colors
+        c_chord_hex = getattr(profile, "color_chords", "#B71C1C") or "#B71C1C"
+        c_lyric_hex = getattr(profile, "color_lyrics", "#111111") or "#111111"
+        c_aml_hex = getattr(profile, "color_aml_markup", "#4A148C") or "#4A148C"
+
+        chord_color = colors.HexColor(c_chord_hex)
+        lyric_color = colors.HexColor(c_lyric_hex)
+        aml_color = colors.HexColor(c_aml_hex)
 
         styles = {
             "DocTitle": ParagraphStyle(
                 "DocTitle",
                 fontName="Helvetica-Bold",
-                fontSize=base_lyrics_size * 1.5,
-                leading=base_lyrics_size * 1.8,
-                textColor=colors.HexColor("#111111")
+                fontSize=base_lyrics_size * 1.3,
+                leading=base_lyrics_size * 1.5,
+                textColor=lyric_color
             ),
             "DocSubtitle": ParagraphStyle(
                 "DocSubtitle",
                 fontName="Helvetica",
-                fontSize=base_lyrics_size * 1.0,
-                leading=base_lyrics_size * 1.2,
+                fontSize=base_lyrics_size * 0.9,
+                leading=base_lyrics_size * 1.1,
                 textColor=colors.HexColor("#555555")
             ),
             "SectionBadge": ParagraphStyle(
@@ -389,7 +399,7 @@ class PDFEngine:
                 fontName="Helvetica",
                 fontSize=base_lyrics_size,
                 leading=base_lyrics_size * 1.3,
-                textColor=colors.black
+                textColor=lyric_color
             ),
             "ChordText": ParagraphStyle(
                 "ChordText",
@@ -403,14 +413,14 @@ class PDFEngine:
                 fontName="Courier",
                 fontSize=base_lyrics_size,
                 leading=base_lyrics_size * 1.2,
-                textColor=colors.HexColor("#111111")
+                textColor=lyric_color
             ),
             "CustomTagText": ParagraphStyle(
                 "CustomTagText",
                 fontName="Helvetica-Oblique",
                 fontSize=base_lyrics_size * 0.9,
                 leading=base_lyrics_size * 1.1,
-                textColor=colors.HexColor("#4A148C")
+                textColor=aml_color
             )
         }
         return styles
@@ -492,8 +502,12 @@ class PDFEngine:
         doc: AMLDocument,
         styles: Dict[str, ParagraphStyle],
         usable_width: float,
-        include_chords: bool = True
+        include_chords: bool = True,
+        profile: Optional[DeviceProfile] = None
     ) -> List[Flowable]:
+        prof_obj = profile or DeviceProfile()
+        c_chord_hex = getattr(prof_obj, "color_chords", "#B71C1C") or "#B71C1C"
+        c_aml_hex = getattr(prof_obj, "color_aml_markup", "#4A148C") or "#4A148C"
         """
         Converts AML AST nodes into ReportLab Flowables.
         Groups section items into KeepTogether blocks to prevent orphan lines.
@@ -522,7 +536,7 @@ class PDFEngine:
                 p = Paragraph(badge_text, styles["SectionBadge"])
                 badge_table = Table([[p]], colWidths=[usable_width])
                 badge_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#263238")),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ]))
@@ -574,7 +588,7 @@ class PDFEngine:
 
                 if include_chords and chords_str.strip():
                     # Atomic 2-row table for chord line over lyric line: GUARANTEES THEY NEVER SEPARATE ACROSS PAGES
-                    p_chords = Paragraph(f"<font color='#B71C1C'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
+                    p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
                     p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
                     
                     pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
@@ -597,7 +611,7 @@ class PDFEngine:
                 tag_t = Table([[tag_p]], colWidths=[usable_width])
                 tag_t.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#EDE7F6")),
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#7E57C2")),
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor(c_aml_hex)),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ]))
