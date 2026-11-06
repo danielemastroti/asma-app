@@ -2070,16 +2070,41 @@ elif menu_choice == "🤖 Band AI (Opzionale)":
             s_obj = storage.get_song(sel_s_id)
             c_ai_dyn, c_ai_bpm = st.columns([2, 1])
             with c_ai_bpm:
-                st.caption(f"BPM attuale: **{s_obj.bpm}**")
-                if st.button("🤖 Ricalcola BPM reale", key=f"btn_recalc_bpm_{s_obj.uuid}"):
-                    nbpm = BandAIService.estimate_song_bpm(s_obj.title, s_obj.artist)
-                    s_obj.bpm = nbpm
-                    storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricalcolo BPM da Band AI")
-                    st.success(f"Nuovo tempo: **{nbpm} BPM**")
-                    st.rerun()
+                # Query diretta a SongBPM per tempo verificato
+                sb_meta = BandAIService.fetch_songbpm_info(s_obj.title, s_obj.artist)
+                if sb_meta and sb_meta.get("bpm"):
+                    sb_bpm = sb_meta["bpm"]
+                    st.success(f"🌐 **SongBPM.com:** **{sb_bpm} BPM**")
+                    extra_sub = []
+                    if sb_meta.get("key"):
+                        extra_sub.append(f"Key: {sb_meta['key']}")
+                    if sb_meta.get("duration"):
+                        extra_sub.append(f"Durata: {sb_meta['duration']}")
+                    if extra_sub:
+                        st.caption(" &bull; ".join(extra_sub))
+                    if s_obj.bpm != sb_bpm:
+                        if st.button(f"💾 Salva {sb_bpm} BPM nel brano", key=f"btn_apply_sb_{s_obj.uuid}", type="primary", width="stretch"):
+                            s_obj.bpm = sb_bpm
+                            storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], f"Tempo sincronizzato da SongBPM ({sb_bpm} BPM)")
+                            log_op("🎯", "BPM", f"BPM per '{s_obj.title}' sincronizzato con SongBPM: {sb_bpm} BPM", "SUCCESS")
+                            st.rerun()
+                else:
+                    st.caption(f"Tempo archiviato: **{s_obj.bpm} BPM**")
+                    if st.button("🔍 Cerca su SongBPM", key=f"btn_recalc_bpm_{s_obj.uuid}", width="stretch"):
+                        nbpm = BandAIService.estimate_song_bpm(s_obj.title, s_obj.artist)
+                        s_obj.bpm = nbpm
+                        storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricalcolo BPM da SongBPM/AI")
+                        st.success(f"Nuovo tempo: **{nbpm} BPM**")
+                        st.rerun()
             with c_ai_dyn:
-                if st.button("🎸 Genera Idee di Dinamica & Sezioni"):
-                    arr_text = BandAIService.suggest_arrangement_ideas(s_obj.title, s_obj.genre, s_obj.key_current, s_obj.bpm)
+                if st.button("🎸 Genera Idee di Dinamica & Sezioni", key="btn_gen_dyn_arr", width="stretch"):
+                    arr_text = BandAIService.suggest_arrangement_ideas(
+                        title=s_obj.title,
+                        genre=s_obj.genre,
+                        key=s_obj.key_current,
+                        bpm=s_obj.bpm,
+                        artist=s_obj.artist
+                    )
                     st.markdown(arr_text)
 
 # ------------------------------------------------------------------------------

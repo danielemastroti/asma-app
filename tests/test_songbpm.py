@@ -16,5 +16,17 @@ class TestSongBPMIntegration(unittest.TestCase):
         self.assertGreaterEqual(bpm, 40)
         self.assertLessEqual(bpm, 240)
 
+    def test_suggest_arrangement_ideas_uses_songbpm(self):
+        advice = BandAIService.suggest_arrangement_ideas(
+            title="Knock On Wood",
+            genre="Disco / Funk",
+            key="D",
+            bpm=0,
+            artist="Amii Stewart"
+        )
+        self.assertIn("SongBPM: 140 BPM", advice)
+        self.assertIn("140 BPM da SongBPM", advice)
+        self.assertNotIn("120 BPM", advice)
+
 if __name__ == "__main__":
     unittest.main()

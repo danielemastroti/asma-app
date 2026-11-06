@@ -443,12 +443,29 @@ class BandAIService:
         }
 
     @classmethod
-    def suggest_arrangement_ideas(cls, title: str, genre: str, key: str, bpm: int) -> str:
-        """Suggests live arrangement dynamics (Intro, Solo, Outro, Dynamics)."""
-        effective_bpm = bpm if (bpm and bpm != 120) else cls.estimate_song_bpm(title)
-        return f"""Consigli di Arrangiamento Live per '{title}' ({genre}, {key}, {effective_bpm} BPM):
-1. **Intro:** Inizia con strumento solista (chitarra o piano) per le prime 4 battute, poi ingresso di cassa in 4 a metà intro per definire il groove prima della voce.
-2. **Strofa 1:** Mantieni il basso lineare sui quarti con piatti charleston chiusi per dare intimità al testo.
-3. **Ritornello:** Esplosione dinamica: apertura del charleston, raddoppio delle chitarre e armonia vocale a due voci sulla terza superiore.
-4. **Bridge / Assolo:** Sezione ritmica serrata, progressione in crescendo dinamico fino al drop sul ritornello finale.
-5. **Finale:** Uscita con giro armonico ripetuto in diminuendo con stacco secco sull'accordo di tonica ({key})."""
+    def suggest_arrangement_ideas(cls, title: str, genre: str = "", key: str = "", bpm: int = 0, artist: str = "") -> str:
+        """
+        Consigli di arrangiamento live (Intro, Strofe, Ritornello, Assolo, Finale)
+        con integrazione del valore reale verificato su SongBPM.com.
+        """
+        # Ricerca valore reale e verificato su SongBPM
+        sb_info = cls.fetch_songbpm_info(title, artist)
+        if sb_info and sb_info.get("bpm"):
+            songbpm_bpm = sb_info["bpm"]
+            tempo_label = f"SongBPM: {songbpm_bpm} BPM"
+        elif bpm and bpm != 120:
+            songbpm_bpm = bpm
+            tempo_label = f"SongBPM: {songbpm_bpm} BPM"
+        else:
+            songbpm_bpm = cls.estimate_song_bpm(title, artist)
+            tempo_label = f"SongBPM: {songbpm_bpm} BPM"
+
+        header_tags = [t for t in [genre, f"Tonalità {key}" if key else "", tempo_label] if t]
+        header_str = f" ({', '.join(header_tags)})" if header_tags else ""
+
+        return f"""Consigli di Arrangiamento Live per '{title}'{header_str}:
+1. **Intro:** Inizia con strumento solista (chitarra o piano) per le prime 4 battute, poi ingresso di cassa in 4 a metà intro per impostare il groove ({songbpm_bpm} BPM da SongBPM) prima dell'ingresso della voce.
+2. **Strofa 1:** Mantieni il basso lineare sui quarti a {songbpm_bpm} BPM con piatti charleston chiusi per dare intimità al testo.
+3. **Ritornello:** Esplosione dinamica a {songbpm_bpm} BPM: apertura del charleston, raddoppio delle chitarre e armonia vocale a due voci sulla terza superiore.
+4. **Bridge / Assolo:** Sezione ritmica serrata a {songbpm_bpm} BPM, progressione in crescendo dinamico fino al drop sul ritornello finale.
+5. **Finale:** Uscita con giro armonico ripetuto in diminuendo con stacco secco sull'accordo di tonica ({key or 'Tonica'})."""
