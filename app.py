@@ -720,9 +720,44 @@ aml_tag_mgr = AMLTagManager()
 gist_client = GistClient()
 auth_mgr = AuthManager()
 
-# Initialize Session State & User Identity (SRS Cap. 3 & Cap. 10)
-if "current_user_email" not in st.session_state:
-    st.session_state["current_user_email"] = "daniele@band.org"
+# Client Preference Persistence Across Page Reloads (SRS Cap. 3 & 10)
+PREF_FILE = os.path.join(os.path.dirname(__file__), "data", "client_preferences.json")
+
+def load_client_preferences() -> dict:
+    if os.path.exists(PREF_FILE):
+        try:
+            with open(PREF_FILE, "r", encoding="utf-8") as _pf:
+                return json.load(_pf)
+        except Exception:
+            return {}
+    return {}
+
+def save_client_preferences(prefs: dict):
+    try:
+        os.makedirs(os.path.dirname(PREF_FILE), exist_ok=True)
+        with open(PREF_FILE, "w", encoding="utf-8") as _pf:
+            json.dump(prefs, _pf, indent=2)
+    except Exception:
+        pass
+
+_client_prefs = load_client_preferences()
+
+# Resolve Active User: Query Params -> Session State -> Stored Preferences -> Default
+_qp_user = st.query_params.get("user")
+if _qp_user and auth_mgr.get_user_by_email(_qp_user):
+    _active_email = _qp_user
+elif "current_user_email" in st.session_state:
+    _active_email = st.session_state["current_user_email"]
+elif _client_prefs.get("active_user_email") and auth_mgr.get_user_by_email(_client_prefs.get("active_user_email")):
+    _active_email = _client_prefs.get("active_user_email")
+else:
+    _active_email = "daniele@band.org"
+
+st.session_state["current_user_email"] = _active_email
+st.query_params["user"] = _active_email
+if _client_prefs.get("active_user_email") != _active_email:
+    _client_prefs["active_user_email"] = _active_email
+    save_client_preferences(_client_prefs)
 
 current_user = auth_mgr.get_user_by_email(st.session_state["current_user_email"])
 if not current_user:
@@ -840,12 +875,33 @@ curr_user_idx = user_emails.index(current_user.email) if current_user.email in u
 
 dev_list = device_mgr.list_devices()
 dev_names = [d.name for d in dev_list]
-curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
+
+# Resolve Active Device: Query Params -> Session State -> Stored Preferences -> Default
+_qp_dev = st.query_params.get("device")
+if _qp_dev and _qp_dev in dev_names:
+    _active_dev = _qp_dev
+elif "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
+    _active_dev = st.session_state["user_preferred_device"]
+elif _client_prefs.get("active_device") and _client_prefs.get("active_device") in dev_names:
+    _active_dev = _client_prefs.get("active_device")
+else:
+    _active_dev = dev_names[0] if dev_names else "Pixel 8 pro"
+
+st.session_state["user_preferred_device"] = _active_dev
+st.query_params["device"] = _active_dev
+if _client_prefs.get("active_device") != _active_dev:
+    _client_prefs["active_device"] = _active_dev
+    save_client_preferences(_client_prefs)
+
+curr_pref = _active_dev
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
 
-# UI Zoom Scaling (Auto-calibrated for Huawei / Android tablets to match iPad)
+# UI Zoom Scaling with persistence
 if "ui_zoom_level" not in st.session_state:
-    st.session_state["ui_zoom_level"] = 0.82 if "huawei" in curr_pref.lower() else 1.0
+    if "ui_zoom_level" in _client_prefs:
+        st.session_state["ui_zoom_level"] = _client_prefs["ui_zoom_level"]
+    else:
+        st.session_state["ui_zoom_level"] = 0.82 if "huawei" in curr_pref.lower() else 1.0
 
 active_zoom = st.session_state["ui_zoom_level"]
 st.markdown(f"""
@@ -914,6 +970,10 @@ with st.container(key="top_navbar_container"):
             )
             if new_u_sel != st.session_state["current_user_email"]:
                 st.session_state["current_user_email"] = new_u_sel
+                st.query_params["user"] = new_u_sel
+                _cp = load_client_preferences()
+                _cp["active_user_email"] = new_u_sel
+                save_client_preferences(_cp)
                 u_sel = auth_mgr.get_user_by_email(new_u_sel)
                 if u_sel:
                     log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
@@ -927,6 +987,10 @@ with st.container(key="top_navbar_container"):
                 if in_email:
                     new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
                     st.session_state["current_user_email"] = new_u.email
+                    st.query_params["user"] = new_u.email
+                    _cp = load_client_preferences()
+                    _cp["active_user_email"] = new_u.email
+                    save_client_preferences(_cp)
                     log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
                     st.success(f"Accesso riuscito come {new_u.name}!")
                     st.rerun()
@@ -943,11 +1007,16 @@ with st.container(key="top_navbar_container"):
             )
             if new_dev_sel != st.session_state.get("user_preferred_device"):
                 st.session_state["user_preferred_device"] = new_dev_sel
+                st.query_params["device"] = new_dev_sel
+                _cp = load_client_preferences()
+                _cp["active_device"] = new_dev_sel
                 # Auto adjust zoom for Huawei
                 if "huawei" in new_dev_sel.lower():
                     st.session_state["ui_zoom_level"] = 0.82
                 elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
                     st.session_state["ui_zoom_level"] = 1.0
+                _cp["ui_zoom_level"] = st.session_state["ui_zoom_level"]
+                save_client_preferences(_cp)
                 st.rerun()
 
             st.divider()
@@ -961,6 +1030,9 @@ with st.container(key="top_navbar_container"):
                     b_type = "primary" if is_active_z else "secondary"
                     if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
                         st.session_state["ui_zoom_level"] = z_v
+                        _cp = load_client_preferences()
+                        _cp["ui_zoom_level"] = z_v
+                        save_client_preferences(_cp)
                         st.rerun()
 
             curr_prof = device_mgr.get_device_by_name(curr_pref)
