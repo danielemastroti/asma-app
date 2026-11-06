@@ -252,6 +252,17 @@ class AMLParser:
                 nodes.append(ChordLyricLineNode(segments))
                 continue
 
+            # Check if line without brackets is purely chords (e.g. "SIb/FA  DO/MI   RE7/9+" or "RE7/9+" or "MI | DO | LA")
+            tokens = [t.strip("[](),|") for t in line.split() if t.strip("[](),|")]
+            if tokens and not re.search(r"\b\w+'\w+\b|[.,!?;:]", line):
+                valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t))
+                if valid_chords > 0 and (valid_chords == len(tokens) or (valid_chords / len(tokens)) >= 0.75):
+                    chord_segs = []
+                    for t in tokens:
+                        chord_segs.append(LyricSegment(" ", chord=ChordToken(t)))
+                    nodes.append(ChordLyricLineNode(chord_segs))
+                    continue
+
             # Default plain lyric line without chords
             nodes.append(ChordLyricLineNode([LyricSegment(raw_line, chord=None)]))
 

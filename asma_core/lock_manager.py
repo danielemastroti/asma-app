@@ -79,6 +79,18 @@ class LockManager:
             self._locks[song_uuid] = new_lock
             return True, new_lock, "Lock acquisito con successo."
 
+    def release_user_locks(self, user_email: str) -> List[str]:
+        """Rilascia automaticamente tutti i lock attivi posseduti da un utente (es. uscita da 'Brani')."""
+        with self._mutex:
+            released = []
+            if not user_email:
+                return released
+            for song_uuid, lock in list(self._locks.items()):
+                if lock.is_locked and lock.locked_by_email == user_email:
+                    del self._locks[song_uuid]
+                    released.append(song_uuid)
+            return released
+
     def release_lock(
         self,
         song_uuid: str,

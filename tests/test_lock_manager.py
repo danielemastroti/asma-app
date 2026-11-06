@@ -74,6 +74,18 @@ class TestLockManager(unittest.TestCase):
         self.assertTrue(force_ok)
         self.assertFalse(self.lock_mgr.check_lock(self.song_id).is_locked)
 
+    def test_release_user_locks_auto_unlock(self):
+        """User exiting 'Brani' menu automatically releases all locks owned by that user."""
+        self.lock_mgr.acquire_lock("song-1", "user@band.org", "User", "sess-1")
+        self.lock_mgr.acquire_lock("song-2", "other@band.org", "Other", "sess-2")
+        
+        # User exits Brani menu -> auto unlock
+        released = self.lock_mgr.release_user_locks("user@band.org")
+        self.assertEqual(released, ["song-1"])
+        self.assertFalse(self.lock_mgr.check_lock("song-1").is_locked)
+        # Other user's lock is unaffected
+        self.assertTrue(self.lock_mgr.check_lock("song-2").is_locked)
+
 
 if __name__ == "__main__":
     unittest.main()

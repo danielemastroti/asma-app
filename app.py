@@ -1254,6 +1254,18 @@ with st.container(key="top_navbar_container"):
 
     menu_choice = st.session_state["main_menu_choice"]
 
+    # Unlock automatico dei brani quando si esce dal menu 'Brani'
+    last_menu = st.session_state.get("last_visited_menu", menu_choice)
+    if menu_choice != "📝 Brani":
+        u_email = st.session_state.get("current_user_email", "")
+        if u_email:
+            auto_released = lock_mgr.release_user_locks(u_email)
+            for r_uid in auto_released:
+                s_obj_r = storage.get_song(r_uid)
+                r_title = s_obj_r.title if s_obj_r else r_uid
+                log_op("🔓", "LOCK", f"Lock per '{r_title}' rilasciato automaticamente all'uscita dal menu Brani", "INFO")
+    st.session_state["last_visited_menu"] = menu_choice
+
 # ------------------------------------------------------------------------------
 # 1. HOME DASHBOARD
 # ------------------------------------------------------------------------------
@@ -1550,7 +1562,60 @@ elif menu_choice == "📝 Brani":
     curr_uuid = st.session_state.get("selected_song_uuid")
     keys_list = list(song_choices.keys())
     default_idx = keys_list.index(curr_uuid) if (curr_uuid and curr_uuid in keys_list) else 0
-    selected_uuid = st.selectbox("Seleziona Brano da modificare:", keys_list, index=default_idx, format_func=lambda x: song_choices[x])
+
+    c_top_sel, c_top_new = st.columns([3, 1], gap="small")
+    with c_top_sel:
+        selected_uuid = st.selectbox("Seleziona Brano da modificare:", keys_list, index=default_idx, format_func=lambda x: song_choices[x], label_visibility="collapsed")
+    with c_top_new:
+        with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
+            st.markdown("##### ✍️ Nuovo Brano Autoprodotto")
+            st.caption("Scrivi o incolla il tuo testo: verrà formattato e aggiunto immediatamente all'archivio.")
+            new_auto_title = st.text_input("Titolo:", placeholder="es. La Mia Canzone", key="auto_title").strip()
+            new_auto_artist = st.text_input("Autore / Artista:", value=st.session_state.get("current_user_name", "Autore"), key="auto_artist").strip()
+            new_auto_key = st.text_input("Tonalità:", value="DO", key="auto_key").strip()
+            new_auto_text = st.text_area("Testo e Accordi (incolla qui il tuo testo):", placeholder="Incolla qui strofe, ritornelli o accordi...", height=160, key="auto_text")
+
+            if st.button("💾 Crea e Apri nell'Editor", type="primary", disabled=not current_user.can_edit(), key="btn_create_auto_song", width="stretch"):
+                if not new_auto_title:
+                    st.warning("⚠️ Inserisci almeno il titolo del brano.")
+                else:
+                    if new_auto_text.strip():
+                        if "[" in new_auto_text and "]" in new_auto_text:
+                            doc = AMLParser.parse(new_auto_text)
+                        else:
+                            doc = AMLParser.import_traditional_chords_over_text(new_auto_text)
+                        body_aml = doc.to_aml()
+                    else:
+                        body_aml = "{verse}\n[DO]Inizia a scrivere qui la prima [SOL]strofa...\n\n{chorus}\n[FA]Ritornello della tua [SOL]canzone [DO]qui!\n"
+
+                    aml_lines = [
+                        f"{{title: {new_auto_title}}}",
+                        f"{{artist: {new_auto_artist}}}",
+                        f"{{key: {new_auto_key or 'DO'}}}",
+                        "",
+                        body_aml
+                    ]
+
+                    new_bpm = BandAIService.estimate_song_bpm(new_auto_title, new_auto_artist)
+                    new_song = Song(
+                        title=new_auto_title,
+                        artist=new_auto_artist,
+                        author=new_auto_artist,
+                        key_original=new_auto_key or "DO",
+                        key_current=new_auto_key or "DO",
+                        bpm=new_bpm,
+                        aml_content="\n".join(aml_lines),
+                        tags=["autoprodotto"]
+                    )
+                    saved = storage.save_song(new_song, user_email, user_name, "Creazione brano autoprodotto")
+                    st.session_state["selected_song_uuid"] = saved.uuid
+                    log_op("✍️", "BRANO", f"Creato brano autoprodotto '{saved.title}' ({saved.artist})", "SUCCESS")
+                    st.success(f"Brano '{saved.title}' creato con successo!")
+                    st.rerun()
+
+    if curr_uuid and curr_uuid != selected_uuid:
+        # Rilascia il lock del brano precedente quando si cambia brano nell'editor
+        lock_mgr.release_lock(curr_uuid, st.session_state.get("current_user_email", ""))
     st.session_state["selected_song_uuid"] = selected_uuid
 
     song = storage.get_song(selected_uuid)
@@ -1628,11 +1693,11 @@ elif menu_choice == "📝 Brani":
                         st.success(f"Brano associato a '{target_r_obj.name}'!")
                         st.rerun()
 
-        # Transposition Quick Tools
-        st.write("**Trasposizione Rapida:**")
-        tr_c1, tr_c2, tr_c3, tr_c4 = st.columns(4)
+        # Transposition & Notation Compact Bar (Ottimizzato per Huawei / Tablet)
+        st.markdown("<span style='font-size:11px; font-weight:700; color:#CBD5E1;'>🎵 Trasposizione Rapida & Notazione:</span>", unsafe_allow_html=True)
+        tr_c1, tr_c2, tr_c3, tr_c4 = st.columns(4, gap="small")
         with tr_c1:
-            if st.button("⬇️ -1 Semitono", disabled=not can_edit):
+            if st.button("⬇️ -1", help="Abbassa di 1 semitono (-½ tono)", disabled=not can_edit, width="stretch", key=f"tr_down_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=-1)
                 song.aml_content = new_doc.to_aml()
@@ -1641,7 +1706,7 @@ elif menu_choice == "📝 Brani":
                 log_op("⬇️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto -1 semitono in {song.key_current}", "SUCCESS")
                 st.rerun()
         with tr_c2:
-            if st.button("⬆️ +1 Semitono", disabled=not can_edit):
+            if st.button("⬆️ +1", help="Alza di 1 semitono (+½ tono)", disabled=not can_edit, width="stretch", key=f"tr_up_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=1)
                 song.aml_content = new_doc.to_aml()
@@ -1650,14 +1715,14 @@ elif menu_choice == "📝 Brani":
                 log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +1 semitono in {song.key_current}", "SUCCESS")
                 st.rerun()
         with tr_c3:
-            if st.button("🇮🇹 Converti in ITA", disabled=not can_edit):
+            if st.button("🇮🇹 ITA", help="Converti in notazione italiana (DO, RE, MI)", disabled=not can_edit, width="stretch", key=f"tr_ita_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "ITA").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione italiana")
                 log_op("🇮🇹", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Italiana", "INFO")
                 st.rerun()
         with tr_c4:
-            if st.button("🌐 Converti in INT", disabled=not can_edit):
+            if st.button("🌐 INT", help="Converti in notazione internazionale (C, D, E)", disabled=not can_edit, width="stretch", key=f"tr_int_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "INT").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione internazionale")
@@ -1765,28 +1830,29 @@ elif menu_choice == "📝 Brani":
             color_aml_markup=getattr(prof, "color_aml_markup", "#4A148C")
         )
 
-        # Cache persistente in session_state per download istantaneo ed evitare 404
+        # Generazione PDF sempre aggiornata (use_cache=False) con chiave univoca versionata
+        ck_v = f"v3_{preview_song.current_revision}"
         aml_hash = hash(preview_song.aml_content)
         ck_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', preview_song.title)
-        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
 
         if ck_a4_m not in st.session_state:
-            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=True)
+            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=False)
         pdf_a4_m = st.session_state[ck_a4_m]
 
         if ck_a4_s not in st.session_state:
-            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=True)
+            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=False)
         pdf_a4_s = st.session_state[ck_a4_s]
 
         if ck_dev_m not in st.session_state:
-            st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=True)
+            st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=False)
         pdf_dev_m = st.session_state[ck_dev_m]
 
         if ck_dev_s not in st.session_state:
-            st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=True)
+            st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=False)
         pdf_dev_s = st.session_state[ck_dev_s]
 
         pdf_bytes = pdf_dev_m
@@ -1854,50 +1920,48 @@ elif menu_choice == "📝 Brani":
                 key=f"dl_dev_s_{preview_song.uuid}_{clean_dev}"
             )
 
-        # 3. Esporta nei vari formati
+        # 3. Esporta nei vari formati (Compatto in griglia simmetrica 2x2 per tablet e Huawei)
         st.markdown(
             """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
               <span style="font-size:12px; font-weight:700; color:#FFFFFF;">📤 Esporta Formati Musicali</span>
-              <span style="font-size:10px; color:#94A3B8;">SongBook Pro, OnSong, MobileSheets, ChordPro</span>
+              <span style="font-size:10px; color:#94A3B8;">SongBook, MobileSheets, ChordPro, OnSong</span>
             </div>""",
             unsafe_allow_html=True
         )
-        col_e1, col_e2, col_e3, col_e4 = st.columns(4, gap="small")
+        col_e1, col_e2 = st.columns(2, gap="small")
         with col_e1:
             st.download_button(
-                "🎸 SongBook Pro",
+                "🎸 SongBook Pro (.pro)",
                 data=ExportEngine.export_for_songbookpro(preview_song),
                 file_name=f"{clean_title}.pro",
                 mime="text/plain",
                 width="stretch",
                 key=f"dl_sb_{preview_song.uuid}"
             )
-        with col_e2:
             st.download_button(
-                "🎤 OnSong",
-                data=ExportEngine.export_for_onsong(preview_song),
-                file_name=f"{clean_title}.onsong",
+                "🎼 ChordPro (.cho)",
+                data=ExportEngine.export_to_chordpro(preview_song.aml_content),
+                file_name=f"{clean_title}.cho",
                 mime="text/plain",
                 width="stretch",
-                key=f"dl_os_{preview_song.uuid}"
+                key=f"dl_cp_{preview_song.uuid}"
             )
-        with col_e3:
+        with col_e2:
             st.download_button(
-                "📱 MobileSheets",
+                "📱 MobileSheets (.pro)",
                 data=ExportEngine.export_for_mobilesheets(preview_song),
                 file_name=f"{clean_title}.pro",
                 mime="text/plain",
                 width="stretch",
                 key=f"dl_ms_{preview_song.uuid}"
             )
-        with col_e4:
             st.download_button(
-                "🎼 ChordPro",
-                data=ExportEngine.export_to_chordpro(preview_song.aml_content),
-                file_name=f"{clean_title}.cho",
+                "🎤 OnSong (.onsong)",
+                data=ExportEngine.export_for_onsong(preview_song),
+                file_name=f"{clean_title}.onsong",
                 mime="text/plain",
                 width="stretch",
-                key=f"dl_cp_{preview_song.uuid}"
+                key=f"dl_os_{preview_song.uuid}"
             )
 
         st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
