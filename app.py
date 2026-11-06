@@ -57,8 +57,10 @@ st.markdown("""
     max-width: 100vw !important;
     overflow-y: auto !important;
   }
+
+  /* Top clearance so fixed header NEVER overlaps subheaders, metrics or second-level tabs */
   .main .block-container, [data-testid="stMainBlockContainer"] {
-    padding-top: 72px !important;
+    padding-top: 86px !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
     max-width: 100% !important;
@@ -66,7 +68,9 @@ st.markdown("""
   }
   @media (max-width: 768px) {
     .main .block-container, [data-testid="stMainBlockContainer"] {
-      padding-top: 96px !important;
+      padding-top: 88px !important;
+      padding-left: 10px !important;
+      padding-right: 10px !important;
     }
   }
 
@@ -82,12 +86,36 @@ st.markdown("""
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     border-bottom: 2px solid #0288D1 !important;
-    padding: 3px 14px 4px 14px !important;
+    padding: 4px 14px 4px 14px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85) !important;
   }
 
-  /* Compact popovers in top navbar */
-  div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] button {
+  /* PREVENT STREAMLIT FROM COLLAPSING TOP NAVBAR COLUMNS ON ANY DEVICE (PC, iPad, Huawei, Android, iPhone) */
+  div[class*="st-key-top_navbar_container"] [data-testid="stHorizontalBlock"],
+  div[class*="st-key-top_navbar_container"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  div[class*="st-key-top_navbar_container"] [data-testid="stColumn"],
+  div[class*="st-key-top_navbar_container"] div[data-testid="stColumn"] {
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+    width: auto !important;
+  }
+
+  /* Compact popovers in top navbar - side-by-side on the top right */
+  div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] {
+    display: inline-block !important;
+    width: 100% !important;
+  }
+  div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] > button {
     font-size: 11px !important;
     padding: 2px 7px !important;
     height: 26px !important;
@@ -95,22 +123,45 @@ st.markdown("""
     border-radius: 13px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: #E2E8F0 !important;
+  }
+  div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] > button:hover {
+    background: rgba(2, 136, 209, 0.35) !important;
+    border-color: #00E5FF !important;
+    color: #FFFFFF !important;
   }
 
-  /* ULTRA COMPACT NAVIGATION PILLS (Single line scrollable/fitted) */
+  /* Responsive equalizer: gracefully hides on very narrow mobile screens */
+  @media (max-width: 680px) {
+    .asma-bar-center-eq {
+      display: none !important;
+    }
+  }
+
+  /* ULTRA COMPACT NAVIGATION PILLS (Single line scrollable, strictly non-wrapping) */
   div[class*="st-key-top_nav_pills_widget"] {
     width: 100% !important;
-    margin-top: 1px !important;
+    margin-top: 2px !important;
     margin-bottom: 0px !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"] {
     display: flex !important;
+    flex-direction: row !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
+    overflow-y: hidden !important;
     gap: 3px !important;
     justify-content: flex-start !important;
     padding-bottom: 1px !important;
-    scrollbar-width: thin !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"]::-webkit-scrollbar {
+    display: none !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"],
   div[class*="st-key-top_nav_pills_widget"] button {
@@ -119,14 +170,39 @@ st.markdown("""
     color: #E2E8F0 !important;
     font-size: 11px !important;
     font-weight: 600 !important;
-    padding: 2px 7px !important;
+    padding: 2px 8px !important;
     height: 25px !important;
     min-height: 25px !important;
     border-radius: 12px !important;
     transition: all 0.15s ease-in-out !important;
     cursor: pointer !important;
     white-space: nowrap !important;
+    flex-shrink: 0 !important;
     line-height: 1 !important;
+  }
+  div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"]:hover,
+  div[class*="st-key-top_nav_pills_widget"] button:hover {
+    background: rgba(2, 136, 209, 0.3) !important;
+    border-color: #00E5FF !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+  }
+
+  /* Second-level tabs styling (Never cut off or truncated) */
+  [data-testid="stTabs"] {
+    margin-top: 4px !important;
+  }
+  [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 6px !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: thin !important;
+  }
+  [data-testid="stTabs"] [data-baseweb="tab"] {
+    padding: 5px 12px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"]:hover,
   div[class*="st-key-top_nav_pills_widget"] button:hover {
@@ -467,6 +543,19 @@ MENU_COMPACT_LABELS = {
 if "main_menu_choice" not in st.session_state:
     st.session_state["main_menu_choice"] = "🏠 Home Dashboard"
 
+import base64
+
+@st.cache_data
+def get_band_logo_b64() -> str:
+    """Reads and caches the band logo as base64 string for ultra-fast single-tag rendering."""
+    if os.path.exists("assets/band_logo.png"):
+        try:
+            with open("assets/band_logo.png", "rb") as _f:
+                return base64.b64encode(_f.read()).decode("utf-8")
+        except Exception:
+            return ""
+    return ""
+
 all_users = auth_mgr.list_users()
 user_emails = [u.email for u in all_users]
 curr_user_idx = user_emails.index(current_user.email) if current_user.email in user_emails else 0
@@ -495,34 +584,26 @@ with st.container(key="top_navbar_container"):
     # Glowing Laser Accent Line
     st.markdown('<div class="asma-laser-line"></div>', unsafe_allow_html=True)
 
-    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device & Log (Right)
-    col_head_left, col_head_center, col_head_right = st.columns([1.3, 0.9, 1.8], gap="small", vertical_alignment="center")
+    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device & Log (Right - Compacted)
+    col_head_left, col_head_center, col_btn_user, col_btn_dev, col_btn_log = st.columns(
+        [1.5, 0.9, 0.9, 1.1, 0.55], gap="small", vertical_alignment="center"
+    )
 
     with col_head_left:
-        if os.path.exists("assets/band_logo.png"):
-            c_lg_mini, c_ttl_mini = st.columns([0.35, 1.65], gap="small", vertical_alignment="center")
-            with c_lg_mini:
-                st.image("assets/band_logo.png", width=48)
-            with c_ttl_mini:
-                st.markdown(
-                    f"<div style='line-height:1.1; white-space:nowrap;'>"
-                    f"<b style='font-size:12.5px; color:#FFFFFF;'>THE New ASMA</b> "
-                    f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-        else:
-            st.markdown(
-                f"<div style='line-height:1.1; white-space:nowrap;'>"
-                f"<b style='font-size:13px; color:#FFFFFF;'>⚡ THE New ASMA</b> "
-                f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
+        logo_b64 = get_band_logo_b64()
+        logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:24px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
+        st.markdown(
+            f"<div class='asma-brand-header' style='display:flex; align-items:center; gap:7px; white-space:nowrap;'>"
+            f"{logo_img_tag} "
+            f"<b style='font-size:12.5px; color:#FFFFFF; letter-spacing:0.3px;'>THE New ASMA</b> "
+            f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
 
     with col_head_center:
         st.markdown(
-            f'''<div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            f'''<div class="asma-bar-center-eq" style="display:flex; align-items:center; justify-content:center; gap:6px;">
               <div class="asma-eq-container" style="height:12px;" title="Attività Live Motore ASMA">
                 <span class="asma-eq-bar eq-1" style="height:4px;"></span>
                 <span class="asma-eq-bar eq-2" style="height:8px;"></span>
@@ -535,91 +616,88 @@ with st.container(key="top_navbar_container"):
             unsafe_allow_html=True
         )
 
-    with col_head_right:
-        c_btn_user, c_btn_dev, c_btn_log = st.columns([1.0, 1.1, 0.6], gap="small", vertical_alignment="center")
+    user_first = current_user.name.split()[0]
+    dev_short = "Huawei M5" if "mediapad m5" in curr_pref.lower() else (curr_pref[:11] + "..." if len(curr_pref) > 13 else curr_pref)
 
-        user_first = current_user.name.split()[0]
-        dev_short = "Huawei M5" if "mediapad m5" in curr_pref.lower() else (curr_pref[:11] + "..." if len(curr_pref) > 13 else curr_pref)
+    with col_btn_user:
+        with st.popover(f"👤 {user_first}", width="stretch", help="Profilo utente attivo, permessi e login"):
+            st.write("##### 👤 Profilo Utente & Permessi")
+            st.markdown(f"**Utente:** `{current_user.name}` ({current_user.email})<br>**Ruolo:** <span style='color:{role_col}; font-weight:bold;'>{current_user.role.value}</span>", unsafe_allow_html=True)
+            st.caption(f"Permessi operativi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
+            st.divider()
 
-        with c_btn_user:
-            with st.popover(f"👤 {user_first}", width="stretch", help="Profilo utente attivo, permessi e login"):
-                st.write("##### 👤 Profilo Utente & Permessi")
-                st.markdown(f"**Utente:** `{current_user.name}` ({current_user.email})<br>**Ruolo:** <span style='color:{role_col}; font-weight:bold;'>{current_user.role.value}</span>", unsafe_allow_html=True)
-                st.caption(f"Permessi operativi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
-                st.divider()
+            st.write("###### 🔄 Cambia Profilo (Test Ruoli):")
+            new_u_sel = st.selectbox(
+                "Seleziona Account Band:",
+                user_emails,
+                index=curr_user_idx,
+                format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
+                key="pop_hub_user_sel"
+            )
+            if new_u_sel != st.session_state["current_user_email"]:
+                st.session_state["current_user_email"] = new_u_sel
+                u_sel = auth_mgr.get_user_by_email(new_u_sel)
+                if u_sel:
+                    log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
+                st.rerun()
 
-                st.write("###### 🔄 Cambia Profilo (Test Ruoli):")
-                new_u_sel = st.selectbox(
-                    "Seleziona Account Band:",
-                    user_emails,
-                    index=curr_user_idx,
-                    format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
-                    key="pop_hub_user_sel"
-                )
-                if new_u_sel != st.session_state["current_user_email"]:
-                    st.session_state["current_user_email"] = new_u_sel
-                    u_sel = auth_mgr.get_user_by_email(new_u_sel)
-                    if u_sel:
-                        log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
+            st.divider()
+            st.write("###### 🔑 Accesso Google OAuth2:")
+            in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="pop_oauth_email")
+            in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="pop_oauth_name")
+            if st.button("Accedi con Google", type="primary", key="pop_btn_google", width="stretch"):
+                if in_email:
+                    new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
+                    st.session_state["current_user_email"] = new_u.email
+                    log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
+                    st.success(f"Accesso riuscito come {new_u.name}!")
                     st.rerun()
 
-                st.divider()
-                st.write("###### 🔑 Accesso Google OAuth2:")
-                in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="pop_oauth_email")
-                in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="pop_oauth_name")
-                if st.button("Accedi con Google", type="primary", key="pop_btn_google", width="stretch"):
-                    if in_email:
-                        new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
-                        st.session_state["current_user_email"] = new_u.email
-                        log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
-                        st.success(f"Accesso riuscito come {new_u.name}!")
+    with col_btn_dev:
+        with st.popover(f"📱 {dev_short}", width="stretch", help="Dispositivo hardware e scala zoom"):
+            st.write("##### 📱 Configurazione Dispositivo Display")
+            st.caption("Adatta automaticamente margini, colonne e leggibilità al tuo schermo.")
+            new_dev_sel = st.selectbox(
+                "Seleziona Modello Hardware:",
+                dev_names,
+                index=pref_idx,
+                key="pop_hub_dev_sel"
+            )
+            if new_dev_sel != st.session_state.get("user_preferred_device"):
+                st.session_state["user_preferred_device"] = new_dev_sel
+                # Auto adjust zoom for Huawei
+                if "huawei" in new_dev_sel.lower():
+                    st.session_state["ui_zoom_level"] = 0.82
+                elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
+                    st.session_state["ui_zoom_level"] = 1.0
+                st.rerun()
+
+            st.divider()
+            st.write("###### 🔍 Scala Schermo (Zoom):")
+            st.caption("Rimpicciolisci o ingrandisci per adattare perfettamente la schermata al tablet:")
+            z_cols = st.columns(5)
+            zoom_presets = [("75%", 0.75), ("82%", 0.82), ("90%", 0.90), ("100%", 1.0), ("110%", 1.10)]
+            for z_i, (z_lbl, z_v) in enumerate(zoom_presets):
+                with z_cols[z_i]:
+                    is_active_z = abs(active_zoom - z_v) < 0.02
+                    b_type = "primary" if is_active_z else "secondary"
+                    if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
+                        st.session_state["ui_zoom_level"] = z_v
                         st.rerun()
 
-        with c_btn_dev:
-            with st.popover(f"📱 {dev_short}", width="stretch", help="Dispositivo hardware e scala zoom"):
-                st.write("##### 📱 Configurazione Dispositivo Display")
-                st.caption("Adatta automaticamente margini, colonne e leggibilità al tuo schermo.")
-                new_dev_sel = st.selectbox(
-                    "Seleziona Modello Hardware:",
-                    dev_names,
-                    index=pref_idx,
-                    key="pop_hub_dev_sel"
-                )
-                if new_dev_sel != st.session_state.get("user_preferred_device"):
-                    st.session_state["user_preferred_device"] = new_dev_sel
-                    # Auto adjust zoom for Huawei
-                    if "huawei" in new_dev_sel.lower():
-                        st.session_state["ui_zoom_level"] = 0.82
-                    elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
-                        st.session_state["ui_zoom_level"] = 1.0
-                    st.rerun()
-
+            curr_prof = device_mgr.get_device_by_name(curr_pref)
+            if curr_prof:
                 st.divider()
-                st.write("###### 🔍 Scala Schermo (Zoom):")
-                st.caption("Rimpicciolisci o ingrandisci per adattare perfettamente la schermata al tablet:")
-                z_cols = st.columns(5)
-                zoom_presets = [("75%", 0.75), ("82%", 0.82), ("90%", 0.90), ("100%", 1.0), ("110%", 1.10)]
-                for z_i, (z_lbl, z_v) in enumerate(zoom_presets):
-                    with z_cols[z_i]:
-                        is_active_z = abs(active_zoom - z_v) < 0.02
-                        b_type = "primary" if is_active_z else "secondary"
-                        if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
-                            st.session_state["ui_zoom_level"] = z_v
-                            st.rerun()
+                st.markdown(f"**Specifiche Display:** `{curr_prof.name}`<br>"
+                            f"📐 Risoluzione mm: `{curr_prof.width_mm:.1f} × {curr_prof.height_mm:.1f} mm` ({curr_prof.orientation})<br>"
+                            f"📖 Colonne: `{curr_prof.columns}` &bull; Testo: `{curr_prof.font_size_lyrics} pt` &bull; Accordi: `{curr_prof.font_size_chords} pt`",
+                            unsafe_allow_html=True)
 
-                curr_prof = device_mgr.get_device_by_name(curr_pref)
-                if curr_prof:
-                    st.divider()
-                    st.markdown(f"**Specifiche Display:** `{curr_prof.name}`<br>"
-                                f"📐 Risoluzione mm: `{curr_prof.width_mm:.1f} × {curr_prof.height_mm:.1f} mm` ({curr_prof.orientation})<br>"
-                                f"📖 Colonne: `{curr_prof.columns}` &bull; Testo: `{curr_prof.font_size_lyrics} pt` &bull; Accordi: `{curr_prof.font_size_chords} pt`",
-                                unsafe_allow_html=True)
+    with col_btn_log:
+        with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
+            render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
-        with c_btn_log:
-            with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
-                render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
-
-    # Row 2: Ultra-Compact Navigation Pills (Single Row)
+    # Row 2: Ultra-Compact Navigation Pills (Strictly Single Row, Never Wrap)
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
     if active_item not in MENU_ITEMS:
         active_item = MENU_ITEMS[0]
@@ -631,7 +709,7 @@ with st.container(key="top_navbar_container"):
         default=active_item,
         selection_mode="single",
         required=True,
-        wrap=True,
+        wrap=False,
         key="top_nav_pills_widget",
         label_visibility="collapsed"
     )
