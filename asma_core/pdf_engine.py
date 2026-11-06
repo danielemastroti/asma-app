@@ -24,8 +24,10 @@ from reportlab.pdfgen import canvas
 from asma_core.models import Song, DeviceProfile, Setlist, Repertoire
 from asma_core.aml_parser import (
     AMLParser, AMLDocument, DirectiveNode, SectionNode,
-    CustomTagNode, ChordLyricLineNode, ChordGridLineNode, CommentNode
+    CustomTagNode, ChordLyricLineNode, ChordGridLineNode, CommentNode,
+    EmptyLineNode
 )
+from asma_core.ai_service import BandAIService
 
 
 # Standard custom page sizes (in points, 1 point = 1/72 inch)
@@ -191,7 +193,8 @@ class PDFEngine:
         story.append(Spacer(1, 3 * mm))
 
         # 2. Parse AML Document and Render Flowables
-        aml_doc = AMLParser.parse(song.aml_content)
+        aml_text = BandAIService.ensure_section_spacing_aml(song.aml_content)
+        aml_doc = AMLParser.parse(aml_text)
         content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, content_w, include_chords=include_chords, profile=prof)
         story.extend(content_flowables)
 
@@ -332,7 +335,8 @@ class PDFEngine:
             story.append(header_t)
             story.append(Spacer(1, 4 * mm))
 
-            aml_doc = AMLParser.parse(s.aml_content)
+            aml_text = BandAIService.ensure_section_spacing_aml(s.aml_content)
+            aml_doc = AMLParser.parse(aml_text)
             # If item has custom transposition key, transpose document
             if item.custom_key and item.custom_key != s.key_current:
                 from asma_core.music_engine import MusicEngine
@@ -534,7 +538,10 @@ class PDFEngine:
                 flush_section()
                 # Separazione spaziale generosa e costante prima di ogni sezione (es. Chorus, Strofe, Bridge, Outro)
                 if flowables:
-                    flowables.append(Spacer(1, 6 * mm))
+                    if isinstance(flowables[-1], Spacer):
+                        flowables[-1] = Spacer(1, 6 * mm)
+                    else:
+                        flowables.append(Spacer(1, 6 * mm))
 
                 # Section badge
                 badge_text = f"&nbsp;&nbsp;<b>[{node.section_name.upper()}]</b>&nbsp;&nbsp;"
@@ -644,6 +651,12 @@ class PDFEngine:
             elif isinstance(node, CommentNode):
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])
                 current_section_block.append(comm_p)
+
+            elif isinstance(node, EmptyLineNode):
+                flush_section()
+                # Separazione spaziale elegante tra strofe/blocchi di testo
+                if flowables and not isinstance(flowables[-1], Spacer):
+                    flowables.append(Spacer(1, 4.5 * mm))
 
         flush_section()
         return flowables

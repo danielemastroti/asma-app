@@ -7,8 +7,35 @@ STRICTLY FORBIDDEN FOR: Chord parsing, transpositions, PDF generation, or versio
 
 from __future__ import annotations
 import os
+import re
+import json
+import urllib.request
+import urllib.error
 from typing import Dict, Any, Optional, List
 from asma_core.music_engine import MusicEngine
+
+
+SECTION_HEADING_REGEX = re.compile(
+    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|outro|finale|coda)(?:\s*[\dIVX]+)?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
+    re.IGNORECASE
+)
+
+SECTION_NAME_MAP = {
+    "intro": "intro",
+    "introduzione": "intro",
+    "verse": "verse",
+    "strofa": "verse",
+    "chorus": "chorus",
+    "ritornello": "chorus",
+    "bridge": "bridge",
+    "inciso": "bridge",
+    "special": "bridge",
+    "solo": "solo",
+    "assolo": "solo",
+    "outro": "outro",
+    "finale": "outro",
+    "coda": "coda"
+}
 
 
 class BandAIService:
@@ -21,11 +48,180 @@ class BandAIService:
     MODE_PREMIUM = "PREMIUM"
 
     @classmethod
+    def get_api_key(cls) -> Optional[str]:
+        """Retrieves Gemini API key from environment, Streamlit secrets or .streamlit/secrets.toml."""
+        for env_var in ["GEMINI_API_KEY", "GOOGLE_API_KEY"]:
+            val = os.environ.get(env_var)
+            if val and not val.startswith("AIzaSy_YOUR_OPTIONAL"):
+                return val
+
+        # Streamlit runtime secrets
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                if "ai" in st.secrets and "gemini_api_key" in st.secrets["ai"]:
+                    k = str(st.secrets["ai"]["gemini_api_key"]).strip()
+                    if k and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
+                        return k
+                if "gemini_api_key" in st.secrets:
+                    k = str(st.secrets["gemini_api_key"]).strip()
+                    if k and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
+                        return k
+        except Exception:
+            pass
+
+        # Direct .streamlit/secrets.toml reading
+        try:
+            import tomllib
+            secrets_path = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
+            if os.path.exists(secrets_path):
+                with open(secrets_path, "rb") as f:
+                    data = tomllib.load(f)
+                    k = data.get("ai", {}).get("gemini_api_key") or data.get("gemini_api_key")
+                    if k and isinstance(k, str) and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
+                        return k.strip()
+        except Exception:
+            pass
+
+        return None
+
+    @classmethod
     def get_current_mode(cls) -> str:
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        api_key = cls.get_api_key()
         if not api_key:
             return cls.MODE_OFF
         return os.environ.get("ASMA_AI_MODE", cls.MODE_FREE)
+
+    @classmethod
+    def detect_sections_with_ai(cls, aml_text: str) -> Optional[str]:
+        """
+        Uses a free, ultra-fast and lightweight Gemini model (gemini-1.5-flash / gemini-2.0-flash-lite)
+        to identify and insert section tags ({intro}, {verse}, {chorus}, {bridge}, {solo}, {outro}).
+        Strictly constrained with timeout, zero temperature and low token ceiling.
+        """
+        api_key = cls.get_api_key()
+        if not api_key:
+            return None
+
+        prompt = (
+            "Sei un assistente musicale esperto di formattazione testi e spartiti per leggio.\n"
+            "Nel testo musicale seguente mancano i tag di sezione. Inserisci i tag di sezione AML standard "
+            "({intro}, {verse}, {chorus}, {bridge}, {solo}, {outro}) prima di ciascuna sezione logica del brano.\n"
+            "Regole vincolanti:\n"
+            "1. Mantieni esattamente inalterate tutte le parole e tutti gli accordi (es. [Am], [G]).\n"
+            "2. Non aggiungere spiegazioni, non commentare e non usare blocchi di codice markdown (nessun ```).\n"
+            "3. Restituisci esclusivamente il testo AML aggiornato.\n\n"
+            f"{aml_text}"
+        )
+
+        payload = {
+            "contents": [
+                {
+                    "parts": [{"text": prompt}]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.0,
+                "maxOutputTokens": 1500
+            }
+        }
+
+        # Modelli gratuiti e leggeri raccomandati per velocità e minimo consumo di token
+        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"]
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=3.0) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                out_text = parts[0].get("text", "").strip()
+                                out_text = re.sub(r"^```[a-zA-Z]*\n", "", out_text)
+                                out_text = re.sub(r"\n```$", "", out_text).strip()
+                                if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello)", out_text, re.IGNORECASE):
+                                    return out_text
+            except Exception:
+                continue
+
+        return None
+
+    @classmethod
+    def detect_sections_heuristic(cls, aml_text: str) -> str:
+        """
+        Deterministic, robust fallback for detecting sections and stanza spacing:
+        1. Identifies textual section markers (e.g. Ritornello:, [Ritornello], Strofa 1, (Chorus), Bridge:)
+           and converts them into proper AML section directives ({chorus}, {verse}, etc.).
+        2. If the text has neither section tags nor blank lines, divides long continuous blocks
+           into natural 4-line stanzas separated by blank lines for clean music-stand layout.
+        """
+        lines = aml_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        new_lines: List[str] = []
+        consecutive_text_lines = 0
+
+        for raw_line in lines:
+            line_str = raw_line.strip()
+
+            if not line_str:
+                new_lines.append("")
+                consecutive_text_lines = 0
+                continue
+
+            if line_str.startswith("{") and line_str.endswith("}"):
+                new_lines.append(raw_line)
+                consecutive_text_lines = 0
+                continue
+
+            m = SECTION_HEADING_REGEX.match(line_str)
+            if m:
+                raw_keyword = m.group(1).lower()
+                canonical = SECTION_NAME_MAP.get(raw_keyword, "verse")
+                num_match = re.search(r"[\dIVX]+", line_str)
+                label_suffix = f": {num_match.group(0)}" if num_match else ""
+                new_lines.append(f"{{{canonical}{label_suffix}}}")
+                consecutive_text_lines = 0
+                continue
+
+            if consecutive_text_lines >= 4:
+                new_lines.append("")
+                consecutive_text_lines = 0
+
+            new_lines.append(raw_line)
+            consecutive_text_lines += 1
+
+        return "\n".join(new_lines)
+
+    @classmethod
+    def ensure_section_spacing_aml(cls, aml_text: str) -> str:
+        """
+        Ensures that a song AML document has well-defined sections and spacing:
+        1. If sections are already present ({intro}, {verse}, {chorus}, etc.), leaves it unchanged.
+        2. If sections are missing, attempts fast lightweight AI model (Gemini free tier).
+        3. As the ultimate fallback, applies deterministic heuristic segmentation to format the PDF
+           at the highest possible standard.
+        """
+        if not aml_text or not aml_text.strip():
+            return aml_text
+
+        # Check if AML already has explicit section tags
+        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale)", aml_text, re.IGNORECASE):
+            return aml_text
+
+        # 1. Try lightweight AI detection
+        ai_result = cls.detect_sections_with_ai(aml_text)
+        if ai_result:
+            return ai_result
+
+        # 2. Fallback to deterministic heuristic segmentation
+        return cls.detect_sections_heuristic(aml_text)
 
     @classmethod
     def suggest_medley_transition(

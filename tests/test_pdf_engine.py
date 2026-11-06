@@ -174,6 +174,52 @@ Testo bridge con finale
         self.assertTrue(pdf_musician.startswith(b"%PDF-"))
         self.assertGreater(len(pdf_musician), 1000)
 
+    def test_unlabeled_sections_heuristic_and_ai_fallback(self):
+        """When sections are not indicated with AML tags, engine formats PDF with detected sections and spaces."""
+        from asma_core.ai_service import BandAIService
+
+        # Case 1: Textual section headings (e.g. Ritornello:, Strofa 1:) without AML braces
+        raw_song_text = """{title: Canzone Senza Tag}
+Ritornello:
+[DO]Nel blu dipinto di blu
+[FA]Felice di stare lassù
+
+Strofa 1:
+Penso che un sogno così non ritorni mai più
+Mi dipingevo le mani e la faccia di blu
+"""
+        converted = BandAIService.ensure_section_spacing_aml(raw_song_text)
+        self.assertIn("{chorus}", converted)
+        self.assertIn("{verse: 1}", converted)
+
+        song_raw = Song(title="Canzone Senza Tag", aml_content=raw_song_text)
+        pdf_bytes = PDFEngine.generate_song_pdf(song_raw, use_cache=False)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_bytes), 1000)
+
+    def test_unformatted_continuous_lines_spacing_fallback(self):
+        """When song has no sections and no empty lines, engine provides stanza spacing every 4 lines."""
+        from asma_core.ai_service import BandAIService
+
+        continuous_text = """{title: Continuous Text}
+[C]Riga uno della canzone
+Riga due della canzone
+[G]Riga tre della canzone
+Riga quattro della canzone
+[Am]Riga cinque della canzone
+Riga sei della canzone
+[F]Riga sette della canzone
+Riga otto della canzone
+"""
+        enhanced = BandAIService.ensure_section_spacing_aml(continuous_text)
+        # Should have inserted an empty line to separate into stanzas
+        self.assertIn("\n\n", enhanced)
+
+        song_cont = Song(title="Continuous Song", aml_content=continuous_text)
+        pdf_bytes = PDFEngine.generate_song_pdf(song_cont, use_cache=False)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_bytes), 1000)
+
 
 if __name__ == "__main__":
     unittest.main()
