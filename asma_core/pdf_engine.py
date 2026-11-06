@@ -30,11 +30,11 @@ from asma_core.aml_parser import (
 
 # Standard custom page sizes (in points, 1 point = 1/72 inch)
 PAGE_SIZES: Dict[str, Tuple[float, float]] = {
-    "pc_a4": A4,
-    "pc_a4_landscape": landscape(A4),
-    "tablet": landscape(A4),
+    "pc_a4": portrait(A4),
+    "pc_a4_landscape": portrait(A4),
+    "tablet": portrait(A4),
     "ipad": portrait(A4),
-    "smartphone": (100 * mm, 210 * mm)  # Tall vertical smartphone form-factor
+    "smartphone": (100 * mm, 210 * mm)  # Layout PDF sempre verticale
 }
 
 

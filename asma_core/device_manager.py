@@ -52,7 +52,7 @@ DEFAULT_DEVICES = [
         "device_type": "tablet",
         "width_mm": 165.8,
         "height_mm": 253.8,
-        "orientation": "landscape",
+        "orientation": "portrait",
         "columns": 2,
         "font_size_lyrics": 11.5,
         "font_size_chords": 12.5,
@@ -84,7 +84,7 @@ DEFAULT_DEVICES = [
         "device_type": "tablet",
         "width_mm": 166.0,
         "height_mm": 254.0,
-        "orientation": "landscape",
+        "orientation": "portrait",
         "columns": 2,
         "font_size_lyrics": 11.5,
         "font_size_chords": 12.5,
@@ -100,7 +100,7 @@ DEFAULT_DEVICES = [
         "device_type": "tablet",
         "width_mm": 171.8,
         "height_mm": 258.7,
-        "orientation": "landscape",
+        "orientation": "portrait",
         "columns": 2,
         "font_size_lyrics": 11.5,
         "font_size_chords": 12.5,
@@ -164,7 +164,7 @@ DEFAULT_DEVICES = [
         "device_type": "tablet",
         "width_mm": 154.96,
         "height_mm": 245.2,
-        "orientation": "landscape",
+        "orientation": "portrait",
         "columns": 2,
         "font_size_lyrics": 11.5,
         "font_size_chords": 12.5,
@@ -203,6 +203,13 @@ class DeviceManager:
                 with open(self._file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self._profiles = [DeviceProfile.from_dict(d) for d in data]
+
+                # Layout PDF deve essere sempre verticale (portrait), mai landscape
+                for p in self._profiles:
+                    p.orientation = "portrait"
+                    if p.width_mm > p.height_mm:
+                        p.width_mm, p.height_mm = p.height_mm, p.width_mm
+                updated = True
 
                 # Ensure all default devices are present
                 existing_names = {p.name.strip().lower() for p in self._profiles}

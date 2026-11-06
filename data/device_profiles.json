@@ -55,7 +55,7 @@
     "margin_left_mm": 8.0,
     "margin_right_mm": 8.0,
     "zoom": 1.0,
-    "orientation": "landscape",
+    "orientation": "portrait",
     "columns": 2,
     "is_custom": false
   },
@@ -95,7 +95,7 @@
     "margin_left_mm": 8.0,
     "margin_right_mm": 8.0,
     "zoom": 1.0,
-    "orientation": "landscape",
+    "orientation": "portrait",
     "columns": 2,
     "is_custom": false
   },
@@ -175,7 +175,7 @@
     "margin_left_mm": 8.0,
     "margin_right_mm": 8.0,
     "zoom": 1.0,
-    "orientation": "landscape",
+    "orientation": "portrait",
     "columns": 2,
     "is_custom": false
   },
@@ -195,7 +195,7 @@
     "margin_left_mm": 8.0,
     "margin_right_mm": 8.0,
     "zoom": 1.0,
-    "orientation": "landscape",
+    "orientation": "portrait",
     "columns": 2,
     "is_custom": false
   }
