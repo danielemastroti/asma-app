@@ -1103,26 +1103,153 @@ if menu_choice == "🏠 Home Dashboard":
 # 2. GESTIONE REPERTORI
 # ------------------------------------------------------------------------------
 elif menu_choice == "📥 Importa & 📤 Esporta":
-    st.subheader("📥 Importazione Multi-Formato & 📤 Esportazione Interoperabile")
+    # Le schede/menu partono immediatamente appena sotto la barra fissa
+    tab_exp_pdf, tab_web, tab_imp, tab_apps = st.tabs([
+        "📄 Esporta PDF (Device)",
+        "🌐 Import da Web / URL",
+        "📥 Import File & Testo",
+        "📱 MobileSheets & Altre App"
+    ])
 
-    # Scelta del Repertorio di Destinazione per l'importazione
     all_reps = storage.list_repertoires()
-    col_rep_sel, col_rep_info = st.columns([2, 1])
-    with col_rep_sel:
-        target_rep = st.selectbox(
-            "📂 Assegna automaticamente i brani importati a questo Repertorio:",
-            all_reps,
-            format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)"
-        ) if all_reps else None
-    with col_rep_info:
-        if target_rep:
-            st.caption(f"I brani importati verranno archiviati in: **{target_rep.name}**")
-        else:
-            st.warning("Nessun repertorio attivo. I brani resteranno nell'archivio generale.")
 
-    tab_web, tab_imp, tab_exp = st.tabs(["🌐 Import da Web / URL", "📥 Import PDF & Testo", "📤 Esporta per App Esterne"])
+    # --------------------------------------------------------------------------
+    # TAB 1: ESPORTAZIONE PDF SU MISURA PER DISPOSITIVO (Musicisti & Cantante)
+    # --------------------------------------------------------------------------
+    with tab_exp_pdf:
+        st.markdown(
+            """<div style="display:flex; align-items:center; gap:6px; margin: 2px 0 8px 0;">
+              <b style="font-size:13px; color:#FFFFFF;">📄 Esportazione PDF su Misura per Dispositivo</b>
+              <span style="font-size:10.5px; color:#94A3B8;">&bull; Formattazione millimetrica per schermo &bull; Protezione atomica accordi/testo</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        all_songs = storage.list_songs()
+        all_setlists = storage.list_setlists()
+
+        if not all_songs:
+            st.info("Nessun brano presente in archivio da esportare.")
+        else:
+            c_mode, c_item, c_dev = st.columns([1.1, 1.8, 1.5], gap="small")
+            with c_mode:
+                exp_type = st.radio("Cosa esportare:", ["Singolo Brano", "Intera Scaletta"], horizontal=True, key="pdf_exp_type_radio")
+
+            with c_item:
+                if exp_type == "Singolo Brano":
+                    song_opts = {s["uuid"]: f"🎵 {s['title']} — {s.get('artist', '')} [{s.get('key_current', '-')}]" for s in all_songs}
+                    curr_s_id = st.session_state.get("selected_song_uuid")
+                    default_s_idx = list(song_opts.keys()).index(curr_s_id) if (curr_s_id and curr_s_id in song_opts) else 0
+                    sel_song_uuid = st.selectbox("Seleziona Brano:", list(song_opts.keys()), index=default_s_idx, format_func=lambda x: song_opts[x], key="pdf_exp_song_sel")
+                    target_obj_song = storage.get_song(sel_song_uuid)
+                    target_obj_setlist = None
+                else:
+                    if all_setlists:
+                        setlist_opts = {sl.uuid: f"📑 {sl.title} ({len(sl.items)} brani)" for sl in all_setlists}
+                        sel_sl_uuid = st.selectbox("Seleziona Scaletta:", list(setlist_opts.keys()), format_func=lambda x: setlist_opts[x], key="pdf_exp_sl_sel")
+                        target_obj_setlist = next((sl for sl in all_setlists if sl.uuid == sel_sl_uuid), None)
+                        target_obj_song = None
+                    else:
+                        st.warning("Nessuna scaletta creata. Crea prima una scaletta.")
+                        target_obj_setlist = None
+                        target_obj_song = None
+
+            with c_dev:
+                dev_all = device_mgr.list_devices()
+                dev_name_list = [d.name for d in dev_all]
+                curr_device_name = st.session_state.get("user_preferred_device", dev_name_list[0] if dev_name_list else "")
+                def_dev_idx = dev_name_list.index(curr_device_name) if curr_device_name in dev_name_list else 0
+                sel_dev_name = st.selectbox("Formato Display Target:", dev_name_list, index=def_dev_idx, key="pdf_exp_dev_sel")
+                target_profile = device_mgr.get_device_by_name(sel_dev_name) or DeviceProfile()
+
+            # Specifiche compatte del display selezionato
+            st.markdown(
+                f"<div style='font-size:11px; color:#94A3B8; background:rgba(30, 41, 59, 0.5); border:1px solid rgba(255,255,255,0.08); padding:5px 10px; border-radius:6px; margin-bottom:10px;'>"
+                f"📐 <b>Display:</b> <code>{target_profile.name}</code> &bull; "
+                f"Dimensioni: <code>{target_profile.width_mm:.1f} × {target_profile.height_mm:.1f} mm</code> ({target_profile.orientation}) &bull; "
+                f"Colonne: <code>{target_profile.columns}</code> &bull; Testo: <code>{target_profile.font_size_lyrics} pt</code> &bull; Accordi: <code>{target_profile.font_size_chords} pt</code>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
+            # Due scelte compatte per il download: con accordi (musicisti) e solo testo (cantante)
+            c_down1, c_down2 = st.columns(2, gap="small")
+
+            if exp_type == "Singolo Brano" and target_obj_song:
+                # 1. Con Accordi per Musicisti
+                with c_down1:
+                    pdf_music = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=True, use_cache=False)
+                    st.download_button(
+                        "🎸 Scarica PDF con Accordi (Musicisti)",
+                        data=pdf_music,
+                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
+                        mime="application/pdf",
+                        type="primary",
+                        width="stretch",
+                        key=f"dl_pdf_music_{target_obj_song.uuid}_{target_profile.name}"
+                    )
+                    st.caption("Accordi allineati, griglia a battute, tonalità e stacchi. Protezione atomica da salto pagina.")
+
+                # 2. Solo Testo per Cantante
+                with c_down2:
+                    pdf_singer = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=False, use_cache=False)
+                    st.download_button(
+                        "🎤 Scarica PDF Solo Testo (Cantante)",
+                        data=pdf_singer,
+                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
+                        mime="application/pdf",
+                        type="secondary",
+                        width="stretch",
+                        key=f"dl_pdf_singer_{target_obj_song.uuid}_{target_profile.name}"
+                    )
+                    st.caption("Puro testo cantato e sezioni (Intro, Strofa, Ritornello), privo di accordi e griglie.")
+
+            elif exp_type == "Intera Scaletta" and target_obj_setlist:
+                sl_songs = [storage.get_song(it.song_uuid) for it in target_obj_setlist.items if storage.get_song(it.song_uuid)]
+                if sl_songs:
+                    # 1. Con Accordi per Musicisti
+                    with c_down1:
+                        pdf_music_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=True)
+                        st.download_button(
+                            f"🎸 Scarica Scaletta con Accordi ({len(sl_songs)} brani)",
+                            data=pdf_music_sl,
+                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
+                            mime="application/pdf",
+                            type="primary",
+                            width="stretch",
+                            key=f"dl_pdf_sl_music_{target_obj_setlist.uuid}_{target_profile.name}"
+                        )
+                        st.caption("Scaletta completa con copertina, indice brani e spartiti per musicisti.")
+
+                    # 2. Solo Testo per Cantante
+                    with c_down2:
+                        pdf_singer_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=False)
+                        st.download_button(
+                            f"🎤 Scarica Scaletta Solo Testo ({len(sl_songs)} brani)",
+                            data=pdf_singer_sl,
+                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
+                            mime="application/pdf",
+                            type="secondary",
+                            width="stretch",
+                            key=f"dl_pdf_sl_singer_{target_obj_setlist.uuid}_{target_profile.name}"
+                        )
+                        st.caption("Scaletta completa solo testo per il cantante con copertina e indice.")
 
     with tab_web:
+        if all_reps:
+            c_r1, c_r2 = st.columns([2, 1], gap="small")
+            with c_r1:
+                target_rep = st.selectbox(
+                    "📂 Assegna automaticamente i brani importati a questo Repertorio:",
+                    all_reps,
+                    format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)",
+                    key="web_target_rep_sel"
+                )
+            with c_r2:
+                st.caption(f"Archiviazione automatica in: **{target_rep.name}**")
+        else:
+            target_rep = None
+
         st.write("#### 🌐 Importazione Automatica da Internet (Siti Italiani ed Internazionali)")
         st.caption("Estrae automaticamente accordi e testi da Accordi e Spartiti, Ultimate-Guitar, Skitarrate, Chordie e pagine web pubbliche.")
 
@@ -1212,6 +1339,20 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                                     st.error(f"Errore importazione: {str(e_imp)}")
 
     with tab_imp:
+        if all_reps:
+            c_rf1, c_rf2 = st.columns([2, 1], gap="small")
+            with c_rf1:
+                target_rep_f = st.selectbox(
+                    "📂 Assegna automaticamente i brani importati a questo Repertorio:",
+                    all_reps,
+                    format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)",
+                    key="file_target_rep_sel"
+                )
+            with c_rf2:
+                st.caption(f"Archiviazione automatica in: **{target_rep_f.name}**")
+        else:
+            target_rep_f = None
+
         st.write("#### Importazione da File PDF, ChordPro o Formato Tradizionale")
         imp_format = st.radio("Seleziona Formato di Origine:", ["ChordPro standard", "Tradizionale (Accordi sopra il testo)", "PDF"], horizontal=True)
 

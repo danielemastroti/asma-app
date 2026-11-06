@@ -138,14 +138,15 @@ class PDFEngine:
         profile: Optional[DeviceProfile] = None,
         template_name: str = "standard",
         watermark: Optional[str] = None,
-        use_cache: bool = True
+        use_cache: bool = True,
+        include_chords: bool = True
     ) -> bytes:
         """
         Generates a device-aware PDF for a single song.
         Implements memory buffer caching and smart page break protection.
         """
         prof = profile or DeviceProfile()
-        cache_key = f"{song.uuid}_{song.updated_at}_{prof.target_device}_{prof.orientation}_{template_name}_{watermark}"
+        cache_key = f"{song.uuid}_{song.updated_at}_{prof.target_device}_{prof.orientation}_{template_name}_{watermark}_{include_chords}"
 
         if use_cache and cache_key in cls._cache:
             return cls._cache[cache_key]
@@ -172,13 +173,13 @@ class PDFEngine:
         story: List[Flowable] = []
 
         # 1. Song Header Banner
-        header_table = cls._create_song_header_table(song, styles, prof, pagesize[0] - left_m - right_m)
+        header_table = cls._create_song_header_table(song, styles, prof, pagesize[0] - left_m - right_m, include_chords=include_chords)
         story.append(header_table)
         story.append(Spacer(1, 4 * mm))
 
         # 2. Parse AML Document and Render Flowables
         aml_doc = AMLParser.parse(song.aml_content)
-        content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, pagesize[0] - left_m - right_m)
+        content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, pagesize[0] - left_m - right_m, include_chords=include_chords)
         story.extend(content_flowables)
 
         # Custom Canvas Factory for page numbering and watermark
@@ -205,7 +206,8 @@ class PDFEngine:
         songs: List[Song],
         profile: Optional[DeviceProfile] = None,
         template_name: str = "standard",
-        watermark: Optional[str] = None
+        watermark: Optional[str] = None,
+        include_chords: bool = True
     ) -> bytes:
         """
         Generates a consolidated multi-song PDF document for an entire setlist,
@@ -316,7 +318,7 @@ class PDFEngine:
             if not s:
                 continue
 
-            header_t = cls._create_song_header_table(s, styles, prof, usable_w, setlist_pos=f"{i+1} di {len(setlist.items)}")
+            header_t = cls._create_song_header_table(s, styles, prof, usable_w, setlist_pos=f"{i+1} di {len(setlist.items)}", include_chords=include_chords)
             story.append(header_t)
             story.append(Spacer(1, 4 * mm))
 
@@ -327,7 +329,7 @@ class PDFEngine:
                 delta = MusicEngine.calculate_semitone_delta(s.key_current, item.custom_key)
                 aml_doc = AMLParser.transpose_document(aml_doc, semitones=delta)
 
-            flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, usable_w)
+            flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, usable_w, include_chords=include_chords)
             story.extend(flowables)
 
             # Insert page break between songs
@@ -420,16 +422,20 @@ class PDFEngine:
         styles: Dict[str, ParagraphStyle],
         profile: DeviceProfile,
         usable_width: float,
-        setlist_pos: Optional[str] = None
+        setlist_pos: Optional[str] = None,
+        include_chords: bool = True
     ) -> Table:
         """Constructs an elegant header box containing metadata (Key, BPM, Time Signature, Capo)."""
         title_p = Paragraph(f"<b>{song.title}</b>", styles["DocTitle"])
         pos_str = f" [{setlist_pos}]" if setlist_pos else ""
         artist_p = Paragraph(f"<b>{song.artist}</b>{pos_str} &bull; <i>{song.author}</i>", styles["DocSubtitle"])
 
-        meta_str = f"<b>Key:</b> {song.key_current} | <b>BPM:</b> {song.bpm} | <b>Metro:</b> {song.time_signature}"
-        if song.capo > 0:
-            meta_str += f" | <b>Capo:</b> {song.capo}° tasto"
+        if include_chords:
+            meta_str = f"<b>Key:</b> {song.key_current} | <b>BPM:</b> {song.bpm} | <b>Metro:</b> {song.time_signature}"
+            if song.capo > 0:
+                meta_str += f" | <b>Capo:</b> {song.capo}° tasto"
+        else:
+            meta_str = f"🎤 <b>Solo Testo (Cantante)</b> | <b>BPM:</b> {song.bpm} | <b>Metro:</b> {song.time_signature}"
         meta_p = Paragraph(meta_str, styles["SectionText"])
 
         logo_flowable = None
@@ -485,7 +491,8 @@ class PDFEngine:
         cls,
         doc: AMLDocument,
         styles: Dict[str, ParagraphStyle],
-        usable_width: float
+        usable_width: float,
+        include_chords: bool = True
     ) -> List[Flowable]:
         """
         Converts AML AST nodes into ReportLab Flowables.
@@ -525,22 +532,26 @@ class PDFEngine:
 
             elif isinstance(node, ChordGridLineNode):
                 # Measure grid line: | Bm | F#7 | A | E |
-                grid_cells = []
-                for measure in node.measures:
-                    grid_cells.append(Paragraph(f"<b>{' '.join(measure)}</b>", styles["ChordText"]))
+                if include_chords:
+                    grid_cells = []
+                    for measure in node.measures:
+                        grid_cells.append(Paragraph(f"<b>{' '.join(measure)}</b>", styles["ChordText"]))
 
-                num_cells = len(grid_cells)
-                cell_w = usable_width / max(num_cells, 1)
-                grid_table = Table([grid_cells], colWidths=[cell_w] * num_cells)
-                grid_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F0F4F8")),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('GRID', (0, 0), (-1, -1), 1.0, colors.HexColor("#90A4AE")),
-                    ('TOPPADDING', (0, 0), (-1, -1), 3),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                ]))
-                current_section_block.append(KeepTogether([grid_table, Spacer(1, 1.5 * mm)]))
+                    num_cells = len(grid_cells)
+                    cell_w = usable_width / max(num_cells, 1)
+                    grid_table = Table([grid_cells], colWidths=[cell_w] * num_cells)
+                    grid_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F0F4F8")),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('GRID', (0, 0), (-1, -1), 1.0, colors.HexColor("#90A4AE")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                    ]))
+                    current_section_block.append(KeepTogether([grid_table, Spacer(1, 1.5 * mm)]))
+                else:
+                    # In singer's lyrics-only mode, chord grids are omitted to keep the sheet clean
+                    pass
 
             elif isinstance(node, ChordLyricLineNode):
                 # Interleaved chord-lyric line
@@ -551,7 +562,6 @@ class PDFEngine:
                     c_text = seg.chord.chord_text if seg.chord else ""
                     l_text = seg.text or ""
 
-                    # Space padding to align monospace visually
                     max_len = max(len(c_text), len(l_text))
                     if c_text:
                         chord_line_parts.append(c_text.ljust(max_len))
@@ -562,15 +572,24 @@ class PDFEngine:
                 chords_str = "".join(chord_line_parts).rstrip()
                 lyrics_str = "".join(lyric_line_parts).rstrip()
 
-                unit_flowables = []
-                if chords_str.strip():
-                    unit_flowables.append(Paragraph(f"<font color='#B71C1C'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"]))
-                if lyrics_str.strip():
-                    unit_flowables.append(Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"]))
-                unit_flowables.append(Spacer(1, 1 * mm))
-
-                # Keep chord line and lyric line strictly atomic (never break apart)
-                current_section_block.append(KeepTogether(unit_flowables))
+                if include_chords and chords_str.strip():
+                    # Atomic 2-row table for chord line over lyric line: GUARANTEES THEY NEVER SEPARATE ACROSS PAGES
+                    p_chords = Paragraph(f"<font color='#B71C1C'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
+                    p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
+                    
+                    pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
+                    pair_table.setStyle(TableStyle([
+                        ('TOPPADDING', (0, 0), (-1, -1), 0),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ]))
+                    current_section_block.append(KeepTogether([pair_table, Spacer(1, 1 * mm)]))
+                else:
+                    # Singer lyrics-only (or line with only lyrics)
+                    if lyrics_str.strip():
+                        p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"])
+                        current_section_block.append(KeepTogether([p_lyrics, Spacer(1, 1 * mm)]))
 
             elif isinstance(node, CustomTagNode):
                 # Instrumental tag

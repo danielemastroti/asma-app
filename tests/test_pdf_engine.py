@@ -88,6 +88,27 @@ Such a [Em]lovely place, such a [F#7]lovely face
         self.assertTrue(len(setlist_pdf) > 2000)
         self.assertTrue(setlist_pdf.startswith(b"%PDF-"))
 
+    def test_generate_pdf_musician_vs_singer_modes(self):
+        """SRS Cap. 13: PDF export supports Musician (with chords/grids) and Singer (lyrics only)."""
+        pdf_musician = PDFEngine.generate_song_pdf(self.song, include_chords=True, use_cache=False)
+        pdf_singer = PDFEngine.generate_song_pdf(self.song, include_chords=False, use_cache=False)
+
+        self.assertTrue(pdf_musician.startswith(b"%PDF-"))
+        self.assertTrue(pdf_singer.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_musician), 1000)
+        self.assertGreater(len(pdf_singer), 1000)
+
+    def test_generate_pdf_device_awareness(self):
+        """Test PDF rendering for specific hardware profiles."""
+        p_ipad = DeviceProfile(name="iPad 10.2", width_mm=174.1, height_mm=250.6, orientation="portrait")
+        p_huawei = DeviceProfile(name="Huawei M5", width_mm=172.0, height_mm=258.0, orientation="landscape")
+        p_phone = DeviceProfile(name="Pixel 8 pro", width_mm=70.8, height_mm=153.4, orientation="portrait")
+
+        for prof in [p_ipad, p_huawei, p_phone]:
+            pdf_bytes = PDFEngine.generate_song_pdf(self.song, profile=prof, use_cache=False)
+            self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+
+
 
 if __name__ == "__main__":
     unittest.main()
