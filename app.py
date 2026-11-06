@@ -699,6 +699,7 @@ from asma_core.lock_manager import LockManager
 from asma_core.audit_logger import AuditLogger
 from asma_core.operation_logger import OperationLogger, OperationLogEntry
 from asma_core.pdf_engine import PDFEngine
+from asma_core.printer_engine import PrinterEngine
 from asma_core.live_stage_component import LiveStageComponent
 from asma_core.export_engine import ExportEngine
 from asma_core.import_engine import ImportEngine
@@ -1873,35 +1874,45 @@ elif menu_choice == "📝 Brani":
         # -------------------------------------------------------------
         # LAYOUT COMPATTO, CHIARO E ACCATTIVANTE PER I TASTI DI AZIONE
         # -------------------------------------------------------------
-        # 1. Stampa PDF (sempre modalità A4)
+        # 1. Stampa su Stampante (A4 Verticale - Invio diretto a Coda di Stampa, nessun file scaricato)
         st.markdown(
             """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
-              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">🖨️ Stampa PDF (Modalità A4 Verticale)</span>
-              <span style="font-size:10px; color:#94A3B8;">Dimensioni standard 210 × 297 mm</span>
+              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">🖨️ Stampa su Stampante (A4 - Coda di Stampa)</span>
+              <span style="font-size:10px; color:#38BDF8;">⚡ Invia direttamente alla stampante senza salvare file</span>
             </div>""",
             unsafe_allow_html=True
         )
-        col_p1, col_p2 = st.columns(2, gap="small")
-        with col_p1:
-            st.download_button(
-                "🎸 Stampa A4: con Accordi",
-                data=pdf_a4_m,
-                file_name=f"{clean_title}.pdf",
-                mime="application/pdf",
-                type="primary",
-                width="stretch",
-                key=f"dl_a4_m_{preview_song.uuid}_{clean_dev}"
-            )
-        with col_p2:
-            st.download_button(
-                "🎤 Stampa A4: Solo Testo",
-                data=pdf_a4_s,
-                file_name=f"{clean_title}.pdf",
-                mime="application/pdf",
-                type="secondary",
-                width="stretch",
-                key=f"dl_a4_s_{preview_song.uuid}_{clean_dev}"
-            )
+
+        st.components.v1.html(
+            PrinterEngine.render_print_buttons_component(pdf_a4_m, pdf_a4_s, clean_title),
+            height=54
+        )
+
+        with st.expander("🖥️ Invia a Stampante Server (Spooler Hardware Windows)", expanded=False):
+            sys_printers = PrinterEngine.list_system_printers()
+            if sys_printers:
+                p_names = [p["name"] for p in sys_printers]
+                def_idx = next((i for i, p in enumerate(sys_printers) if p.get("is_default")), 0)
+                sel_p = st.selectbox("Seleziona Stampante Server:", p_names, index=def_idx, key=f"sel_p_{preview_song.uuid}")
+                col_sp1, col_sp2 = st.columns(2, gap="small")
+                with col_sp1:
+                    if st.button("🎸 Spooler: con Accordi", key=f"spool_m_{preview_song.uuid}", width="stretch"):
+                        ok, msg = PrinterEngine.send_to_windows_spooler(pdf_a4_m, sel_p)
+                        if ok:
+                            st.success(f"✅ {msg}")
+                            log_op("🖨️", "PRINT", f"Inviato '{preview_song.title}' (Accordi) alla stampante '{sel_p}'", "SUCCESS")
+                        else:
+                            st.error(f"❌ {msg}")
+                with col_sp2:
+                    if st.button("🎤 Spooler: Solo Testo", key=f"spool_s_{preview_song.uuid}", width="stretch"):
+                        ok, msg = PrinterEngine.send_to_windows_spooler(pdf_a4_s, sel_p)
+                        if ok:
+                            st.success(f"✅ {msg}")
+                            log_op("🖨️", "PRINT", f"Inviato '{preview_song.title}' (Solo Testo) alla stampante '{sel_p}'", "SUCCESS")
+                        else:
+                            st.error(f"❌ {msg}")
+            else:
+                st.caption("I tasti rapidi 'Stampa A4' sopra aprono automaticamente lo spooler di stampa del tuo tablet o computer senza scaricare file.")
 
         # 2. Salva PDF (modalità dispositivo)
         st.markdown(

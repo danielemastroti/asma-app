@@ -18,6 +18,7 @@ from asma_core.pdf_engine import PDFEngine
 from asma_core.live_stage_component import LiveStageComponent
 from asma_core.export_engine import ExportEngine
 from asma_core.import_engine import ImportEngine
+from asma_core.printer_engine import PrinterEngine
 
 __all__ = [
     "Song", "Repertoire", "Setlist", "SetlistItem", "LiveEvent",
@@ -26,5 +27,6 @@ __all__ = [
     "ASTNode", "DirectiveNode", "SectionNode", "CustomTagNode",
     "ChordLyricLineNode", "ChordGridLineNode", "ChordToken", "LyricSegment",
     "LockManager", "AuditLogger", "StorageManager",
-    "PDFEngine", "LiveStageComponent", "ExportEngine", "ImportEngine"
+    "PDFEngine", "LiveStageComponent", "ExportEngine", "ImportEngine",
+    "PrinterEngine"
 ]
