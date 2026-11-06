@@ -58,19 +58,19 @@ st.markdown("""
     overflow-y: auto !important;
   }
   .main .block-container, [data-testid="stMainBlockContainer"] {
-    padding-top: 115px !important;
-    padding-left: 20px !important;
-    padding-right: 20px !important;
+    padding-top: 72px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
     max-width: 100% !important;
     overflow: visible !important;
   }
   @media (max-width: 768px) {
     .main .block-container, [data-testid="stMainBlockContainer"] {
-      padding-top: 165px !important;
+      padding-top: 96px !important;
     }
   }
 
-  /* TOP FIXED NAVIGATION FRAME (HTML Frame Style - Always 100% Fixed on Scroll) */
+  /* ULTRA COMPACT TOP FIXED NAVIGATION FRAME (HTML Frame Style) */
   div[class*="st-key-top_navbar_container"] {
     position: fixed !important;
     top: 0 !important;
@@ -82,32 +82,51 @@ st.markdown("""
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     border-bottom: 2px solid #0288D1 !important;
-    padding: 6px 18px 8px 18px !important;
-    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.9) !important;
+    padding: 3px 14px 4px 14px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85) !important;
   }
 
-  /* Style Navigation Pills inside the Sticky Top Bar */
+  /* Compact popovers in top navbar */
+  div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] button {
+    font-size: 11px !important;
+    padding: 2px 7px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    border-radius: 13px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  /* ULTRA COMPACT NAVIGATION PILLS (Single line scrollable/fitted) */
   div[class*="st-key-top_nav_pills_widget"] {
     width: 100% !important;
-    margin-top: 4px !important;
+    margin-top: 1px !important;
+    margin-bottom: 0px !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPills"] {
     display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 3px !important;
     justify-content: flex-start !important;
+    padding-bottom: 1px !important;
+    scrollbar-width: thin !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"],
   div[class*="st-key-top_nav_pills_widget"] button {
-    background: rgba(30, 41, 59, 0.9) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(30, 41, 59, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: #E2E8F0 !important;
-    font-size: 13px !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    padding: 5px 13px !important;
-    border-radius: 20px !important;
-    transition: all 0.2s ease-in-out !important;
+    padding: 2px 7px !important;
+    height: 25px !important;
+    min-height: 25px !important;
+    border-radius: 12px !important;
+    transition: all 0.15s ease-in-out !important;
     cursor: pointer !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
   }
   div[class*="st-key-top_nav_pills_widget"] [data-testid="stPill"]:hover,
   div[class*="st-key-top_nav_pills_widget"] button:hover {
@@ -431,6 +450,20 @@ MENU_ITEMS = [
     "⚙️ Amministrazione & Log"
 ]
 
+MENU_COMPACT_LABELS = {
+    "🏠 Home Dashboard": "🏠 Home",
+    "📚 Repertori": "📚 Repertori",
+    "📝 Editor Brani": "📝 Editor",
+    "📑 Scalette Live": "📑 Scalette",
+    "🎤 Modalità Palco (Live Stage)": "🎤 Palco",
+    "📅 Eventi Live": "📅 Eventi",
+    "📥 Importa & 📤 Esporta": "📥/📤 I/O",
+    "🔍 Ricerca Globale": "🔍 Cerca",
+    "🤖 Band AI (Opzionale)": "🤖 AI",
+    "📖 Manuale & Changelog": "📖 Guida",
+    "⚙️ Amministrazione & Log": "⚙️ Admin"
+}
+
 if "main_menu_choice" not in st.session_state:
     st.session_state["main_menu_choice"] = "🏠 Home Dashboard"
 
@@ -443,59 +476,73 @@ dev_names = [d.name for d in dev_list]
 curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
 
+# UI Zoom Scaling (Auto-calibrated for Huawei / Android tablets to match iPad)
+if "ui_zoom_level" not in st.session_state:
+    st.session_state["ui_zoom_level"] = 0.82 if "huawei" in curr_pref.lower() else 1.0
+
+active_zoom = st.session_state["ui_zoom_level"]
+st.markdown(f"""
+<style>
+  html, body, [data-testid="stAppViewContainer"] {{
+    zoom: {active_zoom} !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }}
+</style>
+""", unsafe_allow_html=True)
+
 with st.container(key="top_navbar_container"):
     # Glowing Laser Accent Line
     st.markdown('<div class="asma-laser-line"></div>', unsafe_allow_html=True)
 
-    # Row 1: Brand (Left) | Live Engine Status (Center) | Profile, Device & Log Hub (Right)
-    col_head_left, col_head_center, col_head_right = st.columns([1.6, 1.4, 2.0], vertical_alignment="center")
+    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device & Log (Right)
+    col_head_left, col_head_center, col_head_right = st.columns([1.3, 0.9, 1.8], gap="small", vertical_alignment="center")
 
     with col_head_left:
         if os.path.exists("assets/band_logo.png"):
-            c_lg_mini, c_ttl_mini = st.columns([0.42, 1.58], vertical_alignment="center")
+            c_lg_mini, c_ttl_mini = st.columns([0.35, 1.65], gap="small", vertical_alignment="center")
             with c_lg_mini:
-                st.image("assets/band_logo.png", width=68)
+                st.image("assets/band_logo.png", width=48)
             with c_ttl_mini:
                 st.markdown(
-                    f"<div style='line-height:1.2;'>"
-                    f"<b style='font-size:14px; color:#FFFFFF; letter-spacing:0.5px;'>THE New ASMA</b> "
-                    f"<span style='display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,230,118,0.3);'><span class='asma-led-dot'></span> ONLINE</span><br>"
-                    f"<span style='font-size:11px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                    f"<div style='line-height:1.1; white-space:nowrap;'>"
+                    f"<b style='font-size:12.5px; color:#FFFFFF;'>THE New ASMA</b> "
+                    f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
         else:
             st.markdown(
-                f"<div style='line-height:1.2;'>"
-                f"<b style='font-size:14px; color:#FFFFFF;'>⚡ THE New ASMA</b> "
-                f"<span style='display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,230,118,0.3);'><span class='asma-led-dot'></span> ONLINE</span><br>"
-                f"<span style='font-size:11px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                f"<div style='line-height:1.1; white-space:nowrap;'>"
+                f"<b style='font-size:13px; color:#FFFFFF;'>⚡ THE New ASMA</b> "
+                f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
     with col_head_center:
         st.markdown(
-            f'''<div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-              <div class="asma-eq-container" title="Attività Live Motore ASMA">
-                <span class="asma-eq-bar eq-1"></span>
-                <span class="asma-eq-bar eq-2"></span>
-                <span class="asma-eq-bar eq-3"></span>
-                <span class="asma-eq-bar eq-4"></span>
-                <span class="asma-eq-bar eq-5"></span>
-                <span class="asma-eq-bar eq-6"></span>
-                <span class="asma-eq-bar eq-7"></span>
+            f'''<div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+              <div class="asma-eq-container" style="height:12px;" title="Attività Live Motore ASMA">
+                <span class="asma-eq-bar eq-1" style="height:4px;"></span>
+                <span class="asma-eq-bar eq-2" style="height:8px;"></span>
+                <span class="asma-eq-bar eq-3" style="height:12px;"></span>
+                <span class="asma-eq-bar eq-4" style="height:6px;"></span>
+                <span class="asma-eq-bar eq-5" style="height:10px;"></span>
               </div>
-              <span class="asma-eq-label" style="font-size:11px; color:#94A3B8; font-weight:500;">LIVE ENGINE ATTIVO</span>
+              <span class="asma-eq-label" style="font-size:10px; color:#94A3B8; font-weight:500; white-space:nowrap;">LIVE STAGE</span>
             </div>''',
             unsafe_allow_html=True
         )
 
     with col_head_right:
-        c_btn_user, c_btn_dev, c_btn_log = st.columns([1.1, 1.1, 0.7], gap="small", vertical_alignment="center")
+        c_btn_user, c_btn_dev, c_btn_log = st.columns([1.0, 1.1, 0.6], gap="small", vertical_alignment="center")
+
+        user_first = current_user.name.split()[0]
+        dev_short = "Huawei M5" if "mediapad m5" in curr_pref.lower() else (curr_pref[:11] + "..." if len(curr_pref) > 13 else curr_pref)
 
         with c_btn_user:
-            with st.popover(f"👤 {current_user.name}", width="stretch", help="Profilo utente attivo, permessi e autenticazione"):
+            with st.popover(f"👤 {user_first}", width="stretch", help="Profilo utente attivo, permessi e login"):
                 st.write("##### 👤 Profilo Utente & Permessi")
                 st.markdown(f"**Utente:** `{current_user.name}` ({current_user.email})<br>**Ruolo:** <span style='color:{role_col}; font-weight:bold;'>{current_user.role.value}</span>", unsafe_allow_html=True)
                 st.caption(f"Permessi operativi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
@@ -529,7 +576,7 @@ with st.container(key="top_navbar_container"):
                         st.rerun()
 
         with c_btn_dev:
-            with st.popover(f"📱 {curr_pref}", width="stretch", help="Dispositivo hardware configurato"):
+            with st.popover(f"📱 {dev_short}", width="stretch", help="Dispositivo hardware e scala zoom"):
                 st.write("##### 📱 Configurazione Dispositivo Display")
                 st.caption("Adatta automaticamente margini, colonne e leggibilità al tuo schermo.")
                 new_dev_sel = st.selectbox(
@@ -540,7 +587,25 @@ with st.container(key="top_navbar_container"):
                 )
                 if new_dev_sel != st.session_state.get("user_preferred_device"):
                     st.session_state["user_preferred_device"] = new_dev_sel
+                    # Auto adjust zoom for Huawei
+                    if "huawei" in new_dev_sel.lower():
+                        st.session_state["ui_zoom_level"] = 0.82
+                    elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
+                        st.session_state["ui_zoom_level"] = 1.0
                     st.rerun()
+
+                st.divider()
+                st.write("###### 🔍 Scala Schermo (Zoom):")
+                st.caption("Rimpicciolisci o ingrandisci per adattare perfettamente la schermata al tablet:")
+                z_cols = st.columns(5)
+                zoom_presets = [("75%", 0.75), ("82%", 0.82), ("90%", 0.90), ("100%", 1.0), ("110%", 1.10)]
+                for z_i, (z_lbl, z_v) in enumerate(zoom_presets):
+                    with z_cols[z_i]:
+                        is_active_z = abs(active_zoom - z_v) < 0.02
+                        b_type = "primary" if is_active_z else "secondary"
+                        if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
+                            st.session_state["ui_zoom_level"] = z_v
+                            st.rerun()
 
                 curr_prof = device_mgr.get_device_by_name(curr_pref)
                 if curr_prof:
@@ -551,10 +616,10 @@ with st.container(key="top_navbar_container"):
                                 unsafe_allow_html=True)
 
         with c_btn_log:
-            with st.popover(f"📟 Log ({op_logger.count()})", width="stretch", help="Apri la console delle operazioni eseguite"):
+            with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
                 render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
-    # Row 2: Navigation Pills (11 Modules)
+    # Row 2: Ultra-Compact Navigation Pills (Single Row)
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
     if active_item not in MENU_ITEMS:
         active_item = MENU_ITEMS[0]
@@ -562,6 +627,7 @@ with st.container(key="top_navbar_container"):
     top_pill_selection = st.pills(
         "Menu Navigazione Principale",
         options=MENU_ITEMS,
+        format_func=lambda x: MENU_COMPACT_LABELS.get(x, x),
         default=active_item,
         selection_mode="single",
         required=True,
