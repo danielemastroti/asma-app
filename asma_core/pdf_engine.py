@@ -675,8 +675,30 @@ class PDFEngine:
                     add_flowable(KeepTogether([pair_table, Spacer(1, 0.8 * mm)]))
                     last_was_inst_marker = False
                 else:
-                    # Singer lyrics-only (or line with only lyrics)
-                    if lyrics_str.strip():
+                    # Check if lyrics_str actually contains pure chords (es. SIb/FA  DO/MI   RE7/9+)
+                    l_tokens = [t.strip("[](),|") for t in lyrics_str.split() if t.strip("[](),|")]
+                    is_pure_chords = False
+                    if l_tokens and not re.search(r"\b\w+'\w+\b|[.,!?;:]", lyrics_str):
+                        from asma_core.music_engine import ITALIAN_LOWERCASE_WORDS, MusicEngine
+                        if not any(t.lower() in ITALIAN_LOWERCASE_WORDS for t in l_tokens):
+                            valid_cnt = sum(1 for t in l_tokens if MusicEngine.parse_chord(t))
+                            if valid_cnt > 0 and (valid_cnt == len(l_tokens) or (valid_cnt / len(l_tokens)) >= 0.75):
+                                is_pure_chords = True
+
+                    if is_pure_chords:
+                        if not include_chords:
+                            # Nel PDF cantante solo testo, una sequenza di accordi va SEMPRE segnalata come (Strumentale)
+                            if not last_was_inst_marker:
+                                p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
+                                add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
+                                last_was_inst_marker = True
+                        else:
+                            # Nel PDF con accordi, renderizzali in evidenza come riga di accordi
+                            p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{lyrics_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
+                            add_flowable(KeepTogether([p_chords, Spacer(1, 0.8 * mm)]))
+                            last_was_inst_marker = False
+                    elif lyrics_str.strip():
+                        # Singer lyrics-only (or line with only lyrics)
                         p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"])
                         add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]))
                         last_was_inst_marker = False

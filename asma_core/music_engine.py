@@ -82,9 +82,10 @@ VALID_CHORD_SUFFIX_REGEX = re.compile(
     r"sus|sus2|sus4|"
     r"2|4|5|6|6/9|m6|"
     r"7|m7|maj7|M7|mM7|m\(maj7\)|-7|7-|\+7|7\+|"
+    r"7/9\+|7/9-|7/9b|7/9#|7/9|7/4|7/5\+|7/5-|m7/9|7/13|7/11|"
     r"7b5|7#5|7b9|7#9|7#11|7b13|7sus4|7sus2|"
     r"m7b5|m7-5|ø|"
-    r"9|m9|maj9|M9|add9|madd9|add2|"
+    r"9|m9|maj9|M9|add9|madd9|add2|9\+|9-|"
     r"11|m11|maj11|add11|"
     r"13|m13|maj13|add13|"
     r"alt|"
@@ -174,10 +175,18 @@ class MusicEngine:
         if clean.islower() and clean in ITALIAN_LOWERCASE_WORDS:
             return None
 
-        # Check for slash bass
-        parts = clean.split("/")
-        main_part = parts[0].strip()
-        bass_part = parts[1].strip() if len(parts) > 1 else None
+        # Check for slash bass vs alteration:
+        # A slash indicates bass ONLY if what follows the slash is a valid musical note (e.g. C/E, SIb/FA).
+        # Otherwise, the slash is part of the extension/alteration (e.g. RE7/9+, C6/9, A7/4).
+        main_part = clean
+        bass_part = None
+        if "/" in clean:
+            r_parts = clean.rsplit("/", 1)
+            candidate_bass = r_parts[1].strip()
+            b_match = ROOT_REGEX.match(candidate_bass)
+            if b_match and b_match.end() == len(candidate_bass):
+                main_part = r_parts[0].strip()
+                bass_part = candidate_bass
 
         # Match root note
         match = ROOT_REGEX.match(main_part)
