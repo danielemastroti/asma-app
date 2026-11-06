@@ -234,8 +234,17 @@ class AMLParser:
                     if tokens:
                         measures.append(tokens)
                 if measures:
-                    nodes.append(ChordGridLineNode(measures))
-                    continue
+                    # Validate that the measures actually contain valid chords or standard chord symbols
+                    all_tokens = [t for m in measures for t in m if t not in ["/", "%", "-", "|", "NC", "N.C."]]
+                    valid_chords = sum(1 for t in all_tokens if MusicEngine.parse_chord(t))
+                    if all_tokens and (valid_chords / len(all_tokens)) >= 0.5:
+                        nodes.append(ChordGridLineNode(measures))
+                        continue
+                    else:
+                        # Line has pipes but contains lyrics/words rather than chords (e.g. "| Almeno | adesso | che |")
+                        cleaned_pipe_lyric = " ".join([t for m in measures for t in m])
+                        nodes.append(ChordLyricLineNode([LyricSegment(cleaned_pipe_lyric, chord=None)]))
+                        continue
 
             # Check for chord/lyric line with [Chord]
             if "[" in raw_line and "]" in raw_line:

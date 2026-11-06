@@ -127,6 +127,23 @@ I've come to talk with you again"""
         self.assertTrue(any("title" in m.lower() for m in messages))
         self.assertTrue(any("Xnotachord" in m for m in messages))
 
+    def test_grid_vs_lyrics_pipe_disambiguation(self):
+        """Lines with pipes containing regular text should not become ChordGridLineNode."""
+        aml = """| DO#m | SI | LA |
+| Almeno | adesso | che |
+| GUARDAMI |
+[LA]Siamo seduti qui"""
+        doc = AMLParser.parse(aml)
+        grids = [n for n in doc.nodes if isinstance(n, ChordGridLineNode)]
+        self.assertEqual(len(grids), 1)
+        self.assertEqual(grids[0].measures, [["DO#m"], ["SI"], ["LA"]])
+
+        lyrics = [n for n in doc.nodes if isinstance(n, ChordLyricLineNode)]
+        self.assertEqual(len(lyrics), 3)
+        self.assertEqual(lyrics[0].segments[0].text, "Almeno adesso che")
+        self.assertEqual(lyrics[1].segments[0].text, "GUARDAMI")
+
+
 
 if __name__ == "__main__":
     unittest.main()
