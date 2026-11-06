@@ -1,0 +1,252 @@
+[
+  {
+    "tag": "title",
+    "category": "directive",
+    "display_name": "Titolo Brano",
+    "syntax_pattern": "{title: Titolo}",
+    "example": "{title: Lo Spettacolo}",
+    "description": "Definisce il titolo del brano per il catalogo, l'indice e l'intestazione PDF.",
+    "is_removable": false,
+    "is_builtin": true
+  },
+  {
+    "tag": "artist",
+    "category": "directive",
+    "display_name": "Artista / Band",
+    "syntax_pattern": "{artist: Artista}",
+    "example": "{artist: Litfiba}",
+    "description": "Definisce l'interprete, gruppo o compositore originale del brano.",
+    "is_removable": false,
+    "is_builtin": true
+  },
+  {
+    "tag": "key",
+    "category": "directive",
+    "display_name": "Tonalità",
+    "syntax_pattern": "{key: Tonalità}",
+    "example": "{key: MIm}",
+    "description": "Tonalità di riferimento (Italiana o Internazionale) per le trasposizioni automatiche.",
+    "is_removable": false,
+    "is_builtin": true
+  },
+  {
+    "tag": "tempo",
+    "category": "directive",
+    "display_name": "Velocità BPM",
+    "syntax_pattern": "{tempo: BPM}",
+    "example": "{tempo: 128}",
+    "description": "Velocità metronomica in battiti per minuto (BPM).",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "time",
+    "category": "directive",
+    "display_name": "Metro / Tempo",
+    "syntax_pattern": "{time: 4/4}",
+    "example": "{time: 4/4}",
+    "description": "Suddivisione metrica della battuta (es. 4/4, 3/4, 6/8, 12/8).",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "capo",
+    "category": "directive",
+    "display_name": "Capotasto",
+    "syntax_pattern": "{capo: Tasto}",
+    "example": "{capo: 2}",
+    "description": "Posizione del capotasto mobile sulla chitarra (tasto numerico).",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "duration",
+    "category": "directive",
+    "display_name": "Durata",
+    "syntax_pattern": "{duration: mm:ss}",
+    "example": "{duration: 4:15}",
+    "description": "Durata complessiva del brano per il calcolo dei tempi della scaletta live.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "source",
+    "category": "directive",
+    "display_name": "Fonte / URL",
+    "syntax_pattern": "{source: URL o Archivio}",
+    "example": "{source: https://www.accordiespartiti.it/...}",
+    "description": "Origine o link dello spartito web importato.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "intro",
+    "category": "section",
+    "display_name": "Introduzione",
+    "syntax_pattern": "{intro}",
+    "example": "{intro: Chitarre e Batteria}",
+    "description": "Sezione introduttiva iniziale del brano.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "verse",
+    "category": "section",
+    "display_name": "Strofa / Verse",
+    "syntax_pattern": "{verse}",
+    "example": "{verse: Strofa 1}",
+    "description": "Strofa cantata con progressione armonica e testo.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "chorus",
+    "category": "section",
+    "display_name": "Ritornello / Chorus",
+    "syntax_pattern": "{chorus}",
+    "example": "{chorus}",
+    "description": "Ritornello principale della canzone (hook melodico).",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "bridge",
+    "category": "section",
+    "display_name": "Ponte / Bridge",
+    "syntax_pattern": "{bridge}",
+    "example": "{bridge: Variazione Armonica}",
+    "description": "Sezione di passaggio o ponte armonico tra strofa e ritornello.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "solo",
+    "category": "section",
+    "display_name": "Assolo / Solo",
+    "syntax_pattern": "{solo}",
+    "example": "{solo: Chitarra solista}",
+    "description": "Sezione dedicata all'assolo di chitarra, sax, tastiera o altro strumento.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "outro",
+    "category": "section",
+    "display_name": "Conclusione / Outro",
+    "syntax_pattern": "{outro}",
+    "example": "{outro: Sfumando}",
+    "description": "Parte finale o dissolvenza del brano.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "pre-chorus",
+    "category": "section",
+    "display_name": "Pre-Ritornello",
+    "syntax_pattern": "{pre-chorus}",
+    "example": "{pre-chorus}",
+    "description": "Sezione propulsiva che precede immediatamente il ritornello.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "coda",
+    "category": "section",
+    "display_name": "Coda",
+    "syntax_pattern": "{coda}",
+    "example": "{coda: Ripetere ad libitum}",
+    "description": "Coda di chiusura formale o loop finale.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "interlude",
+    "category": "section",
+    "display_name": "Interludio",
+    "syntax_pattern": "{interlude}",
+    "example": "{interlude: Ripresa tema}",
+    "description": "Intermezzo musicale tra due sezioni del brano.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "guitar",
+    "category": "instrumental_tag",
+    "display_name": "Chitarra",
+    "syntax_pattern": "{guitar: Istruzioni}",
+    "example": "{guitar: Solo Don Felder}",
+    "description": "Indicazioni specifiche di arpeggio, pedali, assolo o suoni per i chitarristi.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "voice",
+    "category": "instrumental_tag",
+    "display_name": "Voce & Cori",
+    "syntax_pattern": "{voice: Istruzioni}",
+    "example": "{voice: Armonizzazione a 3}",
+    "description": "Indicazioni vocali per cantante solista, doppie voci o cori.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "bass",
+    "category": "instrumental_tag",
+    "display_name": "Basso",
+    "syntax_pattern": "{bass: Istruzioni}",
+    "example": "{bass: Slap groove}",
+    "description": "Indicazioni ritmiche, slap o riff per il bassista.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "drums",
+    "category": "instrumental_tag",
+    "display_name": "Batteria",
+    "syntax_pattern": "{drums: Istruzioni}",
+    "example": "{drums: 4/4 con hi-hat aperto}",
+    "description": "Indicazioni per il batterista (groove, pause, accenti, piatto ride).",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "keys",
+    "category": "instrumental_tag",
+    "display_name": "Tastiere / Piano",
+    "syntax_pattern": "{keys: Istruzioni}",
+    "example": "{keys: Synth Pad caldo}",
+    "description": "Preset, pad o parti di pianoforte e sintetizzatore.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "note",
+    "category": "instrumental_tag",
+    "display_name": "Nota di Regia",
+    "syntax_pattern": "{note: Testo}",
+    "example": "{note: Rallentare sul finale}",
+    "description": "Annotazione generale per l'intera band o la regia audio/luci.",
+    "is_removable": true,
+    "is_builtin": true
+  },
+  {
+    "tag": "inline_chord",
+    "category": "structural_syntax",
+    "display_name": "Accordi Inline",
+    "syntax_pattern": "[Accordo]",
+    "example": "[Am]On a dark desert highway, [F#7]cool wind in my hair",
+    "description": "Accordo racchiuso tra parentesi quadre, posizionato immediatamente prima della sillaba esatta.",
+    "is_removable": false,
+    "is_builtin": true
+  },
+  {
+    "tag": "harmonic_grid",
+    "category": "structural_syntax",
+    "display_name": "Griglia Armonica a Battute",
+    "syntax_pattern": "| Accordo | Accordo |",
+    "example": "| DO | LAm | FA | SOL |",
+    "description": "Rappresentazione di battute e misure strumentali delimitate da barre verticali (pipe).",
+    "is_removable": false,
+    "is_builtin": true
+  }
+]

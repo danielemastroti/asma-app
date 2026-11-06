@@ -141,6 +141,22 @@ DEFAULT_DEVICES = [
         "margin_left_mm": 6.0,
         "margin_right_mm": 6.0,
         "is_custom": False
+    },
+    {
+        "name": "Huawei MatePad / Tablet (10.4\"/11\")",
+        "target_device": "tablet",
+        "device_type": "tablet",
+        "width_mm": 154.96,
+        "height_mm": 245.2,
+        "orientation": "landscape",
+        "columns": 2,
+        "font_size_lyrics": 11.5,
+        "font_size_chords": 12.5,
+        "margin_top_mm": 8.0,
+        "margin_bottom_mm": 8.0,
+        "margin_left_mm": 8.0,
+        "margin_right_mm": 8.0,
+        "is_custom": False
     }
 ]
 

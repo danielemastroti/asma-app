@@ -45,6 +45,13 @@ class TestImportExportEngine(unittest.TestCase):
         self.assertIn("{tempo: 74}", ms)
         self.assertIn("{keywords: rock, classic}", ms)
 
+        # Test export scaletta SongBook Pro
+        setlist = Setlist(title="Concerto Estivo", date="2027-08-10", items=[SetlistItem(song_uuid=self.song.uuid)])
+        sb_set = ExportEngine.export_setlist_for_songbookpro(setlist, [self.song])
+        self.assertIn("SCALETTA - Concerto Estivo", sb_set)
+        self.assertIn("{new_page}", sb_set)
+        self.assertIn("{title: Hotel California}", sb_set)
+
     def test_export_offline_live_pack_zip(self):
         """SRS Cap. 14.29: Generate full offline pack ZIP containing PDF, AML, MobileSheets."""
         setlist = Setlist(

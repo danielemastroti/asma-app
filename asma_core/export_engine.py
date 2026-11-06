@@ -83,6 +83,22 @@ class ExportEngine:
         return cls.export_for_mobilesheets(song)
 
     @classmethod
+    def export_setlist_for_songbookpro(cls, setlist: Setlist, songs: List[Song]) -> str:
+        """Esporta l'intera scaletta come documento consolidato SongBook Pro (.pro)."""
+        song_map = {s.uuid: s for s in songs}
+        sections: List[str] = [
+            f"{{title: SCALETTA - {setlist.title}}}",
+            f"{{comment: Data: {setlist.date or 'N/D'}}}",
+            f"{{comment: Brani totali: {len(setlist.items)}}}",
+            ""
+        ]
+        for idx, item in enumerate(setlist.items, start=1):
+            s = song_map.get(item.song_uuid)
+            if s:
+                sections.append(f"{{new_page}}\n{{comment: [SCALETTA #{idx}] {s.title}}}\n" + cls.export_for_songbookpro(s))
+        return "\n\n".join(sections)
+
+    @classmethod
     def export_for_onsong(cls, song: Song) -> str:
         """SRS Cap. 14.25: Dedicated export optimized for OnSong."""
         doc = AMLParser.parse(song.aml_content)

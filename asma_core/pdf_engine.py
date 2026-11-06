@@ -252,30 +252,61 @@ class PDFEngine:
 
         story.append(Spacer(1, 10 * mm))
 
-        # Index Table of Songs
-        index_data = [["#", "Titolo Brano", "Artista", "Tonalità", "BPM", "Note"]]
+        # Index Table of Songs (responsive to device usable_w)
         song_map = {s.uuid: s for s in songs}
 
-        for idx, item in enumerate(setlist.items, start=1):
-            s = song_map.get(item.song_uuid)
-            title = s.title if s else "Brano sconosciuto"
-            artist = s.artist if s else ""
-            key = item.custom_key or (s.key_current if s else "-")
-            bpm = str(item.custom_bpm or (s.bpm if s else "-"))
-            notes = item.notes or ("(Medley)" if item.is_medley else "")
-            index_data.append([str(idx), title, artist, key, bpm, notes])
+        if usable_w < 110 * mm:
+            # Layout ultra-compatto per smartphone (Pixel 8 pro, ecc.)
+            index_data = [["#", "Titolo", "Key", "BPM"]]
+            for idx, item in enumerate(setlist.items, start=1):
+                s = song_map.get(item.song_uuid)
+                title = s.title if s else "Sconosciuto"
+                key = item.custom_key or (s.key_current if s else "-")
+                bpm = str(item.custom_bpm or (s.bpm if s else "-"))
+                index_data.append([str(idx), title, key, bpm])
 
-        idx_table = Table(index_data, colWidths=[10 * mm, 60 * mm, 40 * mm, 20 * mm, 18 * mm, 40 * mm])
-        idx_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#212121")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 4),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9F9F9")]),
-            ('FONTSIZE', (0, 1), (-1, -1), 8.5)
-        ]))
+            col_widths = [usable_w * 0.12, usable_w * 0.54, usable_w * 0.18, usable_w * 0.16]
+            idx_table = Table(index_data, colWidths=col_widths)
+            idx_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#212121")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9F9F9")]),
+                ('FONTSIZE', (0, 1), (-1, -1), 7.5)
+            ]))
+        else:
+            index_data = [["#", "Titolo Brano", "Artista", "Tonalità", "BPM", "Note"]]
+            for idx, item in enumerate(setlist.items, start=1):
+                s = song_map.get(item.song_uuid)
+                title = s.title if s else "Brano sconosciuto"
+                artist = s.artist if s else ""
+                key = item.custom_key or (s.key_current if s else "-")
+                bpm = str(item.custom_bpm or (s.bpm if s else "-"))
+                notes = item.notes or ("(Medley)" if item.is_medley else "")
+                index_data.append([str(idx), title, artist, key, bpm, notes])
+
+            col_widths = [
+                usable_w * 0.06,
+                usable_w * 0.34,
+                usable_w * 0.24,
+                usable_w * 0.12,
+                usable_w * 0.10,
+                usable_w * 0.14
+            ]
+            idx_table = Table(index_data, colWidths=col_widths)
+            idx_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#212121")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 4),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9F9F9")]),
+                ('FONTSIZE', (0, 1), (-1, -1), 8.5)
+            ]))
         story.append(idx_table)
         story.append(PageBreak())
 

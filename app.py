@@ -27,6 +27,7 @@ if "health" in params or params.get("endpoint") == "health":
 
 # Set Streamlit Page Configuration
 import os
+import asma_core.browser_polyfill
 page_icon_val = "assets/band_logo.png" if os.path.exists("assets/band_logo.png") else "🎵"
 st.set_page_config(
     page_title="THE New ASMA — Accordi 2.0",
@@ -34,6 +35,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Inject Browser Compatibility Polyfills for Android & Huawei Tablets (ES2023 toSorted, toReversed, toSpliced)
+st.markdown(asma_core.browser_polyfill.POLYFILL_SCRIPT, unsafe_allow_html=True)
 
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
@@ -250,6 +254,7 @@ from asma_core.gist_client import GistClient
 from asma_core.auth_manager import AuthManager, UserRole, User
 from asma_core.backup_engine import BackupEngine
 from asma_core.device_manager import DeviceManager
+from asma_core.aml_tag_manager import AMLTagManager, AMLTagDefinition
 
 # Initialize Singletons
 storage = StorageManager()
@@ -257,6 +262,7 @@ lock_mgr = LockManager()
 audit = AuditLogger()
 op_logger = OperationLogger()
 device_mgr = DeviceManager()
+aml_tag_mgr = AMLTagManager()
 gist_client = GistClient()
 auth_mgr = AuthManager()
 
@@ -441,7 +447,7 @@ menu_choice = st.sidebar.radio(
     [
         "🏠 Home Dashboard",
         "📚 Repertori",
-        "📝 Editor & Split-View",
+        "📝 Editor Brani",
         "📑 Scalette Live",
         "🎤 Modalità Palco (Live Stage)",
         "📅 Eventi Live",
@@ -598,27 +604,43 @@ elif menu_choice == "📚 Repertori":
         st.dataframe(rows, use_container_width=True)
 
         selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
-        col_act1, col_act2, col_act3, col_act4 = st.columns(4)
+        selected_lock = lock_mgr.check_lock(selected_s_id)
+        selected_song_obj = next((s for s in rep_songs if s.uuid == selected_s_id), None)
+
+        col_act1, col_act2, col_act3, col_act4, col_act5 = st.columns(5)
         with col_act1:
-            if st.button("📝 Apri nell'Editor"):
+            if st.button("📝 Apri nell'Editor", use_container_width=True):
                 st.session_state["selected_song_uuid"] = selected_s_id
-                st.info("Passa alla scheda 'Editor & Split-View' dal menu a sinistra.")
+                st.session_state.pop(f"released_lock_{selected_s_id}", None)
+                st.info("Passa alla scheda 'Editor Brani' dal menu a sinistra.")
         with col_act2:
+            if selected_lock.is_locked:
+                can_unlock = (selected_lock.locked_by_email == current_user.email) or current_user.is_admin()
+                if st.button("🔓 Rilascia Lock", disabled=not can_unlock, use_container_width=True, help=f"Bloccato da {selected_lock.locked_by_name}"):
+                    lock_mgr.release_lock(selected_s_id, current_user.email, force=current_user.is_admin())
+                    st.session_state[f"released_lock_{selected_s_id}"] = True
+                    s_title = selected_song_obj.title if selected_song_obj else selected_s_id
+                    log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{s_title}' da Gestione Repertori", "INFO")
+                    st.success("Lock rilasciato con successo!")
+                    st.rerun()
+            else:
+                st.caption("🔓 Nessun lock attivo")
+        with col_act3:
             other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
             if other_reps:
-                dest_rep = st.selectbox("Sposta in altro repertorio:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
-                if st.button("➡️ Sposta Brano", disabled=not current_user.can_edit()):
+                dest_rep = st.selectbox("Sposta in:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
+                if st.button("➡️ Sposta", disabled=not current_user.can_edit(), use_container_width=True):
                     target_r = next(r for r in other_reps if r.name == dest_rep)
                     storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                     st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
                     st.rerun()
-        with col_act3:
-            if st.button("❌ Rimuovi da Repertorio", disabled=not current_user.can_edit()):
+        with col_act4:
+            if st.button("❌ Rimuovi", disabled=not current_user.can_edit(), use_container_width=True):
                 storage.remove_song_from_repertoire(selected_s_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.success("Brano rimosso dal repertorio (rimane presente nell'archivio generale).")
                 st.rerun()
-        with col_act4:
-            if st.button("🗑️ Sposta nel Cestino", disabled=not current_user.can_delete()):
+        with col_act5:
+            if st.button("🗑️ Cestino", disabled=not current_user.can_delete(), use_container_width=True):
                 storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
                 st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
                 st.rerun()
@@ -626,10 +648,10 @@ elif menu_choice == "📚 Repertori":
         st.info("Nessun brano associato a questo repertorio.")
 
 # ------------------------------------------------------------------------------
-# 3. EDITOR & SPLIT-VIEW
+# 3. EDITOR BRANI
 # ------------------------------------------------------------------------------
-elif menu_choice == "📝 Editor & Split-View":
-    st.subheader("📝 Editor Musicale & Anteprima Split-View")
+elif menu_choice == "📝 Editor Brani":
+    st.subheader("📝 Editor Brani Musicali & Anteprima Device-Aware")
 
     songs = storage.list_songs()
     if not songs:
@@ -653,7 +675,15 @@ elif menu_choice == "📝 Editor & Split-View":
     user_email = st.session_state["current_user_email"]
     user_name = st.session_state["current_user_name"]
 
-    if current_lock.is_locked and current_lock.locked_by_email != user_email:
+    user_released = st.session_state.get(f"released_lock_{song.uuid}", False)
+
+    if user_released:
+        can_edit = False
+        st.info(f"ℹ️ Modalità Sola Lettura: hai rilasciato il lock per '{song.title}'. Il brano è libero per gli altri musicisti.")
+        if st.button("🔒 Ri-acquisisci Lock per Modificare", type="primary"):
+            st.session_state.pop(f"released_lock_{song.uuid}", None)
+            st.rerun()
+    elif current_lock.is_locked and current_lock.locked_by_email != user_email:
         st.error(f"🔒 Brano bloccato in modifica da **{current_lock.locked_by_name}** ({current_lock.locked_by_email}). Modalità sola lettura.")
         can_edit = False
     elif not current_user.can_edit():
@@ -736,6 +766,15 @@ elif menu_choice == "📝 Editor & Split-View":
 
         tags_input = st.text_input("🏷️ Tag del Brano (separati da virgola):", value=", ".join(song.tags or []), disabled=not can_edit, help="Es: ballad, rock, acustico, bis")
 
+        with st.expander("📖 Guida Sintassi & Tag AML (Direttive, Sezioni, Accordi Inline, Griglie, Strumenti)"):
+            st.markdown("""
+            * **• Direttive:** `{title: Titolo}`, `{artist: Artista}`, `{key: Tonalità}`, `{tempo: BPM}`, `{time: 4/4}`
+            * **• Sezioni:** `{intro}`, `{verse}`, `{chorus}`, `{bridge}`, `{solo}`, `{outro}`
+            * **• Accordi Inline:** `[Am]On a dark desert highway, [F#7]cool wind in my hair`
+            * **• Griglia Armonica a Battute:** `| DO | LAm | FA | SOL |`
+            * **• Tag Strumentali:** `{guitar: Solo Don Felder}`, `{voice: Armonizzazione a 3}`, `{bass: Slap}`, `{drums: 4/4 Groove}`
+            """)
+
         aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit)
         rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit)
 
@@ -757,6 +796,7 @@ elif menu_choice == "📝 Editor & Split-View":
         with col_s2:
             if st.button("🔓 Rilascia Lock", use_container_width=True):
                 lock_mgr.release_lock(song.uuid, user_email)
+                st.session_state[f"released_lock_{song.uuid}"] = True
                 log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{song.title}'", "INFO")
                 st.info("Lock rilasciato.")
                 st.rerun()
@@ -772,48 +812,92 @@ elif menu_choice == "📝 Editor & Split-View":
                     st.rerun()
 
     with col_prev:
-        st.write("#### 👁️ Anteprima Device-Aware & PDF")
+        st.write("#### 👁️ Anteprima Reale PDF & Esportazione Dispositivo")
         configured_devs = device_mgr.list_devices()
         dev_choices = {d.uuid: d.name for d in configured_devs}
         user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
         default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
 
         selected_dev_uuid = st.selectbox(
-            "Profilo Dispositivo & Schermo:",
+            "📐 Formato Dispositivo di Destinazione:",
             list(dev_choices.keys()),
             index=default_dev_idx,
             format_func=lambda x: dev_choices[x]
         )
         prof = device_mgr.get_device(selected_dev_uuid) or DeviceProfile()
 
-        st.caption(f"📐 **Layout Hardware:** `{prof.orientation.capitalize()}` | Colonne: `{prof.columns}` | Dimensioni: `{prof.width_mm:.1f}x{prof.height_mm:.1f} mm`")
+        st.caption(f"📱 **Specifiche Dispositivo:** `{prof.name}` &bull; `{prof.width_mm:.1f} × {prof.height_mm:.1f} mm` ({prof.orientation}) &bull; Colonne: `{prof.columns}` &bull; Font Testo: `{prof.font_size_lyrics} pt`")
 
-        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, use_cache=False)
-        st.download_button(
-            label=f"📄 Scarica PDF Stampabile ({prof.name})",
-            data=pdf_bytes,
-            file_name=f"{song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
-            mime="application/pdf",
-            use_container_width=True
+        # Genera il PDF dal contenuto attuale dell'editor in tempo reale
+        preview_song = Song(
+            uuid=song.uuid,
+            title=title_input,
+            artist=artist_input,
+            key_current=key_input,
+            bpm=bpm_input,
+            genre=genre_input,
+            capo=capo_input,
+            tags=[t.strip().lower() for t in tags_input.split(",") if t.strip()],
+            aml_content=aml_editor_text,
+            current_revision=song.current_revision
         )
 
-        st.caption("Anteprima visuale HTML:")
-        parsed_doc = AMLParser.parse(aml_editor_text)
-        preview_html = f"<div style='background:#111; color:#fff; padding:16px; border-radius:6px; font-family:monospace;'>"
-        for n in parsed_doc.nodes:
-            if hasattr(n, "section_name"):
-                preview_html += f"<div style='color:#0288D1; font-weight:bold; margin-top:8px;'>[{n.section_name.upper()}]</div>"
-            elif hasattr(n, "measures"):
-                measure_str = " | ".join([" ".join(m) for m in n.measures])
-                preview_html += f"<div style='background:#222; padding:4px; color:#FFD600; font-weight:bold;'>| {measure_str} |</div>"
-            elif hasattr(n, "segments"):
-                chords = "".join([s.chord.chord_text + "  " for s in n.segments if s.chord])
-                lyrics = "".join([s.text for s in n.segments])
-                if chords.strip():
-                    preview_html += f"<div style='color:#FFD600; font-weight:bold;'>{chords}</div>"
-                preview_html += f"<div>{lyrics}</div>"
-        preview_html += "</div>"
-        st.markdown(preview_html, unsafe_allow_html=True)
+        pdf_bytes = PDFEngine.generate_song_pdf(preview_song, profile=prof, use_cache=False)
+
+        col_exp_pdf, col_exp_sb = st.columns(2)
+        with col_exp_pdf:
+            st.download_button(
+                label=f"📄 Scarica PDF ({prof.name})",
+                data=pdf_bytes,
+                file_name=f"{preview_song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        with col_exp_sb:
+            st.download_button(
+                label="🎸 Esporta per SongBook Pro (.pro)",
+                data=ExportEngine.export_for_songbookpro(preview_song),
+                file_name=f"{preview_song.title.replace(' ', '_')}.pro",
+                mime="text/plain",
+                use_container_width=True,
+                help="Formato ChordPro nativo compatibile con SongBook Pro per tablet/smartphone"
+            )
+
+        st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
+        try:
+            import pymupdf
+            doc_pdf = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            num_pages = len(doc_pdf)
+            st.caption(f"Totale pagine generate: **{num_pages}** per `{prof.name}`")
+            for page_num in range(num_pages):
+                page = doc_pdf[page_num]
+                pix = page.get_pixmap(dpi=150)
+                img_bytes = pix.tobytes("png")
+                st.image(
+                    img_bytes,
+                    caption=f"Pagina {page_num + 1} di {num_pages} — Formato {prof.name}",
+                    use_container_width=True
+                )
+        except Exception as ex_pdf:
+            st.warning(f"Impossibile renderizzare l'anteprima visiva del PDF ({ex_pdf}). Puoi comunque scaricare il file PDF generato sopra.")
+
+        with st.expander("🔍 Sorgente HTML Strutturato"):
+            parsed_doc = AMLParser.parse(aml_editor_text)
+            preview_html = f"<div style='background:#111; color:#fff; padding:16px; border-radius:6px; font-family:monospace;'>"
+            for n in parsed_doc.nodes:
+                if hasattr(n, "section_name"):
+                    preview_html += f"<div style='color:#0288D1; font-weight:bold; margin-top:8px;'>[{n.section_name.upper()}]</div>"
+                elif hasattr(n, "measures"):
+                    measure_str = " | ".join([" ".join(m) for m in n.measures])
+                    preview_html += f"<div style='background:#222; padding:4px; color:#FFD600; font-weight:bold;'>| {measure_str} |</div>"
+                elif hasattr(n, "segments"):
+                    chords = "".join([s.chord.chord_text + "  " for s in n.segments if s.chord])
+                    lyrics = "".join([s.text for s in n.segments])
+                    if chords.strip():
+                        preview_html += f"<div style='color:#FFD600; font-weight:bold;'>{chords}</div>"
+                    preview_html += f"<div>{lyrics}</div>"
+            preview_html += "</div>"
+            st.markdown(preview_html, unsafe_allow_html=True)
 
         with st.expander("📜 Cronologia Revisioni (SRS Cap. 4.5)"):
             revs = storage.get_revisions_for_song(song.uuid)
@@ -918,16 +1002,65 @@ elif menu_choice == "📑 Scalette Live":
                     st.info("Nessun brano nella sequenza. Aggiungine uno con il menu sopra.")
 
                 st.divider()
-                c_p1, c_p2 = st.columns(2)
-                with c_p1:
-                    if st.button("🎤 Avvia Modalità Palco (Live Stage)", type="primary"):
-                        st.session_state["launch_stage"] = True
-                        st.info("Passa a 'Modalità Palco' dal menu a sinistra.")
-                with c_p2:
-                    loaded_songs = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
+                st.write("#### 📤 Esportazione Scaletta Unificata (Tutti i Brani)")
+                loaded_songs = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
+
+                c_set_dev, c_set_act = st.columns([1.5, 2.5])
+                with c_set_dev:
+                    configured_devs = device_mgr.list_devices()
+                    dev_choices_set = {d.uuid: d.name for d in configured_devs}
+                    user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
+                    default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
+                    selected_set_dev_uuid = st.selectbox(
+                        "Formato Dispositivo Scaletta:",
+                        list(dev_choices_set.keys()),
+                        index=default_dev_idx,
+                        format_func=lambda x: dev_choices_set[x],
+                        key=f"set_dev_sel_{active_setlist.uuid}"
+                    )
+                    set_prof = device_mgr.get_device(selected_set_dev_uuid) or DeviceProfile()
+                    st.caption(f"📐 **Specifiche:** `{set_prof.name}` &bull; `{set_prof.width_mm:.1f}×{set_prof.height_mm:.1f} mm` ({set_prof.orientation})")
+
+                with c_set_act:
                     if loaded_songs:
-                        set_pdf = PDFEngine.generate_setlist_pdf(active_setlist, loaded_songs)
-                        st.download_button("📄 Scarica PDF Completo Scaletta", set_pdf, file_name=f"{active_setlist.title}.pdf", mime="application/pdf")
+                        set_pdf = PDFEngine.generate_setlist_pdf(active_setlist, loaded_songs, profile=set_prof)
+                        st.download_button(
+                            label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
+                            data=set_pdf,
+                            file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}_{set_prof.name.replace(' ', '_')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
+                        )
+
+                        col_sb_exp, col_zip_exp = st.columns(2)
+                        with col_sb_exp:
+                            set_sb = ExportEngine.export_setlist_for_songbookpro(active_setlist, loaded_songs)
+                            st.download_button(
+                                label="🎸 Esporta per SongBook Pro (.pro)",
+                                data=set_sb,
+                                file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pro",
+                                mime="text/plain",
+                                use_container_width=True,
+                                help="File unico con tutti i brani della scaletta separati da pagina per SongBook Pro"
+                            )
+                        with col_zip_exp:
+                            live_zip = ExportEngine.create_offline_live_pack_zip(active_setlist, loaded_songs)
+                            st.download_button(
+                                label="📦 Scarica Live Pack ZIP",
+                                data=live_zip,
+                                file_name=f"LivePack_{active_setlist.title.replace(' ', '_')}.zip",
+                                mime="application/zip",
+                                use_container_width=True,
+                                help="Archivio completo contenente il PDF scaletta, singoli PDF, file AML e file per SongBook Pro"
+                            )
+                    else:
+                        st.info("Aggiungi brani alla sequenza per abilitare l'esportazione del PDF e per SongBook Pro.")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("🎤 Avvia Modalità Palco (Live Stage)", type="primary", use_container_width=True):
+                    st.session_state["launch_stage"] = True
+                    st.info("Passa a 'Modalità Palco' dal menu a sinistra.")
 
 # ------------------------------------------------------------------------------
 # 5. MODALITÀ PALCO (LIVE STAGE VIEW)
@@ -1143,16 +1276,19 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
             target_song = storage.get_song(exp_song_id)
 
-            c_e1, c_e2, c_e3 = st.columns(3)
+            c_e1, c_e2, c_e3, c_e4 = st.columns(4)
             with c_e1:
-                ms_content = ExportEngine.export_for_mobilesheets(target_song)
-                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}.pro")
+                sb_content = ExportEngine.export_for_songbookpro(target_song)
+                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", use_container_width=True)
             with c_e2:
-                cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
-                st.download_button("🎼 ChordPro Standard (.cho)", cpro_content, file_name=f"{target_song.title}.cho")
+                ms_content = ExportEngine.export_for_mobilesheets(target_song)
+                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", use_container_width=True)
             with c_e3:
+                cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
+                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", use_container_width=True)
+            with c_e4:
                 onsong_content = ExportEngine.export_for_onsong(target_song)
-                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong")
+                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", use_container_width=True)
 
             st.divider()
             st.write("#### 📦 Offline Live Pack ZIP (SRS Cap. 14.29)")
@@ -1273,9 +1409,10 @@ elif menu_choice == "⚙️ Amministrazione & Log":
         st.error(f"⛔ **Accesso Negato**: Questa sezione è riservata esclusivamente agli amministratori. Il tuo account ({current_user.email}) ha il ruolo di **{current_user.role.value}**.")
         st.info("Per accedere, seleziona un profilo ADMIN nella barra laterale o chiedi a un amministratore di aggiornare i tuoi privilegi.")
     else:
-        tab_locks, tab_audit, tab_tags, tab_devices, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
+        tab_locks, tab_audit, tab_aml_syntax, tab_tags, tab_devices, tab_users, tab_backup, tab_trash, tab_gist, tab_health = st.tabs([
             "🔒 Gestione Lock Attivi",
             "📜 Audit Trail Immutabile",
+            "🎼 Sintassi & Tag AML",
             "🏷️ Gestione Tag & Tassonomia",
             "📱 Dispositivi & Schermi Band",
             "👥 Utenti & Ruoli Band",
@@ -1305,6 +1442,158 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 st.dataframe([e.to_dict() for e in entries], use_container_width=True)
             else:
                 st.info("Nessuna voce di audit.")
+
+        with tab_aml_syntax:
+            st.write("#### 🎼 Configurazione e Gestione Tag Sintassi AML (ASMA Markup Language)")
+            st.caption("Configura, aggiungi, modifica e rimuovi i tag e le direttive del linguaggio musicale AML. Il parser interpreta dinamicamente questi elementi per formattazione, indicizzazione e PDF.")
+
+            st.markdown("""
+            <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:16px;">
+              <span style="color:#00E5FF; font-weight:bold; font-size:14px;">📋 Esempi di Sintassi e Struttura AML:</span>
+              <ul style="color:#e6edf3; margin-top:8px; margin-bottom:0; font-size:13px; line-height:1.7;">
+                <li><b>• Direttive:</b> <code>{title: Titolo}</code>, <code>{artist: Artista}</code>, <code>{key: Tonalità}</code>, <code>{tempo: BPM}</code>, <code>{time: 4/4}</code></li>
+                <li><b>• Sezioni:</b> <code>{intro}</code>, <code>{verse}</code>, <code>{chorus}</code>, <code>{bridge}</code>, <code>{solo}</code>, <code>{outro}</code></li>
+                <li><b>• Accordi Inline:</b> <code>[Am]On a dark desert highway, [F#7]cool wind in my hair</code></li>
+                <li><b>• Griglia Armonica a Battute:</b> <code>| DO | LAm | FA | SOL |</code></li>
+                <li><b>• Tag Strumentali:</b> <code>{guitar: Solo Don Felder}</code>, <code>{voice: Armonizzazione a 3}</code>, <code>{bass: Slap groove}</code></li>
+              </ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+            all_aml_tags = aml_tag_mgr.list_tags()
+            n_dir = sum(1 for t in all_aml_tags if t.category == "directive")
+            n_sec = sum(1 for t in all_aml_tags if t.category == "section")
+            n_inst = sum(1 for t in all_aml_tags if t.category == "instrumental_tag")
+            n_syn = sum(1 for t in all_aml_tags if t.category == "structural_syntax")
+
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("Direttive", n_dir)
+            with m2:
+                st.metric("Sezioni Musicali", n_sec)
+            with m3:
+                st.metric("Tag Strumentali", n_inst)
+            with m4:
+                st.metric("Sintassi Speciale", n_syn)
+
+            cat_map = {
+                "Tutte": "Tutte",
+                "Direttive": "directive",
+                "Sezioni Musicali": "section",
+                "Tag Strumentali": "instrumental_tag",
+                "Sintassi Strutturale": "structural_syntax"
+            }
+            filter_cat_label = st.selectbox("Filtra Elenco Tag per Categoria:", list(cat_map.keys()), key="filter_aml_cat")
+            filtered_tags = aml_tag_mgr.list_tags(category=cat_map[filter_cat_label])
+
+            st.write(f"##### 📋 Tag AML Attivi ({len(filtered_tags)})")
+            tag_table_data = []
+            for t in filtered_tags:
+                tag_table_data.append({
+                    "Tag": t.tag,
+                    "Categoria": t.category.replace("_", " ").capitalize(),
+                    "Nome Visualizzato": t.display_name,
+                    "Sintassi Pattern": t.syntax_pattern,
+                    "Esempio Reale": t.example,
+                    "Descrizione": t.description,
+                    "Rimozione Consentita": "Sì" if t.is_removable else "No (Fisso)"
+                })
+            st.dataframe(tag_table_data, use_container_width=True)
+
+            st.divider()
+
+            col_at1, col_at2, col_at3 = st.columns([1.3, 1.3, 1.4])
+
+            with col_at1:
+                st.write("##### ➕ Aggiungi Nuovo Tag AML")
+                with st.form("form_add_aml_tag"):
+                    new_tag_id = st.text_input("Nome Tag (univoco, minuscolo):", placeholder="es. saxophone, breakdown, bpm").strip().lower()
+                    new_tag_cat = st.selectbox("Categoria:", ["directive", "section", "instrumental_tag"])
+                    new_tag_disp = st.text_input("Nome Visualizzato:", placeholder="es. Sassofono, Breakdown Ritmico")
+                    new_tag_pattern = st.text_input("Sintassi Pattern:", placeholder="es. {saxophone: Dettagli}")
+                    new_tag_example = st.text_input("Esempio di Utilizzo:", placeholder="es. {saxophone: Solo Clarence Clemons}")
+                    new_tag_desc = st.text_area("Descrizione del Tag:", placeholder="Descrivi la funzione del tag...", height=80)
+
+                    btn_sub_aml = st.form_submit_button("Salva Nuovo Tag AML", type="primary")
+                    if btn_sub_aml:
+                        if new_tag_id and new_tag_disp:
+                            try:
+                                def_obj = AMLTagDefinition(
+                                    tag=new_tag_id,
+                                    category=new_tag_cat,
+                                    display_name=new_tag_disp,
+                                    syntax_pattern=new_tag_pattern or f"{{{new_tag_id}}}",
+                                    example=new_tag_example or f"{{{new_tag_id}}}",
+                                    description=new_tag_desc or "Tag personalizzato dall'amministratore",
+                                    is_removable=True,
+                                    is_builtin=False
+                                )
+                                aml_tag_mgr.add_tag(def_obj, current_user.email, current_user.name)
+                                log_op("🎼", "AML TAG", f"Aggiunto nuovo tag AML '{new_tag_id}' ({new_tag_cat})", "SUCCESS")
+                                st.success(f"Tag AML '{new_tag_id}' aggiunto con successo!")
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(str(ex))
+                        else:
+                            st.warning("Specifica un nome e una descrizione per il tag.")
+
+            with col_at2:
+                st.write("##### ✏️ Modifica Tag AML Esistente")
+                if all_aml_tags:
+                    tag_to_edit_id = st.selectbox("Seleziona Tag da modificare:", [t.tag for t in all_aml_tags], key="sel_tag_mod")
+                    tag_cur = aml_tag_mgr.get_tag(tag_to_edit_id)
+                    if tag_cur:
+                        with st.form(f"form_edit_aml_{tag_cur.tag}"):
+                            edit_disp = st.text_input("Nome Visualizzato:", value=tag_cur.display_name)
+                            edit_pattern = st.text_input("Sintassi Pattern:", value=tag_cur.syntax_pattern)
+                            edit_example = st.text_input("Esempio Reale:", value=tag_cur.example)
+                            edit_desc = st.text_area("Descrizione:", value=tag_cur.description, height=80)
+                            if st.form_submit_button("Aggiorna Tag"):
+                                try:
+                                    aml_tag_mgr.update_tag(
+                                        tag_cur.tag,
+                                        display_name=edit_disp,
+                                        syntax_pattern=edit_pattern,
+                                        example=edit_example,
+                                        description=edit_desc,
+                                        user_email=current_user.email,
+                                        user_name=current_user.name
+                                    )
+                                    log_op("✏️", "AML TAG", f"Modificato tag AML '{tag_cur.tag}'", "INFO")
+                                    st.success(f"Tag '{tag_cur.tag}' aggiornato con successo!")
+                                    st.rerun()
+                                except Exception as e_mod:
+                                    st.error(str(e_mod))
+
+            with col_at3:
+                st.write("##### 🗑️ Elimina Tag / Ripristina")
+                st.caption("Rimuovi tag non fondamentali o ripristina la configurazione iniziale.")
+
+                removable_tags = [t for t in all_aml_tags if t.is_removable]
+                if removable_tags:
+                    tag_to_remove = st.selectbox("Seleziona Tag da Eliminare:", [t.tag for t in removable_tags], format_func=lambda x: f"{x} ({aml_tag_mgr.get_tag(x).category})", key="sel_tag_del")
+                    with st.popover("🗑️ Conferma Rimozione Tag AML", use_container_width=True):
+                        st.warning(f"Vuoi davvero eliminare il tag AML **'{tag_to_remove}'**?")
+                        if st.button("Elimina Definitivamente Tag", type="secondary"):
+                            try:
+                                aml_tag_mgr.delete_tag(tag_to_remove, current_user.email, current_user.name)
+                                log_op("🗑️", "AML TAG", f"Eliminato tag AML '{tag_to_remove}'", "WARNING")
+                                st.success(f"Tag AML '{tag_to_remove}' eliminato con successo!")
+                                st.rerun()
+                            except Exception as e_del:
+                                st.error(str(e_del))
+                else:
+                    st.info("Nessun tag eliminabile.")
+
+                st.write("---")
+                st.caption("Ripristina tutti i tag AML di fabbrica (Direttive, Sezioni, Tag Strumentali, Accordi Inline, Griglie).")
+                with st.popover("🔄 Ripristina Sintassi AML di Fabbrica", use_container_width=True):
+                    st.warning("Vuoi ripristinare il catalogo completo dei tag AML ai valori predefiniti di fabbrica?")
+                    if st.button("Conferma Ripristino Sintassi AML", type="primary"):
+                        aml_tag_mgr.reset_to_defaults(current_user.email, current_user.name)
+                        log_op("🔄", "AML TAG", "Ripristinati i tag AML di fabbrica", "INFO")
+                        st.success("Sintassi e tag AML ripristinati con successo!")
+                        st.rerun()
 
         with tab_tags:
             st.write("#### 🏷️ Gestione Centralizzata Tag & Tassonomia (Solo ADMIN)")

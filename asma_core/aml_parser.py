@@ -146,6 +146,22 @@ KNOWN_SECTIONS = {
 KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria"}
 
 
+def get_active_sections() -> Set[str]:
+    try:
+        from asma_core.aml_tag_manager import AMLTagManager
+        return AMLTagManager().get_known_sections()
+    except Exception:
+        return KNOWN_SECTIONS
+
+
+def get_active_custom_tags() -> Set[str]:
+    try:
+        from asma_core.aml_tag_manager import AMLTagManager
+        return AMLTagManager().get_known_custom_tags()
+    except Exception:
+        return KNOWN_CUSTOM_TAGS
+
+
 class AMLDocument:
     """Represents a complete parsed AML document."""
     def __init__(self, nodes: Optional[List[ASTNode]] = None):
@@ -195,10 +211,13 @@ class AMLParser:
                 tag_name = dir_match.group(1).strip().lower()
                 tag_value = (dir_match.group(2) or "").strip()
 
-                if tag_name in KNOWN_SECTIONS:
+                active_sections = get_active_sections()
+                active_custom_tags = get_active_custom_tags()
+
+                if tag_name in active_sections:
                     nodes.append(SectionNode(tag_name, label=tag_value or None))
                     continue
-                elif tag_name in KNOWN_CUSTOM_TAGS:
+                elif tag_name in active_custom_tags:
                     nodes.append(CustomTagNode(tag_name, content=tag_value))
                     continue
                 else:
@@ -388,11 +407,21 @@ class AMLParser:
         i = 0
 
         def is_chord_line(l: str) -> bool:
-            tokens = l.strip().split()
+            clean_l = l.strip()
+            if not clean_l or clean_l.startswith("{") or clean_l.startswith("#"):
+                return False
+            # If line contains contractions with apostrophe (e.g. "s'ha", "c'è", "l'ora") or sentence punctuation, it's lyrics
+            if re.search(r"\b\w+'\w+\b|[.,!?;:]", clean_l):
+                return False
+            tokens = clean_l.split()
             if not tokens:
                 return False
+            # Check for non-chord Italian grammatical words that indicate a spoken/sung line
+            non_chord_words = {"da", "ha", "ho", "non", "con", "per", "tra", "fra", "che", "chi", "s'ha", "del", "della", "dei"}
+            if any(t.lower() in non_chord_words for t in tokens):
+                return False
             valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t.strip("[](),|")))
-            return (valid_chords / len(tokens)) >= 0.7
+            return (valid_chords / len(tokens)) >= 0.75
 
         while i < len(raw_lines):
             curr_line = raw_lines[i]

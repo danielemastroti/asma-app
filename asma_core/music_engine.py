@@ -72,6 +72,37 @@ ROOT_REGEX = re.compile(
     re.IGNORECASE
 )
 
+# Valid musical chord qualities, extensions, and alteration suffixes
+VALID_CHORD_SUFFIX_REGEX = re.compile(
+    r"^("
+    r"|"  # empty string = standard major triad (e.g. C, DO, G#, F#)
+    r"m|min|minor|-|"
+    r"maj|major|M|\+|7\+|aug|"
+    r"dim|dim7|°|o|"
+    r"sus|sus2|sus4|"
+    r"2|4|5|6|6/9|m6|"
+    r"7|m7|maj7|M7|mM7|m\(maj7\)|-7|7-|\+7|7\+|"
+    r"7b5|7#5|7b9|7#9|7#11|7b13|7sus4|7sus2|"
+    r"m7b5|m7-5|ø|"
+    r"9|m9|maj9|M9|add9|madd9|add2|"
+    r"11|m11|maj11|add11|"
+    r"13|m13|maj13|add13|"
+    r"alt|"
+    r"b5|#5|b9|#9|#11|b13|"
+    r"(\((b5|#5|b9|#9|#11|b13|add9|add2|add4|add11|add13|sus4|sus2|omit3|omit5|[2-9]|1[1-3])\))+"
+    r")$",
+    re.IGNORECASE
+)
+
+# Italian words that clash with notes when written in all-lowercase lyrics
+ITALIAN_LOWERCASE_WORDS = {
+    "da", "di", "ha", "ho", "ma", "se", "un", "il", "lo", "la",
+    "i", "gli", "le", "ne", "ti", "ci", "vi", "che", "chi", "per",
+    "con", "su", "tra", "fra", "non", "piu", "più", "del", "dei", "della",
+    "delle", "nel", "nei", "nella", "nelle", "come", "dove", "quando", "fa",
+    "me", "te", "si", "se", "va", "sa", "so"
+}
+
 
 class ParsedChord:
     """Represents a structured, parsed musical chord."""
@@ -139,6 +170,10 @@ class MusicEngine:
         if not clean or clean in ["/", "%", "|", "-", "--"]:
             return None
 
+        # Exclude lowercase Italian words that collide with chord notes (e.g. "da", "fa", "la", "di", "ha", "si")
+        if clean.islower() and clean in ITALIAN_LOWERCASE_WORDS:
+            return None
+
         # Check for slash bass
         parts = clean.split("/")
         main_part = parts[0].strip()
@@ -153,6 +188,10 @@ class MusicEngine:
         accidental = match.group(2) or ""
         remainder = main_part[match.end():]
 
+        # Ensure chord suffix / extension is musically valid (prevents "da", "fare", "casa", "s'ha")
+        if remainder and not VALID_CHORD_SUFFIX_REGEX.match(remainder):
+            return None
+
         is_italian = raw_root in ["DO", "RE", "MI", "FA", "SOL", "LA", "SI"]
 
         # Parse bass if present
@@ -163,6 +202,8 @@ class MusicEngine:
             if bass_match:
                 raw_bass = bass_match.group(1).upper()
                 bass_accidental = bass_match.group(2) or ""
+            else:
+                return None
 
         return ParsedChord(
             raw_root=raw_root,
