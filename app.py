@@ -58,7 +58,7 @@ st.markdown("""
     overflow-y: auto !important;
   }
   .main .block-container, [data-testid="stMainBlockContainer"] {
-    padding-top: 155px !important;
+    padding-top: 115px !important;
     padding-left: 20px !important;
     padding-right: 20px !important;
     max-width: 100% !important;
@@ -66,14 +66,14 @@ st.markdown("""
   }
   @media (max-width: 768px) {
     .main .block-container, [data-testid="stMainBlockContainer"] {
-      padding-top: 205px !important;
+      padding-top: 165px !important;
     }
   }
 
   /* TOP FIXED NAVIGATION FRAME (HTML Frame Style - Always 100% Fixed on Scroll) */
   div[class*="st-key-top_navbar_container"] {
     position: fixed !important;
-    top: 42px !important; /* Immediately below the 42px top status/laser bar */
+    top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     width: 100vw !important;
@@ -82,8 +82,8 @@ st.markdown("""
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     border-bottom: 2px solid #0288D1 !important;
-    padding: 8px 20px 10px 20px !important;
-    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.85) !important;
+    padding: 6px 18px 8px 18px !important;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.9) !important;
   }
 
   /* Style Navigation Pills inside the Sticky Top Bar */
@@ -414,35 +414,9 @@ def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main"
         html_lines = "".join(e.to_terminal_line() for e in filtered) if filtered else "<div style='color:#888; padding:10px;'>Nessun evento registrato per questa categoria.</div>"
         st.markdown(f"<div class='asma-terminal-box' style='max-height: 320px;'>{html_lines}</div>", unsafe_allow_html=True)
 
-# TOP FIXED ANIMATED WORKING BAR (Always visible at the very top of viewport)
-st.markdown(f"""
-<div class="asma-top-fixed-bar">
-  <div class="asma-laser-line"></div>
-  <div class="asma-bar-left">
-    <span class="asma-brand-name">⚡ THE New ASMA</span>
-    <div class="asma-status-pill" id="asma-status-pill">
-      <span class="asma-led-dot"></span>
-      <span id="asma-status-text">SISTEMA ONLINE</span>
-    </div>
-  </div>
-  <div class="asma-bar-center">
-    <div class="asma-eq-container" title="Attività Live Motore ASMA">
-      <span class="asma-eq-bar eq-1"></span>
-      <span class="asma-eq-bar eq-2"></span>
-      <span class="asma-eq-bar eq-3"></span>
-      <span class="asma-eq-bar eq-4"></span>
-      <span class="asma-eq-bar eq-5"></span>
-      <span class="asma-eq-bar eq-6"></span>
-      <span class="asma-eq-bar eq-7"></span>
-    </div>
-    <span class="asma-eq-label" id="asma-work-label">MOTORE ACCORDI & PALCO ATTIVO</span>
-  </div>
-  <div class="asma-bar-right">
-    <span class="asma-user-chip" style="color:{role_col};">👤 {current_user.name} [{current_user.role.value}]</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
+# ==============================================================================
+# TOP FIXED NAVIGATION FRAME (HTML Frame Style - 100% Fixed on Scroll for All Devices)
+# ==============================================================================
 MENU_ITEMS = [
     "🏠 Home Dashboard",
     "📚 Repertori",
@@ -469,23 +443,23 @@ dev_names = [d.name for d in dev_list]
 curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_names else "")
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
 
-# ==============================================================================
-# TOP FIXED NAVIGATION FRAME (HTML Frame Style - 100% Fixed on Scroll for All Devices)
-# ==============================================================================
 with st.container(key="top_navbar_container"):
-    # Row 1: The ONE Band Logo & Brand, User Selector, Device Selector, Google OAuth Popover, Operations Log Popover
-    col_t1, col_t2, col_t3, col_t4, col_t5 = st.columns([1.8, 1.4, 1.4, 0.8, 0.8], gap="small", vertical_alignment="center")
+    # Glowing Laser Accent Line
+    st.markdown('<div class="asma-laser-line"></div>', unsafe_allow_html=True)
 
-    with col_t1:
+    # Row 1: Brand (Left) | Live Engine Status (Center) | Profile, Device & Log Hub (Right)
+    col_head_left, col_head_center, col_head_right = st.columns([1.6, 1.4, 2.0], vertical_alignment="center")
+
+    with col_head_left:
         if os.path.exists("assets/band_logo.png"):
-            c_lg_mini, c_ttl_mini = st.columns([0.45, 1.55], vertical_alignment="center")
+            c_lg_mini, c_ttl_mini = st.columns([0.42, 1.58], vertical_alignment="center")
             with c_lg_mini:
-                st.image("assets/band_logo.png", width=75)
+                st.image("assets/band_logo.png", width=68)
             with c_ttl_mini:
                 st.markdown(
                     f"<div style='line-height:1.2;'>"
-                    f"<b style='font-size:14px; color:#FFFFFF;'>THE New ASMA</b> "
-                    f"<span style='font-size:10px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
+                    f"<b style='font-size:14px; color:#FFFFFF; letter-spacing:0.5px;'>THE New ASMA</b> "
+                    f"<span style='display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,230,118,0.3);'><span class='asma-led-dot'></span> ONLINE</span><br>"
                     f"<span style='font-size:11px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -494,60 +468,91 @@ with st.container(key="top_navbar_container"):
             st.markdown(
                 f"<div style='line-height:1.2;'>"
                 f"<b style='font-size:14px; color:#FFFFFF;'>⚡ THE New ASMA</b> "
-                f"<span style='font-size:11px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
-                f"<span style='font-size:10.5px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                f"<span style='display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,230,118,0.3);'><span class='asma-led-dot'></span> ONLINE</span><br>"
+                f"<span style='font-size:11px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-    with col_t2:
-        top_selected_account = st.selectbox(
-            "👤 Utente:",
-            user_emails,
-            index=curr_user_idx,
-            format_func=lambda e: f"👤 {next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
-            key="top_bar_user_sel",
-            label_visibility="collapsed",
-            help="Seleziona il profilo utente per testare ruoli e permessi."
+    with col_head_center:
+        st.markdown(
+            f'''<div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+              <div class="asma-eq-container" title="Attività Live Motore ASMA">
+                <span class="asma-eq-bar eq-1"></span>
+                <span class="asma-eq-bar eq-2"></span>
+                <span class="asma-eq-bar eq-3"></span>
+                <span class="asma-eq-bar eq-4"></span>
+                <span class="asma-eq-bar eq-5"></span>
+                <span class="asma-eq-bar eq-6"></span>
+                <span class="asma-eq-bar eq-7"></span>
+              </div>
+              <span class="asma-eq-label" style="font-size:11px; color:#94A3B8; font-weight:500;">LIVE ENGINE ATTIVO</span>
+            </div>''',
+            unsafe_allow_html=True
         )
-        if top_selected_account != st.session_state["current_user_email"]:
-            st.session_state["current_user_email"] = top_selected_account
-            u_sel = auth_mgr.get_user_by_email(top_selected_account)
-            if u_sel:
-                log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
-            st.rerun()
 
-    with col_t3:
-        top_selected_device = st.selectbox(
-            "📱 Dispositivo:",
-            dev_names,
-            index=pref_idx,
-            format_func=lambda d: f"📱 {d}",
-            key="top_bar_device_sel",
-            label_visibility="collapsed",
-            help="Modello hardware per adattare impaginazione, colonne e leggibilità (es. Huawei MediaPad M5, iPad, Pixel)."
-        )
-        if top_selected_device != st.session_state.get("user_preferred_device"):
-            st.session_state["user_preferred_device"] = top_selected_device
-            st.rerun()
+    with col_head_right:
+        c_btn_user, c_btn_dev, c_btn_log = st.columns([1.1, 1.1, 0.7], gap="small", vertical_alignment="center")
 
-    with col_t4:
-        with st.popover("🔑 Login", width="stretch"):
-            st.write("##### 🔑 Accesso Google OAuth2")
-            st.caption("Autenticazione federata per musicisti e collaboratori.")
-            in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="top_in_email")
-            in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="top_in_name")
-            if st.button("Accedi con Google", type="primary", key="top_btn_google", width="stretch"):
-                if in_email:
-                    new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
-                    st.session_state["current_user_email"] = new_u.email
-                    log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
-                    st.success(f"Accesso riuscito come {new_u.name}!")
+        with c_btn_user:
+            with st.popover(f"👤 {current_user.name}", width="stretch", help="Profilo utente attivo, permessi e autenticazione"):
+                st.write("##### 👤 Profilo Utente & Permessi")
+                st.markdown(f"**Utente:** `{current_user.name}` ({current_user.email})<br>**Ruolo:** <span style='color:{role_col}; font-weight:bold;'>{current_user.role.value}</span>", unsafe_allow_html=True)
+                st.caption(f"Permessi operativi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
+                st.divider()
+
+                st.write("###### 🔄 Cambia Profilo (Test Ruoli):")
+                new_u_sel = st.selectbox(
+                    "Seleziona Account Band:",
+                    user_emails,
+                    index=curr_user_idx,
+                    format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
+                    key="pop_hub_user_sel"
+                )
+                if new_u_sel != st.session_state["current_user_email"]:
+                    st.session_state["current_user_email"] = new_u_sel
+                    u_sel = auth_mgr.get_user_by_email(new_u_sel)
+                    if u_sel:
+                        log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
                     st.rerun()
 
-    with col_t5:
-        with st.popover(f"📟 Log ({op_logger.count()})", width="stretch"):
-            render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
+                st.divider()
+                st.write("###### 🔑 Accesso Google OAuth2:")
+                in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="pop_oauth_email")
+                in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="pop_oauth_name")
+                if st.button("Accedi con Google", type="primary", key="pop_btn_google", width="stretch"):
+                    if in_email:
+                        new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
+                        st.session_state["current_user_email"] = new_u.email
+                        log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
+                        st.success(f"Accesso riuscito come {new_u.name}!")
+                        st.rerun()
+
+        with c_btn_dev:
+            with st.popover(f"📱 {curr_pref}", width="stretch", help="Dispositivo hardware configurato"):
+                st.write("##### 📱 Configurazione Dispositivo Display")
+                st.caption("Adatta automaticamente margini, colonne e leggibilità al tuo schermo.")
+                new_dev_sel = st.selectbox(
+                    "Seleziona Modello Hardware:",
+                    dev_names,
+                    index=pref_idx,
+                    key="pop_hub_dev_sel"
+                )
+                if new_dev_sel != st.session_state.get("user_preferred_device"):
+                    st.session_state["user_preferred_device"] = new_dev_sel
+                    st.rerun()
+
+                curr_prof = device_mgr.get_device_by_name(curr_pref)
+                if curr_prof:
+                    st.divider()
+                    st.markdown(f"**Specifiche Display:** `{curr_prof.name}`<br>"
+                                f"📐 Risoluzione mm: `{curr_prof.width_mm:.1f} × {curr_prof.height_mm:.1f} mm` ({curr_prof.orientation})<br>"
+                                f"📖 Colonne: `{curr_prof.columns}` &bull; Testo: `{curr_prof.font_size_lyrics} pt` &bull; Accordi: `{curr_prof.font_size_chords} pt`",
+                                unsafe_allow_html=True)
+
+        with c_btn_log:
+            with st.popover(f"📟 Log ({op_logger.count()})", width="stretch", help="Apri la console delle operazioni eseguite"):
+                render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
     # Row 2: Navigation Pills (11 Modules)
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
