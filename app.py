@@ -1663,12 +1663,25 @@ elif menu_choice == "📝 Brani":
             with c_bpm_btn:
                 st.write("")
                 st.write("")
-                if st.button("🤖 Stima BPM", help="Calcola i BPM reali con l'AI o analisi musicale", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
-                    new_bpm = BandAIService.estimate_song_bpm(song.title, song.artist)
+                if st.button("🔍 SongBPM", help="Trova il BPM reale dal database SongBPM.com o con l'AI", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
+                    sb_info = BandAIService.fetch_songbpm_info(song.title, song.artist)
+                    if sb_info and sb_info.get("bpm"):
+                        new_bpm = sb_info["bpm"]
+                        src_msg = f"SongBPM ({sb_info.get('matched', '')})"
+                        extra_info = []
+                        if sb_info.get("key"):
+                            extra_info.append(f"Key: {sb_info['key']}")
+                        if sb_info.get("duration"):
+                            extra_info.append(f"Durata: {sb_info['duration']}")
+                        extra_str = f" ({', '.join(extra_info)})" if extra_info else ""
+                        st.success(f"🎯 BPM trovato su **SongBPM.com**: **{new_bpm} BPM**{extra_str}")
+                    else:
+                        new_bpm = BandAIService.estimate_song_bpm(song.title, song.artist)
+                        src_msg = "AI / Analisi"
+                        st.info(f"🤖 BPM stimato con AI/Analisi: **{new_bpm} BPM**")
                     song.bpm = new_bpm
-                    storage.save_song(song, user_email, user_name, "Stima BPM da AI")
-                    log_op("🤖", "BPM", f"BPM stimato per '{song.title}': {new_bpm} BPM", "SUCCESS")
-                    st.success(f"BPM stimato: **{new_bpm}**")
+                    storage.save_song(song, user_email, user_name, f"Aggiornamento BPM da {src_msg}")
+                    log_op("🎯", "BPM", f"BPM per '{song.title}': {new_bpm} BPM ({src_msg})", "SUCCESS")
                     st.rerun()
         with meta_c3:
             genre_input = st.text_input("Genere:", value=song.genre, disabled=not can_edit)

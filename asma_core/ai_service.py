@@ -265,12 +265,68 @@ class BandAIService:
     }
 
     @classmethod
+    def fetch_songbpm_info(cls, title: str, artist: str = "") -> Optional[Dict[str, Any]]:
+        """
+        Interroga direttamente il database di SongBPM (https://songbpm.com) per estrarre:
+        - BPM reale della canzone
+        - Tonalita (Key)
+        - Durata
+        Protetto da timeout (3.5s) e user-agent realistico. Restituisce None se offline o brano non trovato.
+        """
+        import urllib.parse
+        from bs4 import BeautifulSoup
+
+        clean_title = re.sub(r"[\(\[\{].*?[\)\]\}]", "", title or "").strip()
+        clean_artist = re.sub(r"[\(\[\{].*?[\)\]\}]", "", artist or "").strip()
+        clean_title = re.sub(r"[^\w\s-]", " ", clean_title)
+        clean_artist = re.sub(r"[^\w\s-]", " ", clean_artist)
+        query = " ".join(f"{clean_title} {clean_artist}".split())
+        if not query:
+            return None
+
+        url = "https://songbpm.com/searches"
+        data = urllib.parse.urlencode({"query": query}).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "it,en;q=0.9"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+                soup = BeautifulSoup(html, "html.parser")
+                for a in soup.find_all("a"):
+                    href = a.get("href", "")
+                    if href.startswith("/@"):
+                        txt = a.get_text(" ", strip=True)
+                        m_bpm = re.search(r"BPM\s+(\d+)", txt)
+                        m_key = re.search(r"Key\s+([A-G][b#]?(?:\s*(?:maj|min|m))?)", txt, re.IGNORECASE)
+                        m_dur = re.search(r"Duration\s+(\d+:\d+)", txt)
+                        if m_bpm:
+                            bpm = int(m_bpm.group(1))
+                            if 40 <= bpm <= 260:
+                                return {
+                                    "bpm": bpm,
+                                    "key": m_key.group(1).strip() if m_key else None,
+                                    "duration": m_dur.group(1) if m_dur else None,
+                                    "source": "SongBPM.com",
+                                    "matched": txt[:80]
+                                }
+        except Exception:
+            return None
+        return None
+
+    @classmethod
     def estimate_song_bpm(cls, title: str, artist: str = "") -> int:
         """
         Stima il tempo reale (BPM) di un brano evitando il valore fisso/rigido di 120 BPM:
         1. Ricerca prioritaria nel catalogo di standard rock/pop (istantaneo <0.1ms).
-        2. Modello AI Gemini gratuito e ultraleggero (se chiave configurata o disponibile).
-        3. Euristiche lessicali su genere e stile deducibili da titolo/artista.
+        2. Ricerca in tempo reale sul database musicale SongBPM (https://songbpm.com).
+        3. Modello AI Gemini gratuito e ultraleggero (se chiave configurata o disponibile).
+        4. Euristiche lessicali su genere e stile deducibili da titolo/artista.
         """
         clean_title = (title or "").strip().lower()
         clean_artist = (artist or "").strip().lower()
@@ -282,7 +338,12 @@ class BandAIService:
             if song_k in clean_title or clean_title in song_k:
                 return bpm_v
 
-        # 2. Richiesta AI Gemini (gratuito e istantaneo, max 10 token)
+        # 2. Ricerca su SongBPM.com
+        songbpm_info = cls.fetch_songbpm_info(title, artist)
+        if songbpm_info and songbpm_info.get("bpm"):
+            return songbpm_info["bpm"]
+
+        # 3. Richiesta AI Gemini (gratuito e istantaneo, max 10 token)
         api_key = cls.get_api_key()
         if api_key:
             prompt = (
