@@ -1413,17 +1413,17 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
                 with st.spinner("Ricerca e importazione del brano migliore in corso..."):
                     try:
                         imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
-                    saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
-                    if target_rep:
-                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    st.session_state["selected_song_uuid"] = saved.uuid
-                    rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
-                    log_op("⚡", "WEB IMPORT", f"Importazione rapida completata: '{saved.title}' ({saved.artist})", "SUCCESS")
-                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
-                    st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
-                except Exception as err:
-                    log_op("❌", "WEB IMPORT", f"Errore import automatico: {str(err)}", "ERROR")
-                    st.error(f"Errore durante l'importazione automatica: {str(err)}")
+                        saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
+                        if target_rep:
+                            storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                        st.session_state["selected_song_uuid"] = saved.uuid
+                        rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
+                        log_op("⚡", "WEB IMPORT", f"Importazione rapida completata: '{saved.title}' ({saved.artist})", "SUCCESS")
+                        st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
+                        st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
+                    except Exception as err:
+                        log_op("❌", "WEB IMPORT", f"Errore import automatico: {str(err)}", "ERROR")
+                        st.error(f"Errore durante l'importazione automatica: {str(err)}")
 
         # Visualizza risultati candidati trovati
         candidates = st.session_state.get("web_search_candidates", [])
