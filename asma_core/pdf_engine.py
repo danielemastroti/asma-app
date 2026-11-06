@@ -532,21 +532,24 @@ class PDFEngine:
 
             elif isinstance(node, SectionNode):
                 flush_section()
+                # Separazione spaziale generosa e costante prima di ogni sezione (es. Chorus, Strofe, Bridge, Outro)
+                if flowables:
+                    flowables.append(Spacer(1, 6 * mm))
+
                 # Section badge
                 badge_text = f"&nbsp;&nbsp;<b>[{node.section_name.upper()}]</b>&nbsp;&nbsp;"
                 p = Paragraph(badge_text, styles["SectionBadge"])
                 badge_table = Table([[p]], colWidths=[usable_width])
                 badge_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
                 ]))
-                current_section_block.append(Spacer(1, 2 * mm))
                 current_section_block.append(badge_table)
-                current_section_block.append(Spacer(1, 1.5 * mm))
+                current_section_block.append(Spacer(1, 2.5 * mm))
 
             elif isinstance(node, ChordGridLineNode):
-                # Measure grid line: | Bm | F#7 | A | E |
+                # Measure grid line: | Bm | F#7 | A | E | (o sequenza accordi MI | DO | LA)
                 if include_chords:
                     grid_cells = []
                     for measure in node.measures:
@@ -565,8 +568,12 @@ class PDFEngine:
                     ]))
                     current_section_block.append(KeepTogether([grid_table, Spacer(1, 1.5 * mm)]))
                 else:
-                    # In singer's lyrics-only mode, chord grids are omitted to keep the sheet clean
-                    pass
+                    # Nel PDF solo testo per il cantante, le sequenze di accordi/battute sono segnalate come (Strumentale)
+                    if not (current_section_block and getattr(current_section_block[-1], "_is_instrumental_marker", False)):
+                        p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
+                        inst_flow = KeepTogether([p_inst, Spacer(1, 1.5 * mm)])
+                        inst_flow._is_instrumental_marker = True
+                        current_section_block.append(inst_flow)
 
             elif isinstance(node, ChordLyricLineNode):
                 # Interleaved chord-lyric line
@@ -605,10 +612,24 @@ class PDFEngine:
                     if lyrics_str.strip():
                         p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"])
                         current_section_block.append(KeepTogether([p_lyrics, Spacer(1, 1 * mm)]))
+                    elif chords_str.strip():
+                        # Sequenza di soli accordi senza testo (es. MI | DO | LA) -> segnalato come (Strumentale)
+                        if not (current_section_block and getattr(current_section_block[-1], "_is_instrumental_marker", False)):
+                            p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
+                            inst_flow = KeepTogether([p_inst, Spacer(1, 1.5 * mm)])
+                            inst_flow._is_instrumental_marker = True
+                            current_section_block.append(inst_flow)
 
             elif isinstance(node, CustomTagNode):
-                # Instrumental tag
-                tag_p = Paragraph(f"&#9835; <b>[{node.tag_type.upper()}]:</b> {node.content}", styles["CustomTagText"])
+                # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
+                tag_label = node.tag_type.strip().lower()
+                is_solo = any(k in tag_label for k in ["solo", "assolo", "instrumental", "guitar", "chitarra", "piano", "sax", "stacco"])
+                if not include_chords and is_solo:
+                    content_str = f" — {node.content}" if node.content and node.content.strip() else ""
+                    tag_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale{content_str})</i></b></font>", styles["CustomTagText"])
+                else:
+                    tag_p = Paragraph(f"&#9835; <b>[{node.tag_type.upper()}]:</b> {node.content}", styles["CustomTagText"])
+
                 tag_t = Table([[tag_p]], colWidths=[usable_width])
                 tag_t.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#EDE7F6")),
@@ -616,7 +637,9 @@ class PDFEngine:
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ]))
-                current_section_block.append(KeepTogether([tag_t, Spacer(1, 1 * mm)]))
+                tag_flow = KeepTogether([tag_t, Spacer(1, 1 * mm)])
+                tag_flow._is_instrumental_marker = True
+                current_section_block.append(tag_flow)
 
             elif isinstance(node, CommentNode):
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])

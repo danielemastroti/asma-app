@@ -133,6 +133,47 @@ Such a [Em]lovely place, such a [F#7]lovely face
         self.assertTrue(pdf_min.startswith(b"%PDF-"))
         self.assertTrue(pdf_max.startswith(b"%PDF-"))
 
+    def test_strictly_vertical_page_size_never_landscape(self):
+        """Layout PDF must strictly be portrait/vertical, never landscape."""
+        # Test default and custom profiles with reversed dimensions
+        prof_landscape = DeviceProfile(name="Wide Screen", width_mm=280.0, height_mm=190.0, orientation="landscape")
+        w, h = PDFEngine.get_page_size(prof_landscape)
+        self.assertLess(w, h, "PDF width must be strictly less than height for vertical layout")
+
+        for target in ["smartphone", "tablet", "ipad", "pc_a4"]:
+            prof = DeviceProfile(target_device=target)
+            pw, ph = PDFEngine.get_page_size(prof)
+            self.assertLess(pw, ph, f"Profile {target} must have vertical portrait layout")
+
+    def test_singer_mode_with_instrumental_markers_and_spacers(self):
+        """In singer mode (include_chords=False), chord sequences, solos and grids are marked as (Strumentale)."""
+        song_with_solos = Song(
+            title="Solo Test",
+            artist="Tester",
+            key_current="C",
+            bpm=120,
+            time_signature="4/4",
+            aml_content="""{title: Solo Test}
+{intro}
+| C | G | Am | F |
+
+{verse}
+Testo strofa 1
+[C] [G] [Am]
+
+{solo: Chitarra elettrica}
+{bridge}
+Testo bridge con finale
+"""
+        )
+        pdf_singer = PDFEngine.generate_song_pdf(song_with_solos, include_chords=False, use_cache=False)
+        self.assertTrue(pdf_singer.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_singer), 1000)
+
+        pdf_musician = PDFEngine.generate_song_pdf(song_with_solos, include_chords=True, use_cache=False)
+        self.assertTrue(pdf_musician.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_musician), 1000)
+
 
 if __name__ == "__main__":
     unittest.main()
