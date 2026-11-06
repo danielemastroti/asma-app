@@ -1104,7 +1104,7 @@ if menu_choice == "🏠 Home Dashboard":
 # ------------------------------------------------------------------------------
 elif menu_choice == "📥 Importa & 📤 Esporta":
     # Le schede/menu partono immediatamente appena sotto la barra fissa
-    tab_exp_pdf, tab_web, tab_imp, tab_apps = st.tabs([
+    tab_exp_pdf, tab_web, tab_imp, tab_exp = st.tabs([
         "📄 Esporta PDF (Device)",
         "🌐 Import da Web / URL",
         "📥 Import File & Testo",
