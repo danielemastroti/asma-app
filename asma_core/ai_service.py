@@ -226,6 +226,122 @@ class BandAIService:
         # 2. Fallback to deterministic heuristic segmentation
         return cls.detect_sections_heuristic(aml_text)
 
+
+    KNOWN_SONG_BPM: Dict[str, int] = {
+        "knock on wood": 140,
+        "albachiara": 68,
+        "hotel california": 74,
+        "lo spettacolo": 130,
+        "a te": 64,
+        "sally": 65,
+        "cielito lindo": 105,
+        "la bamba": 150,
+        "stand by me": 118,
+        "smoke on the water": 114,
+        "sweet child o mine": 125,
+        "billie jean": 117,
+        "shape of you": 96,
+        "wonderwall": 87,
+        "let it be": 71,
+        "imagine": 76,
+        "hallelujah": 56,
+        "hey jude": 74,
+        "rolling in the deep": 105,
+        "viva la vida": 138,
+        "perfect": 63,
+        "thinking out loud": 79,
+        "blinding lights": 171,
+        "take on me": 168,
+        "careless whisper": 76,
+        "il gatto e la volpe": 144,
+        "gianna": 128,
+        "certe notti": 76,
+        "vita spericolata": 92,
+        "urlando contro il cielo": 132,
+        "generale": 82,
+        "la canzone del sole": 112,
+        "si viaggiare": 106,
+        "il mio canto libero": 72,
+    }
+
+    @classmethod
+    def estimate_song_bpm(cls, title: str, artist: str = "") -> int:
+        """
+        Stima il tempo reale (BPM) di un brano evitando il valore fisso/rigido di 120 BPM:
+        1. Ricerca prioritaria nel catalogo di standard rock/pop (istantaneo <0.1ms).
+        2. Modello AI Gemini gratuito e ultraleggero (se chiave configurata o disponibile).
+        3. Euristiche lessicali su genere e stile deducibili da titolo/artista.
+        """
+        clean_title = (title or "").strip().lower()
+        clean_artist = (artist or "").strip().lower()
+        if not clean_title:
+            return 100
+
+        # 1. Ricerca rapida nel catalogo di riferimento
+        for song_k, bpm_v in cls.KNOWN_SONG_BPM.items():
+            if song_k in clean_title or clean_title in song_k:
+                return bpm_v
+
+        # 2. Richiesta AI Gemini (gratuito e istantaneo, max 10 token)
+        api_key = cls.get_api_key()
+        if api_key:
+            prompt = (
+                f"Qual è il tempo musicale tipico in BPM (battiti per minuto) del brano '{title}' "
+                f"{f'dell\'artista {artist}' if artist else ''}? "
+                "Rispondi ESCLUSIVAMENTE con un singolo numero intero rappresentante i BPM (ad esempio: 75, 128, 140, 92). "
+                "Nessun testo aggiuntivo o spiegazione."
+            )
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.0,
+                    "maxOutputTokens": 10
+                }
+            }
+            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite"]
+            for model in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=2.5) as resp:
+                        if resp.status == 200:
+                            data = json.loads(resp.read().decode("utf-8"))
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                if parts:
+                                    num_match = re.search(r"\b([4-9]\d|1\d\d|2[0-4]\d)\b", parts[0].get("text", ""))
+                                    if num_match:
+                                        val = int(num_match.group(1))
+                                        if 40 <= val <= 240:
+                                            return val
+                except Exception:
+                    pass
+
+        # 3. Euristiche lessicali sul titolo / artista
+        hint = f"{clean_title} {clean_artist}"
+        if any(w in hint for w in ["ballad", "lento", "slow", "love", "notte", "piano", "adagio"]):
+            return 68
+        if any(w in hint for w in ["dance", "disco", "club", "house", "remix"]):
+            return 128
+        if any(w in hint for w in ["reggae", "dub", "ska"]):
+            return 78
+        if any(w in hint for w in ["punk", "metal", "fast", "speed", "rap"]):
+            return 155
+        if any(w in hint for w in ["funk", "groove", "r&b", "soul"]):
+            return 104
+        if any(w in hint for w in ["rock", "roll"]):
+            return 124
+        if any(w in hint for w in ["pop", "acoustic", "folk"]):
+            return 95
+
+        return 100
+
     @classmethod
     def suggest_medley_transition(
         cls,
@@ -268,7 +384,8 @@ class BandAIService:
     @classmethod
     def suggest_arrangement_ideas(cls, title: str, genre: str, key: str, bpm: int) -> str:
         """Suggests live arrangement dynamics (Intro, Solo, Outro, Dynamics)."""
-        return f"""Consigli di Arrangiamento Live per '{title}' ({genre}, {key}, {bpm} BPM):
+        effective_bpm = bpm if (bpm and bpm != 120) else cls.estimate_song_bpm(title)
+        return f"""Consigli di Arrangiamento Live per '{title}' ({genre}, {key}, {effective_bpm} BPM):
 1. **Intro:** Inizia con strumento solista (chitarra o piano) per le prime 4 battute, poi ingresso di cassa in 4 a metà intro per definire il groove prima della voce.
 2. **Strofa 1:** Mantieni il basso lineare sui quarti con piatti charleston chiusi per dare intimità al testo.
 3. **Ritornello:** Esplosione dinamica: apertura del charleston, raddoppio delle chitarre e armonia vocale a due voci sulla terza superiore.

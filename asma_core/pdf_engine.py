@@ -6,6 +6,7 @@ Zero-AI Dependency. Conforms to SRS Cap. 13 and Blueprint Sec. 7.
 
 from __future__ import annotations
 import os
+import re
 import io
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
@@ -430,6 +431,39 @@ class PDFEngine:
         }
         return styles
 
+    TAB_STRING_PREFIX = re.compile(
+        r"^\s*([A-Ga-g1-6][#b]?|[hH]igh\s*[eE]|[lL]ow\s*[eE])\s*[:|]\s*[-0-9hpbrx/~\\|\s]{3,}"
+    )
+    TAB_HEADER = re.compile(
+        r"(?i)^\s*(\[|\()?(\b(intro|solo|riff|assolo|chitarra|guitar|verse|chorus|strofa|ritornello|outro)\b\s+)*"
+        r"\b(tab|tablatura|tablature|tabs)\b"
+        r"(\s+\b(intro|solo|riff|assolo|chitarra|guitar|verse|chorus|strofa|ritornello|outro|1|2|3)\b)*"
+        r"(\]|\))?\s*[:\-]?\s*$"
+    )
+
+    @classmethod
+    def is_guitar_tab_line(cls, line: str) -> bool:
+        """Rileva se una riga di testo appartiene a una tablatura di chitarra/basso o staff tab."""
+        s = line.strip()
+        if not s:
+            return False
+        if cls.TAB_HEADER.match(s):
+            return True
+        if cls.TAB_STRING_PREFIX.match(s):
+            return True
+        # Riga tab racchiusa tra pipe con trattini e simboli di tab
+        if s.startswith("|") and s.endswith("|") and len(s) >= 6:
+            dashes = s.count("-")
+            if dashes >= 4 and not re.search(r"[A-Za-z]{3,}", s):
+                return True
+        # Riga composta prevalentemente da trattini e cifre tipica di intavolature
+        if s.count("-") >= 5:
+            non_ws = len(re.sub(r"\s+", "", s))
+            if non_ws > 0 and (s.count("-") / non_ws) >= 0.4:
+                if not re.search(r"[a-zA-Z]{4,}", s):
+                    return True
+        return False
+
     @classmethod
     def _create_song_header_table(
         cls,
@@ -520,6 +554,7 @@ class PDFEngine:
         flowables: List[Flowable] = []
         pending_badge: Optional[Flowable] = None
         last_was_inst_marker = False
+        in_tab_block = False
 
         def add_flowable(item: Flowable):
             nonlocal pending_badge
@@ -533,10 +568,23 @@ class PDFEngine:
 
         for node in doc.nodes:
             if isinstance(node, DirectiveNode):
-                # Header directives are already represented in top banner
+                d_name = node.name.strip().lower()
+                if d_name in ["sot", "start_of_tab", "tab", "tablatura"]:
+                    in_tab_block = True
+                elif d_name in ["eot", "end_of_tab"]:
+                    in_tab_block = False
                 continue
 
             elif isinstance(node, SectionNode):
+                sec_name = node.section_name.strip().lower()
+                sec_label = (node.label or "").strip().lower()
+                # Elimina sempre le sezioni e i badge dedicati a tablature
+                if any(k in sec_name for k in ["tab", "tablatura", "tabs", "riff_tab", "guitar_tab"]) or "tab" in sec_label:
+                    in_tab_block = True
+                    continue
+                else:
+                    in_tab_block = False
+
                 if pending_badge:
                     flowables.append(pending_badge)
                     pending_badge = None
@@ -558,6 +606,8 @@ class PDFEngine:
                 last_was_inst_marker = False
 
             elif isinstance(node, ChordGridLineNode):
+                if in_tab_block or cls.is_guitar_tab_line(node.to_aml()):
+                    continue
                 # Measure grid line: | Bm | F#7 | A | E | (o sequenza accordi MI | DO | LA)
                 if include_chords:
                     grid_cells = []
@@ -585,6 +635,9 @@ class PDFEngine:
                         last_was_inst_marker = True
 
             elif isinstance(node, ChordLyricLineNode):
+                if in_tab_block:
+                    continue
+                raw_aml = node.to_aml()
                 # Interleaved chord-lyric line
                 chord_line_parts = []
                 lyric_line_parts = []
@@ -602,6 +655,10 @@ class PDFEngine:
 
                 chords_str = "".join(chord_line_parts).rstrip()
                 lyrics_str = "".join(lyric_line_parts).rstrip()
+
+                # Elimina sempre qualsiasi riga di tablatura per chitarra/basso
+                if cls.is_guitar_tab_line(lyrics_str) or cls.is_guitar_tab_line(raw_aml):
+                    continue
 
                 if include_chords and chords_str.strip():
                     # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
@@ -631,6 +688,9 @@ class PDFEngine:
                             last_was_inst_marker = True
 
             elif isinstance(node, CustomTagNode):
+                tag_label = node.tag_type.strip().lower()
+                if in_tab_block or tag_label in ["tab", "tablatura", "sot", "eot"] or cls.is_guitar_tab_line(node.content or ""):
+                    continue
                 # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
                 tag_label = node.tag_type.strip().lower()
                 is_solo = any(k in tag_label for k in ["solo", "assolo", "instrumental", "guitar", "chitarra", "piano", "sax", "stacco"])
@@ -651,11 +711,15 @@ class PDFEngine:
                 last_was_inst_marker = True
 
             elif isinstance(node, CommentNode):
+                if in_tab_block or cls.is_guitar_tab_line(node.text):
+                    continue
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])
                 add_flowable(KeepTogether([comm_p, Spacer(1, 0.8 * mm)]))
                 last_was_inst_marker = False
 
             elif isinstance(node, EmptyLineNode):
+                if in_tab_block:
+                    continue
                 if pending_badge:
                     flowables.append(pending_badge)
                     pending_badge = None

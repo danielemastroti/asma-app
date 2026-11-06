@@ -204,10 +204,10 @@ class StorageManager:
             return None
 
     def list_songs(self, include_deleted: bool = False) -> List[Dict[str, Any]]:
-        """Fast listing of all songs from in-memory SQLite index."""
-        query = "SELECT * FROM songs_index WHERE is_deleted = 0 ORDER BY title ASC"
+        """Fast listing of all songs from in-memory SQLite index in case-insensitive alphabetical order."""
+        query = "SELECT * FROM songs_index WHERE is_deleted = 0 ORDER BY title COLLATE NOCASE ASC"
         if include_deleted:
-            query = "SELECT * FROM songs_index ORDER BY title ASC"
+            query = "SELECT * FROM songs_index ORDER BY title COLLATE NOCASE ASC"
         cursor = self._db_conn.cursor()
         rows = cursor.execute(query).fetchall()
         return [dict(r) for r in rows]

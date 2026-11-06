@@ -177,9 +177,11 @@ class WebSongImporter:
             artist = tab_data.get("artist_name") or ""
             tonality = tab_view.get("meta", {}).get("tonality") or "C"
 
-            # Clean UG markup: [ch]Am[/ch] -> Am, remove [tab]...[/tab]
+            # Clean UG markup: [ch]Am[/ch] -> Am, remove [tab] wrapper tags and strip guitar tab lines
+            from asma_core.pdf_engine import PDFEngine
             cleaned = re.sub(r"\[ch\](.*?)\[/ch\]", r"\1", content)
             cleaned = re.sub(r"\[/?tab\]", "", cleaned)
+            cleaned = "\n".join([l for l in cleaned.splitlines() if not PDFEngine.is_guitar_tab_line(l)])
 
             doc = AMLParser.import_traditional_chords_over_text(cleaned)
 
@@ -192,11 +194,14 @@ class WebSongImporter:
                 doc.to_aml()
             ]
 
+            from asma_core.ai_service import BandAIService
+            est_bpm = BandAIService.estimate_song_bpm(title, artist)
             return Song(
                 title=title,
                 artist=artist,
                 key_original=tonality,
                 key_current=tonality,
+                bpm=est_bpm,
                 aml_content="\n".join(aml_lines),
                 tags=["importato-web", "ultimate-guitar"]
             )
@@ -292,6 +297,10 @@ class WebSongImporter:
             raise ValueError("Impossibile estrarre il testo degli accordi dalla pagina selezionata.")
 
         clean_text = raw_content.replace("\xa0", " ")
+        # Rimuove blocchi di intavolature/tablature chitarra web
+        clean_text = re.sub(r"(?is)\[tab\].*?\[/tab\]", "", clean_text)
+        clean_text = re.sub(r"(?is)\{sot\}.*?\{eot\}", "", clean_text)
+        clean_text = re.sub(r"(?is)\{start_of_tab\}.*?\{end_of_tab\}", "", clean_text)
         clean_text = re.sub(r"\n{3,}", "\n\n", clean_text)
 
         # 3. Convert to AML Document
@@ -325,11 +334,14 @@ class WebSongImporter:
             doc.to_aml()
         ]
 
+        from asma_core.ai_service import BandAIService
+        est_bpm = BandAIService.estimate_song_bpm(final_title, final_artist)
         return Song(
             title=final_title,
             artist=final_artist,
             key_original=detected_key,
             key_current=detected_key,
+            bpm=est_bpm,
             aml_content="\n".join(aml_lines),
             tags=["importato-web"]
         )
@@ -373,11 +385,14 @@ class WebSongImporter:
 {{chorus}}
 [C]Ritornello da [D]completare con [G]la band!
 """
+        from asma_core.ai_service import BandAIService
+        fb_bpm = BandAIService.estimate_song_bpm(song_title, artist)
+        aml_content = aml_content.replace("{tempo: 120}", f"{{tempo: {fb_bpm}}}")
         return Song(
             title=song_title.title(),
             artist=artist.title(),
             key_current="G",
-            bpm=120,
+            bpm=fb_bpm,
             aml_content=aml_content,
             tags=["bozza-web-fallback"]
         )

@@ -1498,7 +1498,7 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
 
     with tab_exp:
         st.write("#### Esportazione per MobileSheets, SongBookPro, OnSong")
-        all_s = storage.list_songs()
+        all_s = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
         if all_s:
             exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
             target_song = storage.get_song(exp_song_id)
@@ -1541,7 +1541,7 @@ elif menu_choice == "📝 Brani":
     st.subheader("📝 Gestione & Editor Brani (AML & Anteprima)")
     st.caption("Importa, visualizza, componi in AML e controlla l'anteprima device-aware con accordi e trasposizione.")
 
-    songs = storage.list_songs()
+    songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
     if not songs:
         st.warning("Nessun brano disponibile. Creane uno dalla sezione 'Repertori'.")
         st.stop()
@@ -1592,7 +1592,19 @@ elif menu_choice == "📝 Brani":
             key_input = st.text_input("Tonalità:", value=song.key_current, disabled=not can_edit)
         with meta_c2:
             artist_input = st.text_input("Artista:", value=song.artist, disabled=not can_edit)
-            bpm_input = st.number_input("BPM:", value=song.bpm, disabled=not can_edit)
+            c_bpm_val, c_bpm_btn = st.columns([1, 1])
+            with c_bpm_val:
+                bpm_input = st.number_input("BPM:", value=song.bpm, disabled=not can_edit)
+            with c_bpm_btn:
+                st.write("")
+                st.write("")
+                if st.button("🤖 Stima BPM", help="Calcola i BPM reali con l'AI o analisi musicale", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
+                    new_bpm = BandAIService.estimate_song_bpm(song.title, song.artist)
+                    song.bpm = new_bpm
+                    storage.save_song(song, user_email, user_name, "Stima BPM da AI")
+                    log_op("🤖", "BPM", f"BPM stimato per '{song.title}': {new_bpm} BPM", "SUCCESS")
+                    st.success(f"BPM stimato: **{new_bpm}**")
+                    st.rerun()
         with meta_c3:
             genre_input = st.text_input("Genere:", value=song.genre, disabled=not can_edit)
             capo_input = st.number_input("Capo tasto:", value=song.capo, disabled=not can_edit)
@@ -1947,7 +1959,7 @@ elif menu_choice == "🤖 Band AI (Opzionale)":
 
     with tab_ai1:
         st.write("#### Analisi e Suggerimenti Transizione Medley")
-        all_s = storage.list_songs()
+        all_s = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
         if len(all_s) >= 2:
             s_choices = {s["uuid"]: s["title"] for s in all_s}
             id_a = st.selectbox("Primo Brano:", list(s_choices.keys()), format_func=lambda x: s_choices[x], key="ai_s1")
@@ -1968,9 +1980,19 @@ elif menu_choice == "🤖 Band AI (Opzionale)":
         if all_s:
             sel_s_id = st.selectbox("Seleziona Brano:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x), key="ai_arr_s")
             s_obj = storage.get_song(sel_s_id)
-            if st.button("🎸 Genera Idee di Dinamica & Sezioni"):
-                arr_text = BandAIService.suggest_arrangement_ideas(s_obj.title, s_obj.genre, s_obj.key_current, s_obj.bpm)
-                st.markdown(arr_text)
+            c_ai_dyn, c_ai_bpm = st.columns([2, 1])
+            with c_ai_bpm:
+                st.caption(f"BPM attuale: **{s_obj.bpm}**")
+                if st.button("🤖 Ricalcola BPM reale", key=f"btn_recalc_bpm_{s_obj.uuid}"):
+                    nbpm = BandAIService.estimate_song_bpm(s_obj.title, s_obj.artist)
+                    s_obj.bpm = nbpm
+                    storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricalcolo BPM da Band AI")
+                    st.success(f"Nuovo tempo: **{nbpm} BPM**")
+                    st.rerun()
+            with c_ai_dyn:
+                if st.button("🎸 Genera Idee di Dinamica & Sezioni"):
+                    arr_text = BandAIService.suggest_arrangement_ideas(s_obj.title, s_obj.genre, s_obj.key_current, s_obj.bpm)
+                    st.markdown(arr_text)
 
 # ------------------------------------------------------------------------------
 # 10. MANUALE & CHANGELOG
@@ -2049,10 +2071,10 @@ elif menu_choice == "📚 Repertori":
     if not selected_rep:
         st.stop()
 
-    rep_songs = [storage.get_song(s_id) for s_id in selected_rep.song_uuids if storage.get_song(s_id)]
+    rep_songs = sorted([s for s in (storage.get_song(s_id) for s_id in selected_rep.song_uuids) if s], key=lambda s: s.title.lower())
 
-    # Sezione Aggiunta Brani al Repertorio
-    all_archive_songs = storage.list_songs()
+    # Sezione Aggiunta Brani al Repertorio (in ordine alfabetico)
+    all_archive_songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
     unassigned_songs = [s for s in all_archive_songs if s["uuid"] not in selected_rep.song_uuids]
 
     c_btn1, c_btn2 = st.columns([1, 2])
@@ -2148,7 +2170,7 @@ elif menu_choice == "📑 Scalette Live":
     st.subheader("📑 Gestione Scalette Live (Setlist)")
 
     setlists = storage.list_setlists()
-    all_songs = storage.list_songs()
+    all_songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
     song_map = {s["uuid"]: s for s in all_songs}
 
     col_s1, col_s2 = st.columns([1, 2])
@@ -2639,7 +2661,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             with col_tag_op3:
                 st.write("##### 🏷️ Assegnazione Massiva Tag (Bulk)")
                 st.caption("Assegna rapidamente un tag a una selezione multipla di brani.")
-                all_active_songs = storage.list_songs(include_deleted=False)
+                all_active_songs = sorted(storage.list_songs(include_deleted=False), key=lambda s: s["title"].lower())
                 if all_active_songs:
                     song_map = {s["uuid"]: s["title"] for s in all_active_songs}
                     selected_uuids = st.multiselect(

@@ -221,5 +221,102 @@ Riga otto della canzone
         self.assertGreater(len(pdf_bytes), 1000)
 
 
+    def test_guitar_tablatures_strictly_eliminated_from_pdf(self):
+        """User requirement: guitar tablatures must ALWAYS be completely eliminated from generated PDFs."""
+        tab_song_text = """{title: Canzone Con Tablatura}
+{artist: Test Artist}
+{key: C}
+
+{intro}
+[C]  [G]
+Tab Intro:
+e|---0-1-0-1---|
+B|---1-1-1-1---|
+G|---0-2-0-2---|
+D|---2-3-2-3---|
+A|---3-3-3-3---|
+E|-------------|
+
+{verse}
+[C]Testo cantato strofa [G]uno
+Riga due di testo vero
+
+{tab}
+e|-------------------|
+B|-------------------|
+G|---2-2-4-2---------|
+D|---0-0-0-0---------|
+A|-------------------|
+E|-------------------|
+{end_of_tab}
+
+{chorus}
+[F]Testo del ritornello [G]qui
+"""
+        song_with_tab = Song(title="Canzone Con Tablatura", aml_content=tab_song_text)
+        
+        # Test detection function directly
+        self.assertTrue(PDFEngine.is_guitar_tab_line("e|---0-1-0-1---|"))
+        self.assertTrue(PDFEngine.is_guitar_tab_line("B|---1-1-1-1---|"))
+        self.assertTrue(PDFEngine.is_guitar_tab_line("Tab Intro:"))
+        self.assertTrue(PDFEngine.is_guitar_tab_line("|---0-1-0-1---|"))
+        self.assertTrue(PDFEngine.is_guitar_tab_line("---------------------"))
+        self.assertFalse(PDFEngine.is_guitar_tab_line("[C]Testo cantato strofa [G]uno"))
+        self.assertFalse(PDFEngine.is_guitar_tab_line("| C | G | Am | F |"))
+
+        # Render flowables and ensure NO tablature lines exist
+        styles = PDFEngine._build_style_sheet(DeviceProfile(), "classic")
+        from asma_core.aml_parser import AMLParser
+        doc = AMLParser.parse(tab_song_text)
+        flowables = PDFEngine._render_aml_nodes_to_flowables(doc, styles, 400.0, include_chords=True)
+        
+        # Flatten and inspect textual content in flowables
+        def get_all_text(item):
+            if hasattr(item, "text"):
+                return item.text
+            if hasattr(item, "_content"):
+                return " ".join([get_all_text(x) for x in item._content])
+            if hasattr(item, "_cellvalues"):
+                return " ".join([get_all_text(c) for row in item._cellvalues for c in row])
+            return ""
+
+        joined_text = " ".join([get_all_text(f) for f in flowables])
+        clean_joined = joined_text.replace("&nbsp;", " ")
+        self.assertNotIn("e|---", clean_joined)
+        self.assertNotIn("B|---", clean_joined)
+        self.assertNotIn("G|---", clean_joined)
+        self.assertNotIn("Tab Intro", clean_joined)
+        self.assertIn("Testo cantato strofa", clean_joined)
+        self.assertIn("Testo del ritornello", clean_joined)
+
+        # Generate actual PDF bytes with chords and lyrics-only
+        pdf_chords = PDFEngine.generate_song_pdf(song_with_tab, include_chords=True, use_cache=False)
+        pdf_lyrics = PDFEngine.generate_song_pdf(song_with_tab, include_chords=False, use_cache=False)
+        self.assertTrue(pdf_chords.startswith(b"%PDF-"))
+        self.assertTrue(pdf_lyrics.startswith(b"%PDF-"))
+
+    def test_bpm_estimation_not_defaulting_to_120(self):
+        """AI / Music service estimates realistic BPM and does not blindly suggest 120 BPM."""
+        from asma_core.ai_service import BandAIService
+        bpm_knock = BandAIService.estimate_song_bpm("KNOCK ON WOOD", "Amii Stewart")
+        self.assertEqual(bpm_knock, 140)
+        self.assertNotEqual(bpm_knock, 120)
+
+        bpm_albachiara = BandAIService.estimate_song_bpm("Albachiara", "Vasco Rossi")
+        self.assertEqual(bpm_albachiara, 68)
+
+        bpm_hotel = BandAIService.estimate_song_bpm("Hotel California", "Eagles")
+        self.assertEqual(bpm_hotel, 74)
+
+    def test_songs_alphabetical_sorting(self):
+        """All songs from storage are returned in case-insensitive alphabetical order."""
+        from asma_core.storage_manager import StorageManager
+        sm = StorageManager()
+        songs = sm.list_songs()
+        if len(songs) >= 2:
+            titles = [s["title"].lower() for s in songs]
+            self.assertEqual(titles, sorted(titles))
+
+
 if __name__ == "__main__":
     unittest.main()
