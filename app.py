@@ -636,8 +636,9 @@ st.markdown("""
     border-radius: 6px !important;
   }
 
-  /* Evidenziazione speciale per la Casella Selezione Brano principale */
-  .st-key-main_song_selector div[data-baseweb="select"] > div {
+  /* Evidenziazione speciale per la Casella Selezione Brano (Brani e Repertori) */
+  .st-key-main_song_selector div[data-baseweb="select"] > div,
+  .st-key-rep_song_selector div[data-baseweb="select"] > div {
     min-height: 44px !important;
     height: 44px !important;
     background: linear-gradient(135deg, rgba(14, 116, 144, 0.3) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
@@ -646,13 +647,15 @@ st.markdown("""
     box-shadow: 0 0 16px rgba(56, 189, 248, 0.35) !important;
     padding-left: 12px !important;
   }
-  .st-key-main_song_selector div[data-baseweb="select"] * {
+  .st-key-main_song_selector div[data-baseweb="select"] *,
+  .st-key-rep_song_selector div[data-baseweb="select"] * {
     font-size: 16px !important;
     font-weight: 800 !important;
     color: #F8FAFC !important;
     letter-spacing: 0.5px !important;
   }
-  .st-key-main_song_selector div[data-baseweb="select"] svg {
+  .st-key-main_song_selector div[data-baseweb="select"] svg,
+  .st-key-rep_song_selector div[data-baseweb="select"] svg {
     fill: #38BDF8 !important;
     width: 22px !important;
     height: 22px !important;
@@ -2315,18 +2318,48 @@ elif menu_choice == "📚 Repertori":
         for s in rep_songs:
             lock = lock_mgr.check_lock(s.uuid)
             lock_display = f"🔒 {lock.locked_by_name}" if lock.is_locked else "🔓 Libero"
+            ita_k = MusicEngine.convert_notation(s.key_current, "ITA")
             rows.append({
                 "UUID": s.uuid,
                 "Titolo": s.title,
                 "Artista": s.artist,
-                "Tonalità": s.key_current,
+                "Tonalità (ITA)": ita_k,
                 "BPM": s.bpm,
                 "Revisione": f"Rev #{s.current_revision}",
                 "Lock": lock_display
             })
         st.dataframe(rows, width="stretch")
 
-        selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
+        selected_song_candidates = [r["UUID"] for r in rows]
+        def_s_idx = 0
+        curr_rep_s = st.session_state.get("selected_song_uuid")
+        if curr_rep_s and curr_rep_s in selected_song_candidates:
+            def_s_idx = selected_song_candidates.index(curr_rep_s)
+
+        pre_s_obj = next((s for s in rep_songs if s.uuid == selected_song_candidates[def_s_idx]), rep_songs[0])
+        pre_ita_k = MusicEngine.convert_notation(pre_s_obj.key_current, "ITA")
+        pre_art = f"({pre_s_obj.artist})" if pre_s_obj.artist else ""
+
+        st.markdown(
+            f"""<div style="margin: 12px 0 4px 0; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 12px; font-weight: 800; color: #38BDF8; letter-spacing: 0.6px; text-transform: uppercase;">
+                🎵 Brano Selezionato per Azioni Rapide:
+              </span>
+              <span style="font-size: 11px; color: #94A3B8; font-weight: 600;">
+                {pre_art} &bull; Tonalità: {pre_ita_k} &bull; 🌐 SongBPM: {pre_s_obj.bpm} BPM
+              </span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        selected_s_id = st.selectbox(
+            "Seleziona Brano per azioni rapide:",
+            selected_song_candidates,
+            index=def_s_idx,
+            format_func=lambda x: f"🎵 {next(r['Titolo'] for r in rows if r['UUID'] == x).upper()}",
+            label_visibility="collapsed",
+            key="rep_song_selector"
+        )
         selected_lock = lock_mgr.check_lock(selected_s_id)
         selected_song_obj = next((s for s in rep_songs if s.uuid == selected_s_id), None)
 
