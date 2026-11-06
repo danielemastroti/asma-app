@@ -1028,57 +1028,28 @@ if menu_choice == "🏠 Home Dashboard":
         unsafe_allow_html=True
     )
 
-    # Separate Two-Column Dashboard Layout (Side-by-side on PC and Tablets)
-    with st.container(key="home_dashboard_sections"):
-        col_recent, col_live = st.columns([1, 1], gap="medium")
-
-        with col_recent:
-            st.markdown(
-                """<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                  <span style="font-size:14px;">🕒</span>
-                  <b style="font-size:13.5px; color:#FFFFFF;">Ultime Attività & Modifiche</b>
-                </div>""",
-                unsafe_allow_html=True
+    # Ultime Attività & Modifiche (Registro Recente)
+    st.markdown(
+        """<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:13px;">🕒</span>
+          <b style="font-size:13px; color:#FFFFFF;">Ultime Attività & Modifiche</b>
+        </div>""",
+        unsafe_allow_html=True
+    )
+    recent_logs = audit.get_entries(limit=6)
+    if recent_logs:
+        log_lines = []
+        for log in recent_logs:
+            time_part = log.timestamp[11:19] if len(log.timestamp) >= 19 else log.timestamp
+            log_lines.append(
+                f"<div style='font-size:11.5px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); color:#CBD5E1; display:flex; align-items:center; gap:8px;'>"
+                f"<code style='color:#00E5FF; background:rgba(0,229,255,0.08); padding:1px 5px; border-radius:3px;'>{time_part}</code> "
+                f"<b style='color:#FFFFFF;'>{log.action}</b> su <span style='color:#94A3B8;'>{log.entity_type}</span> da <i style='color:#CBD5E1;'>{log.user_name}</i>"
+                f"</div>"
             )
-            recent_logs = audit.get_entries(limit=5)
-            if recent_logs:
-                log_lines = []
-                for log in recent_logs:
-                    time_part = log.timestamp[11:19] if len(log.timestamp) >= 19 else log.timestamp
-                    log_lines.append(
-                        f"<div style='font-size:11.5px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.05); color:#CBD5E1;'>"
-                        f"<code style='color:#00E5FF; background:rgba(0,229,255,0.08); padding:1px 4px; border-radius:3px;'>{time_part}</code> "
-                        f"<b style='color:#FFFFFF;'>{log.action}</b> su <span style='color:#94A3B8;'>{log.entity_type}</span> da <i>{log.user_name}</i>"
-                        f"</div>"
-                    )
-                st.markdown(f"<div class='asma-dash-card'>{''.join(log_lines)}</div>", unsafe_allow_html=True)
-            else:
-                st.info("Nessuna attività recente registrata.")
-
-        with col_live:
-            st.markdown(
-                """<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                  <span style="font-size:14px;">🎤</span>
-                  <b style="font-size:13.5px; color:#FFFFFF;">Accesso Rapido Palco</b>
-                </div>""",
-                unsafe_allow_html=True
-            )
-            if setlists:
-                latest_setlist = setlists[-1]
-                st.markdown(
-                    f"""<div class="asma-dash-card" style="margin-bottom:8px;">
-                      <div style="font-size:11px; color:#94A3B8; text-transform:uppercase; letter-spacing:0.4px;">Prossima Scaletta Pronta</div>
-                      <div style="font-size:14px; font-weight:700; color:#00E676; margin:3px 0 6px 0;">{latest_setlist.title} <span style="font-size:11px; color:#CBD5E1; font-weight:normal;">({len(latest_setlist.items)} brani)</span></div>
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-                if st.button("🚀 Avvia Subito Modalità Palco", type="primary", key="home_btn_launch_stage", width="stretch"):
-                    st.session_state["selected_setlist_uuid"] = latest_setlist.uuid
-                    st.session_state["launch_stage"] = True
-                    st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
-                    st.rerun()
-            else:
-                st.info("Nessuna scaletta creata. Crea una scaletta per iniziare.")
+        st.markdown(f"<div class='asma-dash-card'>{''.join(log_lines)}</div>", unsafe_allow_html=True)
+    else:
+        st.info("Nessuna attività recente registrata.")
 
 # ------------------------------------------------------------------------------
 # 2. GESTIONE REPERTORI
@@ -2518,11 +2489,5 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                 "ai_mode": BandAIService.get_current_mode()
             })
 
-# ------------------------------------------------------------------------------
-# FINESTRA DI STATO BOTTOM (Accessibile da tutte le sezioni di ASMA)
-# ------------------------------------------------------------------------------
-st.write("")
-st.divider()
-with st.expander(f"📟 Finestra di Stato — Registro Operazioni in Tempo Reale ({op_logger.count()} eventi registrati)", expanded=False):
-    render_status_console(op_logger, key_prefix="footer_console", compact=False)
+
 
