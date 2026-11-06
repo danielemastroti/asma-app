@@ -33,7 +33,7 @@ st.set_page_config(
     page_title="THE New ASMA — Accordi 2.0",
     page_icon=page_icon_val,
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Inject Browser Compatibility Polyfills for Android & Huawei Tablets (ES2023 toSorted, toReversed, toSpliced)
@@ -42,30 +42,48 @@ st.markdown(asma_core.browser_polyfill.POLYFILL_SCRIPT, unsafe_allow_html=True)
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
 <style>
-  /* Ensure main block container allows sticky positioning and proper top padding */
-  .main, section[data-testid="stMain"], [data-testid="stAppViewContainer"] {
+  /* Completely disable and hide Streamlit Sidebar and sidebar hamburger/toggles */
+  section[data-testid="stSidebar"],
+  [data-testid="stSidebarCollapseButton"],
+  [data-testid="collapsedControl"] {
+    display: none !important;
+  }
+
+  /* Make central page span full width with HTML-frame fixed top header */
+  [data-testid="stAppViewContainer"],
+  section[data-testid="stMain"],
+  .main {
+    width: 100vw !important;
+    max-width: 100vw !important;
     overflow-y: auto !important;
   }
   .main .block-container, [data-testid="stMainBlockContainer"] {
-    padding-top: 48px !important;
+    padding-top: 155px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    max-width: 100% !important;
     overflow: visible !important;
   }
+  @media (max-width: 768px) {
+    .main .block-container, [data-testid="stMainBlockContainer"] {
+      padding-top: 205px !important;
+    }
+  }
 
-  /* TOP STICKY NAVIGATION BAR (Always Fixed on Scroll for all devices) */
+  /* TOP FIXED NAVIGATION FRAME (HTML Frame Style - Always 100% Fixed on Scroll) */
   div[class*="st-key-top_navbar_container"] {
-    position: -webkit-sticky !important;
-    position: sticky !important;
-    top: 42px !important; /* Immediately below the 42px fixed top animated working bar */
-    z-index: 99990 !important;
+    position: fixed !important;
+    top: 42px !important; /* Immediately below the 42px top status/laser bar */
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    z-index: 999990 !important;
     background: rgba(13, 17, 23, 0.98) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
     border-bottom: 2px solid #0288D1 !important;
-    border-radius: 0 0 10px 10px !important;
-    padding: 6px 14px 10px 14px !important;
-    margin-top: -6px !important;
-    margin-bottom: 16px !important;
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.85) !important;
+    padding: 8px 20px 10px 20px !important;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.85) !important;
   }
 
   /* Style Navigation Pills inside the Sticky Top Bar */
@@ -452,23 +470,23 @@ curr_pref = st.session_state.get("user_preferred_device", dev_names[0] if dev_na
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
 
 # ==============================================================================
-# TOP FIXED / STICKY NAVIGATION BAR (Always Fixed on Scroll for All Devices)
+# TOP FIXED NAVIGATION FRAME (HTML Frame Style - 100% Fixed on Scroll for All Devices)
 # ==============================================================================
 with st.container(key="top_navbar_container"):
-    # Row 1: Brand & User Profile & Device & Operations Log Console
-    col_t1, col_t2, col_t3, col_t4 = st.columns([1.6, 1.4, 1.4, 0.9], gap="small", vertical_alignment="center")
+    # Row 1: The ONE Band Logo & Brand, User Selector, Device Selector, Google OAuth Popover, Operations Log Popover
+    col_t1, col_t2, col_t3, col_t4, col_t5 = st.columns([1.8, 1.4, 1.4, 0.8, 0.8], gap="small", vertical_alignment="center")
 
     with col_t1:
         if os.path.exists("assets/band_logo.png"):
-            c_lg_mini, c_ttl_mini = st.columns([0.32, 1.68], vertical_alignment="center")
+            c_lg_mini, c_ttl_mini = st.columns([0.45, 1.55], vertical_alignment="center")
             with c_lg_mini:
-                st.image("assets/band_logo.png", width=38)
+                st.image("assets/band_logo.png", width=75)
             with c_ttl_mini:
                 st.markdown(
                     f"<div style='line-height:1.2;'>"
-                    f"<b style='font-size:13.5px; color:#FFFFFF;'>THE New ASMA</b> "
-                    f"<span style='font-size:10.5px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
-                    f"<span style='font-size:10.5px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
+                    f"<b style='font-size:14px; color:#FFFFFF;'>THE New ASMA</b> "
+                    f"<span style='font-size:10px; color:#00E676; font-weight:bold;'>• ONLINE</span><br>"
+                    f"<span style='font-size:11px; color:#94A3B8;'>Accordi & Palco 2.0</span>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -514,10 +532,24 @@ with st.container(key="top_navbar_container"):
             st.rerun()
 
     with col_t4:
+        with st.popover("🔑 Login", width="stretch"):
+            st.write("##### 🔑 Accesso Google OAuth2")
+            st.caption("Autenticazione federata per musicisti e collaboratori.")
+            in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="top_in_email")
+            in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="top_in_name")
+            if st.button("Accedi con Google", type="primary", key="top_btn_google", width="stretch"):
+                if in_email:
+                    new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
+                    st.session_state["current_user_email"] = new_u.email
+                    log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
+                    st.success(f"Accesso riuscito come {new_u.name}!")
+                    st.rerun()
+
+    with col_t5:
         with st.popover(f"📟 Log ({op_logger.count()})", width="stretch"):
             render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
-    # Row 2: Sticky Navigation Pills
+    # Row 2: Navigation Pills (11 Modules)
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
     if active_item not in MENU_ITEMS:
         active_item = MENU_ITEMS[0]
@@ -538,80 +570,12 @@ with st.container(key="top_navbar_container"):
 
 menu_choice = st.session_state["main_menu_choice"]
 
-# ==============================================================================
-# SIDEBAR: Sincronizzata con la Barra Fissa Superiore
-# ==============================================================================
-with st.sidebar:
-    if os.path.exists("assets/band_logo.png"):
-        st.image("assets/band_logo.png", width="stretch")
-        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-
-    st.markdown("### 🔐 Autenticazione & Utente")
-    sidebar_account = st.selectbox(
-        "Profilo Attivo (Test Ruoli):",
-        user_emails,
-        index=curr_user_idx,
-        key="sidebar_user_sel",
-        format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]"
-    )
-    if sidebar_account != st.session_state["current_user_email"]:
-        st.session_state["current_user_email"] = sidebar_account
-        u_sel = auth_mgr.get_user_by_email(sidebar_account)
-        if u_sel:
-            log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
-        st.rerun()
-
-    sidebar_device = st.selectbox(
-        "📱 Il tuo Dispositivo:",
-        dev_names,
-        index=pref_idx,
-        key="sidebar_device_sel",
-        help="Seleziona il tuo modello hardware per adattare automaticamente impaginazione e leggibilità."
-    )
-    if sidebar_device != st.session_state.get("user_preferred_device"):
-        st.session_state["user_preferred_device"] = sidebar_device
-        st.rerun()
-
-    with st.expander("🔑 Accedi con Google (OAuth2)"):
-        st.caption("Autenticazione federata Google per musicisti e collaboratori.")
-        in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="sb_in_email")
-        in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="sb_in_name")
-        if st.button("Simula Accesso Google OAuth", type="primary", key="sb_btn_google"):
-            if in_email:
-                new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
-                st.session_state["current_user_email"] = new_u.email
-                log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
-                st.success(f"Accesso riuscito come {new_u.name}!")
-                st.rerun()
-
-    st.divider()
-
-    # Sincronizzazione con il menu principale a pills in alto
-    sidebar_choice = st.radio(
-        "MENU PRINCIPALE",
-        MENU_ITEMS,
-        index=MENU_ITEMS.index(menu_choice) if menu_choice in MENU_ITEMS else 0,
-        key="sidebar_menu_radio"
-    )
-    if sidebar_choice != st.session_state["main_menu_choice"]:
-        st.session_state["main_menu_choice"] = sidebar_choice
-        st.rerun()
-
-    st.sidebar.divider()
-    with st.sidebar.expander(f"📟 Finestra di Stato & Log ({op_logger.count()})", expanded=False):
-        render_status_console(op_logger, key_prefix="sidebar_con", compact=True)
-
 # ------------------------------------------------------------------------------
 # 1. HOME DASHBOARD
 # ------------------------------------------------------------------------------
 if menu_choice == "🏠 Home Dashboard":
-    c_dash_logo, c_dash_txt = st.columns([1, 4])
-    with c_dash_logo:
-        if os.path.exists("assets/band_logo.png"):
-            st.image("assets/band_logo.png", width="stretch")
-    with c_dash_txt:
-        st.subheader("🏠 THE New ASMA — Dashboard Ufficiale")
-        st.caption("Piattaforma Digitale Integrata Band: Repertorio, Live Stage 60fps, Scalette, Editor AML & Accordi")
+    st.subheader("🏠 THE New ASMA — Dashboard Ufficiale")
+    st.caption("Piattaforma Digitale Integrata Band: Repertorio, Live Stage 60fps, Scalette, Editor AML & Accordi")
 
     st.write("")
 
