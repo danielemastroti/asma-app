@@ -1385,9 +1385,9 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
 
         c_w1, c_w2 = st.columns(2)
         with c_w1:
-            search_title = st.text_input("Titolo Brano:", "Albachiara")
+            search_title = st.text_input("Titolo Brano:", value="", placeholder="Inserisci titolo brano...", key="web_search_title")
         with c_w2:
-            search_artist = st.text_input("Artista (opzionale):", "Vasco Rossi")
+            search_artist = st.text_input("Artista (opzionale):", value="", placeholder="Inserisci artista...", key="web_search_artist")
 
         c_btn1, c_btn2 = st.columns([1, 1])
         with c_btn1:
@@ -1396,17 +1396,23 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             auto_import = st.button("⚡ Importa Subito il Miglior Risultato", width="stretch")
 
         if do_search:
-            with st.spinner("Ricerca in corso sui portali di accordi..."):
-                found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
-                st.session_state["web_search_candidates"] = found_candidates
-                log_op("🔍", "WEB IMPORT", f"Ricerca online per '{search_title}': trovati {len(found_candidates)} spartiti", "INFO")
-                if not found_candidates:
-                    st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
+            if not search_title.strip():
+                st.warning("⚠️ Inserisci il titolo del brano da cercare.")
+            else:
+                with st.spinner("Ricerca in corso sui portali di accordi..."):
+                    found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
+                    st.session_state["web_search_candidates"] = found_candidates
+                    log_op("🔍", "WEB IMPORT", f"Ricerca online per '{search_title}': trovati {len(found_candidates)} spartiti", "INFO")
+                    if not found_candidates:
+                        st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
 
         if auto_import:
-            with st.spinner("Ricerca e importazione del brano migliore in corso..."):
-                try:
-                    imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
+            if not search_title.strip():
+                st.warning("⚠️ Inserisci il titolo del brano da importare.")
+            else:
+                with st.spinner("Ricerca e importazione del brano migliore in corso..."):
+                    try:
+                        imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
                     saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
                     if target_rep:
                         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
