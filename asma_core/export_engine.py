@@ -7,7 +7,6 @@ Zero-AI Dependency. Conforms to SRS Cap. 14 and Blueprint Sec. 3.
 from __future__ import annotations
 import zipfile
 import io
-import os
 from typing import List, Dict, Any, Optional
 
 from asma_core.models import Song, Setlist, Repertoire
@@ -159,35 +158,3 @@ class ExportEngine:
         zip_bytes = zip_buffer.getvalue()
         zip_buffer.close()
         return zip_bytes
-
-    @classmethod
-    def get_default_local_export_dir(cls) -> str:
-        """Returns standard local PDF exports directory."""
-        return os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports", "pdf"))
-
-    @classmethod
-    def get_default_gdrive_export_dir(cls) -> str:
-        """Detects or returns standard Google Drive synchronized directory."""
-        candidates = [
-            "G:\\Il mio Drive\\ASMA_PDF",
-            "G:\\My Drive\\ASMA_PDF",
-            os.path.expanduser("~/Google Drive/ASMA_PDF"),
-            os.path.expanduser("~/GoogleDrive/ASMA_PDF"),
-        ]
-        for c in candidates:
-            if os.path.exists(os.path.dirname(c)) or os.path.exists(c):
-                return c
-        return os.path.expanduser("~/Google Drive/ASMA_PDF")
-
-    @classmethod
-    def save_file_to_destination(cls, file_bytes: bytes, target_dir: str, file_name: str) -> str:
-        """
-        Saves binary file (e.g. PDF) to designated directory (local or Google Drive).
-        Creates directory structure if missing and returns absolute file path.
-        """
-        cleaned_dir = os.path.abspath(os.path.expanduser(target_dir.strip()))
-        os.makedirs(cleaned_dir, exist_ok=True)
-        target_path = os.path.join(cleaned_dir, file_name)
-        with open(target_path, "wb") as f:
-            f.write(file_bytes)
-        return target_path
