@@ -95,6 +95,22 @@ DEFAULT_DEVICES = [
         "is_custom": False
     },
     {
+        "name": "Huawei MediaPad M5",
+        "target_device": "tablet",
+        "device_type": "tablet",
+        "width_mm": 171.8,
+        "height_mm": 258.7,
+        "orientation": "landscape",
+        "columns": 2,
+        "font_size_lyrics": 11.5,
+        "font_size_chords": 12.5,
+        "margin_top_mm": 8.0,
+        "margin_bottom_mm": 8.0,
+        "margin_left_mm": 8.0,
+        "margin_right_mm": 8.0,
+        "is_custom": False
+    },
+    {
         "name": "Android smartphone generico",
         "target_device": "smartphone",
         "device_type": "smartphone",
@@ -187,6 +203,16 @@ class DeviceManager:
                 with open(self._file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self._profiles = [DeviceProfile.from_dict(d) for d in data]
+
+                # Ensure all default devices are present
+                existing_names = {p.name.strip().lower() for p in self._profiles}
+                updated = False
+                for def_data in DEFAULT_DEVICES:
+                    if def_data["name"].strip().lower() not in existing_names:
+                        self._profiles.append(DeviceProfile.from_dict(def_data))
+                        updated = True
+                if updated:
+                    self._save_to_disk()
             except Exception:
                 self._initialize_defaults()
         else:

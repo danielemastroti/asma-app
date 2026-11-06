@@ -25,7 +25,7 @@ class TestDeviceManager(unittest.TestCase):
 
     def test_default_devices_initialized(self):
         devices = self.mgr.list_devices()
-        self.assertEqual(len(devices), 9)
+        self.assertEqual(len(devices), 10)
         names = [d.name for d in devices]
 
         expected_names = [
@@ -34,6 +34,7 @@ class TestDeviceManager(unittest.TestCase):
             "Samsung Galaxy tab s7,s8,s9 & A9+",
             "Foglio a 4 stampabile",
             "Xiaomi pad 8 pro",
+            "Huawei MediaPad M5",
             "Android smartphone generico",
             "Iphone smartphone generico",
             "oppo find x5",
@@ -72,11 +73,11 @@ class TestDeviceManager(unittest.TestCase):
     def test_reset_defaults(self):
         devices = self.mgr.list_devices()
         self.mgr.remove_device(devices[0].uuid)
-        self.assertEqual(len(self.mgr.list_devices()), 8)
+        self.assertEqual(len(self.mgr.list_devices()), 9)
 
         # Reset
         restored = self.mgr.reset_defaults()
-        self.assertEqual(len(restored), 9)
+        self.assertEqual(len(restored), 10)
 
     def test_pdf_engine_page_size_with_device_profile(self):
         pixel = self.mgr.get_device_by_name("Pixel 8 pro")

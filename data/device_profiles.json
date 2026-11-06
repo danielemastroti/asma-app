@@ -178,5 +178,25 @@
     "orientation": "landscape",
     "columns": 2,
     "is_custom": false
+  },
+  {
+    "uuid": "82a528de-8c9f-45dd-a1d0-a7ae5934d0d9",
+    "name": "Huawei MediaPad M5",
+    "target_device": "tablet",
+    "device_type": "tablet",
+    "width_mm": 171.8,
+    "height_mm": 258.7,
+    "font_lyrics": "Helvetica",
+    "font_chords": "Helvetica-Bold",
+    "font_size_lyrics": 11.5,
+    "font_size_chords": 12.5,
+    "margin_top_mm": 8.0,
+    "margin_bottom_mm": 8.0,
+    "margin_left_mm": 8.0,
+    "margin_right_mm": 8.0,
+    "zoom": 1.0,
+    "orientation": "landscape",
+    "columns": 2,
+    "is_custom": false
   }
 ]
