@@ -1753,16 +1753,16 @@ elif menu_choice == "📝 Brani":
                         st.success(f"Brano associato a '{target_r_obj.name}'!")
                         st.rerun()
 
-        # Transposition & Notation Compact Bar (Ottimizzato per Huawei / Tablet)
+        # Transposition & Notation (Riga 1: Mezzi Toni, Riga 2: Notazione)
         st.markdown(
-            """<div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 3px 0;">
-              <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🎵 Trasposizione (Mezzi Toni / Semitoni) & Notazione:</span>
-              <span style="font-size:10px; color:#38BDF8; font-weight:700;">±1 = Mezzo Tono (½)</span>
+            """<div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px 0;">
+              <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🎵 Trasposizione Tonalità (Mezzi Toni):</span>
+              <span style="font-size:10px; color:#38BDF8; font-weight:700;">1 click = 1 Mezzo Tono (½)</span>
             </div>""",
             unsafe_allow_html=True
         )
-        tr_c1, tr_c2, tr_c3, tr_c4 = st.columns(4, gap="small")
-        with tr_c1:
+        tr_r1_c1, tr_r1_c2 = st.columns(2, gap="small")
+        with tr_r1_c1:
             if st.button("⬇️ -½ Tono", help="Abbassa di 1 semitono (mezzo tono sotto)", disabled=not can_edit, width="stretch", key=f"tr_down_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=-1)
@@ -1771,7 +1771,7 @@ elif menu_choice == "📝 Brani":
                 storage.save_song(song, user_email, user_name, "Trasposizione -1 semitono (-½ tono)")
                 log_op("⬇️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto -½ tono (-1 semitono) in {song.key_current}", "SUCCESS")
                 st.rerun()
-        with tr_c2:
+        with tr_r1_c2:
             if st.button("⬆️ +½ Tono", help="Alza di 1 semitono (mezzo tono sopra)", disabled=not can_edit, width="stretch", key=f"tr_up_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=1)
@@ -1780,15 +1780,23 @@ elif menu_choice == "📝 Brani":
                 storage.save_song(song, user_email, user_name, "Trasposizione +1 semitono (+½ tono)")
                 log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +½ tono (+1 semitono) in {song.key_current}", "SUCCESS")
                 st.rerun()
-        with tr_c3:
-            if st.button("🇮🇹 ITA", help="Converti in notazione italiana (DO, RE, MI)", disabled=not can_edit, width="stretch", key=f"tr_ita_{song.uuid}"):
+
+        st.markdown(
+            """<div style="margin:4px 0 2px 0;">
+              <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🌐 Notazione Accordi:</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        tr_r2_c1, tr_r2_c2 = st.columns(2, gap="small")
+        with tr_r2_c1:
+            if st.button("🇮🇹 Notazione ITA (DO, RE, MI)", help="Converti in notazione italiana (DO, RE, MI)", disabled=not can_edit, width="stretch", key=f"tr_ita_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "ITA").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione italiana")
                 log_op("🇮🇹", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Italiana", "INFO")
                 st.rerun()
-        with tr_c4:
-            if st.button("🌐 INT", help="Converti in notazione internazionale (C, D, E)", disabled=not can_edit, width="stretch", key=f"tr_int_{song.uuid}"):
+        with tr_r2_c2:
+            if st.button("🌐 Notazione INT (C, D, E)", help="Converti in notazione internazionale (C, D, E)", disabled=not can_edit, width="stretch", key=f"tr_int_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 song.aml_content = AMLParser.convert_notation(doc, "INT").to_aml()
                 storage.save_song(song, user_email, user_name, "Conversione notazione internazionale")
