@@ -113,24 +113,22 @@ class PDFEngine:
 
     @classmethod
     def get_page_size(cls, profile: DeviceProfile) -> Tuple[float, float]:
+        """Returns page dimensions in points. Enforces ALWAYS vertical (portrait) layout, never landscape."""
         if getattr(profile, "width_mm", 0) > 0 and getattr(profile, "height_mm", 0) > 0:
-            if profile.orientation == "landscape":
-                w = max(profile.width_mm, profile.height_mm) * mm
-                h = min(profile.width_mm, profile.height_mm) * mm
-            else:
-                w = min(profile.width_mm, profile.height_mm) * mm
-                h = max(profile.width_mm, profile.height_mm) * mm
+            w = min(profile.width_mm, profile.height_mm) * mm
+            h = max(profile.width_mm, profile.height_mm) * mm
             return (w, h)
 
         target = profile.target_device.lower()
         if target == "smartphone":
-            return PAGE_SIZES["smartphone"]
+            sz = PAGE_SIZES["smartphone"]
         elif target == "tablet":
-            return PAGE_SIZES["tablet"]
+            sz = PAGE_SIZES["tablet"]
         elif target == "ipad":
-            return PAGE_SIZES["ipad"]
+            sz = PAGE_SIZES["ipad"]
         else:
-            return PAGE_SIZES["pc_a4_landscape"] if profile.orientation == "landscape" else PAGE_SIZES["pc_a4"]
+            sz = PAGE_SIZES["pc_a4"]
+        return (min(sz[0], sz[1]), max(sz[0], sz[1]))
 
     @classmethod
     def generate_song_pdf(
@@ -147,7 +145,13 @@ class PDFEngine:
         Implements memory buffer caching and smart page break protection.
         """
         prof = profile or DeviceProfile()
-        cache_key = f"{song.uuid}_{song.updated_at}_{prof.target_device}_{prof.orientation}_{template_name}_{watermark}_{include_chords}"
+        cache_key = (
+            f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.target_device}_{prof.orientation}_"
+            f"{getattr(prof, 'columns', 1)}_{getattr(prof, 'font_size_lyrics', 12)}_"
+            f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
+            f"{getattr(prof, 'color_chords', '')}_{getattr(prof, 'color_aml_markup', '')}_"
+            f"{template_name}_{watermark}_{include_chords}"
+        )
 
         if use_cache and cache_key in cls._cache:
             return cls._cache[cache_key]
@@ -267,16 +271,15 @@ class PDFEngine:
         song_map = {s.uuid: s for s in songs}
 
         if usable_w < 110 * mm:
-            # Layout ultra-compatto per smartphone (Pixel 8 pro, ecc.)
-            index_data = [["#", "Titolo", "Key", "BPM"]]
+            # Layout ultra-compatto per smartphone (senza BPM o Metro)
+            index_data = [["#", "Titolo", "Key"]]
             for idx, item in enumerate(setlist.items, start=1):
                 s = song_map.get(item.song_uuid)
                 title = s.title if s else "Sconosciuto"
                 key = item.custom_key or (s.key_current if s else "-")
-                bpm = str(item.custom_bpm or (s.bpm if s else "-"))
-                index_data.append([str(idx), title, key, bpm])
+                index_data.append([str(idx), title, key])
 
-            col_widths = [usable_w * 0.12, usable_w * 0.54, usable_w * 0.18, usable_w * 0.16]
+            col_widths = [usable_w * 0.14, usable_w * 0.62, usable_w * 0.24]
             idx_table = Table(index_data, colWidths=col_widths)
             idx_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#212121")),
@@ -289,23 +292,21 @@ class PDFEngine:
                 ('FONTSIZE', (0, 1), (-1, -1), 7.5)
             ]))
         else:
-            index_data = [["#", "Titolo Brano", "Artista", "Tonalità", "BPM", "Note"]]
+            index_data = [["#", "Titolo Brano", "Artista", "Tonalità", "Note"]]
             for idx, item in enumerate(setlist.items, start=1):
                 s = song_map.get(item.song_uuid)
                 title = s.title if s else "Brano sconosciuto"
                 artist = s.artist if s else ""
                 key = item.custom_key or (s.key_current if s else "-")
-                bpm = str(item.custom_bpm or (s.bpm if s else "-"))
                 notes = item.notes or ("(Medley)" if item.is_medley else "")
-                index_data.append([str(idx), title, artist, key, bpm, notes])
+                index_data.append([str(idx), title, artist, key, notes])
 
             col_widths = [
-                usable_w * 0.06,
-                usable_w * 0.34,
-                usable_w * 0.24,
+                usable_w * 0.07,
+                usable_w * 0.40,
+                usable_w * 0.28,
                 usable_w * 0.12,
-                usable_w * 0.10,
-                usable_w * 0.14
+                usable_w * 0.13
             ]
             idx_table = Table(index_data, colWidths=col_widths)
             idx_table.setStyle(TableStyle([
@@ -441,11 +442,11 @@ class PDFEngine:
         artist_p = Paragraph(f"<b>{song.artist}</b>{pos_str} &bull; <i>{song.author}</i>", styles["DocSubtitle"])
 
         if include_chords:
-            meta_str = f"<b>Key:</b> {song.key_current} | <b>BPM:</b> {song.bpm} | <b>Metro:</b> {song.time_signature}"
+            meta_str = f"<b>Key:</b> {song.key_current}"
             if song.capo > 0:
                 meta_str += f" | <b>Capo:</b> {song.capo}° tasto"
         else:
-            meta_str = f"🎤 <b>Solo Testo (Cantante)</b> | <b>BPM:</b> {song.bpm} | <b>Metro:</b> {song.time_signature}"
+            meta_str = "🎤 <b>Solo Testo (Cantante)</b>"
         meta_p = Paragraph(meta_str, styles["SectionText"])
 
         logo_flowable = None

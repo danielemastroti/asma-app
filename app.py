@@ -9,6 +9,7 @@ import streamlit as st
 import time
 import json
 from datetime import datetime
+import re
 from typing import Optional, List, Dict, Any, Union
 
 # Check for Health Endpoint Query Parameter first (SRS Cap. 15.16 & 18.14)
@@ -944,7 +945,7 @@ def get_layout_device_profile(base_profile_name: Optional[str] = None) -> Device
         margin_left_mm=m_lat,
         margin_right_mm=m_lat,
         zoom=st.session_state.get("ui_zoom_level", base.zoom),
-        orientation=base.orientation,
+        orientation="portrait",  # Strettamente verticale come richiesto
         columns=cols,
         is_custom=True,
         color_lyrics=c_txt,
@@ -1408,64 +1409,91 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             c_down1, c_down2 = st.columns(2, gap="small")
 
             if exp_type == "Singolo Brano" and target_obj_song:
+                clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_obj_song.title).strip('_')
+                clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_profile.name).strip('_')
+                fname_music = f"{clean_title}_{clean_dev}_Accordi.pdf"
+                fname_singer = f"{clean_title}_{clean_dev}_Cantante.pdf"
+
+                # Cache persistente in session_state per prevenire 404/File Not Found su browser mobile/desktop
+                ck_m = f"buf_m_{target_obj_song.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
+                ck_s = f"buf_s_{target_obj_song.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
+                if ck_m not in st.session_state:
+                    st.session_state[ck_m] = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=True, use_cache=True)
+                pdf_music = st.session_state[ck_m]
+
+                if ck_s not in st.session_state:
+                    st.session_state[ck_s] = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=False, use_cache=True)
+                pdf_singer = st.session_state[ck_s]
+
                 # 1. Con Accordi per Musicisti
                 with c_down1:
-                    pdf_music = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=True, use_cache=False)
                     st.download_button(
                         "🎸 Scarica PDF con Accordi (Musicisti)",
                         data=pdf_music,
-                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
+                        file_name=fname_music,
                         mime="application/pdf",
                         type="primary",
                         width="stretch",
-                        key=f"dl_pdf_music_{target_obj_song.uuid}_{target_profile.name}"
+                        key=f"dl_btn_m_{target_obj_song.uuid}_{clean_dev}"
                     )
-                    st.caption("Accordi allineati, griglia a battute, tonalità e stacchi. Protezione atomica da salto pagina.")
+                    st.caption("Accordi allineati, griglia a battute, tonalità e stacchi. Layout verticale obbligatorio.")
 
                 # 2. Solo Testo per Cantante
                 with c_down2:
-                    pdf_singer = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=False, use_cache=False)
                     st.download_button(
                         "🎤 Scarica PDF Solo Testo (Cantante)",
                         data=pdf_singer,
-                        file_name=f"{target_obj_song.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
+                        file_name=fname_singer,
                         mime="application/pdf",
                         type="secondary",
                         width="stretch",
-                        key=f"dl_pdf_singer_{target_obj_song.uuid}_{target_profile.name}"
+                        key=f"dl_btn_s_{target_obj_song.uuid}_{clean_dev}"
                     )
-                    st.caption("Puro testo cantato e sezioni (Intro, Strofa, Ritornello), privo di accordi e griglie.")
+                    st.caption("Puro testo cantato e sezioni (Intro, Strofa, Ritornello). Layout verticale obbligatorio.")
 
             elif exp_type == "Intera Scaletta" and target_obj_setlist:
                 sl_songs = [storage.get_song(it.song_uuid) for it in target_obj_setlist.items if storage.get_song(it.song_uuid)]
                 if sl_songs:
+                    clean_sl_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_obj_setlist.title).strip('_')
+                    clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_profile.name).strip('_')
+                    fname_sl_m = f"Scaletta_{clean_sl_title}_{clean_dev}_Accordi.pdf"
+                    fname_sl_s = f"Scaletta_{clean_sl_title}_{clean_dev}_Cantante.pdf"
+
+                    ck_sl_m = f"buf_sl_m_{target_obj_setlist.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
+                    ck_sl_s = f"buf_sl_s_{target_obj_setlist.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
+                    if ck_sl_m not in st.session_state:
+                        st.session_state[ck_sl_m] = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=True)
+                    pdf_music_sl = st.session_state[ck_sl_m]
+
+                    if ck_sl_s not in st.session_state:
+                        st.session_state[ck_sl_s] = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=False)
+                    pdf_singer_sl = st.session_state[ck_sl_s]
+
                     # 1. Con Accordi per Musicisti
                     with c_down1:
-                        pdf_music_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=True)
                         st.download_button(
                             f"🎸 Scarica Scaletta con Accordi ({len(sl_songs)} brani)",
                             data=pdf_music_sl,
-                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Accordi.pdf",
+                            file_name=fname_sl_m,
                             mime="application/pdf",
                             type="primary",
                             width="stretch",
-                            key=f"dl_pdf_sl_music_{target_obj_setlist.uuid}_{target_profile.name}"
+                            key=f"dl_btn_sl_m_{target_obj_setlist.uuid}_{clean_dev}"
                         )
-                        st.caption("Scaletta completa con copertina, indice brani e spartiti per musicisti.")
+                        st.caption("Scaletta completa con copertina, indice brani e spartiti per musicisti (layout verticale).")
 
                     # 2. Solo Testo per Cantante
                     with c_down2:
-                        pdf_singer_sl = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=False)
                         st.download_button(
                             f"🎤 Scarica Scaletta Solo Testo ({len(sl_songs)} brani)",
                             data=pdf_singer_sl,
-                            file_name=f"Scaletta_{target_obj_setlist.title}_{target_profile.name.replace(' ', '_')}_Cantante.pdf",
+                            file_name=fname_sl_s,
                             mime="application/pdf",
                             type="secondary",
                             width="stretch",
-                            key=f"dl_pdf_sl_singer_{target_obj_setlist.uuid}_{target_profile.name}"
+                            key=f"dl_btn_sl_s_{target_obj_setlist.uuid}_{clean_dev}"
                         )
-                        st.caption("Scaletta completa solo testo per il cantante con copertina e indice.")
+                        st.caption("Scaletta completa solo testo per il cantante con copertina e indice (layout verticale).")
 
     with tab_web:
         if all_reps:

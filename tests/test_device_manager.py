@@ -88,7 +88,7 @@ class TestDeviceManager(unittest.TestCase):
         samsung = self.mgr.get_device_by_name("Samsung Galaxy tab s7,s8,s9 & A9+")
         self.assertIsNotNone(samsung)
         sw, sh = PDFEngine.get_page_size(samsung)
-        self.assertGreater(sw, sh)  # landscape
+        self.assertGreater(sh, sw)  # Layout PDF deve obbligatoriamente essere sempre verticale (portrait)
 
 
 if __name__ == "__main__":
