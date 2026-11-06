@@ -1337,163 +1337,13 @@ if menu_choice == "🏠 Home Dashboard":
 # ------------------------------------------------------------------------------
 elif menu_choice == "📥 Importa & 📤 Esporta":
     # Le schede/menu partono immediatamente appena sotto la barra fissa
-    tab_exp_pdf, tab_web, tab_imp, tab_exp = st.tabs([
-        "📄 Esporta PDF (Device)",
+    tab_web, tab_imp, tab_exp = st.tabs([
         "🌐 Import da Web / URL",
         "📥 Import File & Testo",
         "📱 MobileSheets & Altre App"
     ])
 
     all_reps = storage.list_repertoires()
-
-    # --------------------------------------------------------------------------
-    # TAB 1: ESPORTAZIONE PDF SU MISURA PER DISPOSITIVO (Musicisti & Cantante)
-    # --------------------------------------------------------------------------
-    with tab_exp_pdf:
-        st.markdown(
-            """<div style="display:flex; align-items:center; gap:6px; margin: 2px 0 8px 0;">
-              <b style="font-size:13px; color:#FFFFFF;">📄 Esportazione PDF su Misura per Dispositivo</b>
-              <span style="font-size:10.5px; color:#94A3B8;">&bull; Formattazione millimetrica per schermo &bull; Protezione atomica accordi/testo</span>
-            </div>""",
-            unsafe_allow_html=True
-        )
-
-        all_songs = storage.list_songs()
-        all_setlists = storage.list_setlists()
-
-        if not all_songs:
-            st.info("Nessun brano presente in archivio da esportare.")
-        else:
-            c_mode, c_item, c_dev = st.columns([1.1, 1.8, 1.5], gap="small")
-            with c_mode:
-                exp_type = st.radio("Cosa esportare:", ["Singolo Brano", "Intera Scaletta"], horizontal=True, key="pdf_exp_type_radio")
-
-            with c_item:
-                if exp_type == "Singolo Brano":
-                    song_opts = {s["uuid"]: f"🎵 {s['title']} — {s.get('artist', '')} [{s.get('key_current', '-')}]" for s in all_songs}
-                    curr_s_id = st.session_state.get("selected_song_uuid")
-                    default_s_idx = list(song_opts.keys()).index(curr_s_id) if (curr_s_id and curr_s_id in song_opts) else 0
-                    sel_song_uuid = st.selectbox("Seleziona Brano:", list(song_opts.keys()), index=default_s_idx, format_func=lambda x: song_opts[x], key="pdf_exp_song_sel")
-                    target_obj_song = storage.get_song(sel_song_uuid)
-                    target_obj_setlist = None
-                else:
-                    if all_setlists:
-                        setlist_opts = {sl.uuid: f"📑 {sl.title} ({len(sl.items)} brani)" for sl in all_setlists}
-                        sel_sl_uuid = st.selectbox("Seleziona Scaletta:", list(setlist_opts.keys()), format_func=lambda x: setlist_opts[x], key="pdf_exp_sl_sel")
-                        target_obj_setlist = next((sl for sl in all_setlists if sl.uuid == sel_sl_uuid), None)
-                        target_obj_song = None
-                    else:
-                        st.warning("Nessuna scaletta creata. Crea prima una scaletta.")
-                        target_obj_setlist = None
-                        target_obj_song = None
-
-            with c_dev:
-                dev_all = device_mgr.list_devices()
-                dev_name_list = [d.name for d in dev_all]
-                curr_device_name = st.session_state.get("user_preferred_device", dev_name_list[0] if dev_name_list else "")
-                def_dev_idx = dev_name_list.index(curr_device_name) if curr_device_name in dev_name_list else 0
-                sel_dev_name = st.selectbox("Formato Display Target:", dev_name_list, index=def_dev_idx, key="pdf_exp_dev_sel")
-                target_profile = get_layout_device_profile(sel_dev_name)
-
-            # Specifiche compatte del display selezionato
-            st.markdown(
-                f"<div style='font-size:11px; color:#94A3B8; background:rgba(30, 41, 59, 0.5); border:1px solid rgba(255,255,255,0.08); padding:5px 10px; border-radius:6px; margin-bottom:10px;'>"
-                f"📐 <b>Display:</b> <code>{target_profile.name}</code> &bull; "
-                f"Dimensioni: <code>{target_profile.width_mm:.1f} × {target_profile.height_mm:.1f} mm</code> ({target_profile.orientation}) &bull; "
-                f"Colonne: <code>{target_profile.columns}</code> &bull; Testo: <code>{target_profile.font_size_lyrics} pt</code> &bull; Accordi: <code>{target_profile.font_size_chords} pt</code>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-            # Due scelte compatte per il download: con accordi (musicisti) e solo testo (cantante)
-            c_down1, c_down2 = st.columns(2, gap="small")
-
-            if exp_type == "Singolo Brano" and target_obj_song:
-                clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_obj_song.title).strip('_')
-                clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_profile.name).strip('_')
-                fname_music = f"{clean_title}_{clean_dev}_Accordi.pdf"
-                fname_singer = f"{clean_title}_{clean_dev}_Cantante.pdf"
-
-                # Cache persistente in session_state per prevenire 404/File Not Found su browser mobile/desktop
-                ck_m = f"buf_m_{target_obj_song.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
-                ck_s = f"buf_s_{target_obj_song.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
-                if ck_m not in st.session_state:
-                    st.session_state[ck_m] = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=True, use_cache=True)
-                pdf_music = st.session_state[ck_m]
-
-                if ck_s not in st.session_state:
-                    st.session_state[ck_s] = PDFEngine.generate_song_pdf(target_obj_song, profile=target_profile, include_chords=False, use_cache=True)
-                pdf_singer = st.session_state[ck_s]
-
-                # 1. Con Accordi per Musicisti
-                with c_down1:
-                    st.download_button(
-                        "🎸 Scarica PDF con Accordi (Musicisti)",
-                        data=pdf_music,
-                        file_name=fname_music,
-                        mime="application/pdf",
-                        type="primary",
-                        width="stretch",
-                        key=f"dl_btn_m_{target_obj_song.uuid}_{clean_dev}"
-                    )
-                    st.caption("Accordi allineati, griglia a battute, tonalità e stacchi. Layout verticale obbligatorio.")
-
-                # 2. Solo Testo per Cantante
-                with c_down2:
-                    st.download_button(
-                        "🎤 Scarica PDF Solo Testo (Cantante)",
-                        data=pdf_singer,
-                        file_name=fname_singer,
-                        mime="application/pdf",
-                        type="secondary",
-                        width="stretch",
-                        key=f"dl_btn_s_{target_obj_song.uuid}_{clean_dev}"
-                    )
-                    st.caption("Puro testo cantato e sezioni (Intro, Strofa, Ritornello). Layout verticale obbligatorio.")
-
-            elif exp_type == "Intera Scaletta" and target_obj_setlist:
-                sl_songs = [storage.get_song(it.song_uuid) for it in target_obj_setlist.items if storage.get_song(it.song_uuid)]
-                if sl_songs:
-                    clean_sl_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_obj_setlist.title).strip('_')
-                    clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', target_profile.name).strip('_')
-                    fname_sl_m = f"Scaletta_{clean_sl_title}_{clean_dev}_Accordi.pdf"
-                    fname_sl_s = f"Scaletta_{clean_sl_title}_{clean_dev}_Cantante.pdf"
-
-                    ck_sl_m = f"buf_sl_m_{target_obj_setlist.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
-                    ck_sl_s = f"buf_sl_s_{target_obj_setlist.uuid}_{clean_dev}_{target_profile.columns}_{int(target_profile.font_size_lyrics)}"
-                    if ck_sl_m not in st.session_state:
-                        st.session_state[ck_sl_m] = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=True)
-                    pdf_music_sl = st.session_state[ck_sl_m]
-
-                    if ck_sl_s not in st.session_state:
-                        st.session_state[ck_sl_s] = PDFEngine.generate_setlist_pdf(target_obj_setlist, sl_songs, profile=target_profile, include_chords=False)
-                    pdf_singer_sl = st.session_state[ck_sl_s]
-
-                    # 1. Con Accordi per Musicisti
-                    with c_down1:
-                        st.download_button(
-                            f"🎸 Scarica Scaletta con Accordi ({len(sl_songs)} brani)",
-                            data=pdf_music_sl,
-                            file_name=fname_sl_m,
-                            mime="application/pdf",
-                            type="primary",
-                            width="stretch",
-                            key=f"dl_btn_sl_m_{target_obj_setlist.uuid}_{clean_dev}"
-                        )
-                        st.caption("Scaletta completa con copertina, indice brani e spartiti per musicisti (layout verticale).")
-
-                    # 2. Solo Testo per Cantante
-                    with c_down2:
-                        st.download_button(
-                            f"🎤 Scarica Scaletta Solo Testo ({len(sl_songs)} brani)",
-                            data=pdf_singer_sl,
-                            file_name=fname_sl_s,
-                            mime="application/pdf",
-                            type="secondary",
-                            width="stretch",
-                            key=f"dl_btn_sl_s_{target_obj_setlist.uuid}_{clean_dev}"
-                        )
-                        st.caption("Scaletta completa solo testo per il cantante con copertina e indice (layout verticale).")
 
     with tab_web:
         if all_reps:
@@ -1843,23 +1693,23 @@ elif menu_choice == "📝 Brani":
                     st.rerun()
 
     with col_prev:
-        st.write("#### 👁️ Anteprima Reale PDF & Esportazione Dispositivo")
+        st.write("#### 👁️ Anteprima PDF & Azioni Esportazione")
         configured_devs = device_mgr.list_devices()
         dev_choices = {d.uuid: d.name for d in configured_devs}
         user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
         default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
 
         selected_dev_uuid = st.selectbox(
-            "📐 Formato Dispositivo di Destinazione:",
+            "📐 Formato Dispositivo / Display per Salva PDF:",
             list(dev_choices.keys()),
             index=default_dev_idx,
             format_func=lambda x: dev_choices[x]
         )
         prof = get_layout_device_profile(dev_choices.get(selected_dev_uuid))
 
-        st.caption(f"📱 **Specifiche Dispositivo:** `{prof.name}` &bull; `{prof.width_mm:.1f} × {prof.height_mm:.1f} mm` ({prof.orientation}) &bull; Colonne: `{prof.columns}` &bull; Font Testo: `{prof.font_size_lyrics} pt`")
+        st.caption(f"📱 **Specifiche Display:** `{prof.name}` &bull; `{prof.width_mm:.1f} × {prof.height_mm:.1f} mm` ({prof.orientation}) &bull; Colonne: `{prof.columns}` &bull; Font Testo: `{prof.font_size_lyrics} pt`")
 
-        # Genera il PDF dal contenuto attuale dell'editor in tempo reale
+        # Genera il brano per preview ed export
         preview_song = Song(
             uuid=song.uuid,
             title=title_input,
@@ -1873,25 +1723,160 @@ elif menu_choice == "📝 Brani":
             current_revision=song.current_revision
         )
 
-        pdf_bytes = PDFEngine.generate_song_pdf(preview_song, profile=prof, use_cache=False)
+        clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', preview_song.title).strip('_') or 'brano'
+        clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', prof.name).strip('_') or 'device'
 
-        col_exp_pdf, col_exp_sb = st.columns(2)
-        with col_exp_pdf:
+        # Profilo A4 per la modalità Stampa (sempre A4 portrait)
+        prof_a4 = DeviceProfile(
+            name="Foglio A4",
+            target_device="pc_a4",
+            width_mm=210.0,
+            height_mm=297.0,
+            orientation="portrait",
+            columns=getattr(prof, "columns", 1),
+            font_size_lyrics=getattr(prof, "font_size_lyrics", 12.0),
+            font_size_chords=getattr(prof, "font_size_chords", 13.0),
+            margin_left_mm=getattr(prof, "margin_left_mm", 10.0),
+            margin_right_mm=getattr(prof, "margin_right_mm", 10.0),
+            margin_top_mm=getattr(prof, "margin_top_mm", 12.0),
+            margin_bottom_mm=getattr(prof, "margin_bottom_mm", 12.0),
+            color_lyrics=getattr(prof, "color_lyrics", "#111111"),
+            color_chords=getattr(prof, "color_chords", "#B71C1C"),
+            color_aml_markup=getattr(prof, "color_aml_markup", "#4A148C")
+        )
+
+        # Cache persistente in session_state per download istantaneo ed evitare 404
+        aml_hash = hash(preview_song.aml_content)
+        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+
+        if ck_a4_m not in st.session_state:
+            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=True)
+        pdf_a4_m = st.session_state[ck_a4_m]
+
+        if ck_a4_s not in st.session_state:
+            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=True)
+        pdf_a4_s = st.session_state[ck_a4_s]
+
+        if ck_dev_m not in st.session_state:
+            st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=True)
+        pdf_dev_m = st.session_state[ck_dev_m]
+
+        if ck_dev_s not in st.session_state:
+            st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=True)
+        pdf_dev_s = st.session_state[ck_dev_s]
+
+        pdf_bytes = pdf_dev_m
+
+        # -------------------------------------------------------------
+        # LAYOUT COMPATTO, CHIARO E ACCATTIVANTE PER I TASTI DI AZIONE
+        # -------------------------------------------------------------
+        # 1. Stampa PDF (sempre modalità A4)
+        st.markdown(
+            """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
+              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">🖨️ Stampa PDF (Modalità A4 Verticale)</span>
+              <span style="font-size:10px; color:#94A3B8;">Dimensioni standard 210 × 297 mm</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        col_p1, col_p2 = st.columns(2, gap="small")
+        with col_p1:
             st.download_button(
-                label=f"📄 Scarica PDF ({prof.name})",
-                data=pdf_bytes,
-                file_name=f"{preview_song.title.replace(' ', '_')}_{prof.name.replace(' ', '_')}.pdf",
+                "🎸 Stampa A4: con Accordi",
+                data=pdf_a4_m,
+                file_name=f"{clean_title}_A4_Accordi.pdf",
                 mime="application/pdf",
-                width="stretch"
+                type="primary",
+                width="stretch",
+                key=f"dl_a4_m_{preview_song.uuid}_{clean_dev}"
             )
-        with col_exp_sb:
+        with col_p2:
             st.download_button(
-                label="🎸 Esporta per SongBook Pro (.pro)",
+                "🎤 Stampa A4: Solo Testo",
+                data=pdf_a4_s,
+                file_name=f"{clean_title}_A4_Cantante.pdf",
+                mime="application/pdf",
+                type="secondary",
+                width="stretch",
+                key=f"dl_a4_s_{preview_song.uuid}_{clean_dev}"
+            )
+
+        # 2. Salva PDF (modalità dispositivo)
+        st.markdown(
+            f"""<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
+              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">💾 Salva PDF (Modalità Display: {prof.name})</span>
+              <span style="font-size:10px; color:#94A3B8;">Formattazione su misura per leggio</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        col_d1, col_d2 = st.columns(2, gap="small")
+        with col_d1:
+            st.download_button(
+                "🎸 Salva PDF: con Accordi",
+                data=pdf_dev_m,
+                file_name=f"{clean_title}_{clean_dev}_Accordi.pdf",
+                mime="application/pdf",
+                type="primary",
+                width="stretch",
+                key=f"dl_dev_m_{preview_song.uuid}_{clean_dev}"
+            )
+        with col_d2:
+            st.download_button(
+                "🎤 Salva PDF: Solo Testo",
+                data=pdf_dev_s,
+                file_name=f"{clean_title}_{clean_dev}_Cantante.pdf",
+                mime="application/pdf",
+                type="secondary",
+                width="stretch",
+                key=f"dl_dev_s_{preview_song.uuid}_{clean_dev}"
+            )
+
+        # 3. Esporta nei vari formati
+        st.markdown(
+            """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
+              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">📤 Esporta Formati Musicali</span>
+              <span style="font-size:10px; color:#94A3B8;">SongBook Pro, OnSong, MobileSheets, ChordPro</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        col_e1, col_e2, col_e3, col_e4 = st.columns(4, gap="small")
+        with col_e1:
+            st.download_button(
+                "🎸 SongBook Pro",
                 data=ExportEngine.export_for_songbookpro(preview_song),
-                file_name=f"{preview_song.title.replace(' ', '_')}.pro",
+                file_name=f"{clean_title}.pro",
                 mime="text/plain",
                 width="stretch",
-                help="Formato ChordPro nativo compatibile con SongBook Pro per tablet/smartphone"
+                key=f"dl_sb_{preview_song.uuid}"
+            )
+        with col_e2:
+            st.download_button(
+                "🎤 OnSong",
+                data=ExportEngine.export_for_onsong(preview_song),
+                file_name=f"{clean_title}.onsong",
+                mime="text/plain",
+                width="stretch",
+                key=f"dl_os_{preview_song.uuid}"
+            )
+        with col_e3:
+            st.download_button(
+                "📱 MobileSheets",
+                data=ExportEngine.export_for_mobilesheets(preview_song),
+                file_name=f"{clean_title}_ms.pro",
+                mime="text/plain",
+                width="stretch",
+                key=f"dl_ms_{preview_song.uuid}"
+            )
+        with col_e4:
+            st.download_button(
+                "🎼 ChordPro",
+                data=ExportEngine.export_to_chordpro(preview_song.aml_content),
+                file_name=f"{clean_title}.cho",
+                mime="text/plain",
+                width="stretch",
+                key=f"dl_cp_{preview_song.uuid}"
             )
 
         st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
