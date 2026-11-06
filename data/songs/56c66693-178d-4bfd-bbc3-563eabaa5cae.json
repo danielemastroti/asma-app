@@ -1,0 +1,30 @@
+{
+  "uuid": "56c66693-178d-4bfd-bbc3-563eabaa5cae",
+  "title": "I FEEL GOOD",
+  "artist": "James Brown",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 144,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "RE",
+  "key_current": "RE",
+  "notation_system": "INT",
+  "tags": [
+    "importato-web"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: I FEEL GOOD}\n{artist: James Brown}\n{key: RE}\n{source: https://www.accordiespartiti.it/accordi/internazionali/brown-james/i-feel-good/}\n\n\nWo! I feel [RE7]good, I knew that I would, now\nI [SOL7]feel good, I knew that I [RE7]would, now\nSo [LA7]good, so [SOL]good, I got you[RE9]\nWo! I feel [RE7]nice, like sugar and spice\nI [SOL7]feel nice, like sugar and [RE7]spice\nSo [LA7]nice, so [SOL]nice, I got [RE9]you\n\n[RE7]\nWhen I [SOL7]hold you in my arms\nI [RE7]know that I can do no wrong\nand [SOL7]when I hold you in my arms\nMy [LA7]love won't do you no harm\n\nand I [RE7]feel nice, like sugar and spice\nI [SOL7]feel nice, like sugar and [RE7]spice\nSo [LA7]nice, so [SOL]nice, I got [RE9]you\n\n[RE7]\nWhen I [SOL7]hold you in my arms\nI [RE7]know that I can't do no wrong\nand [SOL7]when I hold you in my arms\nMy [LA7]love can't do me no harm\n\nand I [RE7]feel nice, like sugar and spice\nI [SOL7]feel nice, like sugar and [RE7]spice\nSo [LA7]nice, so [SOL]nice, well I got [RE9]you\n\nWo! I [RE7]feel good, I knew that I would, now\nI [SOL7]feel good, I knew that I [RE7]would\nSo [LA7]good, so [SOL]good, 'cause I got [RE9]you\nSo [LA7]good, so [SOL]good, 'cause I got [RE9]you\nSo [LA7]good, so [SOL]good, 'cause I got you\nHey! [RE9]Oh yeah-a...\n\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-06T22:48:53.855855+00:00",
+  "updated_at": "2026-11-06T23:46:45.326983+00:00"
+}

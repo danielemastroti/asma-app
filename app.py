@@ -1588,7 +1588,7 @@ elif menu_choice == "📝 Brani":
 
     curr_pre_song = storage.get_song(keys_list[default_idx]) if keys_list else None
     artist_subtitle = f"({curr_pre_song.artist})" if curr_pre_song and curr_pre_song.artist else ""
-    key_bpm_subtitle = f"Tonalità: {curr_pre_song.key_current} • {curr_pre_song.bpm} BPM" if curr_pre_song else ""
+    key_bpm_subtitle = f"Tonalità: {curr_pre_song.key_current} &bull; 🌐 SongBPM: {curr_pre_song.bpm} BPM" if curr_pre_song else ""
 
     c_top_sel, c_top_new = st.columns([3, 1], gap="small")
     with c_top_sel:

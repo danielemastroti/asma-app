@@ -1,0 +1,47 @@
+[
+  {
+    "song_uuid": "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+    "revision_number": 1,
+    "author_email": "sara.voce@band.org",
+    "author_name": "Sara Voci (Cantante / Band)",
+    "comment": "Ricerca Web e Importazione Automatica",
+    "aml_snapshot": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: G}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [E]temperature's [A/E]rising and my [E]feet on the [A/E]floor\n[E]Twenty [A/E]people knockin 'cause they're [E]wanting some [A/E]more\n[E]Let me in [A/E]baby, I don't [E]know what you've [A/E]got\nBut you'd [E]better take [A/E]it easy, [E]this place is [A/E]hot\n\n[Chorus]\n  [E]So glad we [G]made it,[A]   so glad we [C]made it\nYou gotta  [E]   gimme [A/E]some lovin', [E]   gimme [A/E]some lovin',  [E]\nGimme [A/E]some lovin,   every [E]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+    "timestamp": "2026-11-06T22:19:06.231725+00:00"
+  },
+  {
+    "song_uuid": "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+    "revision_number": 2,
+    "author_email": "sara.voce@band.org",
+    "author_name": "Sara Voci (Cantante / Band)",
+    "comment": "Conversione notazione italiana",
+    "aml_snapshot": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: SOL}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [MI]temperature's [LA/MI]rising and my [MI]feet on the [LA/MI]floor\n[MI]Twenty [LA/MI]people knockin 'cause they're [MI]wanting some [LA/MI]more\n[MI]Let me in [LA/MI]baby, I don't [MI]know what you've [LA/MI]got\nBut you'd [MI]better take [LA/MI]it easy, [MI]this place is [LA/MI]hot\n\n[Chorus]\n  [MI]So glad we [SOL]made it,[LA]   so glad we [DO]made it\nYou gotta  [MI]   gimme [LA/MI]some lovin', [MI]   gimme [LA/MI]some lovin',  [MI]\nGimme [LA/MI]some lovin,   every [MI]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+    "timestamp": "2026-11-06T22:24:27.184803+00:00"
+  },
+  {
+    "song_uuid": "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+    "revision_number": 3,
+    "author_email": "sara.voce@band.org",
+    "author_name": "Sara Voci (Cantante / Band)",
+    "comment": "Trasposizione +1 semitono",
+    "aml_snapshot": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: LAb}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [FA]temperature's [SIb/FA]rising and my [FA]feet on the [SIb/FA]floor\n[FA]Twenty [SIb/FA]people knockin 'cause they're [FA]wanting some [SIb/FA]more\n[FA]Let me in [SIb/FA]baby, I don't [FA]know what you've [SIb/FA]got\nBut you'd [FA]better take [SIb/FA]it easy, [FA]this place is [SIb/FA]hot\n\n[Chorus]\n  [FA]So glad we [LAb]made it,[SIb]   so glad we [DO#]made it\nYou gotta  [FA]   gimme [SIb/FA]some lovin', [FA]   gimme [SIb/FA]some lovin',  [FA]\nGimme [SIb/FA]some lovin,   every [FA]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+    "timestamp": "2026-11-06T22:24:43.365639+00:00"
+  },
+  {
+    "song_uuid": "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+    "revision_number": 4,
+    "author_email": "sara.voce@band.org",
+    "author_name": "Sara Voci (Cantante / Band)",
+    "comment": "Trasposizione -1 semitono",
+    "aml_snapshot": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: SOL}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [MI]temperature's [LA/MI]rising and my [MI]feet on the [LA/MI]floor\n[MI]Twenty [LA/MI]people knockin 'cause they're [MI]wanting some [LA/MI]more\n[MI]Let me in [LA/MI]baby, I don't [MI]know what you've [LA/MI]got\nBut you'd [MI]better take [LA/MI]it easy, [MI]this place is [LA/MI]hot\n\n[Chorus]\n  [MI]So glad we [SOL]made it,[LA]   so glad we [DO]made it\nYou gotta  [MI]   gimme [LA/MI]some lovin', [MI]   gimme [LA/MI]some lovin',  [MI]\nGimme [LA/MI]some lovin,   every [MI]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+    "timestamp": "2026-11-06T22:24:50.981725+00:00"
+  },
+  {
+    "song_uuid": "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+    "revision_number": 5,
+    "author_email": "system",
+    "author_name": "SongBPM Sync",
+    "comment": "Aggiornato tempo da 120 a 147 BPM tramite SongBPM.com",
+    "aml_snapshot": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: SOL}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [MI]temperature's [LA/MI]rising and my [MI]feet on the [LA/MI]floor\n[MI]Twenty [LA/MI]people knockin 'cause they're [MI]wanting some [LA/MI]more\n[MI]Let me in [LA/MI]baby, I don't [MI]know what you've [LA/MI]got\nBut you'd [MI]better take [LA/MI]it easy, [MI]this place is [LA/MI]hot\n\n[Chorus]\n  [MI]So glad we [SOL]made it,[LA]   so glad we [DO]made it\nYou gotta  [MI]   gimme [LA/MI]some lovin', [MI]   gimme [LA/MI]some lovin',  [MI]\nGimme [LA/MI]some lovin,   every [MI]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+    "timestamp": "2026-11-06T23:46:44.953124+00:00"
+  }
+]
