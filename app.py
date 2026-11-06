@@ -1497,19 +1497,20 @@ elif menu_choice == "📥 Importa & 📤 Esporta":
             exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
             target_song = storage.get_song(exp_song_id)
 
+            clean_exp_title = re.sub(r'[\\/*?:"<>|]', '', target_song.title).strip() or 'Brano'
             c_e1, c_e2, c_e3, c_e4 = st.columns(4)
             with c_e1:
                 sb_content = ExportEngine.export_for_songbookpro(target_song)
-                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", width="stretch")
+                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{clean_exp_title}.pro", width="stretch")
             with c_e2:
                 ms_content = ExportEngine.export_for_mobilesheets(target_song)
-                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", width="stretch")
+                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{clean_exp_title}.pro", width="stretch")
             with c_e3:
                 cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
-                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", width="stretch")
+                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{clean_exp_title}.cho", width="stretch")
             with c_e4:
                 onsong_content = ExportEngine.export_for_onsong(target_song)
-                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", width="stretch")
+                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{clean_exp_title}.onsong", width="stretch")
 
             st.divider()
             st.write("#### 📦 Offline Live Pack ZIP (SRS Cap. 14.29)")
@@ -1723,7 +1724,8 @@ elif menu_choice == "📝 Brani":
             current_revision=song.current_revision
         )
 
-        clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', preview_song.title).strip('_') or 'brano'
+        # Nome del file: SOLO ed ESCLUSIVAMENTE il titolo del brano con la relativa estensione (vietato device, accordi, testo, ecc.)
+        clean_title = re.sub(r'[\\/*?:"<>|]', '', preview_song.title).strip() or 'Brano'
         clean_dev = re.sub(r'[^a-zA-Z0-9_\-]', '_', prof.name).strip('_') or 'device'
 
         # Profilo A4 per la modalità Stampa (sempre A4 portrait)
@@ -1747,10 +1749,11 @@ elif menu_choice == "📝 Brani":
 
         # Cache persistente in session_state per download istantaneo ed evitare 404
         aml_hash = hash(preview_song.aml_content)
-        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{clean_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', preview_song.title)
+        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
 
         if ck_a4_m not in st.session_state:
             st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=True)
@@ -1796,7 +1799,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎤 Stampa A4: Solo Testo",
                 data=pdf_a4_s,
-                file_name=f"{clean_title}_Testo.pdf",
+                file_name=f"{clean_title}.pdf",
                 mime="application/pdf",
                 type="secondary",
                 width="stretch",
@@ -1826,7 +1829,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "🎤 Salva PDF: Solo Testo",
                 data=pdf_dev_s,
-                file_name=f"{clean_title}_Testo.pdf",
+                file_name=f"{clean_title}.pdf",
                 mime="application/pdf",
                 type="secondary",
                 width="stretch",
@@ -1864,7 +1867,7 @@ elif menu_choice == "📝 Brani":
             st.download_button(
                 "📱 MobileSheets",
                 data=ExportEngine.export_for_mobilesheets(preview_song),
-                file_name=f"{clean_title}_ms.pro",
+                file_name=f"{clean_title}.pro",
                 mime="text/plain",
                 width="stretch",
                 key=f"dl_ms_{preview_song.uuid}"
