@@ -514,6 +514,153 @@ st.markdown("""
     padding: 12px 14px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   }
+
+  /* =========================================================================
+     COMPACT & MODERN BAND TYPOGRAPHY (PC, iPad, Huawei, Android, iPhone)
+     ========================================================================= */
+
+  /* Headings: sleek, compact, and never oversized */
+  h1, [data-testid="stHeadingWithActionElements"] h1 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    margin-top: 0px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0.3px !important;
+  }
+  h2, [data-testid="stHeadingWithActionElements"] h2 {
+    font-size: 16.5px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    margin-top: 0px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
+  }
+  h3, [data-testid="stHeadingWithActionElements"] h3 {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #00E5FF !important;
+    margin-top: 0px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
+  }
+  h4, [data-testid="stHeadingWithActionElements"] h4 {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #E2E8F0 !important;
+    margin-top: 0px !important;
+    margin-bottom: 3px !important;
+    line-height: 1.2 !important;
+  }
+  h5, [data-testid="stHeadingWithActionElements"] h5 {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #CBD5E1 !important;
+    margin-top: 0px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.2 !important;
+  }
+  h6, [data-testid="stHeadingWithActionElements"] h6 {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #94A3B8 !important;
+    margin-top: 0px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Compact widget labels and text inputs */
+  [data-testid="stWidgetLabel"] label,
+  [data-testid="stWidgetLabel"] p,
+  [data-testid="stWidgetLabel"] span {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #94A3B8 !important;
+    margin-bottom: 2px !important;
+    letter-spacing: 0.2px !important;
+  }
+
+  /* Captions */
+  [data-testid="stCaptionContainer"] p {
+    font-size: 11px !important;
+    color: #94A3B8 !important;
+    margin-top: 0px !important;
+    margin-bottom: 6px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* General body text */
+  [data-testid="stMarkdownContainer"] p,
+  [data-testid="stMarkdownContainer"] li {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    color: #E2E8F0 !important;
+  }
+
+  /* Form controls: compact height, clean borders */
+  div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+    min-height: 30px !important;
+    height: 30px !important;
+    font-size: 11.5px !important;
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    background: rgba(30, 41, 59, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-radius: 6px !important;
+  }
+  div[data-testid="stTextInput"] input {
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 11.5px !important;
+    padding: 3px 8px !important;
+    background: rgba(30, 41, 59, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-radius: 6px !important;
+  }
+  div[data-testid="stTextArea"] textarea {
+    font-size: 11.5px !important;
+    padding: 6px 8px !important;
+    background: rgba(30, 41, 59, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-radius: 6px !important;
+  }
+
+  /* Standard Buttons */
+  button[data-testid="stBaseButton-secondary"],
+  button[data-testid="stBaseButton-primary"] {
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 11.5px !important;
+    padding: 2px 10px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
+  }
+
+  /* Compact Expander summary */
+  div[data-testid="stExpander"] summary {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Compact alerts */
+  [data-testid="stAlert"] {
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+    border-radius: 6px !important;
+  }
+  [data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Dividers with minimal margins */
+  hr {
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -621,28 +768,28 @@ def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main"
 # ==============================================================================
 MENU_ITEMS = [
     "🏠 Home Dashboard",
+    "📥 Importa & 📤 Esporta",
+    "📝 Brani",
+    "🤖 Band AI (Opzionale)",
+    "🔍 Ricerca Globale",
     "📚 Repertori",
-    "📝 Editor Brani",
     "📑 Scalette Live",
     "🎤 Modalità Palco (Live Stage)",
     "📅 Eventi Live",
-    "📥 Importa & 📤 Esporta",
-    "🔍 Ricerca Globale",
-    "🤖 Band AI (Opzionale)",
     "📖 Manuale & Changelog",
     "⚙️ Amministrazione & Log"
 ]
 
 MENU_COMPACT_LABELS = {
     "🏠 Home Dashboard": "🏠 Home",
+    "📥 Importa & 📤 Esporta": "📥/📤 Import/Export",
+    "📝 Brani": "📝 Brani",
+    "🤖 Band AI (Opzionale)": "🤖 AI",
+    "🔍 Ricerca Globale": "🔍 Cerca",
     "📚 Repertori": "📚 Repertori",
-    "📝 Editor Brani": "📝 Editor",
     "📑 Scalette Live": "📑 Scalette",
     "🎤 Modalità Palco (Live Stage)": "🎤 Palco",
     "📅 Eventi Live": "📅 Eventi",
-    "📥 Importa & 📤 Esporta": "📥/📤 I/O",
-    "🔍 Ricerca Globale": "🔍 Cerca",
-    "🤖 Band AI (Opzionale)": "🤖 AI",
     "📖 Manuale & Changelog": "📖 Guida",
     "⚙️ Amministrazione & Log": "⚙️ Admin"
 }
@@ -936,142 +1083,186 @@ if menu_choice == "🏠 Home Dashboard":
 # ------------------------------------------------------------------------------
 # 2. GESTIONE REPERTORI
 # ------------------------------------------------------------------------------
-elif menu_choice == "📚 Repertori":
-    st.subheader("📚 Gestione Repertori")
+elif menu_choice == "📥 Importa & 📤 Esporta":
+    st.subheader("📥 Importazione Multi-Formato & 📤 Esportazione Interoperabile")
 
-    repertoires = storage.list_repertoires()
-    col_rep_top1, col_rep_top2 = st.columns([3, 1])
-    with col_rep_top1:
-        if repertoires:
-            selected_rep_name = st.selectbox("Seleziona Repertorio:", [r.name for r in repertoires])
-            selected_rep = next(r for r in repertoires if r.name == selected_rep_name)
-            st.write(f"*{selected_rep.description}*")
+    # Scelta del Repertorio di Destinazione per l'importazione
+    all_reps = storage.list_repertoires()
+    col_rep_sel, col_rep_info = st.columns([2, 1])
+    with col_rep_sel:
+        target_rep = st.selectbox(
+            "📂 Assegna automaticamente i brani importati a questo Repertorio:",
+            all_reps,
+            format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)"
+        ) if all_reps else None
+    with col_rep_info:
+        if target_rep:
+            st.caption(f"I brani importati verranno archiviati in: **{target_rep.name}**")
         else:
-            st.info("Nessun repertorio esistente. Crea il tuo primo repertorio.")
-            selected_rep = None
+            st.warning("Nessun repertorio attivo. I brani resteranno nell'archivio generale.")
 
-    with col_rep_top2:
-        with st.popover("➕ Nuovo Repertorio", width="stretch"):
-            st.write("##### Crea Nuovo Repertorio")
-            new_r_name = st.text_input("Nome:", placeholder="Es. Repertorio Acustico")
-            new_r_desc = st.text_input("Descrizione:", placeholder="Brani per set acustico")
-            if st.button("Crea Repertorio", type="primary", disabled=not current_user.can_edit()):
-                if new_r_name:
-                    created_rep = Repertoire(name=new_r_name, description=new_r_desc)
-                    storage.save_repertoire(created_rep, current_user.email, current_user.name)
-                    log_op("📚", "REPERTORIO", f"Creato nuovo repertorio '{new_r_name}'", "SUCCESS")
-                    st.success(f"Repertorio '{new_r_name}' creato!")
-                    st.rerun()
+    tab_web, tab_imp, tab_exp = st.tabs(["🌐 Import da Web / URL", "📥 Import PDF & Testo", "📤 Esporta per App Esterne"])
 
-        if selected_rep:
-            with st.popover("🗑️ Elimina Repertorio", width="stretch"):
-                st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
-                if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
-                    storage.delete_repertoire(selected_rep.uuid, current_user.email, current_user.name)
-                    log_op("🗑️", "REPERTORIO", f"Eliminato repertorio '{selected_rep.name}'", "WARNING")
-                    st.success(f"Repertorio '{selected_rep.name}' eliminato.")
-                    st.rerun()
+    with tab_web:
+        st.write("#### 🌐 Importazione Automatica da Internet (Siti Italiani ed Internazionali)")
+        st.caption("Estrae automaticamente accordi e testi da Accordi e Spartiti, Ultimate-Guitar, Skitarrate, Chordie e pagine web pubbliche.")
 
-    if not selected_rep:
-        st.stop()
+        url_input = st.text_input("Incolla URL diretto della pagina dello spartito:", placeholder="https://www.accordiespartiti.it/accordi/italiani/nomadi/canzone-per-unamica/")
+        if url_input and st.button("📥 Scarica da URL e Converti in AML"):
+            with st.spinner("Scaricamento e parsing della pagina web..."):
+                try:
+                    song_web = WebSongImporter.fetch_from_url(url_input)
+                    saved = storage.save_song(song_web, st.session_state["current_user_email"], st.session_state["current_user_name"], "Importazione da Web URL")
+                    if target_rep:
+                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    rep_msg = f" ed inserito nel repertorio **'{target_rep.name}'**" if target_rep else ""
+                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' ({saved.artist}) da URL web", "SUCCESS")
+                    st.success(f"Brano importato e salvato con successo: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
+                    st.session_state["selected_song_uuid"] = saved.uuid
+                except Exception as err:
+                    log_op("❌", "WEB IMPORT", f"Errore import URL: {str(err)}", "ERROR")
+                    st.error(f"Errore durante l'importazione da Web: {str(err)}")
 
-    rep_songs = [storage.get_song(s_id) for s_id in selected_rep.song_uuids if storage.get_song(s_id)]
+        st.divider()
+        st.write("#### 🔍 Ricerca Brano Online sui Portali (Italiani ed Internazionali)")
+        st.caption("Interroga in tempo reale Accordi e Spartiti, Ultimate-Guitar e i principali archivi web per trovare e importare lo spartito reale.")
 
-    # Sezione Aggiunta Brani al Repertorio
-    all_archive_songs = storage.list_songs()
-    unassigned_songs = [s for s in all_archive_songs if s["uuid"] not in selected_rep.song_uuids]
+        c_w1, c_w2 = st.columns(2)
+        with c_w1:
+            search_title = st.text_input("Titolo Brano:", "Albachiara")
+        with c_w2:
+            search_artist = st.text_input("Artista (opzionale):", "Vasco Rossi")
 
-    c_btn1, c_btn2 = st.columns([1, 2])
-    with c_btn1:
-        if st.button("➕ Crea Nuovo Brano", disabled=not current_user.can_edit()):
-            new_s = Song(title="Nuovo Brano", key_current="C", aml_content="{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...")
-            saved = storage.save_song(new_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
-            storage.move_song_to_repertoire(saved.uuid, selected_rep.uuid)
-            st.session_state["selected_song_uuid"] = saved.uuid
-            log_op("➕", "BRANO", f"Creato nuovo brano '{saved.title}' nel repertorio '{selected_rep.name}'", "SUCCESS")
-            st.success(f"Creato brano '{saved.title}'")
-            st.rerun()
+        c_btn1, c_btn2 = st.columns([1, 1])
+        with c_btn1:
+            do_search = st.button("🔍 Cerca Brano sui Portali", width="stretch")
+        with c_btn2:
+            auto_import = st.button("⚡ Importa Subito il Miglior Risultato", width="stretch")
 
-    with c_btn2:
-        if unassigned_songs:
-            with st.expander("📥 Inserisci brano esistente dell'archivio in questo repertorio"):
-                s_to_add_id = st.selectbox(
-                    "Seleziona brano da collegare:",
-                    [s["uuid"] for s in unassigned_songs],
-                    format_func=lambda uid: next(f"{s['title']} ({s.get('artist', 'Sconosciuto')})" for s in unassigned_songs if s["uuid"] == uid),
-                    key=f"sel_add_{selected_rep.uuid}"
-                )
-                if st.button("➕ Aggiungi al Repertorio", disabled=not current_user.can_edit()):
-                    storage.move_song_to_repertoire(s_to_add_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    log_op("📥", "REPERTORIO", f"Brano associato al repertorio '{selected_rep.name}'", "INFO")
-                    st.success("Brano associato con successo a questo repertorio!")
-                    st.rerun()
+        if do_search:
+            with st.spinner("Ricerca in corso sui portali di accordi..."):
+                found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
+                st.session_state["web_search_candidates"] = found_candidates
+                log_op("🔍", "WEB IMPORT", f"Ricerca online per '{search_title}': trovati {len(found_candidates)} spartiti", "INFO")
+                if not found_candidates:
+                    st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
 
-    if rep_songs:
-        rows = []
-        for s in rep_songs:
-            lock = lock_mgr.check_lock(s.uuid)
-            lock_display = f"🔒 {lock.locked_by_name}" if lock.is_locked else "🔓 Libero"
-            rows.append({
-                "UUID": s.uuid,
-                "Titolo": s.title,
-                "Artista": s.artist,
-                "Tonalità": s.key_current,
-                "BPM": s.bpm,
-                "Revisione": f"Rev #{s.current_revision}",
-                "Lock": lock_display
-            })
-        st.dataframe(rows, width="stretch")
+        if auto_import:
+            with st.spinner("Ricerca e importazione del brano migliore in corso..."):
+                try:
+                    imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
+                    saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
+                    if target_rep:
+                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    st.session_state["selected_song_uuid"] = saved.uuid
+                    rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
+                    log_op("⚡", "WEB IMPORT", f"Importazione rapida completata: '{saved.title}' ({saved.artist})", "SUCCESS")
+                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
+                    st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
+                except Exception as err:
+                    log_op("❌", "WEB IMPORT", f"Errore import automatico: {str(err)}", "ERROR")
+                    st.error(f"Errore durante l'importazione automatica: {str(err)}")
 
-        selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
-        selected_lock = lock_mgr.check_lock(selected_s_id)
-        selected_song_obj = next((s for s in rep_songs if s.uuid == selected_s_id), None)
+        # Visualizza risultati candidati trovati
+        candidates = st.session_state.get("web_search_candidates", [])
+        if candidates:
+            st.write(f"##### 📋 Risultati trovati sul Web ({len(candidates)} spartiti disponibili):")
+            for idx, cand in enumerate(candidates):
+                with st.container():
+                    col_info, col_act = st.columns([4, 1])
+                    with col_info:
+                        st.markdown(f"**{cand['title']}** — *{cand.get('artist', '')}*  \n🏷️ Portale: `{cand['portal']}` | [Apri Pagina Originale ↗]({cand['url']})")
+                    with col_act:
+                        if st.button("📥 Importa", key=f"imp_cand_{idx}", width="stretch"):
+                            with st.spinner("Scaricamento e parsing in AML..."):
+                                try:
+                                    s_obj = WebSongImporter.fetch_from_url(cand["url"])
+                                    if (not s_obj.artist or s_obj.artist == "Artista Sconosciuto") and cand.get("artist"):
+                                        s_obj.artist = cand["artist"]
+                                    if (not s_obj.title or s_obj.title == "Brano da Web") and cand.get("title"):
+                                        s_obj.title = cand["title"]
+                                    saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], f"Importato da {cand['portal']}")
+                                    if target_rep:
+                                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                                    st.session_state["selected_song_uuid"] = saved.uuid
+                                    rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' da {cand['portal']}", "SUCCESS")
+                                    st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`){rep_msg}!")
+                                except Exception as e_imp:
+                                    log_op("❌", "WEB IMPORT", f"Errore importazione candidato: {str(e_imp)}", "ERROR")
+                                    st.error(f"Errore importazione: {str(e_imp)}")
 
-        col_act1, col_act2, col_act3, col_act4, col_act5 = st.columns(5)
-        with col_act1:
-            if st.button("📝 Apri nell'Editor", width="stretch"):
-                st.session_state["selected_song_uuid"] = selected_s_id
-                st.session_state.pop(f"released_lock_{selected_s_id}", None)
-                st.info("Passa alla scheda 'Editor Brani' dal menu a sinistra.")
-        with col_act2:
-            if selected_lock.is_locked:
-                can_unlock = (selected_lock.locked_by_email == current_user.email) or current_user.is_admin()
-                if st.button("🔓 Rilascia Lock", disabled=not can_unlock, width="stretch", help=f"Bloccato da {selected_lock.locked_by_name}"):
-                    lock_mgr.release_lock(selected_s_id, current_user.email, force=current_user.is_admin())
-                    st.session_state[f"released_lock_{selected_s_id}"] = True
-                    s_title = selected_song_obj.title if selected_song_obj else selected_s_id
-                    log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{s_title}' da Gestione Repertori", "INFO")
-                    st.success("Lock rilasciato con successo!")
-                    st.rerun()
-            else:
-                st.caption("🔓 Nessun lock attivo")
-        with col_act3:
-            other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
-            if other_reps:
-                dest_rep = st.selectbox("Sposta in:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
-                if st.button("➡️ Sposta", disabled=not current_user.can_edit(), width="stretch"):
-                    target_r = next(r for r in other_reps if r.name == dest_rep)
-                    storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
-                    st.rerun()
-        with col_act4:
-            if st.button("❌ Rimuovi", disabled=not current_user.can_edit(), width="stretch"):
-                storage.remove_song_from_repertoire(selected_s_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                st.success("Brano rimosso dal repertorio (rimane presente nell'archivio generale).")
-                st.rerun()
-        with col_act5:
-            if st.button("🗑️ Cestino", disabled=not current_user.can_delete(), width="stretch"):
-                storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
-                st.rerun()
-    else:
-        st.info("Nessun brano associato a questo repertorio.")
+    with tab_imp:
+        st.write("#### Importazione da File PDF, ChordPro o Formato Tradizionale")
+        imp_format = st.radio("Seleziona Formato di Origine:", ["ChordPro standard", "Tradizionale (Accordi sopra il testo)", "PDF"], horizontal=True)
+
+        if imp_format == "PDF":
+            uploaded_pdf = st.file_uploader("Carica File PDF dello spartito:", type=["pdf"])
+            if uploaded_pdf and st.button("Estrai e Converti in AML"):
+                pdf_bytes = uploaded_pdf.read()
+                imported_s = ImportEngine.import_from_pdf_bytes(pdf_bytes, filename=uploaded_pdf.name)
+                saved = storage.save_song(imported_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                if target_rep:
+                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                st.success(f"Estratto e salvato con successo come '{saved.title}'{rep_msg}!")
+                st.session_state["selected_song_uuid"] = saved.uuid
+        else:
+            pasted_text = st.text_area("Incolla qui il testo dello spartito:", height=200)
+            if pasted_text and st.button("Converti e Salva in Repertorio"):
+                if imp_format == "ChordPro standard":
+                    s_obj = ImportEngine.import_from_chordpro(pasted_text)
+                else:
+                    s_obj = ImportEngine.import_from_traditional(pasted_text)
+                saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                if target_rep:
+                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
+                st.success(f"Brano importato e salvato: **{saved.title}** (Key: {saved.key_current}){rep_msg}")
+
+    with tab_exp:
+        st.write("#### Esportazione per MobileSheets, SongBookPro, OnSong")
+        all_s = storage.list_songs()
+        if all_s:
+            exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
+            target_song = storage.get_song(exp_song_id)
+
+            c_e1, c_e2, c_e3, c_e4 = st.columns(4)
+            with c_e1:
+                sb_content = ExportEngine.export_for_songbookpro(target_song)
+                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", width="stretch")
+            with c_e2:
+                ms_content = ExportEngine.export_for_mobilesheets(target_song)
+                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", width="stretch")
+            with c_e3:
+                cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
+                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", width="stretch")
+            with c_e4:
+                onsong_content = ExportEngine.export_for_onsong(target_song)
+                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", width="stretch")
+
+            st.divider()
+            st.write("#### 📦 Offline Live Pack ZIP (SRS Cap. 14.29)")
+            setlists = storage.list_setlists()
+            if setlists:
+                pack_set = st.selectbox("Seleziona Scaletta per generare il Live Pack:", setlists, format_func=lambda x: x.title)
+                pack_songs = [storage.get_song(it.song_uuid) for it in pack_set.items if storage.get_song(it.song_uuid)]
+                if pack_songs:
+                    pack_zip = ExportEngine.create_offline_live_pack_zip(pack_set, pack_songs)
+                    st.download_button(
+                        "💾 Scarica Offline Live Pack ZIP Completo",
+                        data=pack_zip,
+                        file_name=f"OfflinePack_{pack_set.title.replace(' ', '_')}.zip",
+                        mime="application/zip",
+                        type="primary"
+                    )
 
 # ------------------------------------------------------------------------------
-# 3. EDITOR BRANI
+# 8. RICERCA GLOBALE
 # ------------------------------------------------------------------------------
-elif menu_choice == "📝 Editor Brani":
-    st.subheader("📝 Editor Brani Musicali & Anteprima Device-Aware")
+elif menu_choice == "📝 Brani":
+    st.subheader("📝 Gestione & Editor Brani (AML & Anteprima)")
+    st.caption("Importa, visualizza, componi in AML e controlla l'anteprima device-aware con accordi e trasposizione.")
 
     songs = storage.list_songs()
     if not songs:
@@ -1331,6 +1522,214 @@ elif menu_choice == "📝 Editor Brani":
 # ------------------------------------------------------------------------------
 # 4. SCALETTE LIVE
 # ------------------------------------------------------------------------------
+elif menu_choice == "🤖 Band AI (Opzionale)":
+    st.subheader("🤖 Assistente Creativo Band AI (100% Opzionale)")
+    st.caption("In conformità alla SRS (Cap. 1.4 e 22.6), l'AI è rigorosamente esclusa da accordi, trasposizioni e PDF. Fornisce solo spunti creativi di arrangiamento e medley.")
+
+    ai_mode = BandAIService.get_current_mode()
+    st.info(f"Modalità AI Attuale del Sistema: **{ai_mode}**")
+
+    tab_ai1, tab_ai2 = st.tabs(["🎵 Suggeritore Medley & Transizioni", "🎸 Idee di Arrangiamento Live"])
+
+    with tab_ai1:
+        st.write("#### Analisi e Suggerimenti Transizione Medley")
+        all_s = storage.list_songs()
+        if len(all_s) >= 2:
+            s_choices = {s["uuid"]: s["title"] for s in all_s}
+            id_a = st.selectbox("Primo Brano:", list(s_choices.keys()), format_func=lambda x: s_choices[x], key="ai_s1")
+            id_b = st.selectbox("Secondo Brano:", [k for k in s_choices.keys() if k != id_a], format_func=lambda x: s_choices[x], key="ai_s2")
+
+            s_a = storage.get_song(id_a)
+            s_b = storage.get_song(id_b)
+
+            if st.button("💡 Analizza Compatibilità & Suggerisci Transizione"):
+                advice = BandAIService.suggest_medley_transition(s_a.title, s_a.key_current, s_a.bpm, s_b.title, s_b.key_current, s_b.bpm)
+                st.metric("Affinità Transizione", f"{int(advice['score'] * 100)}%")
+                st.text_area("Consigli di Regia e Arrangiamento:", advice["creative_advice"], height=160)
+        else:
+            st.info("Inserisci almeno 2 brani nell'archivio per calcolare la transizione medley.")
+
+    with tab_ai2:
+        st.write("#### Consigli Strumentali per Brano")
+        if all_s:
+            sel_s_id = st.selectbox("Seleziona Brano:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x), key="ai_arr_s")
+            s_obj = storage.get_song(sel_s_id)
+            if st.button("🎸 Genera Idee di Dinamica & Sezioni"):
+                arr_text = BandAIService.suggest_arrangement_ideas(s_obj.title, s_obj.genre, s_obj.key_current, s_obj.bpm)
+                st.markdown(arr_text)
+
+# ------------------------------------------------------------------------------
+# 10. MANUALE & CHANGELOG
+# ------------------------------------------------------------------------------
+elif menu_choice == "🔍 Ricerca Globale":
+    st.subheader("🔍 Ricerca Globale Multi-Criterio (< 2ms)")
+
+    c_q1, c_q2, c_q3, c_q4, c_q5 = st.columns(5)
+    with c_q1:
+        search_txt = st.text_input("Parola chiave (titolo/autore/testo):", "")
+    with c_q2:
+        search_key = st.text_input("Tonalità (es. C o G):", "")
+    with c_q3:
+        search_bpm = st.number_input("BPM Massimo:", min_value=0, max_value=300, value=250)
+    with c_q4:
+        search_genre = st.text_input("Genere:", "")
+    with c_q5:
+        available_tags = ["Tutti"] + list(storage.list_all_tags().keys())
+        search_tag = st.selectbox("Filtra per Tag:", available_tags)
+
+    t0 = time.perf_counter()
+    res = storage.search_songs(
+        query_text=search_txt or None,
+        key=search_key or None,
+        bpm_max=search_bpm if search_bpm > 0 else None,
+        genre=search_genre or None,
+        tag=search_tag if search_tag != "Tutti" else None
+    )
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+    st.caption(f"⚡ Ricerca eseguita in **{elapsed_ms:.3f} ms** su SQLite in-memory | Trovati: **{len(res)}**")
+    if res:
+        st.dataframe(res, width="stretch")
+    else:
+        st.info("Nessun brano corrisponde ai criteri.")
+
+# ------------------------------------------------------------------------------
+# 9. BAND AI (OPZIONALE)
+# ------------------------------------------------------------------------------
+elif menu_choice == "📚 Repertori":
+    st.subheader("📚 Gestione Repertori")
+
+    repertoires = storage.list_repertoires()
+    col_rep_top1, col_rep_top2 = st.columns([3, 1])
+    with col_rep_top1:
+        if repertoires:
+            selected_rep_name = st.selectbox("Seleziona Repertorio:", [r.name for r in repertoires])
+            selected_rep = next(r for r in repertoires if r.name == selected_rep_name)
+            st.write(f"*{selected_rep.description}*")
+        else:
+            st.info("Nessun repertorio esistente. Crea il tuo primo repertorio.")
+            selected_rep = None
+
+    with col_rep_top2:
+        with st.popover("➕ Nuovo Repertorio", width="stretch"):
+            st.write("##### Crea Nuovo Repertorio")
+            new_r_name = st.text_input("Nome:", placeholder="Es. Repertorio Acustico")
+            new_r_desc = st.text_input("Descrizione:", placeholder="Brani per set acustico")
+            if st.button("Crea Repertorio", type="primary", disabled=not current_user.can_edit()):
+                if new_r_name:
+                    created_rep = Repertoire(name=new_r_name, description=new_r_desc)
+                    storage.save_repertoire(created_rep, current_user.email, current_user.name)
+                    log_op("📚", "REPERTORIO", f"Creato nuovo repertorio '{new_r_name}'", "SUCCESS")
+                    st.success(f"Repertorio '{new_r_name}' creato!")
+                    st.rerun()
+
+        if selected_rep:
+            with st.popover("🗑️ Elimina Repertorio", width="stretch"):
+                st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
+                if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
+                    storage.delete_repertoire(selected_rep.uuid, current_user.email, current_user.name)
+                    log_op("🗑️", "REPERTORIO", f"Eliminato repertorio '{selected_rep.name}'", "WARNING")
+                    st.success(f"Repertorio '{selected_rep.name}' eliminato.")
+                    st.rerun()
+
+    if not selected_rep:
+        st.stop()
+
+    rep_songs = [storage.get_song(s_id) for s_id in selected_rep.song_uuids if storage.get_song(s_id)]
+
+    # Sezione Aggiunta Brani al Repertorio
+    all_archive_songs = storage.list_songs()
+    unassigned_songs = [s for s in all_archive_songs if s["uuid"] not in selected_rep.song_uuids]
+
+    c_btn1, c_btn2 = st.columns([1, 2])
+    with c_btn1:
+        if st.button("➕ Crea Nuovo Brano", disabled=not current_user.can_edit()):
+            new_s = Song(title="Nuovo Brano", key_current="C", aml_content="{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...")
+            saved = storage.save_song(new_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
+            storage.move_song_to_repertoire(saved.uuid, selected_rep.uuid)
+            st.session_state["selected_song_uuid"] = saved.uuid
+            log_op("➕", "BRANO", f"Creato nuovo brano '{saved.title}' nel repertorio '{selected_rep.name}'", "SUCCESS")
+            st.success(f"Creato brano '{saved.title}'")
+            st.rerun()
+
+    with c_btn2:
+        if unassigned_songs:
+            with st.expander("📥 Inserisci brano esistente dell'archivio in questo repertorio"):
+                s_to_add_id = st.selectbox(
+                    "Seleziona brano da collegare:",
+                    [s["uuid"] for s in unassigned_songs],
+                    format_func=lambda uid: next(f"{s['title']} ({s.get('artist', 'Sconosciuto')})" for s in unassigned_songs if s["uuid"] == uid),
+                    key=f"sel_add_{selected_rep.uuid}"
+                )
+                if st.button("➕ Aggiungi al Repertorio", disabled=not current_user.can_edit()):
+                    storage.move_song_to_repertoire(s_to_add_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    log_op("📥", "REPERTORIO", f"Brano associato al repertorio '{selected_rep.name}'", "INFO")
+                    st.success("Brano associato con successo a questo repertorio!")
+                    st.rerun()
+
+    if rep_songs:
+        rows = []
+        for s in rep_songs:
+            lock = lock_mgr.check_lock(s.uuid)
+            lock_display = f"🔒 {lock.locked_by_name}" if lock.is_locked else "🔓 Libero"
+            rows.append({
+                "UUID": s.uuid,
+                "Titolo": s.title,
+                "Artista": s.artist,
+                "Tonalità": s.key_current,
+                "BPM": s.bpm,
+                "Revisione": f"Rev #{s.current_revision}",
+                "Lock": lock_display
+            })
+        st.dataframe(rows, width="stretch")
+
+        selected_s_id = st.selectbox("Seleziona Brano per azioni rapide:", [r["UUID"] for r in rows], format_func=lambda x: next(r["Titolo"] for r in rows if r["UUID"] == x))
+        selected_lock = lock_mgr.check_lock(selected_s_id)
+        selected_song_obj = next((s for s in rep_songs if s.uuid == selected_s_id), None)
+
+        col_act1, col_act2, col_act3, col_act4, col_act5 = st.columns(5)
+        with col_act1:
+            if st.button("📝 Apri nell'Editor", width="stretch"):
+                st.session_state["selected_song_uuid"] = selected_s_id
+                st.session_state.pop(f"released_lock_{selected_s_id}", None)
+                st.info("Passa alla sezione 'Brani' dal menu in alto.")
+        with col_act2:
+            if selected_lock.is_locked:
+                can_unlock = (selected_lock.locked_by_email == current_user.email) or current_user.is_admin()
+                if st.button("🔓 Rilascia Lock", disabled=not can_unlock, width="stretch", help=f"Bloccato da {selected_lock.locked_by_name}"):
+                    lock_mgr.release_lock(selected_s_id, current_user.email, force=current_user.is_admin())
+                    st.session_state[f"released_lock_{selected_s_id}"] = True
+                    s_title = selected_song_obj.title if selected_song_obj else selected_s_id
+                    log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{s_title}' da Gestione Repertori", "INFO")
+                    st.success("Lock rilasciato con successo!")
+                    st.rerun()
+            else:
+                st.caption("🔓 Nessun lock attivo")
+        with col_act3:
+            other_reps = [r for r in repertoires if r.uuid != selected_rep.uuid]
+            if other_reps:
+                dest_rep = st.selectbox("Sposta in:", [r.name for r in other_reps], key=f"dest_rep_{selected_s_id}")
+                if st.button("➡️ Sposta", disabled=not current_user.can_edit(), width="stretch"):
+                    target_r = next(r for r in other_reps if r.name == dest_rep)
+                    storage.move_song_to_repertoire(selected_s_id, target_r.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                    st.success(f"Brano spostato in '{target_r.name}' senza perdita dello storico.")
+                    st.rerun()
+        with col_act4:
+            if st.button("❌ Rimuovi", disabled=not current_user.can_edit(), width="stretch"):
+                storage.remove_song_from_repertoire(selected_s_id, selected_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                st.success("Brano rimosso dal repertorio (rimane presente nell'archivio generale).")
+                st.rerun()
+        with col_act5:
+            if st.button("🗑️ Cestino", disabled=not current_user.can_delete(), width="stretch"):
+                storage.delete_song(selected_s_id, st.session_state["current_user_email"], st.session_state["current_user_name"])
+                st.warning("Brano spostato nel cestino (recuperabile per 30 giorni).")
+                st.rerun()
+    else:
+        st.info("Nessun brano associato a questo repertorio.")
+
+# ------------------------------------------------------------------------------
+# 3. EDITOR BRANI
+# ------------------------------------------------------------------------------
 elif menu_choice == "📑 Scalette Live":
     st.subheader("📑 Gestione Scalette Live (Setlist)")
 
@@ -1551,257 +1950,6 @@ elif menu_choice == "📅 Eventi Live":
 
 # ------------------------------------------------------------------------------
 # 7. IMPORTA ED ESPORTA (CON WEB IMPORTER)
-# ------------------------------------------------------------------------------
-elif menu_choice == "📥 Importa & 📤 Esporta":
-    st.subheader("📥 Importazione Multi-Formato & 📤 Esportazione Interoperabile")
-
-    # Scelta del Repertorio di Destinazione per l'importazione
-    all_reps = storage.list_repertoires()
-    col_rep_sel, col_rep_info = st.columns([2, 1])
-    with col_rep_sel:
-        target_rep = st.selectbox(
-            "📂 Assegna automaticamente i brani importati a questo Repertorio:",
-            all_reps,
-            format_func=lambda r: f"📚 {r.name} ({len(r.song_uuids)} brani)"
-        ) if all_reps else None
-    with col_rep_info:
-        if target_rep:
-            st.caption(f"I brani importati verranno archiviati in: **{target_rep.name}**")
-        else:
-            st.warning("Nessun repertorio attivo. I brani resteranno nell'archivio generale.")
-
-    tab_web, tab_imp, tab_exp = st.tabs(["🌐 Import da Web / URL", "📥 Import PDF & Testo", "📤 Esporta per App Esterne"])
-
-    with tab_web:
-        st.write("#### 🌐 Importazione Automatica da Internet (Siti Italiani ed Internazionali)")
-        st.caption("Estrae automaticamente accordi e testi da Accordi e Spartiti, Ultimate-Guitar, Skitarrate, Chordie e pagine web pubbliche.")
-
-        url_input = st.text_input("Incolla URL diretto della pagina dello spartito:", placeholder="https://www.accordiespartiti.it/accordi/italiani/nomadi/canzone-per-unamica/")
-        if url_input and st.button("📥 Scarica da URL e Converti in AML"):
-            with st.spinner("Scaricamento e parsing della pagina web..."):
-                try:
-                    song_web = WebSongImporter.fetch_from_url(url_input)
-                    saved = storage.save_song(song_web, st.session_state["current_user_email"], st.session_state["current_user_name"], "Importazione da Web URL")
-                    if target_rep:
-                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    rep_msg = f" ed inserito nel repertorio **'{target_rep.name}'**" if target_rep else ""
-                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' ({saved.artist}) da URL web", "SUCCESS")
-                    st.success(f"Brano importato e salvato con successo: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
-                    st.session_state["selected_song_uuid"] = saved.uuid
-                except Exception as err:
-                    log_op("❌", "WEB IMPORT", f"Errore import URL: {str(err)}", "ERROR")
-                    st.error(f"Errore durante l'importazione da Web: {str(err)}")
-
-        st.divider()
-        st.write("#### 🔍 Ricerca Brano Online sui Portali (Italiani ed Internazionali)")
-        st.caption("Interroga in tempo reale Accordi e Spartiti, Ultimate-Guitar e i principali archivi web per trovare e importare lo spartito reale.")
-
-        c_w1, c_w2 = st.columns(2)
-        with c_w1:
-            search_title = st.text_input("Titolo Brano:", "Albachiara")
-        with c_w2:
-            search_artist = st.text_input("Artista (opzionale):", "Vasco Rossi")
-
-        c_btn1, c_btn2 = st.columns([1, 1])
-        with c_btn1:
-            do_search = st.button("🔍 Cerca Brano sui Portali", width="stretch")
-        with c_btn2:
-            auto_import = st.button("⚡ Importa Subito il Miglior Risultato", width="stretch")
-
-        if do_search:
-            with st.spinner("Ricerca in corso sui portali di accordi..."):
-                found_candidates = WebSongImporter.search_online_candidates(search_title, search_artist, limit=6)
-                st.session_state["web_search_candidates"] = found_candidates
-                log_op("🔍", "WEB IMPORT", f"Ricerca online per '{search_title}': trovati {len(found_candidates)} spartiti", "INFO")
-                if not found_candidates:
-                    st.warning("Nessun brano trovato con questi termini sui portali online, oppure rete non raggiungibile.")
-
-        if auto_import:
-            with st.spinner("Ricerca e importazione del brano migliore in corso..."):
-                try:
-                    imported_song = WebSongImporter.search_online_and_import(search_title, search_artist)
-                    saved = storage.save_song(imported_song, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricerca Web e Importazione Automatica")
-                    if target_rep:
-                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                    st.session_state["selected_song_uuid"] = saved.uuid
-                    rep_msg = f" ed associato a **'{target_rep.name}'**" if target_rep else ""
-                    log_op("⚡", "WEB IMPORT", f"Importazione rapida completata: '{saved.title}' ({saved.artist})", "SUCCESS")
-                    st.success(f"Brano importato e salvato: **{saved.title}** ({saved.artist}) — Tonalità: `{saved.key_current}`{rep_msg}")
-                    st.info("Puoi visualizzarlo o modificarlo nella sezione **'🎵 Repertorio'**.")
-                except Exception as err:
-                    log_op("❌", "WEB IMPORT", f"Errore import automatico: {str(err)}", "ERROR")
-                    st.error(f"Errore durante l'importazione automatica: {str(err)}")
-
-        # Visualizza risultati candidati trovati
-        candidates = st.session_state.get("web_search_candidates", [])
-        if candidates:
-            st.write(f"##### 📋 Risultati trovati sul Web ({len(candidates)} spartiti disponibili):")
-            for idx, cand in enumerate(candidates):
-                with st.container():
-                    col_info, col_act = st.columns([4, 1])
-                    with col_info:
-                        st.markdown(f"**{cand['title']}** — *{cand.get('artist', '')}*  \n🏷️ Portale: `{cand['portal']}` | [Apri Pagina Originale ↗]({cand['url']})")
-                    with col_act:
-                        if st.button("📥 Importa", key=f"imp_cand_{idx}", width="stretch"):
-                            with st.spinner("Scaricamento e parsing in AML..."):
-                                try:
-                                    s_obj = WebSongImporter.fetch_from_url(cand["url"])
-                                    if (not s_obj.artist or s_obj.artist == "Artista Sconosciuto") and cand.get("artist"):
-                                        s_obj.artist = cand["artist"]
-                                    if (not s_obj.title or s_obj.title == "Brano da Web") and cand.get("title"):
-                                        s_obj.title = cand["title"]
-                                    saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], f"Importato da {cand['portal']}")
-                                    if target_rep:
-                                        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                                    st.session_state["selected_song_uuid"] = saved.uuid
-                                    rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
-                                    log_op("📥", "WEB IMPORT", f"Importato brano '{saved.title}' da {cand['portal']}", "SUCCESS")
-                                    st.success(f"Brano salvato: **{saved.title}** (Key: `{saved.key_current}`){rep_msg}!")
-                                except Exception as e_imp:
-                                    log_op("❌", "WEB IMPORT", f"Errore importazione candidato: {str(e_imp)}", "ERROR")
-                                    st.error(f"Errore importazione: {str(e_imp)}")
-
-    with tab_imp:
-        st.write("#### Importazione da File PDF, ChordPro o Formato Tradizionale")
-        imp_format = st.radio("Seleziona Formato di Origine:", ["ChordPro standard", "Tradizionale (Accordi sopra il testo)", "PDF"], horizontal=True)
-
-        if imp_format == "PDF":
-            uploaded_pdf = st.file_uploader("Carica File PDF dello spartito:", type=["pdf"])
-            if uploaded_pdf and st.button("Estrai e Converti in AML"):
-                pdf_bytes = uploaded_pdf.read()
-                imported_s = ImportEngine.import_from_pdf_bytes(pdf_bytes, filename=uploaded_pdf.name)
-                saved = storage.save_song(imported_s, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                if target_rep:
-                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
-                st.success(f"Estratto e salvato con successo come '{saved.title}'{rep_msg}!")
-                st.session_state["selected_song_uuid"] = saved.uuid
-        else:
-            pasted_text = st.text_area("Incolla qui il testo dello spartito:", height=200)
-            if pasted_text and st.button("Converti e Salva in Repertorio"):
-                if imp_format == "ChordPro standard":
-                    s_obj = ImportEngine.import_from_chordpro(pasted_text)
-                else:
-                    s_obj = ImportEngine.import_from_traditional(pasted_text)
-                saved = storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                if target_rep:
-                    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                rep_msg = f" ed inserito in **'{target_rep.name}'**" if target_rep else ""
-                st.success(f"Brano importato e salvato: **{saved.title}** (Key: {saved.key_current}){rep_msg}")
-
-    with tab_exp:
-        st.write("#### Esportazione per MobileSheets, SongBookPro, OnSong")
-        all_s = storage.list_songs()
-        if all_s:
-            exp_song_id = st.selectbox("Seleziona Brano da esportare:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x))
-            target_song = storage.get_song(exp_song_id)
-
-            c_e1, c_e2, c_e3, c_e4 = st.columns(4)
-            with c_e1:
-                sb_content = ExportEngine.export_for_songbookpro(target_song)
-                st.download_button("🎸 SongBook Pro (.pro)", sb_content, file_name=f"{target_song.title}.pro", width="stretch")
-            with c_e2:
-                ms_content = ExportEngine.export_for_mobilesheets(target_song)
-                st.download_button("📱 MobileSheets (.pro)", ms_content, file_name=f"{target_song.title}_ms.pro", width="stretch")
-            with c_e3:
-                cpro_content = ExportEngine.export_to_chordpro(target_song.aml_content)
-                st.download_button("🎼 ChordPro (.cho)", cpro_content, file_name=f"{target_song.title}.cho", width="stretch")
-            with c_e4:
-                onsong_content = ExportEngine.export_for_onsong(target_song)
-                st.download_button("🎤 OnSong (.onsong)", onsong_content, file_name=f"{target_song.title}.onsong", width="stretch")
-
-            st.divider()
-            st.write("#### 📦 Offline Live Pack ZIP (SRS Cap. 14.29)")
-            setlists = storage.list_setlists()
-            if setlists:
-                pack_set = st.selectbox("Seleziona Scaletta per generare il Live Pack:", setlists, format_func=lambda x: x.title)
-                pack_songs = [storage.get_song(it.song_uuid) for it in pack_set.items if storage.get_song(it.song_uuid)]
-                if pack_songs:
-                    pack_zip = ExportEngine.create_offline_live_pack_zip(pack_set, pack_songs)
-                    st.download_button(
-                        "💾 Scarica Offline Live Pack ZIP Completo",
-                        data=pack_zip,
-                        file_name=f"OfflinePack_{pack_set.title.replace(' ', '_')}.zip",
-                        mime="application/zip",
-                        type="primary"
-                    )
-
-# ------------------------------------------------------------------------------
-# 8. RICERCA GLOBALE
-# ------------------------------------------------------------------------------
-elif menu_choice == "🔍 Ricerca Globale":
-    st.subheader("🔍 Ricerca Globale Multi-Criterio (< 2ms)")
-
-    c_q1, c_q2, c_q3, c_q4, c_q5 = st.columns(5)
-    with c_q1:
-        search_txt = st.text_input("Parola chiave (titolo/autore/testo):", "")
-    with c_q2:
-        search_key = st.text_input("Tonalità (es. C o G):", "")
-    with c_q3:
-        search_bpm = st.number_input("BPM Massimo:", min_value=0, max_value=300, value=250)
-    with c_q4:
-        search_genre = st.text_input("Genere:", "")
-    with c_q5:
-        available_tags = ["Tutti"] + list(storage.list_all_tags().keys())
-        search_tag = st.selectbox("Filtra per Tag:", available_tags)
-
-    t0 = time.perf_counter()
-    res = storage.search_songs(
-        query_text=search_txt or None,
-        key=search_key or None,
-        bpm_max=search_bpm if search_bpm > 0 else None,
-        genre=search_genre or None,
-        tag=search_tag if search_tag != "Tutti" else None
-    )
-    elapsed_ms = (time.perf_counter() - t0) * 1000.0
-
-    st.caption(f"⚡ Ricerca eseguita in **{elapsed_ms:.3f} ms** su SQLite in-memory | Trovati: **{len(res)}**")
-    if res:
-        st.dataframe(res, width="stretch")
-    else:
-        st.info("Nessun brano corrisponde ai criteri.")
-
-# ------------------------------------------------------------------------------
-# 9. BAND AI (OPZIONALE)
-# ------------------------------------------------------------------------------
-elif menu_choice == "🤖 Band AI (Opzionale)":
-    st.subheader("🤖 Assistente Creativo Band AI (100% Opzionale)")
-    st.caption("In conformità alla SRS (Cap. 1.4 e 22.6), l'AI è rigorosamente esclusa da accordi, trasposizioni e PDF. Fornisce solo spunti creativi di arrangiamento e medley.")
-
-    ai_mode = BandAIService.get_current_mode()
-    st.info(f"Modalità AI Attuale del Sistema: **{ai_mode}**")
-
-    tab_ai1, tab_ai2 = st.tabs(["🎵 Suggeritore Medley & Transizioni", "🎸 Idee di Arrangiamento Live"])
-
-    with tab_ai1:
-        st.write("#### Analisi e Suggerimenti Transizione Medley")
-        all_s = storage.list_songs()
-        if len(all_s) >= 2:
-            s_choices = {s["uuid"]: s["title"] for s in all_s}
-            id_a = st.selectbox("Primo Brano:", list(s_choices.keys()), format_func=lambda x: s_choices[x], key="ai_s1")
-            id_b = st.selectbox("Secondo Brano:", [k for k in s_choices.keys() if k != id_a], format_func=lambda x: s_choices[x], key="ai_s2")
-
-            s_a = storage.get_song(id_a)
-            s_b = storage.get_song(id_b)
-
-            if st.button("💡 Analizza Compatibilità & Suggerisci Transizione"):
-                advice = BandAIService.suggest_medley_transition(s_a.title, s_a.key_current, s_a.bpm, s_b.title, s_b.key_current, s_b.bpm)
-                st.metric("Affinità Transizione", f"{int(advice['score'] * 100)}%")
-                st.text_area("Consigli di Regia e Arrangiamento:", advice["creative_advice"], height=160)
-        else:
-            st.info("Inserisci almeno 2 brani nell'archivio per calcolare la transizione medley.")
-
-    with tab_ai2:
-        st.write("#### Consigli Strumentali per Brano")
-        if all_s:
-            sel_s_id = st.selectbox("Seleziona Brano:", [s["uuid"] for s in all_s], format_func=lambda x: next(s["title"] for s in all_s if s["uuid"] == x), key="ai_arr_s")
-            s_obj = storage.get_song(sel_s_id)
-            if st.button("🎸 Genera Idee di Dinamica & Sezioni"):
-                arr_text = BandAIService.suggest_arrangement_ideas(s_obj.title, s_obj.genre, s_obj.key_current, s_obj.bpm)
-                st.markdown(arr_text)
-
-# ------------------------------------------------------------------------------
-# 10. MANUALE & CHANGELOG
 # ------------------------------------------------------------------------------
 elif menu_choice == "📖 Manuale & Changelog":
     st.subheader("📖 Documentazione Ufficiale & Registro Modifiche")
