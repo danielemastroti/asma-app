@@ -635,6 +635,28 @@ st.markdown("""
     border-color: rgba(255, 255, 255, 0.12) !important;
     border-radius: 6px !important;
   }
+
+  /* Evidenziazione speciale per la Casella Selezione Brano principale */
+  .st-key-main_song_selector div[data-baseweb="select"] > div {
+    min-height: 44px !important;
+    height: 44px !important;
+    background: linear-gradient(135deg, rgba(14, 116, 144, 0.3) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    border: 2px solid #38BDF8 !important;
+    border-radius: 9px !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.35) !important;
+    padding-left: 12px !important;
+  }
+  .st-key-main_song_selector div[data-baseweb="select"] * {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #F8FAFC !important;
+    letter-spacing: 0.5px !important;
+  }
+  .st-key-main_song_selector div[data-baseweb="select"] svg {
+    fill: #38BDF8 !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
   div[data-testid="stTextInput"] input {
     height: 30px !important;
     min-height: 30px !important;
@@ -1564,10 +1586,33 @@ elif menu_choice == "📝 Brani":
     keys_list = list(song_choices.keys())
     default_idx = keys_list.index(curr_uuid) if (curr_uuid and curr_uuid in keys_list) else 0
 
+    curr_pre_song = storage.get_song(keys_list[default_idx]) if keys_list else None
+    artist_subtitle = f"({curr_pre_song.artist})" if curr_pre_song and curr_pre_song.artist else ""
+    key_bpm_subtitle = f"Tonalità: {curr_pre_song.key_current} • {curr_pre_song.bpm} BPM" if curr_pre_song else ""
+
     c_top_sel, c_top_new = st.columns([3, 1], gap="small")
     with c_top_sel:
-        selected_uuid = st.selectbox("Seleziona Brano da modificare:", keys_list, index=default_idx, format_func=lambda x: song_choices[x], label_visibility="collapsed")
+        st.markdown(
+            f"""<div style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 12px; font-weight: 800; color: #38BDF8; letter-spacing: 0.6px; text-transform: uppercase;">
+                🎵 Brano Attivo Selezionato:
+              </span>
+              <span style="font-size: 11px; color: #94A3B8; font-weight: 600;">
+                {artist_subtitle} {key_bpm_subtitle}
+              </span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        selected_uuid = st.selectbox(
+            "Seleziona Brano da modificare:",
+            keys_list,
+            index=default_idx,
+            format_func=lambda x: f"🎵 {song_choices[x].upper()}",
+            label_visibility="collapsed",
+            key="main_song_selector"
+        )
     with c_top_new:
+        st.markdown("""<div style="height: 20px;"></div>""", unsafe_allow_html=True)
         with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
             st.markdown("##### ✍️ Nuovo Brano Autoprodotto")
             st.caption("Scrivi o incolla il tuo testo: verrà formattato e aggiunto immediatamente all'archivio.")
