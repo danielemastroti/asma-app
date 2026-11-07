@@ -1704,7 +1704,26 @@ elif menu_choice == "📝 Brani":
         meta_c1, meta_c2, meta_c3 = st.columns(3)
         with meta_c1:
             title_input = st.text_input("Titolo:", value=song.title, disabled=not can_edit)
-            key_input = st.text_input("Tonalità:", value=song.key_current, disabled=not can_edit)
+            c_key_val, c_key_btn = st.columns([1, 1])
+            with c_key_val:
+                key_input = st.text_input("Tonalità:", value=song.key_current, disabled=not can_edit)
+            with c_key_btn:
+                st.write("")
+                st.write("")
+                if st.button("🎯 Analizza Key", help="Rileva la tonalità più probabile (es. MIm vs SOL) con analisi armonica deterministica e IA", disabled=not can_edit, key=f"btn_detect_key_{song.uuid}"):
+                    tokens = re.findall(r"\[([^\]]+)\]", song.aml_content or "")
+                    valid_chords = [t for t in tokens if MusicEngine.parse_chord(t)]
+                    res = BandAIService.analyze_probable_key_with_ai_fallback(song.title, song.artist, valid_chords, song.key_current)
+                    new_key = res.get("probable_key") or song.key_current
+                    song.key_current = new_key
+                    if not song.key_original or song.key_original == "DO" or song.key_original.upper() == "C":
+                        song.key_original = new_key
+                    if song.aml_content:
+                        song.aml_content = re.sub(r"\{key:\s*[^}]+\}", f"{{key: {new_key}}}", song.aml_content, count=1)
+                    storage.save_song(song, user_email, user_name, f"Aggiornamento Tonalità: {new_key} ({res.get('relationship', '')})")
+                    log_op("🎯", "KEY", f"Tonalità per '{song.title}': {new_key} ({res.get('relationship', '')})", "SUCCESS")
+                    st.success(f"🎯 Tonalità rilevata: **{new_key}** ({res.get('mode', '')}). {res.get('relationship', '')}")
+                    st.rerun()
         with meta_c2:
             artist_input = st.text_input("Artista:", value=song.artist, disabled=not can_edit)
             c_bpm_val, c_bpm_btn = st.columns([1, 1])

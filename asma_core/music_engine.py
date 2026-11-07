@@ -447,3 +447,116 @@ class MusicEngine:
             "description": description,
             "chords": [p.full_root + p.quality_and_extension for p in parsed_list]
         }
+
+    @classmethod
+    def detect_probable_key(cls, chords: List[str], current_hint: str = "") -> Dict[str, Any]:
+        """
+        Analisi armonica deterministica per identificare la tonalita piu probabile di un brano.
+        Distingue accuratamente tra:
+        - Tonalita Minore (es. MIm) e relativo Maggiore (es. SOL, dove MIm e il 6° grado).
+        - Errori di notazione (es. 'MI' memorizzato al posto di 'MIm').
+        Restituisce un dizionario con la tonalita primaria in formato italiano, il relativo e la relazione armonica.
+        """
+        parsed = [cls.parse_chord(c) for c in chords if cls.parse_chord(c)]
+        if not parsed:
+            fallback = current_hint or "DO"
+            return {
+                "probable_key": cls.convert_notation(fallback, "ITA"),
+                "relative_key": "",
+                "mode": "Maggiore",
+                "relationship": "Nessun accordo valido analizzabile"
+            }
+
+        major_steps = [0, 2, 4, 5, 7, 9, 11]
+        major_qualities = [False, True, True, False, False, True, True]
+        minor_steps = [0, 2, 3, 5, 7, 8, 10]
+        minor_qualities = [True, True, False, True, True, False, False]
+
+        first_p = parsed[0]
+        first_is_min = first_p.quality_and_extension.startswith("m") and not first_p.quality_and_extension.startswith("maj")
+        last_p = parsed[-1]
+        last_is_min = last_p.quality_and_extension.startswith("m") and not last_p.quality_and_extension.startswith("maj")
+
+        hint_p = cls.parse_chord(current_hint) if current_hint else None
+
+        scores: Dict[Tuple[int, bool], float] = {}
+
+        for pc in range(12):
+            for is_min in (False, True):
+                steps = minor_steps if is_min else major_steps
+                qualities = minor_qualities if is_min else major_qualities
+                scale_pcs = set((pc + s) % 12 for s in steps)
+                dominant_pc = (pc + 7) % 12
+
+                score = 0.0
+                tonic_count = 0
+
+                for p in parsed:
+                    p_pc = p.pitch_class
+                    p_min = p.quality_and_extension.startswith("m") and not p.quality_and_extension.startswith("maj")
+
+                    if p_pc in scale_pcs:
+                        score += 2.0
+                        deg_idx = steps.index((p_pc - pc) % 12)
+                        if p_min == qualities[deg_idx]:
+                            score += 1.0
+                        # Dominante armonica per tonalita minore (es. SI/SI7 in MIm)
+                        if is_min and p_pc == dominant_pc and not p_min:
+                            score += 4.0
+                    else:
+                        score -= 2.5
+
+                    if p_pc == pc and p_min == is_min:
+                        tonic_count += 1
+                        score += 2.5
+
+                if tonic_count == 0:
+                    score -= 10.0
+
+                if first_p.pitch_class == pc and first_is_min == is_min:
+                    score += 20.0
+                if last_p.pitch_class == pc and last_is_min == is_min:
+                    score += 10.0
+
+                if hint_p:
+                    if hint_p.pitch_class == pc:
+                        score += 15.0
+                        if is_min:
+                            score += 5.0
+
+                scores[(pc, is_min)] = score
+
+        # Trova la migliore scala candidata
+        best_candidate = max(scores.keys(), key=lambda k: scores[k])
+        best_pc, best_is_min = best_candidate
+
+        # Arbitraggio Tonalita Minore vs Relativo Maggiore (es. MIm vs SOL, dove MIm e il 6° grado)
+        if not best_is_min:
+            rel_minor_pc = (best_pc + 9) % 12
+            minor_cand = (rel_minor_pc, True)
+            if minor_cand in scores:
+                if (first_p.pitch_class == rel_minor_pc and first_is_min) or                    (hint_p and hint_p.pitch_class == rel_minor_pc) or                    (scores[minor_cand] >= scores[best_candidate] * 0.85 and first_is_min):
+                    best_candidate = minor_cand
+                    best_pc, best_is_min = best_candidate
+
+        # Calcola relativo (relazione I - vi)
+        if best_is_min:
+            rel_pc = (best_pc + 3) % 12
+            rel_key = PITCH_CLASSES_ITA_SHARP[rel_pc]
+            key_name = f"{PITCH_CLASSES_ITA_SHARP[best_pc]}m"
+            mode = "Minore"
+            note_rel = f"{key_name} è il 6° grado di {rel_key}"
+        else:
+            rel_pc = (best_pc + 9) % 12
+            rel_key = f"{PITCH_CLASSES_ITA_SHARP[rel_pc]}m"
+            key_name = PITCH_CLASSES_ITA_SHARP[best_pc]
+            mode = "Maggiore"
+            note_rel = f"Relativo minore (6° grado): {rel_key}"
+
+        return {
+            "probable_key": key_name,
+            "relative_key": rel_key,
+            "mode": mode,
+            "score": scores[best_candidate],
+            "relationship": note_rel
+        }

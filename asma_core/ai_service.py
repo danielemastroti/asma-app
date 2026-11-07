@@ -469,3 +469,74 @@ class BandAIService:
 3. **Ritornello:** Esplosione dinamica a {songbpm_bpm} BPM: apertura del charleston, raddoppio delle chitarre e armonia vocale a due voci sulla terza superiore.
 4. **Bridge / Assolo:** Sezione ritmica serrata a {songbpm_bpm} BPM, progressione in crescendo dinamico fino al drop sul ritornello finale.
 5. **Finale:** Uscita con giro armonico ripetuto in diminuendo con stacco secco sull'accordo di tonica ({key or 'Tonica'})."""
+
+    @classmethod
+    def analyze_probable_key_with_ai_fallback(
+        cls,
+        title: str,
+        artist: str = "",
+        chords: Optional[List[str]] = None,
+        current_hint: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Rileva la tonalità più probabile di un brano.
+        1. Esegue prima l'analisi armonica deterministica con MusicEngine.detect_probable_key.
+        2. In caso di dubbio o discrepanza tra tonalità maggiore/minore relativa (es. MIm 6° grado di SOL),
+           e se le API AI sono configurate, consulta l'IA gratuita e leggera (Gemini Flash).
+        3. Restituisce un dizionario completo con tonalità italiana, relativo e spiegazione.
+        """
+        chords = chords or []
+        engine_res = MusicEngine.detect_probable_key(chords, current_hint)
+
+        api_key = cls.get_api_key()
+        if not api_key:
+            return engine_res
+
+        # Verifichiamo se l'IA leggera e gratuita può confermare o raffinare
+        chord_sample = ", ".join(chords[:25]) if chords else "N/A"
+        prompt = (
+            f"Sei un assistente musicale e maestro di armonia. Analizza questo brano:\n"
+            f"Titolo: '{title}'\n"
+            f"Artista: '{artist}'\n"
+            f"Accordi rilevati: {chord_sample}\n"
+            f"Tonalità ipotizzata: {engine_res.get('probable_key')} (Relativo: {engine_res.get('relative_key')})\n\n"
+            f"Domanda: Qual è la tonalità d'impianto principale del brano in notazione italiana (DO, DOm, RE, REm, MI, MIm, FA, FAm, SOL, SOLm, LA, LAm, SI, SIm, con # o b)?\n"
+            f"Fai particolare attenzione se si tratta di una tonalità minore (es. MIm) o del suo relativo maggiore (es. SOL dove MIm è il 6° grado).\n"
+            f"Rispondi ESCLUSIVAMENTE con la sigla della tonalità principale (es. MIm o SOL)."
+        )
+
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.0, "maxOutputTokens": 20}
+        }
+        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-latest"]
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=3.0) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                ai_key_raw = parts[0].get("text", "").strip()
+                                ai_key_clean = re.sub(r"[^A-Za-z0-9#b]", "", ai_key_raw)
+                                parsed_ai = MusicEngine.parse_chord(ai_key_clean)
+                                if parsed_ai:
+                                    ita_ai_key = MusicEngine.convert_notation(ai_key_clean, "ITA")
+                                    engine_res["ai_validated_key"] = ita_ai_key
+                                    engine_res["probable_key"] = ita_ai_key
+                                    engine_res["source"] = "AI (Gemini Flash)"
+                                    break
+            except Exception:
+                continue
+
+        return engine_res
+
