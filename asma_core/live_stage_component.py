@@ -21,7 +21,9 @@ class LiveStageComponent:
         songs: List[Song],
         initial_index: int = 0,
         dark_theme: bool = True,
-        initial_speed: int = 35  # px/second
+        initial_speed: int = 35,  # px/second
+        auto_start: bool = True,
+        auto_start_delay: int = 2  # seconds
     ) -> str:
         """
         Builds a self-contained HTML/CSS/JS application that runs client-side inside the browser.
@@ -117,12 +119,14 @@ class LiveStageComponent:
     -webkit-user-select: none;
   }}
 
-  body {{
+  html, body {{
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     overflow: hidden;
-    height: 100vh;
+    height: 100%;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
   }}
@@ -207,8 +211,10 @@ class LiveStageComponent:
   /* Song Content View */
   #stage-viewport {{
     flex: 1;
+    height: 100%;
     overflow-y: scroll;
-    padding: 24px 32px 180px 32px;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 24px 220px 24px;
     scroll-behavior: auto;
   }}
 
@@ -309,24 +315,36 @@ class LiveStageComponent:
   /* Floating Bottom Live Controller */
   #live-controller {{
     position: fixed;
-    bottom: 16px;
+    bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(20, 20, 20, 0.92);
-    backdrop-filter: blur(8px);
-    border: 1px solid #444444;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #334155;
     border-radius: 30px;
-    padding: 8px 24px;
+    padding: 6px 14px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    gap: 8px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.85);
     z-index: 1000;
+    max-width: 95vw;
+    white-space: nowrap;
   }}
 
-  .speed-slider {{
-    width: 110px;
+  .ctrl-btn {{
+    background: #1E293B;
+    color: #F8FAFC;
+    border: 1px solid #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
     cursor: pointer;
+    font-size: 13px;
+  }}
+
+  .ctrl-btn:active {{
+    background: #334155;
   }}
 </style>
 </head>
@@ -363,11 +381,11 @@ class LiveStageComponent:
 
 <!-- FLOATING CONTROLLER -->
 <div id="live-controller">
-  <button id="btn-scroll" class="btn btn-warning" onclick="toggleScroll()">▶ AVVIA SCROLL</button>
-  <button class="btn" onclick="resetScroll()">⏮ Inizio</button>
-  <span style="font-size: 12px; color: #BBB;">Velocità:</span>
-  <input type="range" class="speed-slider" id="speed-slider" min="10" max="120" value="{initial_speed}" oninput="updateSpeed(this.value)">
-  <span id="speed-label" style="font-size: 12px; width: 45px;">{initial_speed} px/s</span>
+  <button id="btn-scroll" class="btn btn-warning" onclick="toggleScroll()" style="min-width: 125px;">⏳ AVVIO IN {auto_start_delay}s</button>
+  <button class="btn" onclick="resetScroll()" title="Torna all'inizio">⏮</button>
+  <button class="btn" onclick="updateSpeed(Math.max(10, scrollSpeed - 5))" title="Rallenta">➖</button>
+  <span id="speed-label" style="font-size: 13px; font-weight: bold; width: 62px; text-align: center; color: #38BDF8;">{initial_speed} px/s</span>
+  <button class="btn" onclick="updateSpeed(Math.min(150, scrollSpeed + 5))" title="Accelera">➕</button>
 </div>
 
 <script>
@@ -376,9 +394,13 @@ class LiveStageComponent:
   let currentSongIndex = {initial_index};
   let isScrolling = false;
   let scrollSpeed = {initial_speed}; // px per second
+  let currentScrollY = 0;
   let lastFrameTime = null;
   let scrollAnimId = null;
   let wakeLock = null;
+  const autoStartEnabled = {'true' if auto_start else 'false'};
+  const autoStartDelaySec = {auto_start_delay};
+  let countdownTimer = null;
 
   // Web Audio Metronome Variables
   let audioCtx = null;
@@ -433,7 +455,9 @@ class LiveStageComponent:
 
     document.getElementById("song-container").innerHTML = html;
     resetScroll();
-
+    if (autoStartEnabled) {{
+      startAutoScrollCountdown();
+    }}
     if (metronomeActive) {{
       restartMetronome();
     }}
@@ -444,41 +468,114 @@ class LiveStageComponent:
     if (!isScrolling) return;
     if (lastFrameTime !== null) {{
       const deltaSec = (timestamp - lastFrameTime) / 1000.0;
+      const cappedDelta = Math.min(deltaSec, 0.1);
+      currentScrollY += (scrollSpeed * cappedDelta);
       const viewport = document.getElementById("stage-viewport");
-      viewport.scrollTop += (scrollSpeed * deltaSec);
+      if (viewport) {{
+        viewport.scrollTop = currentScrollY;
+        if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 5) {{
+          pauseScroll();
+          const btn = document.getElementById("btn-scroll");
+          if (btn) {{
+            btn.innerText = "🏁 FINE BRANO";
+            btn.className = "btn btn-warning";
+          }}
+          return;
+        }}
+      }}
     }}
     lastFrameTime = timestamp;
     scrollAnimId = requestAnimationFrame(scrollStep);
   }}
 
-  function toggleScroll() {{
-    isScrolling = !isScrolling;
+  function startScroll() {{
+    if (isScrolling) return;
+    if (countdownTimer) {{
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }}
+    isScrolling = true;
     const btn = document.getElementById("btn-scroll");
-    if (isScrolling) {{
+    if (btn) {{
       btn.innerText = "⏸ PAUSA";
       btn.className = "btn btn-accent";
-      lastFrameTime = performance.now();
-      scrollAnimId = requestAnimationFrame(scrollStep);
-    }} else {{
+    }}
+    lastFrameTime = performance.now();
+    scrollAnimId = requestAnimationFrame(scrollStep);
+  }}
+
+  function pauseScroll() {{
+    if (!isScrolling) return;
+    isScrolling = false;
+    const btn = document.getElementById("btn-scroll");
+    if (btn) {{
       btn.innerText = "▶ RIPRENDI";
       btn.className = "btn btn-warning";
-      if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
-      lastFrameTime = null;
+    }}
+    if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
+    scrollAnimId = null;
+    lastFrameTime = null;
+  }}
+
+  function toggleScroll() {{
+    if (countdownTimer) {{
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      startScroll();
+      return;
+    }}
+    if (isScrolling) {{
+      pauseScroll();
+    }} else {{
+      startScroll();
     }}
   }}
 
   function resetScroll() {{
-    isScrolling = false;
-    document.getElementById("btn-scroll").innerText = "▶ AVVIA SCROLL";
-    document.getElementById("btn-scroll").className = "btn btn-warning";
-    if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
-    document.getElementById("stage-viewport").scrollTop = 0;
-    lastFrameTime = null;
+    if (countdownTimer) {{
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }}
+    pauseScroll();
+    currentScrollY = 0;
+    const viewport = document.getElementById("stage-viewport");
+    if (viewport) viewport.scrollTop = 0;
+    const btn = document.getElementById("btn-scroll");
+    if (btn) {{
+      btn.innerText = "▶ AVVIA SCROLL";
+      btn.className = "btn btn-warning";
+    }}
+  }}
+
+  function startAutoScrollCountdown() {{
+    if (countdownTimer) clearInterval(countdownTimer);
+    if (!autoStartEnabled) return;
+
+    let remaining = autoStartDelaySec;
+    const btn = document.getElementById("btn-scroll");
+    if (btn) {{
+      btn.innerText = `⏳ AVVIO IN ${{remaining}}s`;
+      btn.className = "btn btn-accent";
+    }}
+
+    countdownTimer = setInterval(() => {{
+      remaining--;
+      if (remaining <= 0) {{
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        if (!isScrolling) {{
+          startScroll();
+        }}
+      }} else {{
+        if (btn) btn.innerText = `⏳ AVVIO IN ${{remaining}}s`;
+      }}
+    }}, 1000);
   }}
 
   function updateSpeed(val) {{
-    scrollSpeed = parseInt(val, 10);
-    document.getElementById("speed-label").innerText = `${{scrollSpeed}} px/s`;
+    scrollSpeed = Math.max(5, Math.min(150, parseInt(val, 10)));
+    const lbl = document.getElementById("speed-label");
+    if (lbl) lbl.innerText = `${{scrollSpeed}} px/s`;
   }}
 
   // --- SETLIST NAVIGATION ---
@@ -607,6 +704,22 @@ class LiveStageComponent:
   // Initial Boot
   renderCurrentSong();
   toggleWakeLock(); // Auto-engage screen wake lock
+
+  // Tap-to-pause and manual scroll sync
+  const _vp = document.getElementById("stage-viewport");
+  if (_vp) {{
+    _vp.addEventListener("scroll", () => {{
+      if (!isScrolling) {{
+        currentScrollY = _vp.scrollTop;
+      }}
+    }}, {{ passive: true }});
+
+    _vp.addEventListener("click", (e) => {{
+      if (!e.target.closest("button") && !e.target.closest("input")) {{
+        toggleScroll();
+      }}
+    }});
+  }}
 </script>
 </body>
 </html>"""

@@ -3144,8 +3144,14 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
         st.stop()
 
     st.caption(f"Palco attivo: **{active_setlist.title}** ({len(songs_to_stage)} brani) &bull; Keep Screen Awake attivo &bull; Pedali Bluetooth connessi")
-    html_bundle = LiveStageComponent.render_html_bundle(songs_to_stage, dark_theme=True, initial_speed=35)
-    st.components.v1.html(html_bundle, height=720, scrolling=False)
+    html_bundle = LiveStageComponent.render_html_bundle(
+        songs_to_stage,
+        dark_theme=True,
+        initial_speed=35,
+        auto_start=True,
+        auto_start_delay=2
+    )
+    st.components.v1.html(html_bundle, height=800, scrolling=False)
 
 # ------------------------------------------------------------------------------
 # 6. EVENTI LIVE (SRS Cap. 4.4)
