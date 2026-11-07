@@ -1,39 +1,29 @@
 [
   {
-    "uuid": "dad1654b-916a-4963-b390-1ffca551cee9",
-    "name": "Working In Progress",
-    "description": "Brani in fase di studio e arrangiamento",
+    "uuid": "9d1205ad-1ced-49f4-bf03-1bb854e1c5be",
+    "name": "Repertorio di test",
+    "description": "Primo repertorio per test sito",
     "song_uuids": [
-      "d2d90728-2b03-4d42-a7eb-eaa16873a22c",
-      "7aafa5db-2c6e-40f3-9a7b-f679968636f5",
-      "1b984f5e-7b03-4097-b593-6321670e9913",
-      "395cf9a3-3b8c-4434-85e2-cd7bdcd9d003",
-      "ed5484d9-e4c0-428d-9cf6-66c7ab8c1c87",
-      "b9bb905f-2fba-49e1-bd86-6b3d62213889",
-      "47d42ecc-ff37-4b9d-9da8-25d9c14d0811"
+      "df7d51cd-bbbd-4708-b8b0-4a8724b2b5e2",
+      "869129a0-e469-4866-9600-9265890ba84b",
+      "56c66693-178d-4bfd-bbc3-563eabaa5cae",
+      "5f03da97-9753-40b5-9dc1-985fe351621d",
+      "09ae8650-521f-4d60-a770-de390145315b",
+      "a67fc3c8-be70-44df-8989-ea623e4554c5",
+      "c84171d5-9211-4491-ace7-318aa5b875a1",
+      "f19f0502-f67c-4295-bc7a-938677bf9efb",
+      "c4dd82b7-f4b2-4185-9995-08f8d28edda8",
+      "e1752aef-2aba-42b2-b125-830c6e2923ca"
     ],
-    "created_at": "2026-11-05T18:17:35.131951+00:00",
-    "updated_at": "2026-11-05T18:17:35.131951+00:00"
+    "created_at": "2026-11-06T23:55:07.029104+00:00",
+    "updated_at": "2026-11-06T23:55:07.030104+00:00"
   },
   {
-    "uuid": "bf4f4cf7-0064-4a5c-b2a8-bedb84ea916b",
-    "name": "Repertorio Definitivo",
-    "description": "Brani pronti per l'esecuzione live",
-    "song_uuids": [
-      "21160e22-5b8f-4a5b-b1cf-d343864b96c5",
-      "87778a10-246f-4a33-a540-ecb61daba598",
-      "da3aba7f-efa8-4d4c-b745-050c6a59b069",
-      "86e98df2-f0c2-4088-9b8d-eee12d6762c0"
-    ],
-    "created_at": "2026-11-05T18:17:35.131951+00:00",
-    "updated_at": "2026-11-05T18:17:35.131951+00:00"
-  },
-  {
-    "uuid": "8adffe68-7605-40a2-b215-6b7ab6991880",
-    "name": "Acustico",
-    "description": "Arrangiamenti acustici da club",
+    "uuid": "260360a1-6293-4d7e-9e3b-f26e05d6f453",
+    "name": "Repertorio di test",
+    "description": "Primo repertorio per test sito",
     "song_uuids": [],
-    "created_at": "2026-11-05T18:17:35.131951+00:00",
-    "updated_at": "2026-11-05T18:17:35.131951+00:00"
+    "created_at": "2026-11-06T23:55:18.216348+00:00",
+    "updated_at": "2026-11-06T23:55:18.216869+00:00"
   }
 ]

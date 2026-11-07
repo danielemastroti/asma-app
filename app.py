@@ -137,6 +137,38 @@ st.markdown("""
     color: #FFFFFF !important;
   }
 
+  /* Responsive Scaletta Toolbar - stays horizontal on smartphones and tablets */
+  div[class*="st-key-scaletta_toolbar_container"] [data-testid="stHorizontalBlock"],
+  div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  div[class*="st-key-scaletta_toolbar_container"] [data-testid="stColumn"],
+  div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stColumn"] {
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+  }
+  div[class*="st-key-scaletta_toolbar_container"] [data-testid="stPopover"] {
+    width: 100% !important;
+  }
+  div[class*="st-key-scaletta_toolbar_container"] [data-testid="stPopover"] > button {
+    font-size: 11px !important;
+    padding: 2px 4px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    width: 100% !important;
+  }
+
   /* Responsive equalizer: gracefully hides on very narrow mobile screens */
   @media (max-width: 680px) {
     .asma-bar-center-eq {
@@ -739,11 +771,78 @@ from asma_core.backup_engine import BackupEngine
 from asma_core.device_manager import DeviceManager
 from asma_core.aml_tag_manager import AMLTagManager, AMLTagDefinition
 
+import importlib
+import asma_core.storage_manager
+importlib.reload(asma_core.storage_manager)
+from asma_core.storage_manager import StorageManager
+
+# Ensure fallback methods for setlist soft-delete / restore are always dynamically attached
+def _dyn_get_setlist(self, setlist_uuid: str):
+    for s in self.list_setlists():
+        if s.uuid == setlist_uuid:
+            return s
+    return None
+
+def _dyn_list_deleted_setlists(self):
+    del_list = []
+    t_dir = getattr(self, "_trash_dir", os.path.join(getattr(self, "_base_dir", "data"), "trash"))
+    if os.path.exists(t_dir):
+        for fname in os.listdir(t_dir):
+            if fname.startswith("setlist_") and fname.endswith(".json"):
+                try:
+                    with open(os.path.join(t_dir, fname), "r", encoding="utf-8") as fp:
+                        del_list.append(json.load(fp))
+                except Exception:
+                    pass
+    del_list.sort(key=lambda x: x.get("deleted_at", ""), reverse=True)
+    return del_list
+
+def _dyn_restore_setlist(self, setlist_uuid: str, user_email="system", user_name="System"):
+    t_dir = getattr(self, "_trash_dir", os.path.join(getattr(self, "_base_dir", "data"), "trash"))
+    t_path = os.path.join(t_dir, f"setlist_{setlist_uuid}.json")
+    if not os.path.exists(t_path):
+        return None
+    try:
+        with open(t_path, "r", encoding="utf-8") as fp:
+            meta = json.load(fp)
+        s_data = meta.get("data", {})
+        restored = Setlist.from_dict(s_data)
+        self.save_setlist(restored, user_email, user_name)
+        os.remove(t_path)
+        return restored
+    except Exception:
+        return None
+
+if not hasattr(StorageManager, "get_setlist"):
+    StorageManager.get_setlist = _dyn_get_setlist
+if not hasattr(StorageManager, "list_deleted_setlists"):
+    StorageManager.list_deleted_setlists = _dyn_list_deleted_setlists
+if not hasattr(StorageManager, "restore_setlist"):
+    StorageManager.restore_setlist = _dyn_restore_setlist
+
 # Initialize Singletons
 storage = StorageManager()
+if not hasattr(storage, "get_setlist"):
+    storage.get_setlist = _dyn_get_setlist.__get__(storage, StorageManager)
+if not hasattr(storage, "list_deleted_setlists"):
+    storage.list_deleted_setlists = _dyn_list_deleted_setlists.__get__(storage, StorageManager)
+if not hasattr(storage, "restore_setlist"):
+    storage.restore_setlist = _dyn_restore_setlist.__get__(storage, StorageManager)
 lock_mgr = LockManager()
 audit = AuditLogger()
 op_logger = OperationLogger()
+
+def log_op(icon: str, category: str, message: str, level: str = "SUCCESS"):
+    """Helper to log an operation into the live status console."""
+    user_name = st.session_state.get("current_user_name", "")
+    user_role = st.session_state.get("current_user_role", "")
+    if user_name:
+        user_str = f"{user_name} [{user_role}]" if user_role else user_name
+    elif "current_user" in globals() and current_user:
+        user_str = f"{current_user.name} [{current_user.role.value}]"
+    else:
+        user_str = "System"
+    op_logger.log(icon, category, message, level=level, user=user_str)
 device_mgr = DeviceManager()
 aml_tag_mgr = AMLTagManager()
 gist_client = GistClient()
@@ -771,29 +870,135 @@ def save_client_preferences(prefs: dict):
 
 _client_prefs = load_client_preferences()
 
-# Resolve Active User: Query Params -> Session State -> Stored Preferences -> Default
-_qp_user = st.query_params.get("user")
-if _qp_user and auth_mgr.get_user_by_email(_qp_user):
-    _active_email = _qp_user
-elif "current_user_email" in st.session_state:
-    _active_email = st.session_state["current_user_email"]
-elif _client_prefs.get("active_user_email") and auth_mgr.get_user_by_email(_client_prefs.get("active_user_email")):
-    _active_email = _client_prefs.get("active_user_email")
-else:
-    _active_email = "daniele@band.org"
+# -----------------------------------------------------------------------------
+# GOOGLE OAUTH CALLBACK & LIGHTWEIGHT LOGIN SCREEN (Logo Band & Login Google)
+# -----------------------------------------------------------------------------
+import base64
 
-st.session_state["current_user_email"] = _active_email
-st.query_params["user"] = _active_email
-if _client_prefs.get("active_user_email") != _active_email:
-    _client_prefs["active_user_email"] = _active_email
-    save_client_preferences(_client_prefs)
+@st.cache_data
+def get_band_logo_b64() -> str:
+    """Reads and caches the band logo as base64 string for ultra-fast rendering."""
+    for p in ["assets/band_logo.png", "../assets/band_logo.png"]:
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as _f:
+                    return base64.b64encode(_f.read()).decode("utf-8")
+            except Exception:
+                return ""
+    return ""
 
+# Check Google OAuth code redirect
+_oauth_code = st.query_params.get("code")
+if _oauth_code:
+    _g_conf = {}
+    if hasattr(st, "secrets") and "google_auth" in st.secrets:
+        _g_conf = st.secrets["google_auth"]
+    elif os.path.exists(".streamlit/secrets.toml"):
+        try:
+            import toml
+            with open(".streamlit/secrets.toml", "r", encoding="utf-8") as _tf:
+                _t_data = toml.load(_tf)
+                _g_conf = _t_data.get("google_auth", {})
+        except Exception:
+            pass
+    if _g_conf.get("client_id") and _g_conf.get("client_secret"):
+        _u_info = auth_mgr.exchange_google_code_for_user(
+            _oauth_code,
+            _g_conf["client_id"],
+            _g_conf["client_secret"],
+            _g_conf.get("redirect_uri", "https://asma-app.streamlit.app")
+        )
+        if _u_info and _u_info.get("email"):
+            _g_email = _u_info["email"].lower()
+            if auth_mgr.is_email_allowed(_g_email):
+                _auth_user = auth_mgr.authenticate_or_register_google(_g_email, _u_info.get("name", ""), _u_info.get("picture", ""))
+                st.session_state["authenticated"] = True
+                st.session_state["current_user_email"] = _auth_user.email
+                st.session_state["current_user_name"] = _auth_user.name
+                _cp = load_client_preferences()
+                _cp["active_user_email"] = _auth_user.email
+                save_client_preferences(_cp)
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.error(f"❌ Accesso negato per {_g_email}. Questo account Google non è abilitato nella lista musicisti della band.")
+
+# Resolve initial authentication state
+if "authenticated" not in st.session_state:
+    _saved_email = _client_prefs.get("active_user_email")
+    if _saved_email and auth_mgr.get_user_by_email(_saved_email):
+        st.session_state["authenticated"] = True
+        st.session_state["current_user_email"] = _saved_email
+    else:
+        st.session_state["authenticated"] = False
+
+# LIGHTWEIGHT LOGIN SCREEN
+if not st.session_state.get("authenticated"):
+    _, col_login, _ = st.columns([1, 2.2, 1])
+    with col_login:
+        # Logo Band
+        logo_file = "assets/band_logo.png" if os.path.exists("assets/band_logo.png") else ("../assets/band_logo.png" if os.path.exists("../assets/band_logo.png") else None)
+        if logo_file:
+            st.image(logo_file, use_container_width=True)
+        else:
+            logo_b64 = get_band_logo_b64()
+            if logo_b64:
+                st.markdown(
+                    f'<div style="text-align:center;"><img src="data:image/png;base64,{logo_b64}" style="max-width:320px; width:90%; height:auto; margin:0 auto 10px auto; border-radius:8px; display:block;" /></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown('<div style="text-align:center; font-size:48px; margin-bottom:8px;">⚡</div>', unsafe_allow_html=True)
+
+        st.markdown(
+            """<div style="text-align:center; margin-top:-6px; margin-bottom:18px;">
+              <div style="font-size:12px; color:#38BDF8; font-weight:700; letter-spacing:1px; text-transform:uppercase;">
+                Area Riservata Band
+              </div>
+              <div style="font-size:11px; color:#94A3B8; margin-top:3px;">
+                Inserisci la tua email autorizzata per accedere
+              </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        with st.form("form_login_by_email", clear_on_submit=False):
+            typed_email = st.text_input(
+                "Email autorizzata:",
+                placeholder="es. nome@gmail.com",
+                key="input_login_email"
+            ).strip().lower()
+
+            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
+            if submit_login:
+                if not typed_email:
+                    st.warning("⚠️ Inserisci la tua email per accedere.")
+                elif auth_mgr.is_email_allowed(typed_email):
+                    matched_user = auth_mgr.get_user_by_email(typed_email)
+                    if not matched_user:
+                        matched_user = auth_mgr.authenticate_or_register_google(typed_email)
+                    st.session_state["authenticated"] = True
+                    st.session_state["current_user_email"] = matched_user.email
+                    st.session_state["current_user_name"] = matched_user.name
+                    _cp = load_client_preferences()
+                    _cp["active_user_email"] = matched_user.email
+                    save_client_preferences(_cp)
+                    st.query_params["user"] = matched_user.email
+                    log_op("🟢", "AUTH", f"Login effettuato con successo da {matched_user.name} ({matched_user.email})", "SUCCESS")
+                    st.rerun()
+                else:
+                    st.error("❌ Accesso negato: l'indirizzo email inserito non è autorizzato.")
+
+    st.stop()
+
+# User is authenticated
 current_user = auth_mgr.get_user_by_email(st.session_state["current_user_email"])
 if not current_user:
-    current_user = auth_mgr.authenticate_or_register_google(st.session_state["current_user_email"], "Daniele Rossi")
+    current_user = auth_mgr.authenticate_or_register_google(st.session_state["current_user_email"])
 
 st.session_state["current_user_name"] = current_user.name
 st.session_state["current_user_role"] = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+st.query_params["user"] = current_user.email
 
 if "selected_song_uuid" not in st.session_state:
     st.session_state["selected_song_uuid"] = None
@@ -808,10 +1013,7 @@ role_colors = {
 }
 role_col = role_colors.get(current_user.role.value, "#FFFFFF")
 
-def log_op(icon: str, category: str, message: str, level: str = "SUCCESS"):
-    """Helper to log an operation into the live status console."""
-    user_str = f"{current_user.name} [{current_user.role.value}]" if 'current_user' in locals() and current_user else "System"
-    op_logger.log(icon, category, message, level=level, user=user_str)
+# (log_op defined globally above)
 
 if "session_boot_logged" not in st.session_state:
     st.session_state["session_boot_logged"] = True
@@ -865,7 +1067,8 @@ MENU_ITEMS = [
     "🎤 Modalità Palco (Live Stage)",
     "📅 Eventi Live",
     "📖 Manuale & Changelog",
-    "⚙️ Amministrazione & Log"
+    "⚙️ Amministrazione & Log",
+    "🚪 Logout"
 ]
 
 MENU_COMPACT_LABELS = {
@@ -879,7 +1082,8 @@ MENU_COMPACT_LABELS = {
     "🎤 Modalità Palco (Live Stage)": "🎤 Palco",
     "📅 Eventi Live": "📅 Eventi",
     "📖 Manuale & Changelog": "📖 Guida",
-    "⚙️ Amministrazione & Log": "⚙️ Admin"
+    "⚙️ Amministrazione & Log": "⚙️ Admin",
+    "🚪 Logout": "🚪 Logout"
 }
 
 if "main_menu_choice" not in st.session_state:
@@ -905,12 +1109,13 @@ curr_user_idx = user_emails.index(current_user.email) if current_user.email in u
 dev_list = device_mgr.list_devices()
 dev_names = [d.name for d in dev_list]
 
-# Resolve Active Device: Query Params -> Session State -> Stored Preferences -> Default
+# Resolve Active Device: Session State -> Query Params -> Stored Preferences -> Default
+# Always strictly preserve user device and layout formatting across navigation between all functions
 _qp_dev = st.query_params.get("device")
-if _qp_dev and _qp_dev in dev_names:
-    _active_dev = _qp_dev
-elif "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
+if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
+elif _qp_dev and _qp_dev in dev_names:
+    _active_dev = _qp_dev
 elif _client_prefs.get("active_device") and _client_prefs.get("active_device") in dev_names:
     _active_dev = _client_prefs.get("active_device")
 else:
@@ -921,6 +1126,15 @@ st.query_params["device"] = _active_dev
 if _client_prefs.get("active_device") != _active_dev:
     _client_prefs["active_device"] = _active_dev
     save_client_preferences(_client_prefs)
+
+def set_active_device_globally(new_dev_name: str):
+    """Updates the active hardware device globally and persistently across all views and functions."""
+    if new_dev_name and new_dev_name in dev_names:
+        st.session_state["user_preferred_device"] = new_dev_name
+        st.query_params["device"] = new_dev_name
+        _cp = load_client_preferences()
+        _cp["active_device"] = new_dev_name
+        save_client_preferences(_cp)
 
 curr_pref = _active_dev
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
@@ -995,9 +1209,9 @@ with st.container(key="top_navbar_container"):
     # Glowing Laser Accent Line
     st.markdown('<div class="asma-laser-line"></div>', unsafe_allow_html=True)
 
-    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device & Log (Right - Compacted)
-    col_head_left, col_head_center, col_btn_user, col_btn_dev, col_btn_log = st.columns(
-        [1.5, 0.9, 0.9, 1.1, 0.55], gap="small", vertical_alignment="center"
+    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device, Log & Logout (Right - Compacted)
+    col_head_left, col_head_center, col_btn_user, col_btn_dev, col_btn_log, col_btn_logout = st.columns(
+        [1.35, 0.75, 0.95, 0.95, 0.45, 0.65], gap="small", vertical_alignment="center"
     )
 
     with col_head_left:
@@ -1032,17 +1246,31 @@ with st.container(key="top_navbar_container"):
 
     with col_btn_user:
         with st.popover(f"👤 {user_first}", width="stretch", help="Profilo utente attivo, permessi e login"):
-            st.write("##### 👤 Profilo Utente & Permessi")
-            st.markdown(f"**Utente:** `{current_user.name}` ({current_user.email})<br>**Ruolo:** <span style='color:{role_col}; font-weight:bold;'>{current_user.role.value}</span>", unsafe_allow_html=True)
-            st.caption(f"Permessi operativi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
+            b_info = getattr(auth_mgr, "BAND_MEMBERS", {}).get(current_user.email, {})
+            disp_role = b_info.get("display_role", current_user.role.value)
+            
+            st.write("##### 👤 Profilo Musicista & Ruolo Band")
+            st.markdown(
+                f"**Pseudonimo:** <b style='color:#38BDF8; font-size:15px;'>{current_user.name}</b><br>"
+                f"**Email Google:** `{current_user.email}`<br>"
+                f"**Ruolo Band:** <span style='color:{role_col}; font-weight:bold;'>{disp_role}</span>",
+                unsafe_allow_html=True
+            )
+            st.caption(f"Permessi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
             st.divider()
 
-            st.write("###### 🔄 Cambia Profilo (Test Ruoli):")
+            st.write("###### 🔄 Cambia Musicista (Test Accessi):")
+            def _fmt_band_user(e):
+                b_m = getattr(auth_mgr, "BAND_MEMBERS", {}).get(e, {})
+                pseudo = b_m.get("pseudonym", next((u.name for u in all_users if u.email == e), e))
+                r_desc = b_m.get("display_role", next((u.role.value for u in all_users if u.email == e), ""))
+                return f"{pseudo} [{r_desc}]"
+
             new_u_sel = st.selectbox(
-                "Seleziona Account Band:",
+                "Seleziona Musicista Band:",
                 user_emails,
                 index=curr_user_idx,
-                format_func=lambda e: f"{next(u.name for u in all_users if u.email == e)} [{next(u.role.value for u in all_users if u.email == e)}]",
+                format_func=_fmt_band_user,
                 key="pop_hub_user_sel"
             )
             if new_u_sel != st.session_state["current_user_email"]:
@@ -1057,23 +1285,19 @@ with st.container(key="top_navbar_container"):
                 st.rerun()
 
             st.divider()
-            st.write("###### 🔑 Accesso Google OAuth2:")
-            in_email = st.text_input("Email Google:", placeholder="mario@gmail.com", key="pop_oauth_email")
-            in_name = st.text_input("Nome e Cognome:", placeholder="Mario Rossi", key="pop_oauth_name")
-            if st.button("Accedi con Google", type="primary", key="pop_btn_google", width="stretch"):
-                if in_email:
-                    new_u = auth_mgr.authenticate_or_register_google(in_email, in_name)
-                    st.session_state["current_user_email"] = new_u.email
-                    st.query_params["user"] = new_u.email
-                    _cp = load_client_preferences()
-                    _cp["active_user_email"] = new_u.email
-                    save_client_preferences(_cp)
-                    log_op("🔑", "AUTH", f"Accesso federato Google per {new_u.name} ({new_u.email})", "SUCCESS")
-                    st.success(f"Accesso riuscito come {new_u.name}!")
-                    st.rerun()
+            if st.button("🚪 Disconnetti (Logout)", type="secondary", key="pop_btn_logout", width="stretch"):
+                st.session_state["authenticated"] = False
+                st.session_state.pop("current_user_email", None)
+                _cp = load_client_preferences()
+                _cp.pop("active_user_email", None)
+                save_client_preferences(_cp)
+                st.query_params.clear()
+                st.rerun()
+
+
 
     with col_btn_dev:
-        with st.popover("📐 Layout", width="stretch", help="Configurazione Layout Display, Colonne e PDF"):
+        with st.popover(f"📐 {dev_short}", width="stretch", help="Configurazione Layout Display, Colonne e PDF"):
             st.write("##### 📐 Layout Display & PDF")
             st.caption("Formato dispositivo hardware, tipografia, colonne, margini e colori.")
 
@@ -1085,16 +1309,7 @@ with st.container(key="top_navbar_container"):
                 help="Seleziona il modello hardware: adatta dimensioni mm, risoluzione e calibrazione video."
             )
             if new_dev_sel != st.session_state.get("user_preferred_device"):
-                st.session_state["user_preferred_device"] = new_dev_sel
-                st.query_params["device"] = new_dev_sel
-                _cp = load_client_preferences()
-                _cp["active_device"] = new_dev_sel
-                if "huawei" in new_dev_sel.lower():
-                    st.session_state["ui_zoom_level"] = 0.82
-                elif "ipad" in new_dev_sel.lower() or "pc" in new_dev_sel.lower():
-                    st.session_state["ui_zoom_level"] = 1.0
-                _cp["ui_zoom_level"] = st.session_state["ui_zoom_level"]
-                save_client_preferences(_cp)
+                set_active_device_globally(new_dev_sel)
                 st.rerun()
 
             tab_lay_geom, tab_lay_col, tab_lay_zoom = st.tabs([
@@ -1235,6 +1450,16 @@ with st.container(key="top_navbar_container"):
         with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
             render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
+    with col_btn_logout:
+        if st.button("🚪 Logout", key="top_bar_btn_logout", help="Disconnetti account ed esci", width="stretch"):
+            st.session_state["authenticated"] = False
+            st.session_state.pop("current_user_email", None)
+            _cp = load_client_preferences()
+            _cp.pop("active_user_email", None)
+            save_client_preferences(_cp)
+            st.query_params.clear()
+            st.rerun()
+
     # Row 2: Ultra-Compact Navigation Pills (Strictly Single Row, Never Wrap)
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
     if active_item not in MENU_ITEMS:
@@ -1272,7 +1497,15 @@ with st.container(key="top_navbar_container"):
         label_visibility="collapsed"
     )
 
-    if sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
+    if sel_r2 == "🚪 Logout":
+        st.session_state["authenticated"] = False
+        st.session_state.pop("current_user_email", None)
+        _cp = load_client_preferences()
+        _cp.pop("active_user_email", None)
+        save_client_preferences(_cp)
+        st.query_params.clear()
+        st.rerun()
+    elif sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
         st.session_state["main_menu_choice"] = sel_r1
         st.rerun()
     elif sel_r2 and sel_r2 != st.session_state["main_menu_choice"]:
@@ -1891,18 +2124,21 @@ elif menu_choice == "📝 Brani":
 
     with col_prev:
         st.write("#### 👁️ Anteprima PDF & Azioni Esportazione")
-        configured_devs = device_mgr.list_devices()
-        dev_choices = {d.uuid: d.name for d in configured_devs}
-        user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
-        default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
+        curr_global_dev = st.session_state.get("user_preferred_device", dev_names[0])
+        curr_global_idx = dev_names.index(curr_global_dev) if curr_global_dev in dev_names else 0
 
-        selected_dev_uuid = st.selectbox(
+        selected_dev_name = st.selectbox(
             "📐 Formato Dispositivo / Display per Salva PDF:",
-            list(dev_choices.keys()),
-            index=default_dev_idx,
-            format_func=lambda x: dev_choices[x]
+            dev_names,
+            index=curr_global_idx,
+            key="brani_device_sync_selector",
+            help="Modifica il formato dispositivo attivo per tutta l'applicazione e per il rendering dei PDF"
         )
-        prof = get_layout_device_profile(dev_choices.get(selected_dev_uuid))
+        if selected_dev_name != st.session_state.get("user_preferred_device"):
+            set_active_device_globally(selected_dev_name)
+            st.rerun()
+
+        prof = get_layout_device_profile(selected_dev_name)
 
         st.caption(f"📱 **Specifiche Display:** `{prof.name}` &bull; `{prof.width_mm:.1f} × {prof.height_mm:.1f} mm` ({prof.orientation}) &bull; Colonne: `{prof.columns}` &bull; Font Testo: `{prof.font_size_lyrics} pt`")
 
@@ -2426,155 +2662,467 @@ elif menu_choice == "📚 Repertori":
 # 3. EDITOR BRANI
 # ------------------------------------------------------------------------------
 elif menu_choice == "📑 Scalette Live":
-    st.subheader("📑 Gestione Scalette Live (Setlist)")
+    import datetime
+    st.subheader("📑 Gestione Scalette Live & Ordine di Palco")
+    st.caption("Organizza le scalette dei concerti, componi la sequenza brani dai diversi repertori con protezione da cancellazione accidentale e UNDO istantaneo.")
 
     setlists = storage.list_setlists()
     all_songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
     song_map = {s["uuid"]: s for s in all_songs}
+    all_reps = storage.list_repertoires()
 
-    col_s1, col_s2 = st.columns([1, 2])
+    # Active Hardware Profile for PDF & Live Export
+    curr_global_dev = st.session_state.get("user_preferred_device", dev_names[0])
+    active_prof = get_layout_device_profile(curr_global_dev)
 
-    with col_s1:
-        st.write("#### Scalette Esistenti")
-        if setlists:
-            for s in setlists:
-                if st.button(f"🎵 {s.title} ({len(s.items)} brani)", key=f"sel_setlist_{s.uuid}"):
-                    st.session_state["selected_setlist_uuid"] = s.uuid
-                    st.rerun()
-        else:
-            st.info("Nessuna scaletta creata.")
-
-        with st.form("new_setlist_form"):
-            new_title = st.text_input("Nuova Scaletta Titolo:", "Scaletta Tour Estate 2027")
-            new_date = st.text_input("Data:", "15/07/2027")
-            submit_set = st.form_submit_button("Crea Scaletta", disabled=not current_user.can_edit())
-            if submit_set:
-                new_set = Setlist(title=new_title, date=new_date)
-                storage.save_setlist(new_set, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                st.session_state["selected_setlist_uuid"] = new_set.uuid
-                log_op("📑", "SCALETTA", f"Creata scaletta live '{new_title}' ({new_date})", "SUCCESS")
-                st.success(f"Creata scaletta '{new_title}'")
+    # -------------------------------------------------------------------------
+    # SAFETY UNDO BANNERS (Ripristino Immediato Cancellazione Accidentale)
+    # -------------------------------------------------------------------------
+    if st.session_state.get("undo_deleted_setlist_uuid"):
+        del_uuid = st.session_state["undo_deleted_setlist_uuid"]
+        del_title = st.session_state.get("undo_deleted_setlist_title", "Scaletta")
+        c_undo1, c_undo2 = st.columns([3, 1])
+        with c_undo1:
+            st.warning(f"⚠️ **ATTENZIONE:** La scaletta **'{del_title}'** è stata eliminata. Puoi annullare subito e recuperarla.")
+        with c_undo2:
+            if st.button("↩️ ANNULLA ELIMINAZIONE", type="primary", key="btn_undo_del_setlist", width="stretch"):
+                restored = storage.restore_setlist(del_uuid, current_user.email, current_user.name)
+                st.session_state["undo_deleted_setlist_uuid"] = None
+                st.session_state["undo_deleted_setlist_title"] = None
+                if restored:
+                    st.session_state["selected_setlist_uuid"] = restored.uuid
+                    log_op("♻️", "SCALETTA", f"Ripristinata scaletta '{restored.title}' tramite Undo", "SUCCESS")
+                    st.success(f"Scaletta '{restored.title}' recuperata con successo!")
                 st.rerun()
 
-    with col_s2:
-        curr_set_id = st.session_state.get("selected_setlist_uuid")
-        if curr_set_id:
-            active_setlist = next((s for s in setlists if s.uuid == curr_set_id), None)
-            if active_setlist:
-                c_title_s, c_del_s = st.columns([3, 1])
-                with c_title_s:
-                    st.write(f"### Scaletta: **{active_setlist.title}** ({active_setlist.date})")
-                with c_del_s:
-                    with st.popover("🗑️ Elimina Scaletta", width="stretch"):
-                        st.warning(f"Vuoi davvero eliminare la scaletta **'{active_setlist.title}'**?")
-                        if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_set_{active_setlist.uuid}"):
-                            storage.delete_setlist(active_setlist.uuid, current_user.email, current_user.name)
-                            st.session_state["selected_setlist_uuid"] = None
-                            log_op("🗑️", "SCALETTA", f"Eliminata scaletta '{active_setlist.title}'", "WARNING")
-                            st.success("Scaletta eliminata con successo.")
-                            st.rerun()
+    if st.session_state.get("undo_removed_setlist_item"):
+        undo_item_info = st.session_state["undo_removed_setlist_item"]
+        c_u_s1, c_u_s2 = st.columns([3, 1])
+        with c_u_s1:
+            st.info(f"ℹ️ Brano **'{undo_item_info.get('title', 'Brano')}'** rimosso dalla scaletta.")
+        with c_u_s2:
+            if st.button("↩️ Annulla Rimozione Brano", key="btn_undo_rem_song", width="stretch"):
+                t_set_id = undo_item_info["setlist_uuid"]
+                t_set = storage.get_setlist(t_set_id)
+                if t_set:
+                    ins_idx = min(undo_item_info["index"], len(t_set.items))
+                    t_set.items.insert(ins_idx, undo_item_info["item"])
+                    storage.save_setlist(t_set, current_user.email, current_user.name)
+                    st.session_state["undo_removed_setlist_item"] = None
+                    log_op("↩️", "SCALETTA", f"Ripristinato brano '{undo_item_info['title']}' nella scaletta '{t_set.title}'", "INFO")
+                    st.success(f"Brano '{undo_item_info['title']}' ripristinato in posizione #{ins_idx + 1}!")
+                    st.rerun()
 
-                if all_songs:
-                    add_song_id = st.selectbox("Aggiungi brano alla sequenza:", list(song_map.keys()), format_func=lambda x: song_map[x]["title"])
-                    if st.button("➕ Inserisci in Scaletta", disabled=not current_user.can_edit()):
-                        active_setlist.items.append(SetlistItem(song_uuid=add_song_id))
-                        storage.save_setlist(active_setlist, st.session_state["current_user_email"], st.session_state["current_user_name"])
-                        log_op("➕", "SCALETTA", f"Aggiunto brano '{song_map[add_song_id]['title']}' a '{active_setlist.title}'", "INFO")
-                        st.success("Brano aggiunto alla scaletta!")
-                        st.rerun()
-                        st.success("Brano aggiunto alla scaletta!")
-                        st.rerun()
+    # Resolve active setlist
+    curr_set_id = st.session_state.get("selected_setlist_uuid")
+    active_setlist = next((s for s in setlists if s.uuid == curr_set_id), None)
+    if not active_setlist and setlists:
+        active_setlist = setlists[0]
+        st.session_state["selected_setlist_uuid"] = active_setlist.uuid
 
-                st.write("#### Sequenza di Esecuzione:")
-                if active_setlist.items:
-                    for idx, item in enumerate(active_setlist.items):
-                        s_info = song_map.get(item.song_uuid)
-                        title = s_info["title"] if s_info else "Sconosciuto"
-                        key = item.custom_key or (s_info["key_current"] if s_info else "-")
-                        bpm = item.custom_bpm or (s_info["bpm"] if s_info else "-")
+    # -------------------------------------------------------------------------
+    # COMPACT TOOLBAR: SELETTORE SCALETTA + AGGIUNGI + RINOMINA + DUPLICA + ELIMINA
+    # -------------------------------------------------------------------------
+    st.markdown('<div class="asma-laser-line" style="margin-bottom:12px;"></div>', unsafe_allow_html=True)
+    
+    # Row 1: Selettore Scaletta Attiva (Large & clear on mobile and PC)
+    if setlists:
+        set_options = [s.uuid for s in setlists]
+        set_idx = set_options.index(active_setlist.uuid) if (active_setlist and active_setlist.uuid in set_options) else 0
+        def _format_set(uid):
+            matched = next((s for s in setlists if s.uuid == uid), None)
+            if matched:
+                d_str = f" ({matched.date})" if matched.date else ""
+                return f"📑 {matched.title}{d_str} — {len(matched.items)} brani"
+            return uid
+        
+        chosen_set_uuid = st.selectbox(
+            "Scaletta Attiva:",
+            set_options,
+            index=set_idx,
+            format_func=_format_set,
+            key="main_setlist_selector"
+        )
+        if chosen_set_uuid != st.session_state.get("selected_setlist_uuid"):
+            st.session_state["selected_setlist_uuid"] = chosen_set_uuid
+            st.rerun()
+    else:
+        st.info("Nessuna scaletta presente. Creane una nuova con il tasto qui sotto!")
 
-                        r_c1, r_c2, r_c3, r_c4 = st.columns([5, 1, 1, 1])
-                        with r_c1:
-                            st.markdown(f"**{idx + 1}. {title}** &bull; Key: `{key}` &bull; BPM: `{bpm}`")
-                        with r_c2:
-                            if idx > 0 and st.button("⬆️", key=f"up_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta prima"):
-                                active_setlist.items[idx], active_setlist.items[idx - 1] = active_setlist.items[idx - 1], active_setlist.items[idx]
-                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                                st.rerun()
-                        with r_c3:
-                            if idx < len(active_setlist.items) - 1 and st.button("⬇️", key=f"down_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta dopo"):
-                                active_setlist.items[idx], active_setlist.items[idx + 1] = active_setlist.items[idx + 1], active_setlist.items[idx]
-                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                                st.rerun()
-                        with r_c4:
-                            if st.button("❌", key=f"rem_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Rimuovi brano dalla scaletta"):
-                                active_setlist.items.pop(idx)
-                                storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                                st.success(f"Brano '{title}' rimosso dalla scaletta.")
-                                st.rerun()
+    # Row 2: Azioni Scaletta (Resta orizzontale su TUTTI i device grazie alla classe scaletta_toolbar_container)
+    with st.container(key="scaletta_toolbar_container"):
+        col_new_set, col_ren_set, col_dup_set, col_del_set, col_trash_set = st.columns(
+            5, gap="small", vertical_alignment="center"
+        )
+
+    with col_new_set:
+        with st.popover("➕ Nuova", width="stretch", help="Crea una nuova scaletta da zero o clonando un'altra"):
+            st.markdown("##### ➕ Nuova Scaletta Band")
+            st.caption("Crea una nuova lista brani per il concerto.")
+            today_str = datetime.date.today().strftime("%d/%m/%Y")
+            new_title = st.text_input("Titolo Concerto / Scaletta:", placeholder="es. Live Summer Fest", key="in_new_set_title").strip()
+            new_date = st.text_input("Data Evento:", value=today_str, key="in_new_set_date").strip()
+            
+            copy_source = None
+            if setlists:
+                copy_opt = ["Parti da scaletta vuota"] + [s.title for s in setlists]
+                chosen_copy = st.selectbox("Copia brani da scaletta esistente (opzionale):", copy_opt, key="in_new_set_copy")
+                if chosen_copy != "Parti da scaletta vuota":
+                    copy_source = next((s for s in setlists if s.title == chosen_copy), None)
+
+            if st.button("💾 Crea Scaletta", type="primary", disabled=not current_user.can_edit(), key="btn_create_setlist_submit", width="stretch"):
+                if not new_title:
+                    st.warning("⚠️ Inserisci almeno il titolo della scaletta.")
                 else:
-                    st.info("Nessun brano nella sequenza. Aggiungine uno con il menu sopra.")
+                    initial_items = [SetlistItem(song_uuid=it.song_uuid, custom_key=it.custom_key, custom_bpm=it.custom_bpm, notes=it.notes) for it in copy_source.items] if copy_source else []
+                    new_set = Setlist(title=new_title, date=new_date, items=initial_items)
+                    storage.save_setlist(new_set, current_user.email, current_user.name)
+                    st.session_state["selected_setlist_uuid"] = new_set.uuid
+                    log_op("📑", "SCALETTA", f"Creata scaletta live '{new_title}' ({len(initial_items)} brani)", "SUCCESS")
+                    st.success(f"Scaletta '{new_title}' creata con successo!")
+                    st.rerun()
 
-                st.divider()
-                st.write("#### 📤 Esportazione Scaletta Unificata (Tutti i Brani)")
-                loaded_songs = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
+    with col_ren_set:
+        if active_setlist:
+            with st.popover("✏️ Rinomina", width="stretch", help="Modifica titolo o data della scaletta attiva"):
+                st.markdown("##### ✏️ Rinomina Scaletta")
+                ren_title = st.text_input("Nuovo Titolo:", value=active_setlist.title, key=f"ren_t_{active_setlist.uuid}").strip()
+                ren_date = st.text_input("Data:", value=active_setlist.date, key=f"ren_d_{active_setlist.uuid}").strip()
+                if st.button("Salva Modifiche", type="primary", disabled=not current_user.can_edit(), key=f"btn_ren_save_{active_setlist.uuid}", width="stretch"):
+                    if ren_title:
+                        old_t = active_setlist.title
+                        active_setlist.title = ren_title
+                        active_setlist.date = ren_date
+                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                        log_op("✏️", "SCALETTA", f"Rinominata scaletta da '{old_t}' a '{ren_title}'", "SUCCESS")
+                        st.success("Scaletta aggiornata con successo!")
+                        st.rerun()
 
-                c_set_dev, c_set_act = st.columns([1.5, 2.5])
-                with c_set_dev:
-                    configured_devs = device_mgr.list_devices()
-                    dev_choices_set = {d.uuid: d.name for d in configured_devs}
-                    user_pref_name = st.session_state.get("user_preferred_device", "Foglio a 4 stampabile")
-                    default_dev_idx = next((i for i, d in enumerate(configured_devs) if d.name == user_pref_name), 0)
-                    selected_set_dev_uuid = st.selectbox(
-                        "Formato Dispositivo Scaletta:",
-                        list(dev_choices_set.keys()),
-                        index=default_dev_idx,
-                        format_func=lambda x: dev_choices_set[x],
-                        key=f"set_dev_sel_{active_setlist.uuid}"
-                    )
-                    set_prof = get_layout_device_profile(dev_choices_set.get(selected_set_dev_uuid))
-                    st.caption(f"📐 **Specifiche:** `{set_prof.name}` &bull; `{set_prof.width_mm:.1f}×{set_prof.height_mm:.1f} mm` ({set_prof.orientation})")
+    with col_dup_set:
+        if active_setlist:
+            with st.popover("📋 Clona", width="stretch", help="Duplica la scaletta corrente con tutti i suoi brani"):
+                st.markdown("##### 📋 Clona Scaletta")
+                dup_title = st.text_input("Titolo Copia:", value=f"{active_setlist.title} (Copia)", key=f"dup_t_{active_setlist.uuid}").strip()
+                if st.button("Conferma Duplicazione", type="primary", disabled=not current_user.can_edit(), key=f"btn_dup_save_{active_setlist.uuid}", width="stretch"):
+                    if dup_title:
+                        dup_items = [SetlistItem(song_uuid=it.song_uuid, custom_key=it.custom_key, custom_bpm=it.custom_bpm, notes=it.notes) for it in active_setlist.items]
+                        cloned = Setlist(title=dup_title, date=active_setlist.date, items=dup_items)
+                        storage.save_setlist(cloned, current_user.email, current_user.name)
+                        st.session_state["selected_setlist_uuid"] = cloned.uuid
+                        log_op("📋", "SCALETTA", f"Duplicata scaletta '{active_setlist.title}' in '{dup_title}'", "SUCCESS")
+                        st.success(f"Scaletta clonata come '{dup_title}'!")
+                        st.rerun()
 
-                with c_set_act:
-                    if loaded_songs:
-                        set_pdf = PDFEngine.generate_setlist_pdf(active_setlist, loaded_songs, profile=set_prof)
-                        st.download_button(
-                            label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
-                            data=set_pdf,
-                            file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pdf",
-                            mime="application/pdf",
-                            width="stretch",
-                            help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
-                        )
+    with col_del_set:
+        if active_setlist:
+            with st.popover("🗑️ Elimina", width="stretch", help="Elimina la scaletta (con protezione e ripristino immediato UNDO)"):
+                st.markdown("##### ⚠️ Conferma Eliminazione Scaletta")
+                st.markdown(f"Stai per eliminare la scaletta:<br><b style='color:#EF4444; font-size:14px;'>{active_setlist.title}</b> ({len(active_setlist.items)} brani)", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:11.5px; color:#94A3B8; margin:6px 0;'>La scaletta verrà spostata nel cestino protetto. Potrai ripristinarla in qualsiasi momento con il tasto <b>UNDO</b>.</div>", unsafe_allow_html=True)
+                if st.button("🗑️ Elimina con Protezione", type="secondary", disabled=not current_user.can_delete(), key=f"btn_confirm_delete_set_{active_setlist.uuid}", width="stretch"):
+                    del_uuid = active_setlist.uuid
+                    del_title = active_setlist.title
+                    st.session_state["undo_deleted_setlist_uuid"] = del_uuid
+                    st.session_state["undo_deleted_setlist_title"] = del_title
+                    storage.delete_setlist(del_uuid, current_user.email, current_user.name)
+                    st.session_state["selected_setlist_uuid"] = None
+                    log_op("🗑️", "SCALETTA", f"Spostata scaletta '{del_title}' nel cestino protetto con Undo disponibile", "WARNING")
+                    st.rerun()
 
-                        col_sb_exp, col_zip_exp = st.columns(2)
-                        with col_sb_exp:
-                            set_sb = ExportEngine.export_setlist_for_songbookpro(active_setlist, loaded_songs)
-                            st.download_button(
-                                label="🎸 Esporta per SongBook Pro (.pro)",
-                                data=set_sb,
-                                file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pro",
-                                mime="text/plain",
-                                width="stretch",
-                                help="File unico con tutti i brani della scaletta separati da pagina per SongBook Pro"
-                            )
-                        with col_zip_exp:
-                            live_zip = ExportEngine.create_offline_live_pack_zip(active_setlist, loaded_songs)
-                            st.download_button(
-                                label="📦 Scarica Live Pack ZIP",
-                                data=live_zip,
-                                file_name=f"LivePack_{active_setlist.title.replace(' ', '_')}.zip",
-                                mime="application/zip",
-                                width="stretch",
-                                help="Archivio completo contenente il PDF scaletta, singoli PDF, file AML e file per SongBook Pro"
-                            )
-                    else:
-                        st.info("Aggiungi brani alla sequenza per abilitare l'esportazione del PDF e per SongBook Pro.")
+    with col_trash_set:
+        deleted_setlists = storage.list_deleted_setlists() if hasattr(storage, "list_deleted_setlists") else []
+        trash_badge = f"♻️ ({len(deleted_setlists)})" if deleted_setlists else "♻️ Cestino"
+        with st.popover(trash_badge, width="stretch", help="Apri il cestino delle scalette per recuperare scalette cancellate"):
+            st.markdown("##### ♻️ Cestino Scalette Band")
+            st.caption("Recupera qualsiasi scaletta eliminata di recente con un solo click.")
+            if deleted_setlists:
+                for d_meta in deleted_setlists:
+                    d_data = d_meta.get("data", {})
+                    d_uid = d_data.get("uuid")
+                    d_name = d_data.get("title", "Senza Titolo")
+                    d_date = d_data.get("date", "")
+                    d_songs_count = len(d_data.get("items", []))
+                    d_time = d_meta.get("deleted_at", "")[:16].replace("T", " ")
+                    st.markdown(f"<div style='background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:4px; margin-bottom:4px; font-size:12px;'>"
+                                f"<b>{d_name}</b> ({d_songs_count} brani) &bull; Data: {d_date}<br><small style='color:#888;'>Eliminata il: {d_time}</small>"
+                                f"</div>", unsafe_allow_html=True)
+                    if st.button(f"↩️ Ripristina '{d_name}'", key=f"btn_res_trash_{d_uid}", type="primary", width="stretch"):
+                        restored = storage.restore_setlist(d_uid, current_user.email, current_user.name)
+                        if restored:
+                            st.session_state["selected_setlist_uuid"] = restored.uuid
+                            log_op("♻️", "SCALETTA", f"Recuperata scaletta '{restored.title}' dal cestino", "SUCCESS")
+                            st.success(f"Scaletta '{restored.title}' ripristinata!")
+                            st.rerun()
+                    st.divider()
+            else:
+                st.info("Il cestino scalette è attualmente vuoto.")
 
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("🎤 Avvia Modalità Palco (Live Stage)", type="primary", width="stretch"):
-                    st.session_state["launch_stage"] = True
-                    st.info("Passa a 'Modalità Palco' dal menu a sinistra.")
+    if not active_setlist:
+        st.stop()
+
+    # -------------------------------------------------------------------------
+    # SCALETTA ACTIVE METRICS (Brani, Durata Stimata Concerto, Display Attivo)
+    # -------------------------------------------------------------------------
+    loaded_songs = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
+    est_minutes = sum(int(s.bpm or 120) * 0 for s in loaded_songs)  # placeholder duration
+    total_duration_minutes = round(len(loaded_songs) * 3.7) # Stima media 3.7 min per brano
+    dur_h = total_duration_minutes // 60
+    dur_m = total_duration_minutes % 60
+    dur_str = f"{dur_h}h {dur_m:02d}m" if dur_h > 0 else f"{dur_m} min"
+
+    st.markdown(
+        f"""<div style="background:rgba(15,23,42,0.65); border:1px solid #1E293B; border-radius:8px; padding:8px 12px; margin:8px 0 14px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:14px; font-weight:800; color:#FFFFFF;">🎵 {active_setlist.title}</span>
+            <span style="font-size:11px; color:#38BDF8; background:rgba(56,189,248,0.12); padding:2px 7px; border-radius:10px; border:1px solid rgba(56,189,248,0.3); font-weight:600;">{active_setlist.date or "Nessuna data"}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; font-size:11.5px; color:#94A3B8;">
+            <span>Brani: <b style="color:#00E676;">{len(active_setlist.items)}</b></span>
+            <span>&bull;</span>
+            <span>Durata live stimata: <b style="color:#FBBF24;">~{dur_str}</b></span>
+            <span>&bull;</span>
+            <span>Display: <b style="color:#A78BFA;">{active_prof.name}</b></span>
+          </div>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    # -------------------------------------------------------------------------
+    # MAIN WORKSPACE: 2 COLUMNS (PC & Tablet: 1:1.3 / Mobile: Vertical Stacking)
+    # -------------------------------------------------------------------------
+    col_add_rep, col_sequence = st.columns([1.1, 1.4], gap="medium")
+
+    # =========================================================================
+    # COLONNA 1: AGGIUNGI BRANI DAI DIVERSI REPERTORI
+    # =========================================================================
+    with col_add_rep:
+        st.markdown(
+            """<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:13px; font-weight:800; color:#38BDF8; text-transform:uppercase; letter-spacing:0.5px;">
+                📚 Brani dai Repertori
+              </span>
+              <span style="font-size:10px; color:#94A3B8;">Scegli il repertorio da cui pescare</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        rep_choices = {"__all__": "🌐 Tutti i Repertori (Archivio Globale)"}
+        for r in all_reps:
+            rep_choices[r.uuid] = f"📁 {r.name} ({len(r.song_uuids)} brani)"
+
+        selected_rep_filter = st.selectbox(
+            "Filtra per Repertorio sorgente:",
+            list(rep_choices.keys()),
+            format_func=lambda x: rep_choices[x],
+            key="scalette_rep_filter_choice"
+        )
+
+        # Filter songs based on chosen repertoire
+        if selected_rep_filter == "__all__":
+            candidate_songs = all_songs
+        else:
+            matched_rep = next((r for r in all_reps if r.uuid == selected_rep_filter), None)
+            rep_uuids = set(matched_rep.song_uuids) if matched_rep else set()
+            candidate_songs = [s for s in all_songs if s["uuid"] in rep_uuids]
+
+        # Fast search filter inside repertoire
+        search_kw = st.text_input("🔍 Cerca brano nel repertorio:", placeholder="Filtra per titolo o artista...", key="scalette_rep_search").strip().lower()
+        if search_kw:
+            candidate_songs = [s for s in candidate_songs if (search_kw in s["title"].lower() or search_kw in s.get("artist", "").lower())]
+
+        # Quick add dropdown + button
+        if candidate_songs:
+            cand_map = {s["uuid"]: s for s in candidate_songs}
+            c_sel_add, c_btn_add = st.columns([3, 1], gap="small", vertical_alignment="bottom")
+            with c_sel_add:
+                add_song_pick = st.selectbox(
+                    "Seleziona brano rapido:",
+                    list(cand_map.keys()),
+                    format_func=lambda x: f"{cand_map[x]['title']} ({cand_map[x].get('artist', 'Artista')})",
+                    key="pick_song_for_setlist",
+                    label_visibility="collapsed"
+                )
+            with c_btn_add:
+                if st.button("➕ Inserisci", type="primary", disabled=not current_user.can_edit(), key="btn_add_song_to_setlist_fast", width="stretch"):
+                    active_setlist.items.append(SetlistItem(song_uuid=add_song_pick))
+                    storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                    st.session_state["undo_removed_setlist_item"] = None
+                    log_op("➕", "SCALETTA", f"Aggiunto '{cand_map[add_song_pick]['title']}' a scaletta '{active_setlist.title}'", "INFO")
+                    st.success(f"Aggiunto '{cand_map[add_song_pick]['title']}'!")
+                    st.rerun()
+
+            # Accordion / Quick List of songs in the chosen repertoire
+            with st.expander(f"📋 Sfoglia elenco brani repertorio ({len(candidate_songs)})", expanded=True):
+                existing_set_song_ids = set(item.song_uuid for item in active_setlist.items)
+                for c_song in candidate_songs:
+                    c_uid = c_song["uuid"]
+                    c_title = c_song["title"]
+                    c_artist = c_song.get("artist", "")
+                    c_key = c_song.get("key_current", "-")
+                    c_bpm = c_song.get("bpm", "-")
+                    is_in_set = c_uid in existing_set_song_ids
+
+                    c_row_info, c_row_btn = st.columns([3.2, 1], gap="small", vertical_alignment="center")
+                    with c_row_info:
+                        art_str = f" &bull; <small style='color:#888;'>{c_artist}</small>" if c_artist else ""
+                        badge_in = " <span style='font-size:9.5px; color:#00E676; font-weight:700;'>✓ in scaletta</span>" if is_in_set else ""
+                        st.markdown(f"<div style='font-size:12px; color:#E2E8F0; padding:2px 0;'><b>{c_title}</b>{art_str}{badge_in}<br>"
+                                    f"<span style='font-size:10px; color:#94A3B8;'>Key: <code>{c_key}</code> &bull; BPM: <code>{c_bpm}</code></span></div>",
+                                    unsafe_allow_html=True)
+                    with c_row_btn:
+                        btn_txt = "+ Aggiungi" if not is_in_set else "+ Ancora"
+                        if st.button(btn_txt, key=f"btn_add_inline_{c_uid}", disabled=not current_user.can_edit(), width="stretch"):
+                            active_setlist.items.append(SetlistItem(song_uuid=c_uid))
+                            storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                            st.session_state["undo_removed_setlist_item"] = None
+                            log_op("➕", "SCALETTA", f"Aggiunto '{c_title}' alla scaletta", "INFO")
+                            st.rerun()
+        else:
+            st.info("Nessun brano trovato per il repertorio o filtro selezionato.")
+
+    # =========================================================================
+    # COLONNA 2: SEQUENZA LIVE E ORDINAMENTO BRANI
+    # =========================================================================
+    with col_sequence:
+        st.markdown(
+            f"""<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:13px; font-weight:800; color:#00E676; text-transform:uppercase; letter-spacing:0.5px;">
+                🎤 Ordine di Palco ({len(active_setlist.items)} Brani)
+              </span>
+              <span style="font-size:10px; color:#94A3B8;">Usa ⬆️ ⬇️ per riordinare, ❌ per rimuovere con Undo</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        if active_setlist.items:
+            for idx, item in enumerate(active_setlist.items):
+                s_info = song_map.get(item.song_uuid)
+                title = s_info["title"] if s_info else "Brano non trovato"
+                artist = s_info.get("artist", "") if s_info else ""
+                key = item.custom_key or (s_info.get("key_current", "-") if s_info else "-")
+                bpm = item.custom_bpm or (s_info.get("bpm", "-") if s_info else "-")
+
+                # Single compact row per song in setlist
+                r_c_idx, r_c_title, r_c_up, r_c_dn, r_c_del = st.columns(
+                    [0.4, 3.4, 0.45, 0.45, 0.45], gap="small", vertical_alignment="center"
+                )
+
+                with r_c_idx:
+                    st.markdown(f"<div style='font-size:12px; font-weight:800; color:#38BDF8; background:rgba(56,189,248,0.12); width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(56,189,248,0.3);'>#{idx + 1}</div>", unsafe_allow_html=True)
+
+                with r_c_title:
+                    art_badge = f"<span style='font-size:10.5px; color:#888;'> &bull; {artist}</span>" if artist else ""
+                    st.markdown(f"<div style='line-height:1.2; padding:2px 0;'>"
+                                f"<b style='font-size:12.5px; color:#FFFFFF;'>{title.upper()}</b>{art_badge}<br>"
+                                f"<span style='font-size:10px; color:#94A3B8;'>Tonalità: <code style='color:#FFD600;'>{key}</code> &bull; BPM: <code style='color:#00E676;'>{bpm}</code></span>"
+                                f"</div>", unsafe_allow_html=True)
+
+                with r_c_up:
+                    if idx > 0 and st.button("⬆️", key=f"set_up_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano prima"):
+                        active_setlist.items[idx], active_setlist.items[idx - 1] = active_setlist.items[idx - 1], active_setlist.items[idx]
+                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                        st.rerun()
+
+                with r_c_dn:
+                    if idx < len(active_setlist.items) - 1 and st.button("⬇️", key=f"set_dn_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano dopo"):
+                        active_setlist.items[idx], active_setlist.items[idx + 1] = active_setlist.items[idx + 1], active_setlist.items[idx]
+                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                        st.rerun()
+
+                with r_c_del:
+                    if st.button("❌", key=f"set_rem_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Rimuovi brano dalla sequenza (con opzione Undo immediata)"):
+                        removed_it = active_setlist.items.pop(idx)
+                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                        st.session_state["undo_removed_setlist_item"] = {
+                            "setlist_uuid": active_setlist.uuid,
+                            "item": removed_it,
+                            "index": idx,
+                            "title": title
+                        }
+                        log_op("❌", "SCALETTA", f"Rimosso '{title}' dalla scaletta '{active_setlist.title}' (Undo pronto)", "INFO")
+                        st.rerun()
+
+                st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0;'></div>", unsafe_allow_html=True)
+        else:
+            st.markdown(
+                """<div style="text-align:center; padding:30px 15px; background:rgba(15,23,42,0.4); border:1px dashed #334155; border-radius:8px; margin-top:8px;">
+                  <div style="font-size:30px; margin-bottom:6px;">📑</div>
+                  <div style="font-size:13px; font-weight:700; color:#FFFFFF;">La sequenza di esecuzione è vuota</div>
+                  <div style="font-size:11px; color:#94A3B8; margin-top:4px;">Seleziona un repertorio a sinistra e clicca su <b>[+ Aggiungi]</b> per inserire i tuoi brani.</div>
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+    # -------------------------------------------------------------------------
+    # ESPLORAZIONE, PDF UNIFICATO & LIVE PALCO
+    # -------------------------------------------------------------------------
+    st.divider()
+    st.markdown("##### 📤 Esportazione Scaletta Unificata & Modalità Palco")
+
+    c_exp_l, c_exp_r = st.columns([1.2, 1.8], gap="medium")
+
+    with c_exp_l:
+        st.markdown(f"**Dispositivo Target per Esportazione & Palco:**")
+        st.caption("Il PDF e la modalità palco rispettano rigorosamente il display del dispositivo attivo:")
+        
+        curr_global_dev = st.session_state.get("user_preferred_device", dev_names[0])
+        curr_global_idx = dev_names.index(curr_global_dev) if curr_global_dev in dev_names else 0
+        sel_set_dev = st.selectbox(
+            "📐 Formato Dispositivo Scaletta:",
+            dev_names,
+            index=curr_global_idx,
+            key="setlist_device_sync_selector",
+            help="Modifica il dispositivo attivo in tutta l'applicazione"
+        )
+        if sel_set_dev != st.session_state.get("user_preferred_device"):
+            set_active_device_globally(sel_set_dev)
+            st.rerun()
+
+        set_prof = get_layout_device_profile(sel_set_dev)
+        st.caption(f"📐 **Specifiche Display:** `{set_prof.name}` &bull; `{set_prof.width_mm:.1f} × {set_prof.height_mm:.1f} mm` &bull; Colonne: `{set_prof.columns}` &bull; Font: `{set_prof.font_size_lyrics} pt`")
+
+    with c_exp_r:
+        if loaded_songs:
+            # Pulsante Principale Live Palco: naviga direttamente alla funzione Palco
+            if st.button("🎤 Avvia Modalità Palco con questa Scaletta (Live Stage)", type="primary", width="stretch", key="btn_go_live_stage_now"):
+                st.session_state["selected_setlist_uuid"] = active_setlist.uuid
+                st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
+                log_op("🎤", "PALCO", f"Avviata modalità palco per la scaletta '{active_setlist.title}'", "SUCCESS")
+                st.rerun()
+
+            set_pdf = PDFEngine.generate_setlist_pdf(active_setlist, loaded_songs, profile=set_prof)
+            st.download_button(
+                label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
+                data=set_pdf,
+                file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                width="stretch",
+                help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
+            )
+
+            col_sb_exp, col_zip_exp = st.columns(2, gap="small")
+            with col_sb_exp:
+                set_sb = ExportEngine.export_setlist_for_songbookpro(active_setlist, loaded_songs)
+                st.download_button(
+                    label="🎸 Esporta per SongBook Pro (.pro)",
+                    data=set_sb,
+                    file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pro",
+                    mime="text/plain",
+                    width="stretch",
+                    help="File unico con tutti i brani della scaletta separati da pagina per SongBook Pro"
+                )
+            with col_zip_exp:
+                live_zip = ExportEngine.create_offline_live_pack_zip(active_setlist, loaded_songs)
+                st.download_button(
+                    label="📦 Scarica Live Pack ZIP",
+                    data=live_zip,
+                    file_name=f"LivePack_{active_setlist.title.replace(' ', '_')}.zip",
+                    mime="application/zip",
+                    width="stretch",
+                    help="Archivio completo contenente il PDF scaletta, singoli PDF, file AML e file per SongBook Pro"
+                )
+        else:
+            st.info("Aggiungi brani alla scaletta per sbloccare l'esportazione PDF, SongBook Pro e la Modalità Palco.")
 
 # ------------------------------------------------------------------------------
 # 5. MODALITÀ PALCO (LIVE STAGE VIEW)

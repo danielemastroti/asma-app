@@ -636,6 +636,12 @@ class StorageManager:
         except Exception:
             return []
 
+    def get_setlist(self, setlist_uuid: str) -> Optional[Setlist]:
+        for s in self.list_setlists():
+            if s.uuid == setlist_uuid:
+                return s
+        return None
+
     def save_setlist(self, setlist: Setlist, user_email: str = "system", user_name: str = "System") -> Setlist:
         setlists = self.list_setlists()
         setlists = [s for s in setlists if s.uuid != setlist.uuid]
@@ -648,14 +654,60 @@ class StorageManager:
 
     def delete_setlist(self, setlist_uuid: str, user_email: str = "system", user_name: str = "System") -> bool:
         setlists = self.list_setlists()
-        before_count = len(setlists)
-        setlists = [s for s in setlists if s.uuid != setlist_uuid]
-        if len(setlists) == before_count:
+        target = next((s for s in setlists if s.uuid == setlist_uuid), None)
+        if not target:
             return False
+
+        # Soft delete into trash folder for instant and persistent undo
+        trash_path = os.path.join(self._trash_dir, f"setlist_{setlist_uuid}.json")
+        trash_meta = {
+            "deleted_at": current_iso_timestamp(),
+            "entity_type": "SETLIST",
+            "entity_uuid": setlist_uuid,
+            "data": target.to_dict()
+        }
+        with open(trash_path, "w", encoding="utf-8") as f:
+            json.dump(trash_meta, f, indent=2, ensure_ascii=False)
+
+        setlists = [s for s in setlists if s.uuid != setlist_uuid]
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
-        self.audit.log("DELETE", "SETLIST", setlist_uuid, user_email, user_name, {})
+        self.audit.log("DELETE", "SETLIST", setlist_uuid, user_email, user_name, {"title": target.title})
         return True
+
+    def restore_setlist(self, setlist_uuid: str, user_email: str = "system", user_name: str = "System") -> Optional[Setlist]:
+        """Restores a soft-deleted setlist from trash."""
+        trash_path = os.path.join(self._trash_dir, f"setlist_{setlist_uuid}.json")
+        if not os.path.exists(trash_path):
+            return None
+        try:
+            with open(trash_path, "r", encoding="utf-8") as f:
+                trash_meta = json.load(f)
+            setlist_data = trash_meta["data"]
+            restored = Setlist.from_dict(setlist_data)
+            restored.updated_at = current_iso_timestamp()
+            self.save_setlist(restored, user_email, user_name)
+            os.remove(trash_path)
+            self.audit.log("RESTORE", "SETLIST", setlist_uuid, user_email, user_name, {"title": restored.title})
+            return restored
+        except Exception:
+            return None
+
+    def list_deleted_setlists(self) -> list:
+        """Lists all soft-deleted setlists currently in trash."""
+        deleted = []
+        if not os.path.exists(self._trash_dir):
+            return []
+        for f in os.listdir(self._trash_dir):
+            if f.startswith("setlist_") and f.endswith(".json"):
+                try:
+                    with open(os.path.join(self._trash_dir, f), "r", encoding="utf-8") as fp:
+                        meta = json.load(fp)
+                        deleted.append(meta)
+                except Exception:
+                    pass
+        deleted.sort(key=lambda x: x.get("deleted_at", ""), reverse=True)
+        return deleted
 
     # --- LIVE EVENTS CRUD (SRS Cap. 4.4) ---
 

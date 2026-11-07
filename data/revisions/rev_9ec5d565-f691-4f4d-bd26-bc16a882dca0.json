@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "9ec5d565-f691-4f4d-bd26-bc16a882dca0",
+    "revision_number": 1,
+    "author_email": "daniele@band.org",
+    "author_name": "Daniele Rossi (Admin)",
+    "comment": "Salvataggio brano",
+    "aml_snapshot": "{title: Nuovo Brano}\n{key: C}\n\n[C]Testo e accordi...",
+    "timestamp": "2026-11-07T18:25:14.435059+00:00"
+  }
+]

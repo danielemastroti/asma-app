@@ -1,8 +1,70 @@
 [
   {
+    "email": "danyposta@gmail.com",
+    "name": "Sentimental",
+    "role": "ADMIN",
+    "pseudonym": "Sentimental",
+    "instrument": "Admin / Tastiera",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Sentimental",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "acicchelli65@gmail.com",
+    "name": "Cico",
+    "role": "BAND_MEMBER",
+    "pseudonym": "Cico",
+    "instrument": "Voce",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Cico",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "maurobovolenta4@gmail.com",
+    "name": "Maurino",
+    "role": "BAND_MEMBER",
+    "pseudonym": "Maurino",
+    "instrument": "Chitarra ritmica",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Maurino",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "marcoerario2@gmail.com",
+    "name": "Red",
+    "role": "BAND_MEMBER",
+    "pseudonym": "Red",
+    "instrument": "Chitarra elettrica",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Red",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "gv.drummer69@gmail.com",
+    "name": "Mingo",
+    "role": "BAND_MEMBER",
+    "pseudonym": "Mingo",
+    "instrument": "Batteria",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Mingo",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
+    "email": "titholola@gmail.com",
+    "name": "Puma",
+    "role": "BAND_MEMBER",
+    "pseudonym": "Puma",
+    "instrument": "Basso",
+    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Puma",
+    "is_active": true,
+    "provider": "google"
+  },
+  {
     "email": "daniele@band.org",
     "name": "Daniele Rossi (Admin)",
     "role": "ADMIN",
+    "pseudonym": "Daniele",
+    "instrument": "Admin",
     "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Daniele",
     "is_active": true,
     "provider": "google"
@@ -11,22 +73,18 @@
     "email": "marco.chitarra@band.org",
     "name": "Marco Bassi (Chitarra / Band)",
     "role": "BAND_MEMBER",
+    "pseudonym": "Marco",
+    "instrument": "Chitarra",
     "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Marco",
     "is_active": true,
     "provider": "google"
   },
   {
-    "email": "sara.voce@band.org",
-    "name": "Sara Voci (Cantante / Band)",
-    "role": "BAND_MEMBER",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Sara",
-    "is_active": true,
-    "provider": "google"
-  },
-  {
     "email": "ospite@band.org",
-    "name": "Ospite / Fan (Solo Lettura)",
+    "name": "Ospite (Solo Lettura)",
     "role": "VIEWER",
+    "pseudonym": "Ospite",
+    "instrument": "Ospite",
     "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Ospite",
     "is_active": true,
     "provider": "google"
