@@ -1178,6 +1178,7 @@ MENU_ITEMS = [
     "🤖 Band AI (Opzionale)",
     "🔍 Ricerca Globale",
     "📚 Repertori",
+    "🗂️ Smistamento Rapido",
     "📑 Scalette Live",
     "🎤 Modalità Palco (Live Stage)",
     "📅 Eventi Live",
@@ -1192,6 +1193,7 @@ MENU_COMPACT_LABELS = {
     "🤖 Band AI (Opzionale)": "🤖 AI",
     "🔍 Ricerca Globale": "🔍 Cerca",
     "📚 Repertori": "📚 Repertori",
+    "🗂️ Smistamento Rapido": "🗂️ Smistamento",
     "📑 Scalette Live": "📑 Scalette",
     "🎤 Modalità Palco (Live Stage)": "🎤 Palco",
     "📅 Eventi Live": "📅 Eventi",
@@ -3032,6 +3034,10 @@ elif menu_choice == "📚 Repertori":
                     st.success(f"Repertorio '{selected_rep.name}' eliminato.")
                     st.rerun()
 
+        if st.button("🗂️ Smistamento Rapido (Batch)", width="stretch", help="Apri la tabella unica di tutti i brani per spostare, clonare o eliminare con flag in un solo click"):
+            st.session_state["main_menu_choice"] = "🗂️ Smistamento Rapido"
+            st.rerun()
+
     if not selected_rep:
         st.stop()
 
@@ -3160,6 +3166,331 @@ elif menu_choice == "📚 Repertori":
                 st.rerun()
     else:
         st.info("Nessun brano associato a questo repertorio.")
+
+# ------------------------------------------------------------------------------
+# 2B. SMISTAMENTO RAPIDO & GESTIONE BATCH (TABELLA UNICA CON FLAG)
+# ------------------------------------------------------------------------------
+elif menu_choice == "🗂️ Smistamento Rapido":
+    st.subheader("🗂️ Smistamento Rapido & Gestione Batch Brani")
+    st.caption("Tabella unica di tutti i brani presenti: seleziona con i flag multipli ed esegui in un click spostamento, clonazione, associazione o eliminazione.")
+
+    all_reps = storage.list_repertoires()
+    all_songs = storage.list_songs()
+
+    if not all_songs:
+        st.info("Nessun brano presente nell'archivio. Crea o importa brani per utilizzare lo smistamento.")
+        st.stop()
+
+    if not all_reps:
+        st.warning("Nessun repertorio presente. Crea almeno un repertorio in '📚 Repertori' per organizzare i brani.")
+        st.stop()
+
+    # Mappa UUID brano -> Elenco nomi dei repertori in cui compare
+    rep_map = {}
+    for r in all_reps:
+        for suid in r.song_uuids:
+            rep_map.setdefault(suid, []).append(r.name)
+
+    # -------------------------------------------------------------
+    # FILTRI DI VISUALIZZAZIONE & RICERCA RAPIDA
+    # -------------------------------------------------------------
+    f_col1, f_col2, f_col3 = st.columns([1.6, 1.6, 0.8], gap="small")
+    with f_col1:
+        txt_filter = st.text_input("🔍 Cerca Brano / Artista:", placeholder="Es. Vasco, Zucchero, Rock...", key="batch_txt_filter").strip().lower()
+    with f_col2:
+        rep_filter_opts = [("__ALL__", f"🌐 Tutti i Brani (Archivio Globale: {len(all_songs)})"), ("__UNASSIGNED__", "⚠️ Solo Brani non assegnati ad alcun repertorio")]
+        for r in all_reps:
+            valid_c = len([uid for uid in r.song_uuids if storage.get_song(uid)])
+            rep_filter_opts.append((r.uuid, f"📁 {r.name} ({valid_c} brani)"))
+        rep_filter_ids = [opt[0] for opt in rep_filter_opts]
+        sel_rep_filter = st.selectbox(
+            "📁 Filtra per Repertorio di Origine:",
+            options=rep_filter_ids,
+            format_func=lambda x: next(opt[1] for opt in rep_filter_opts if opt[0] == x),
+            key="batch_rep_filter"
+        )
+    with f_col3:
+        st.write("")
+        st.write("")
+        col_s_all, col_d_all = st.columns(2, gap="small")
+        with col_s_all:
+            if st.button("🔘 Tutti", help="Spunta tutti i brani attualmente visualizzati", width="stretch", key="btn_sel_all_batch"):
+                st.session_state["batch_select_all_flag"] = True
+                st.session_state.pop("batch_desel_all_flag", None)
+                st.session_state.pop("batch_songs_data_editor", None)
+                st.rerun()
+        with col_d_all:
+            if st.button("⚪ Nessuno", help="Deseleziona tutti i brani", width="stretch", key="btn_desel_all_batch"):
+                st.session_state["batch_desel_all_flag"] = True
+                st.session_state.pop("batch_select_all_flag", None)
+                st.session_state.pop("batch_songs_data_editor", None)
+                st.rerun()
+
+    # Filtra i brani da visualizzare
+    filtered_songs = []
+    for s_dict in all_songs:
+        s_obj = storage.get_song(s_dict["uuid"])
+        if not s_obj:
+            continue
+        if txt_filter:
+            t_match = txt_filter in (s_obj.title or "").lower()
+            a_match = txt_filter in (s_obj.artist or "").lower()
+            if not t_match and not a_match:
+                continue
+        if sel_rep_filter == "__UNASSIGNED__":
+            if s_obj.uuid in rep_map:
+                continue
+        elif sel_rep_filter != "__ALL__":
+            src_rep = next((r for r in all_reps if r.uuid == sel_rep_filter), None)
+            if not src_rep or s_obj.uuid not in src_rep.song_uuids:
+                continue
+        filtered_songs.append(s_obj)
+
+    filtered_songs = sorted(filtered_songs, key=lambda s: (s.title or "").strip().upper())
+
+    select_all_active = st.session_state.pop("batch_select_all_flag", False)
+    desel_all_active = st.session_state.pop("batch_desel_all_flag", False)
+
+    # Costruzione dataset tabella
+    table_data = []
+    for s in filtered_songs:
+        curr_reps = rep_map.get(s.uuid, [])
+        reps_str = ", ".join(curr_reps) if curr_reps else "⚠️ Nessuno"
+        ita_k = MusicEngine.convert_notation(s.key_current, "ITA")
+        default_checked = False
+        if select_all_active:
+            default_checked = True
+        elif desel_all_active:
+            default_checked = False
+
+        table_data.append({
+            "Seleziona": default_checked,
+            "Titolo": s.title.upper() if s.title else "SENZA TITOLO",
+            "Artista": s.artist or "Sconosciuto",
+            "Tonalità": ita_k,
+            "BPM": s.bpm,
+            "Repertori": reps_str,
+            "UUID": s.uuid
+        })
+
+    import pandas as pd
+    df_batch = pd.DataFrame(table_data)
+
+    if not table_data:
+        st.info("Nessun brano corrisponde ai filtri impostati.")
+        selected_uuids = []
+    else:
+        edited_df = st.data_editor(
+            df_batch,
+            column_config={
+                "Seleziona": st.column_config.CheckboxColumn(
+                    "✓ Flag",
+                    help="Spunta i brani da spostare, clonare o eliminare",
+                    default=False
+                ),
+                "Titolo": st.column_config.TextColumn("Titolo Brano", width="medium"),
+                "Artista": st.column_config.TextColumn("Artista", width="medium"),
+                "Tonalità": st.column_config.TextColumn("Tonalità", width="small"),
+                "BPM": st.column_config.NumberColumn("BPM", width="small"),
+                "Repertori": st.column_config.TextColumn("Repertori Attuali", width="large"),
+                "UUID": None
+            },
+            disabled=["Titolo", "Artista", "Tonalità", "BPM", "Repertori"],
+            hide_index=True,
+            width="stretch",
+            height=min(480, 50 + len(table_data) * 36),
+            key="batch_songs_data_editor"
+        )
+        selected_rows = edited_df[edited_df["Seleziona"] == True]
+        selected_uuids = selected_rows["UUID"].tolist()
+
+    # -------------------------------------------------------------
+    # BARRA AZIONI CON SINGOLO CLICK
+    # -------------------------------------------------------------
+    num_sel = len(selected_uuids)
+    st.markdown(
+        f"""<div style="background:rgba(15,23,42,0.95); border:1px solid #334155; border-left:4px solid #38BDF8; border-radius:8px; padding:10px 14px; margin:10px 0 12px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span style="font-size:13.5px; font-weight:800; color:#FFFFFF;">⚡ Azioni Rapide con Singolo Click</span>
+            <span style="font-size:12px; color:#94A3B8; margin-left:8px;">Brani selezionati con flag:</span>
+            <span style="color:#00E676; font-size:15px; font-weight:900; margin-left:4px;">{num_sel}</span>
+            <span style="font-size:12px; color:#94A3B8;">su {len(table_data)} visualizzati</span>
+          </div>
+          <div style="font-size:11.5px; color:#38BDF8;">
+            {'Seleziona uno o più brani sopra per sbloccare i tasti operativi' if num_sel == 0 else f'Pronto a eseguire su {num_sel} brani'}
+          </div>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    col_target, col_btn_move, col_btn_clone, col_btn_add, col_btn_del = st.columns([1.8, 1.2, 1.2, 1.2, 1.2], gap="small")
+    with col_target:
+        target_dest_rep = st.selectbox(
+            "🎯 Repertorio di Destinazione:",
+            options=all_reps,
+            format_func=lambda r: f"📁 {r.name} ({len(r.song_uuids)} brani)",
+            key="batch_dest_repertoire"
+        )
+
+    with col_btn_move:
+        btn_batch_move = st.button(
+            f"➡️ Sposta ({num_sel})",
+            type="primary",
+            disabled=(num_sel == 0 or not current_user.can_edit()),
+            help=f"Sposta con 1 click i brani selezionati nel repertorio '{target_dest_rep.name}', rimuovendoli da quello di origine",
+            width="stretch",
+            key="btn_batch_move_action"
+        )
+
+    with col_btn_clone:
+        btn_batch_clone = st.button(
+            f"📑 Clona ({num_sel})",
+            disabled=(num_sel == 0 or not current_user.can_edit()),
+            help=f"Crea con 1 click copie duplicate indipendenti (nuovi UUID) nel repertorio '{target_dest_rep.name}' da arrangiare separatamente",
+            width="stretch",
+            key="btn_batch_clone_action"
+        )
+
+    with col_btn_add:
+        btn_batch_add = st.button(
+            f"📥 Collega ({num_sel})",
+            disabled=(num_sel == 0 or not current_user.can_edit()),
+            help=f"Collega con 1 click i brani selezionati al repertorio '{target_dest_rep.name}' (mantenendoli anche nei repertori attuali)",
+            width="stretch",
+            key="btn_batch_add_action"
+        )
+
+    with col_btn_del:
+        with st.popover(f"🗑️ Cestino ({num_sel})", width="stretch", disabled=(num_sel == 0 or not current_user.can_delete())):
+            st.warning(f"Vuoi spostare **{num_sel}** brani selezionati nel cestino?\n\n*Potrai ripristinarli entro 30 giorni dal Cestino.*")
+            btn_batch_del_confirm = st.button("Conferma Eliminazione", type="secondary", width="stretch", key="btn_confirm_batch_del")
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: SPOSTA
+    # -------------------------------------------------------------
+    if btn_batch_move and selected_uuids:
+        moved_count = 0
+        skipped_count = 0
+        for uid in selected_uuids:
+            s_obj = storage.get_song(uid)
+            if not s_obj:
+                continue
+            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title, exclude_song_uuid=uid)
+            if not can_add and uid not in target_dest_rep.song_uuids:
+                skipped_count += 1
+                continue
+
+            if uid not in target_dest_rep.song_uuids:
+                target_dest_rep.song_uuids.append(uid)
+
+            if sel_rep_filter != "__ALL__" and sel_rep_filter != "__UNASSIGNED__":
+                src_rep = next((r for r in all_reps if r.uuid == sel_rep_filter), None)
+                if src_rep and src_rep.uuid != target_dest_rep.uuid and uid in src_rep.song_uuids:
+                    src_rep.song_uuids.remove(uid)
+            else:
+                for other_r in all_reps:
+                    if other_r.uuid != target_dest_rep.uuid and uid in other_r.song_uuids:
+                        other_r.song_uuids.remove(uid)
+            moved_count += 1
+
+        if moved_count > 0:
+            storage._save_repertoires_file(all_reps)
+            storage._load_all_into_index()
+            storage._trigger_background_gist_sync("ALL")
+            log_op("➡️", "BATCH", f"Spostati con 1 click {moved_count} brani nel repertorio '{target_dest_rep.name}'", "SUCCESS")
+            st.success(f"✅ Spostati con 1 click **{moved_count}** brani nel repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} duplicati ignorati)" if skipped_count else ""))
+            st.rerun()
+        else:
+            st.warning("Nessun brano spostato: verifica che non siano già presenti nel repertorio di destinazione.")
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: CLONA
+    # -------------------------------------------------------------
+    elif btn_batch_clone and selected_uuids:
+        cloned_count = 0
+        skipped_count = 0
+        for uid in selected_uuids:
+            s_obj = storage.get_song(uid)
+            if not s_obj:
+                continue
+            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title)
+            if not can_add:
+                skipped_count += 1
+                continue
+
+            cloned_song = Song(
+                title=s_obj.title,
+                artist=s_obj.artist,
+                author=s_obj.author,
+                genre=s_obj.genre,
+                year=s_obj.year,
+                duration_seconds=s_obj.duration_seconds,
+                bpm=s_obj.bpm,
+                time_signature=s_obj.time_signature,
+                capo=s_obj.capo,
+                key_original=s_obj.key_original,
+                key_current=s_obj.key_current,
+                tags=list(s_obj.tags or []),
+                aml_content=s_obj.aml_content,
+                notes=s_obj.notes
+            )
+            saved_clone = storage.save_song(cloned_song, current_user.email, current_user.name, f"Clonata versione in batch per '{target_dest_rep.name}'")
+            storage.move_song_to_repertoire(saved_clone.uuid, target_dest_rep.uuid, current_user.email, current_user.name)
+            cloned_count += 1
+
+        if cloned_count > 0:
+            storage._trigger_background_gist_sync("ALL")
+            log_op("📑", "BATCH", f"Clonati con 1 click {cloned_count} brani per il repertorio '{target_dest_rep.name}'", "SUCCESS")
+            st.success(f"✅ Create e clonate con 1 click **{cloned_count}** nuove versioni indipendenti nel repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} duplicati ignorati)" if skipped_count else ""))
+            st.rerun()
+        else:
+            st.warning("Nessun brano clonato: i brani selezionati risultano già presenti nel repertorio di destinazione.")
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: COLLEGA / ASSOCIA
+    # -------------------------------------------------------------
+    elif btn_batch_add and selected_uuids:
+        added_count = 0
+        skipped_count = 0
+        for uid in selected_uuids:
+            if uid in target_dest_rep.song_uuids:
+                skipped_count += 1
+                continue
+            s_obj = storage.get_song(uid)
+            if not s_obj:
+                continue
+            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title, exclude_song_uuid=uid)
+            if not can_add:
+                skipped_count += 1
+                continue
+            target_dest_rep.song_uuids.append(uid)
+            added_count += 1
+
+        if added_count > 0:
+            storage._save_repertoires_file(all_reps)
+            storage._load_all_into_index()
+            storage._trigger_background_gist_sync("ALL")
+            log_op("📥", "BATCH", f"Collegati con 1 click {added_count} brani al repertorio '{target_dest_rep.name}'", "SUCCESS")
+            st.success(f"✅ Collegati con 1 click **{added_count}** brani al repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} già presenti ignorati)" if skipped_count else ""))
+            st.rerun()
+        else:
+            st.warning("Nessun brano collegato: i brani selezionati sono già presenti in questo repertorio.")
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: ELIMINA (SPOSTA NEL CESTINO)
+    # -------------------------------------------------------------
+    elif 'btn_batch_del_confirm' in locals() and btn_batch_del_confirm and selected_uuids:
+        deleted_count = 0
+        for uid in selected_uuids:
+            lock_mgr.release_lock(uid, current_user.email, force=current_user.is_admin())
+            storage.delete_song(uid, current_user.email, current_user.name)
+            deleted_count += 1
+
+        if deleted_count > 0:
+            log_op("🗑️", "BATCH", f"Spostati con 1 click {deleted_count} brani nel cestino", "WARNING")
+            st.success(f"🗑️ Spostati con 1 click **{deleted_count}** brani nel cestino (recuperabili per 30 giorni)!")
+            st.session_state.pop("batch_songs_data_editor", None)
+            st.rerun()
 
 # ------------------------------------------------------------------------------
 # 3. EDITOR BRANI
