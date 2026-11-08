@@ -945,9 +945,14 @@ if _oauth_code:
             else:
                 st.error(f"❌ Accesso negato per {_g_email}. Questo account Google non è abilitato nella lista musicisti della band.")
 
-# Resolve initial authentication state (Always requires genuine authentication)
+# Resolve initial authentication state: se già autenticato, entra direttamente
 if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
+    _saved_email = _client_prefs.get("active_user_email")
+    if _saved_email and auth_mgr.is_email_allowed(_saved_email):
+        st.session_state["authenticated"] = True
+        st.session_state["current_user_email"] = _saved_email
+    else:
+        st.session_state["authenticated"] = False
 
 # LIGHTWEIGHT SECURE LOGIN SCREEN (Google OAuth Verified)
 if not st.session_state.get("authenticated"):
@@ -995,15 +1000,18 @@ if not st.session_state.get("authenticated"):
             except Exception:
                 pass
 
-        # Autenticazione Obbligatoria Reale con Google OAuth (Digitazione Email -> Reindirizzamento Google)
-        with st.form("form_google_login_flow", clear_on_submit=False):
+        if not _g_red.endswith("/oauth2callback"):
+            _g_red = _g_red.rstrip("/") + "/oauth2callback"
+
+        # Form di login unico: solo email e conferma per reindirizzamento Google
+        with st.form("form_login_by_email", clear_on_submit=False):
             typed_email = st.text_input(
-                "Inserisci la tua email musicista autorizzata:",
+                "Email musicista autorizzata:",
                 placeholder="es. danyposta@gmail.com",
                 key="input_login_email"
             ).strip().lower()
 
-            submit_login = st.form_submit_button("Accedi con Verifica Google", type="primary", use_container_width=True)
+            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
 
         if submit_login:
             if not typed_email:
@@ -1011,37 +1019,12 @@ if not st.session_state.get("authenticated"):
             elif not auth_mgr.is_email_allowed(typed_email):
                 st.error(f"❌ Accesso negato: l'email '{typed_email}' non appartiene alla lista musicisti autorizzati della band ASMA.")
             elif not _g_cid or "YOUR_GOOGLE" in _g_cid:
-                st.error("⚠️ Configurazione Google OAuth non trovata nei secrets dell'app.")
+                st.error("⚠️ Configurazione Google OAuth mancante nei secrets dell'app.")
             else:
                 _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red, login_hint=typed_email)
-                st.info(f"Reindirizzamento a Google in corso per verificare la proprietà dell'account **{typed_email}**...")
-                st.link_button(f"🔐 Conferma identità su Google per {typed_email}", _oauth_url, type="primary", use_container_width=True)
+                st.info(f"Reindirizzamento su Google in corso per la verifica di sicurezza dell'account **{typed_email}**...")
                 st.markdown(f'<meta http-equiv="refresh" content="0; url={_oauth_url}">', unsafe_allow_html=True)
                 st.markdown(f'<script>window.location.href="{_oauth_url}";</script>', unsafe_allow_html=True)
-
-        # Accesso diretto tramite selettore account Google
-        if not _g_red.endswith("/oauth2callback"):
-            _g_red = _g_red.rstrip("/") + "/oauth2callback"
-
-        if _g_cid and "YOUR_GOOGLE" not in _g_cid:
-            _oauth_generic_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red)
-            st.markdown("<div style='text-align:center; margin:10px 0 8px 0; color:#64748B; font-size:11px;'>— oppure —</div>", unsafe_allow_html=True)
-            st.link_button("🔑 Seleziona direttamente il tuo Account Google", _oauth_generic_url, use_container_width=True)
-            st.caption("🔒 L'autenticazione è reale e obbligatoria tramite i server di Google. Solo gli account convalidati da Google e presenti nella lista band possono entrare.")
-
-        # Avviso tecnico per la configurazione del redirect URI di Google Cloud Console
-        with st.expander("ℹ️ Se Google mostra l'errore 'redirect_uri_mismatch'"):
-            st.markdown(
-                f"""
-                Google OAuth richiede che l'URI di reindirizzamento sia registrato nella Google Cloud Console:
-                1. Accedi a [Google Cloud Console](https://console.cloud.google.com/) ➔ **API e Servizi** ➔ **Credenziali**.
-                2. Apri il tuo **Client ID OAuth 2.0**.
-                3. Nella sezione **URI di reindirizzamento autorizzati**, inserisci esattamente:
-                   - `https://asma-app.streamlit.app/oauth2callback`
-                   - `http://localhost:8501/oauth2callback`
-                4. Clicca su **Salva**.
-                """
-            )
 
     st.stop()
 

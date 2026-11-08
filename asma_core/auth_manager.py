@@ -402,7 +402,7 @@ class AuthManager:
 
         return True
 
-    def build_google_oauth_url(self, client_id: str, redirect_uri: str, state: str = "asma_auth") -> str:
+    def build_google_oauth_url(self, client_id: str, redirect_uri: str, state: str = "asma_auth", login_hint: Optional[str] = None, **kwargs) -> str:
 
         """Generates Google OAuth2 authorization URL (SRS Cap. 3.2)."""
 
@@ -425,6 +425,10 @@ class AuthManager:
             "prompt": "select_account"
 
         }
+
+        hint = login_hint or kwargs.get("login_hint")
+        if hint:
+            params["login_hint"] = str(hint).strip().lower()
 
         return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
