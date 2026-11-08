@@ -2719,7 +2719,22 @@ elif menu_choice == "📝 Brani":
                 key=f"dl_dev_s_{preview_song.uuid}_{clean_dev}"
             )
 
-        # 3. Esporta nei vari formati (Compatto in griglia simmetrica 2x2 per tablet e Huawei)
+        # 3. Esecuzione Live Palco Singolo Brano (SRS Cap. 12 & Live Stage)
+        st.markdown(
+            """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
+              <span style="font-size:12px; font-weight:700; color:#FFFFFF;">🎤 Esecuzione Live Palco</span>
+              <span style="font-size:10px; color:#38BDF8;">⚡ Teleprompter a 60fps &bull; Pedale &bull; Metronomo</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        if st.button("🎤 Avvia Modalità Palco con questo Brano", type="primary", width="stretch", key=f"btn_stage_song_{preview_song.uuid}"):
+            st.session_state["stage_source_type"] = "🎵 Singolo Brano"
+            st.session_state["selected_song_uuid"] = preview_song.uuid
+            st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
+            log_op("🎤", "PALCO", f"Avviata modalità palco per il singolo brano '{preview_song.title}'", "SUCCESS")
+            st.rerun()
+
+        # 4. Esporta nei vari formati (Compatto in griglia simmetrica 2x2 per tablet e Huawei)
         st.markdown(
             """<div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 3px 0;">
               <span style="font-size:12px; font-weight:700; color:#FFFFFF;">📤 Esporta Formati Musicali</span>
@@ -3577,6 +3592,7 @@ elif menu_choice == "📑 Scalette Live":
         if loaded_songs:
             # Pulsante Principale Live Palco: naviga direttamente alla funzione Palco
             if st.button("🎤 Avvia Modalità Palco con questa Scaletta (Live Stage)", type="primary", width="stretch", key="btn_go_live_stage_now"):
+                st.session_state["stage_source_type"] = "📑 Scaletta Live"
                 st.session_state["selected_setlist_uuid"] = active_setlist.uuid
                 st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
                 log_op("🎤", "PALCO", f"Avviata modalità palco per la scaletta '{active_setlist.title}'", "SUCCESS")
@@ -3623,19 +3639,121 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
     st.subheader("🎤 Modalità Palco Ufficiale (Live Stage Component)")
 
     setlists = storage.list_setlists()
-    if not setlists:
-        st.warning("Crea una scaletta per utilizzare la modalità palco.")
+    all_reps = storage.list_repertoires()
+    all_songs = storage.list_songs()
+
+    if not setlists and not all_songs:
+        st.warning("Nessuna scaletta o brano disponibile nell'archivio per utilizzare la modalità palco.")
         st.stop()
 
-    set_id = st.session_state.get("selected_setlist_uuid") or setlists[0].uuid
-    active_setlist = next((s for s in setlists if s.uuid == set_id), setlists[0])
+    if setlists:
+        default_mode_idx = 1 if st.session_state.get("stage_source_type") == "🎵 Singolo Brano" else 0
+        stage_source = st.radio(
+            "🎯 Sorgente Esecuzione Palco:",
+            options=["📑 Scaletta Live", "🎵 Singolo Brano"],
+            index=default_mode_idx,
+            horizontal=True,
+            key="stage_source_selector"
+        )
+        st.session_state["stage_source_type"] = stage_source
+    else:
+        stage_source = "🎵 Singolo Brano"
+        st.session_state["stage_source_type"] = stage_source
+        st.info("ℹ️ Nessuna scaletta presente. La Modalità Palco è attiva in modalità **Singolo Brano** da repertorio.")
 
-    songs_to_stage = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
-    if not songs_to_stage:
-        st.warning(f"La scaletta '{active_setlist.title}' non contiene brani.")
-        st.stop()
+    if stage_source == "📑 Scaletta Live":
+        col_s1, col_s2 = st.columns([3, 1])
+        with col_s1:
+            setlist_options = {s.uuid: s for s in setlists}
+            curr_set_id = st.session_state.get("selected_setlist_uuid")
+            if curr_set_id not in setlist_options:
+                curr_set_id = setlists[0].uuid
+            default_s_idx = list(setlist_options.keys()).index(curr_set_id) if curr_set_id in setlist_options else 0
 
-    st.caption(f"Palco attivo: **{active_setlist.title}** ({len(songs_to_stage)} brani) &bull; Keep Screen Awake attivo &bull; Pedali Bluetooth connessi")
+            selected_setlist_uuid = st.selectbox(
+                "📑 Seleziona Scaletta per il Palco:",
+                options=list(setlist_options.keys()),
+                format_func=lambda uid: f"📑 {setlist_options[uid].title} ({len(setlist_options[uid].items)} brani)",
+                index=default_s_idx,
+                key="stage_active_setlist_select"
+            )
+            st.session_state["selected_setlist_uuid"] = selected_setlist_uuid
+            active_setlist = setlist_options[selected_setlist_uuid]
+        with col_s2:
+            st.caption("ℹ️ Info Scaletta:")
+            st.write(f"**{len(active_setlist.items)}** brani in sequenza")
+
+        songs_to_stage = [storage.get_song(item.song_uuid) for item in active_setlist.items if storage.get_song(item.song_uuid)]
+        if not songs_to_stage:
+            st.warning(f"La scaletta '{active_setlist.title}' non contiene brani validi.")
+            st.stop()
+
+        st.caption(f"Palco attivo su Scaletta: **{active_setlist.title}** ({len(songs_to_stage)} brani) &bull; Keep Screen Awake attivo &bull; Pedali Bluetooth connessi")
+
+    else:
+        # Singolo brano selezionato da repertorio o da archivio globale
+        col_r_filter, col_s_pick = st.columns([1, 2])
+        with col_r_filter:
+            rep_options = [("__ALL__", f"🌐 Archivio Globale ({len(all_songs)} brani)")]
+            for r in all_reps:
+                valid_count = len([uid for uid in r.song_uuids if storage.get_song(uid)])
+                rep_options.append((r.uuid, f"📁 {r.name} ({valid_count} brani)"))
+
+            rep_ids = [opt[0] for opt in rep_options]
+            curr_rep_id = st.session_state.get("selected_repertoire_uuid", "__ALL__")
+            rep_idx = rep_ids.index(curr_rep_id) if curr_rep_id in rep_ids else 0
+
+            selected_rep_uuid = st.selectbox(
+                "📁 Filtra da Repertorio:",
+                options=rep_ids,
+                format_func=lambda rid: next(opt[1] for opt in rep_options if opt[0] == rid),
+                index=rep_idx,
+                key="stage_repertoire_filter"
+            )
+            st.session_state["selected_repertoire_uuid"] = selected_rep_uuid
+
+        if selected_rep_uuid == "__ALL__":
+            candidate_songs = all_songs
+        else:
+            target_rep = storage.get_repertoire(selected_rep_uuid)
+            if target_rep:
+                candidate_songs = [storage.get_song(uid) for uid in target_rep.song_uuids if storage.get_song(uid)]
+            else:
+                candidate_songs = []
+
+        if not candidate_songs:
+            st.warning("Nessun brano disponibile nel repertorio selezionato.")
+            st.stop()
+
+        candidate_songs = sorted(candidate_songs, key=lambda s: s.title.strip().upper())
+        candidate_dict = {s.uuid: s for s in candidate_songs}
+        candidate_ids = list(candidate_dict.keys())
+
+        with col_s_pick:
+            curr_song_id = st.session_state.get("selected_song_uuid")
+            s_idx = candidate_ids.index(curr_song_id) if curr_song_id in candidate_ids else 0
+
+            selected_song_uuid = st.selectbox(
+                "🎵 Seleziona Singolo Brano per il Palco:",
+                options=candidate_ids,
+                format_func=lambda uid: f"{candidate_dict[uid].title.upper()} — {candidate_dict[uid].artist or 'Autore sconosciuto'} ({candidate_dict[uid].key_current})",
+                index=s_idx,
+                key="stage_single_song_select"
+            )
+            st.session_state["selected_song_uuid"] = selected_song_uuid
+            selected_song = candidate_dict[selected_song_uuid]
+
+        songs_to_stage = [selected_song]
+        st.markdown(
+            f"""<div style="font-size:13px; color:#94A3B8; margin-bottom:8px;">
+              Palco attivo su Singolo Brano: <b style="color:#FFFFFF;">{selected_song.title.upper()}</b> ({selected_song.artist or 'Autore sconosciuto'}) &bull;
+              Tonalità: <code style="color:#FFD600;">{selected_song.key_current}</code> &bull;
+              Tempo: <code style="color:#00E676;">{selected_song.bpm} BPM</code> &bull;
+              Keep Screen Awake attivo &bull; Pedali Bluetooth connessi
+            </div>""",
+            unsafe_allow_html=True
+        )
+
     html_bundle = LiveStageComponent.render_html_bundle(
         songs_to_stage,
         dark_theme=True,
