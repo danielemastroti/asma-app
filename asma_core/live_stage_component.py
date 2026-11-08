@@ -131,19 +131,34 @@ class LiveStageComponent:
     flex-direction: column;
   }}
 
-  /* Top Stage HUD */
+  /* Top Stage HUD & Navigation Bar (Tutti i tasti di navigazione in alto sopra il brano) */
   #stage-hud {{
     background: #0F172A;
     border-bottom: 2px solid #334155;
     color: #FFFFFF;
-    padding: 6px 12px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+  }}
+
+  .hud-row {{
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 13px;
-    z-index: 100;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
+  }}
+
+  .hud-nav-bar {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(51, 65, 85, 0.7);
   }}
 
   .hud-group {{
@@ -216,7 +231,7 @@ class LiveStageComponent:
     height: 100%;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
-    padding: 20px 24px 220px 24px;
+    padding: 16px 24px 60px 24px;
     scroll-behavior: auto;
   }}
 
@@ -314,91 +329,54 @@ class LiveStageComponent:
     display: inline-block;
   }}
 
-  /* Floating Bottom Live Controller */
-  #live-controller {{
-    position: fixed;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.96);
-    backdrop-filter: blur(12px);
-    border: 1px solid #334155;
-    border-radius: 20px;
-    padding: 6px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.9);
-    z-index: 1000;
-    max-width: 98vw;
-    flex-wrap: wrap;
-  }}
-
-  .ctrl-btn {{
-    background: #1E293B;
-    color: #F8FAFC;
-    border: 1px solid #475569;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 13px;
-  }}
-
-  .ctrl-btn:active {{
-    background: #334155;
-  }}
 </style>
 </head>
 <body>
 
-<!-- TOP HUD -->
+<!-- TOP STAGE HUD & CONTROLLER: TUTTI I TASTI DI NAVIGAZIONE IN ALTO SOPRA IL BRANO -->
 <div id="stage-hud">
-  <div class="hud-group" style="display:flex; align-items:center; gap:6px;">
-    {f'<img src="{logo_b64}" style="height:24px; object-fit:contain;" alt="Logo" />' if logo_b64 else ''}
-    <button class="btn" onclick="prevSong()" title="Brano Precedente">◀ Prec (1)</button>
-    <span id="hud-counter" style="font-weight: bold; font-size:12px;">Brano 1 di 1</span>
-    <button class="btn" onclick="nextSong()" title="Brano Successivo">Succ (2) ▶</button>
-  </div>
-
-  <div class="hud-group" style="display:flex; align-items:center; gap:6px;">
-    <button class="btn btn-accent" onclick="pageUp()" title="Salta indietro di mezza pagina">📄 ⬆️ Pag Su</button>
-    <button class="btn btn-accent" onclick="pageDown()" title="Salta avanti di mezza pagina">📄 ⬇️ Pag Giù</button>
-    <span id="hud-key" class="badge-key">KEY: C</span>
-  </div>
-
-  <div class="hud-group" style="display:flex; align-items:center; gap:6px;">
-    <div class="badge-metro">
-      <span id="metro-light" class="metro-dot"></span>
-      <span id="hud-bpm">120 BPM</span>
-      <button class="btn btn-accent" style="padding: 2px 6px; margin-left: 4px;" onclick="toggleMetronome()">Click</button>
+  <!-- Riga 1: Brano / Scaletta, Tonalità, Metronomo, Utilità Schermo -->
+  <div class="hud-row">
+    <div class="hud-group" style="display:flex; align-items:center; gap:6px;">
+      {f'<img src="{logo_b64}" style="height:22px; object-fit:contain;" alt="Logo" />' if logo_b64 else ''}
+      <button class="btn" onclick="prevSong()" title="Brano Precedente scaletta (Pedale 1)">⏮ Prec (1)</button>
+      <span id="hud-counter" style="font-weight:bold; font-size:12px; color:#94A3B8; white-space:nowrap;">Brano 1 di 1</span>
+      <button class="btn" onclick="nextSong()" title="Brano Successivo scaletta (Pedale 2)">Succ (2) ⏭</button>
+      <span id="hud-key" class="badge-key">KEY: C</span>
     </div>
-    <button class="btn" onclick="toggleWakeLock()" id="btn-wakelock" title="Mantieni schermo acceso">☀️</button>
-    <button class="btn" onclick="toggleFullscreen()" title="Schermo intero">⛶</button>
+
+    <div class="hud-group" style="display:flex; align-items:center; gap:6px;">
+      <div class="badge-metro">
+        <span id="metro-light" class="metro-dot"></span>
+        <span id="hud-bpm">120 BPM</span>
+        <button class="btn btn-accent" style="padding: 2px 7px; margin-left: 4px; font-size:11px;" onclick="toggleMetronome()">Click</button>
+      </div>
+      <button class="btn" onclick="toggleWakeLock()" id="btn-wakelock" title="Mantieni schermo acceso">☀️</button>
+      <button class="btn" onclick="toggleFullscreen()" title="Schermo intero">⛶</button>
+    </div>
+  </div>
+
+  <!-- Riga 2: Tutti i Tasti di Navigazione, Scorrimento e Velocità -->
+  <div class="hud-nav-bar">
+    <button class="btn btn-accent" onclick="pageUp()" title="Salta indietro di mezza pagina (Page Up)">📄 ⬆️ Pag Su</button>
+    
+    <button id="btn-scroll" class="btn btn-warning" onclick="toggleScroll()" style="min-width: 135px; font-weight:800; padding:6px 14px;">⏳ AVVIO IN {auto_start_delay}s</button>
+    
+    <button class="btn btn-accent" onclick="pageDown()" title="Salta avanti di mezza pagina (Page Down)">📄 ⬇️ Pag Giù</button>
+    
+    <button class="btn" onclick="resetScroll()" title="Riavvolgi brano all'inizio" style="padding:6px 10px;">🔄 Inizio</button>
+    
+    <div style="display:flex; align-items:center; gap:3px; background:#1E293B; border:1px solid #334155; border-radius:6px; padding:2px 6px;">
+      <button class="btn" onclick="updateSpeed(Math.max(10, scrollSpeed - 5))" title="Rallenta velocità" style="padding:4px 8px; font-size:11px;">➖</button>
+      <span id="speed-label" style="font-size: 12px; font-weight: bold; min-width: 52px; text-align: center; color: #38BDF8;">{initial_speed} px/s</span>
+      <button class="btn" onclick="updateSpeed(Math.min(150, scrollSpeed + 5))" title="Accelera velocità" style="padding:4px 8px; font-size:11px;">➕</button>
+    </div>
   </div>
 </div>
 
 <!-- SCROLLABLE VIEWPORT -->
 <div id="stage-viewport">
   <div id="song-container"></div>
-</div>
-
-<!-- FLOATING CONTROLLER -->
-<div id="live-controller">
-  <button class="btn" onclick="prevSong()" title="Brano Precedente scaletta" style="padding:6px 10px;">⏮ Prec</button>
-  <button class="btn btn-accent" onclick="pageUp()" title="Pagina Su (indietro)" style="padding:6px 10px;">📄 ⬆️</button>
-  
-  <button id="btn-scroll" class="btn btn-warning" onclick="toggleScroll()" style="min-width: 115px; font-weight:800; padding:6px 12px;">⏳ AVVIO IN {auto_start_delay}s</button>
-  
-  <button class="btn btn-accent" onclick="pageDown()" title="Pagina Giù (avanti)" style="padding:6px 10px;">📄 ⬇️</button>
-  <button class="btn" onclick="nextSong()" title="Brano Successivo scaletta" style="padding:6px 10px;">Succ ⏭</button>
-  
-  <button class="btn" onclick="resetScroll()" title="Riavvolgi brano all'inizio" style="padding:6px 8px;">🔄</button>
-  
-  <button class="btn" onclick="updateSpeed(Math.max(10, scrollSpeed - 5))" title="Rallenta velocità" style="padding:6px 8px;">➖</button>
-  <span id="speed-label" style="font-size: 12px; font-weight: bold; width: 55px; text-align: center; color: #38BDF8;">{initial_speed} px/s</span>
-  <button class="btn" onclick="updateSpeed(Math.min(150, scrollSpeed + 5))" title="Accelera velocità" style="padding:6px 8px;">➕</button>
 </div>
 
 <script>
