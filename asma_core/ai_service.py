@@ -443,10 +443,18 @@ class BandAIService:
         }
 
     @classmethod
-    def suggest_arrangement_ideas(cls, title: str, genre: str = "", key: str = "", bpm: int = 0, artist: str = "") -> str:
+    def suggest_arrangement_ideas(
+        cls,
+        title: str,
+        genre: str = "",
+        key: str = "",
+        bpm: int = 0,
+        artist: str = "",
+        instrument: str = "Globale"
+    ) -> str:
         """
-        Consigli di arrangiamento live (Intro, Strofe, Ritornello, Assolo, Finale)
-        con integrazione del valore reale verificato su SongBPM.com.
+        Consigli di arrangiamento live con target specifico (Globale, Tastiera, Voce, Chitarra, Basso, Batteria)
+        e raccomandazione preset Yamaha Montage su misura per i tastieristi.
         """
         # Ricerca valore reale e verificato su SongBPM
         sb_info = cls.fetch_songbpm_info(title, artist)
@@ -460,15 +468,96 @@ class BandAIService:
             songbpm_bpm = cls.estimate_song_bpm(title, artist)
             tempo_label = f"SongBPM: {songbpm_bpm} BPM"
 
-        header_tags = [t for t in [genre, f"Tonalità {key}" if key else "", tempo_label] if t]
-        header_str = f" ({', '.join(header_tags)})" if header_tags else ""
+        g_lower = (genre or "").lower()
+        t_lower = (title or "").lower()
+        k_str = key or "Tonica"
 
-        return f"""Consigli di Arrangiamento Live per '{title}'{header_str}:
-1. **Intro:** Inizia con strumento solista (chitarra o piano) per le prime 4 battute, poi ingresso di cassa in 4 a metà intro per impostare il groove ({songbpm_bpm} BPM da SongBPM) prima dell'ingresso della voce.
-2. **Strofa 1:** Mantieni il basso lineare sui quarti a {songbpm_bpm} BPM con piatti charleston chiusi per dare intimità al testo.
-3. **Ritornello:** Esplosione dinamica a {songbpm_bpm} BPM: apertura del charleston, raddoppio delle chitarre e armonia vocale a due voci sulla terza superiore.
+        # Determinazione del preset Yamaha Montage ottimale
+        if any(w in g_lower or w in t_lower for w in ["rock", "blues", "hard"]):
+            montage_preset = "**All Revved Up** (Organo Hammond B3 con Leslie su Pedale FC7) oppure **Prog Organ**"
+            montage_tip = "Usa il Super Knob per dosare il Drive del preamplificatore valvolare. Assegna l'effetto Rotary Speaker (Slow/Fast) al tasto Assignable Switch 1 o al pedale switch."
+        elif any(w in g_lower or w in t_lower for w in ["soul", "funk", "motown", "r&b"]):
+            montage_preset = "**73 Rd 1 Gallery** (Rhodes valvolare con Auto-Pan/Phaser) o **Clavi D6 Wah**"
+            montage_tip = "Regola la dinamica Velocity per far ruggire il Rhodes sulle frasi di stacco. Super Knob per dosare l'inviluppo del Wah."
+        elif any(w in g_lower or w in t_lower for w in ["dance", "disco", "80s", "synth", "pop dance"]):
+            montage_preset = "**Super 80s Brass** (Split con pad sintetico) oppure **TX81Z LatelyBass / DX Crisp**"
+            montage_tip = "Programma la Scene 1 per la strofa (pad filtrato) e Scene 2 per il ritornello (apertura filtro Cutoff a piena banda)."
+        else:
+            montage_preset = "**CFX Concert** (Gran Coda Acustico) con layer sottile di **Warm Pad** o **Seattle Sections**"
+            montage_tip = "Configura lo split a C3: mano sinistra su pad/basso leggero e mano destra su CFX Concert brillante per tagliare nel mix della band."
+
+        inst_norm = instrument.lower()
+
+        if "tastier" in inst_norm:
+            return f"""### 🎹 Consigli di Arrangiamento per TASTIERA & Preset Yamaha Montage
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+#### 🎛️ Preset Consigliato Yamaha Montage:
+* **Performance Ufficiale Montage:** {montage_preset}
+* **Configurazione Super Knob & Scene:** {montage_tip}
+* **Scene Memory:** Imposta **Scene 1** per strofe (suono asciutto e intimo) e **Scene 2 / 3** per ritornelli e assolo (apertura riverbero e layer aggiuntivi).
+
+#### 🎼 Guida all'Esecuzione nel Mix della Band:
+1. **Intro & Strofa:** Non raddoppiare la linea di basso fondamentale nella mano sinistra: lascia lo spazio al bassista. Suona voicings aperti (drop-2) tra C3 e G5.
+2. **Ritornello:** Incrementa il volume o apri il Super Knob. Sostieni con accordi sostenuti (pad/organo) o riff ritmici accentati sui battere e levare.
+3. **Bridge / Stacchi:** Se presente un assolo di chitarra, fai comping ritmico discreto sui tempi deboli (2 e 4) senza invadere le frequenze medie.
+4. **Finale:** Concludi con arpeggio o accordo aperto di {k_str} lasciando sfumare il riverbero."""
+
+        elif "voce" in inst_norm:
+            return f"""### 🎤 Consigli di Arrangiamento per VOCE
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+1. **Tessitura e Registro:** Con tonalità impostata su **{k_str}**, cura il passaggio di registro tra voce di petto e voce mista nei ritornelli.
+2. **Strofa 1:** Canto narrativo, intimista, quasi parlato, con microfonazione ravvicinata per valorizzare i bassi vocali.
+3. **Ritornello:** Massima apertura polmonare e proiezione; inserisci raddoppi vocali e cori sulla terza superiore ({k_str}) per dare potenza live.
+4. **Dinamica Live:** Durante il bridge o assolo strumentale, retrocedi leggermente dal microfono per dare il centro della scena al solista."""
+
+        elif "ritmic" in inst_norm or ("chitarra" in inst_norm and "elettric" not in inst_norm):
+            return f"""### 🎸 Consigli di Arrangiamento per CHITARRA RITMICA
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+1. **Accordi & Voicing:** Preferisci accordi aperti o triadi sui primi 4 cantini (D-G-B-E) per non impastare le frequenze basse con basso e cassa.
+2. **Pattern Ritmico:** Mantieni un groove solido a {songbpm_bpm} BPM con pennata fluida; accentua il 2° e 4° movimento in sincrono con il rullante.
+3. **Dinamica Sezioni:** Palm-muting sulle strofe per creare tensione; apertura completa delle pennate nei ritornelli per allargare il fronte sonoro stereo."""
+
+        elif "elettric" in inst_norm or "lead" in inst_norm:
+            return f"""### ⚡ Consigli di Arrangiamento per CHITARRA ELETTRICA (Lead)
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+1. **Tonalità per l'Assolo:** Scala pentatonica e dorica/blues su tonalità **{k_str}**.
+2. **Catena Effetti:** Overdrive caldo, leggero delay sincronizzato sui quarti a **{songbpm_bpm} BPM** (tempo delay: {int(60000 / songbpm_bpm)} ms).
+3. **Strofe:** Riff melodici di risposta alla voce (call and response) e arpeggi puliti con chorus leggero.
+4. **Assolo:** Inizia con frasi melodiche cantabili e lente, per poi accelerare in crescendo verso la chiusura del ritornello."""
+
+        elif "basso" in inst_norm:
+            return f"""### 🎸 Consigli di Arrangiamento per BASSO
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+1. **Lock-in con la Batteria:** Blocca le note fondamentali di **{k_str}** esattamente in sincrono con la cassa a {songbpm_bpm} BPM.
+2. **Strofa:** Note lunghe sui quarti, rotonde, senza fronzoli per garantire stabilità al cantante.
+3. **Ritornello:** Introduci ottave o ghost-notes ritmiche per spingere l'energia della band.
+4. **Transizioni:** Utilizza passaggi cromatici ascendenti/discendenti per collegare le sezioni armoniche."""
+
+        elif "batteri" in inst_norm:
+            return f"""### 🥁 Consigli di Arrangiamento per BATTERIA
+**Brano:** '{title}' ({k_str} &bull; {songbpm_bpm} BPM)
+
+1. **Groove di Riferimento:** {songbpm_bpm} BPM verificati su SongBPM.
+2. **Strofe:** Charleston chiuso a ottavi, rullante sul 2 e 4 con tocco leggero (o cross-stick se ballad).
+3. **Ritornelli:** Apertura parziale o totale del charleston (o passaggio sul piatto Ride), cassa decisa per spingere la band.
+4. **Fill & Stacchi:** Mantieni i fill essenziali e a tempo, preparando sempre l'attacco del ritornello con un crash deciso sul primo battito."""
+
+        else:
+            # Globale band
+            header_tags = [t for t in [genre, f"Tonalità {k_str}", tempo_label] if t]
+            header_str = f" ({', '.join(header_tags)})" if header_tags else ""
+
+            return f"""Consigli di Arrangiamento Live Globale per '{title}'{header_str}:
+1. **Intro:** Inizia con strumento solista (tastiera Montage con *{montage_preset.split('(')[0].strip('* ')}* o chitarra) per le prime 4 battute, poi ingresso di cassa in 4 a metà intro a {songbpm_bpm} BPM da SongBPM prima dell'ingresso della voce.
+2. **Strofa 1:** Mantieni il basso lineare e charleston chiuso per dare intimità al testo del cantante.
+3. **Ritornello:** Esplosione dinamica a {songbpm_bpm} BPM: apertura del charleston, cori a due voci su {k_str} e layer di tastiere e chitarre.
 4. **Bridge / Assolo:** Sezione ritmica serrata a {songbpm_bpm} BPM, progressione in crescendo dinamico fino al drop sul ritornello finale.
-5. **Finale:** Uscita con giro armonico ripetuto in diminuendo con stacco secco sull'accordo di tonica ({key or 'Tonica'})."""
+5. **Finale:** Uscita con giro armonico ripetuto in diminuendo con stacco secco sull'accordo di tonica ({k_str})."""
 
     @classmethod
     def analyze_probable_key_with_ai_fallback(

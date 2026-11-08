@@ -139,7 +139,26 @@ st.markdown("""
 
   /* Responsive Scaletta Toolbar - stays horizontal on smartphones and tablets */
   div[class*="st-key-scaletta_toolbar_container"] [data-testid="stHorizontalBlock"],
-  div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlock"] {
+  
+div[class*="st-key-set_order_item_"] [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+div[class*="st-key-set_order_item_"] [data-testid="column"] {
+    min-width: unset !important;
+    flex-shrink: 0 !important;
+}
+div[class*="st-key-set_order_item_"] [data-testid="column"]:nth-child(2) {
+    flex-grow: 1 !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -923,16 +942,11 @@ if _oauth_code:
             else:
                 st.error(f"❌ Accesso negato per {_g_email}. Questo account Google non è abilitato nella lista musicisti della band.")
 
-# Resolve initial authentication state
+# Resolve initial authentication state (Always requires genuine authentication)
 if "authenticated" not in st.session_state:
-    _saved_email = _client_prefs.get("active_user_email")
-    if _saved_email and auth_mgr.get_user_by_email(_saved_email):
-        st.session_state["authenticated"] = True
-        st.session_state["current_user_email"] = _saved_email
-    else:
-        st.session_state["authenticated"] = False
+    st.session_state["authenticated"] = False
 
-# LIGHTWEIGHT LOGIN SCREEN
+# LIGHTWEIGHT SECURE LOGIN SCREEN (Google OAuth Verified)
 if not st.session_state.get("authenticated"):
     _, col_login, _ = st.columns([1, 2.2, 1])
     with col_login:
@@ -951,43 +965,56 @@ if not st.session_state.get("authenticated"):
                 st.markdown('<div style="text-align:center; font-size:48px; margin-bottom:8px;">⚡</div>', unsafe_allow_html=True)
 
         st.markdown(
-            """<div style="text-align:center; margin-top:-6px; margin-bottom:18px;">
-              <div style="font-size:12px; color:#38BDF8; font-weight:700; letter-spacing:1px; text-transform:uppercase;">
+            """<div style="text-align:center; margin-top:-6px; margin-bottom:20px;">
+              <div style="font-size:13px; color:#38BDF8; font-weight:800; letter-spacing:1px; text-transform:uppercase;">
                 Area Riservata Band
               </div>
-              <div style="font-size:11px; color:#94A3B8; margin-top:3px;">
-                Inserisci la tua email autorizzata per accedere
+              <div style="font-size:11px; color:#94A3B8; margin-top:4px;">
+                Accesso protetto esclusivo per i musicisti della band ASMA
               </div>
             </div>""",
             unsafe_allow_html=True
         )
 
-        with st.form("form_login_by_email", clear_on_submit=False):
-            typed_email = st.text_input(
-                "Email autorizzata:",
-                placeholder="es. nome@gmail.com",
-                key="input_login_email"
-            ).strip().lower()
+        # 1. Recupero credenziali Google OAuth da Streamlit Secrets o file locale
+        _g_cid = ""
+        _g_red = "https://asma-app.streamlit.app"
+        if hasattr(st, "secrets") and "google_auth" in st.secrets:
+            _g_cid = st.secrets["google_auth"].get("client_id", "")
+            _g_red = st.secrets["google_auth"].get("redirect_uri", _g_red)
+        elif os.path.exists(".streamlit/secrets.toml"):
+            try:
+                import tomllib
+                with open(".streamlit/secrets.toml", "rb") as _tf:
+                    _sec_data = tomllib.load(_tf)
+                    _g_cid = _sec_data.get("google_auth", {}).get("client_id", "")
+                    _g_red = _sec_data.get("google_auth", {}).get("redirect_uri", _g_red)
+            except Exception:
+                pass
 
-            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
-            if submit_login:
-                if not typed_email:
-                    st.warning("⚠️ Inserisci la tua email per accedere.")
-                elif auth_mgr.is_email_allowed(typed_email):
-                    matched_user = auth_mgr.get_user_by_email(typed_email)
-                    if not matched_user:
-                        matched_user = auth_mgr.authenticate_or_register_google(typed_email)
-                    st.session_state["authenticated"] = True
-                    st.session_state["current_user_email"] = matched_user.email
-                    st.session_state["current_user_name"] = matched_user.name
-                    _cp = load_client_preferences()
-                    _cp["active_user_email"] = matched_user.email
-                    save_client_preferences(_cp)
-                    st.query_params["user"] = matched_user.email
-                    log_op("🟢", "AUTH", f"Login effettuato con successo da {matched_user.name} ({matched_user.email})", "SUCCESS")
-                    st.rerun()
-                else:
-                    st.error("❌ Accesso negato: l'indirizzo email inserito non è autorizzato.")
+        if _g_cid and "YOUR_GOOGLE" not in _g_cid:
+            _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red)
+            st.link_button("🔑 Accedi con Account Google", _oauth_url, type="primary", use_container_width=True)
+            st.caption("🔒 L'autenticazione è reale tramite Google. Solo gli account Google registrati nella lista band possono entrare.")
+        else:
+            st.warning("⚠️ Configurazione Google OAuth mancante nei Secrets. Configura [google_auth] in Streamlit Cloud Secrets.")
+
+        with st.expander("🛠️ Accesso Locale di Sviluppo (Solo se offline / localhost)"):
+            st.caption("Utilizzabile per test in ambiente locale di sviluppo quando non è attiva la connessione Google OAuth.")
+            with st.form("form_dev_login", clear_on_submit=False):
+                dev_email = st.text_input("Email autorizzata musicista:", placeholder="danyposta@gmail.com", key="input_dev_email").strip().lower()
+                dev_sub = st.form_submit_button("🚀 Accedi come Dev Locale", use_container_width=True)
+                if dev_sub:
+                    if auth_mgr.is_email_allowed(dev_email):
+                        matched_user = auth_mgr.get_user_by_email(dev_email) or auth_mgr.authenticate_or_register_google(dev_email)
+                        st.session_state["authenticated"] = True
+                        st.session_state["current_user_email"] = matched_user.email
+                        st.session_state["current_user_name"] = matched_user.name
+                        st.query_params["user"] = matched_user.email
+                        log_op("🟢", "AUTH", f"Login locale effettuato da {matched_user.name} ({matched_user.email})", "SUCCESS")
+                        st.rerun()
+                    else:
+                        st.error("❌ Accesso negato: indirizzo email non autorizzato per la band.")
 
     st.stop()
 
@@ -1067,8 +1094,7 @@ MENU_ITEMS = [
     "🎤 Modalità Palco (Live Stage)",
     "📅 Eventi Live",
     "📖 Manuale & Changelog",
-    "⚙️ Amministrazione & Log",
-    "🚪 Logout"
+    "⚙️ Amministrazione & Log"
 ]
 
 MENU_COMPACT_LABELS = {
@@ -1083,7 +1109,6 @@ MENU_COMPACT_LABELS = {
     "📅 Eventi Live": "📅 Eventi",
     "📖 Manuale & Changelog": "📖 Guida",
     "⚙️ Amministrazione & Log": "⚙️ Admin",
-    "🚪 Logout": "🚪 Logout"
 }
 
 if "main_menu_choice" not in st.session_state:
@@ -1259,30 +1284,30 @@ with st.container(key="top_navbar_container"):
             st.caption(f"Permessi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
             st.divider()
 
-            st.write("###### 🔄 Cambia Musicista (Test Accessi):")
-            def _fmt_band_user(e):
-                b_m = getattr(auth_mgr, "BAND_MEMBERS", {}).get(e, {})
-                pseudo = b_m.get("pseudonym", next((u.name for u in all_users if u.email == e), e))
-                r_desc = b_m.get("display_role", next((u.role.value for u in all_users if u.email == e), ""))
-                return f"{pseudo} [{r_desc}]"
+            if current_user.can_admin():
+                st.write("###### 🔄 Cambia Musicista (Test Accessi Admin):")
+                def _fmt_band_user(e):
+                    b_m = getattr(auth_mgr, "BAND_MEMBERS", {}).get(e, {})
+                    pseudo = b_m.get("pseudonym", next((u.name for u in all_users if u.email == e), e))
+                    r_desc = b_m.get("display_role", next((u.role.value for u in all_users if u.email == e), ""))
+                    return f"{pseudo} [{r_desc}]"
 
-            new_u_sel = st.selectbox(
-                "Seleziona Musicista Band:",
-                user_emails,
-                index=curr_user_idx,
-                format_func=_fmt_band_user,
-                key="pop_hub_user_sel"
-            )
-            if new_u_sel != st.session_state["current_user_email"]:
-                st.session_state["current_user_email"] = new_u_sel
-                st.query_params["user"] = new_u_sel
-                _cp = load_client_preferences()
-                _cp["active_user_email"] = new_u_sel
-                save_client_preferences(_cp)
-                u_sel = auth_mgr.get_user_by_email(new_u_sel)
-                if u_sel:
-                    log_op("🔐", "AUTH", f"Passaggio profilo utente a {u_sel.name} [{u_sel.role.value}]", "INFO")
-                st.rerun()
+                new_u_sel = st.selectbox(
+                    "Seleziona Profilo Musicista:",
+                    user_emails,
+                    index=curr_user_idx,
+                    format_func=_fmt_band_user,
+                    key="pop_hub_user_sel"
+                )
+                if new_u_sel != st.session_state["current_user_email"]:
+                    st.session_state["current_user_email"] = new_u_sel
+                    st.query_params["user"] = new_u_sel
+                    u_sel = auth_mgr.get_user_by_email(new_u_sel)
+                    if u_sel:
+                        log_op("🔐", "AUTH", f"Amministratore ha commutato vista su {u_sel.name} [{u_sel.role.value}]", "INFO")
+                    st.rerun()
+            else:
+                st.info("ℹ️ Questa sessione è collegata al tuo account personale Google. Solo l'amministratore può commutare profili di test.")
 
             st.divider()
             if st.button("🚪 Disconnetti (Logout)", type="secondary", key="pop_btn_logout", width="stretch"):
@@ -1497,15 +1522,7 @@ with st.container(key="top_navbar_container"):
         label_visibility="collapsed"
     )
 
-    if sel_r2 == "🚪 Logout":
-        st.session_state["authenticated"] = False
-        st.session_state.pop("current_user_email", None)
-        _cp = load_client_preferences()
-        _cp.pop("active_user_email", None)
-        save_client_preferences(_cp)
-        st.query_params.clear()
-        st.rerun()
-    elif sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
+    if sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
         st.session_state["main_menu_choice"] = sel_r1
         st.rerun()
     elif sel_r2 and sel_r2 != st.session_state["main_menu_choice"]:
@@ -1929,6 +1946,108 @@ elif menu_choice == "📝 Brani":
         lock_mgr.acquire_lock(song.uuid, user_email, user_name)
         st.success(f"🔓 Hai acquisito il lock di editing per '{song.title}'. Gli altri musicisti possono solo consultarlo.")
         can_edit = True
+
+    # -------------------------------------------------------------------------
+    # TOOLBAR SUPERIORE COMPATTA CON TITOLO BRANO SEMPRE IN EVIDENZA (SRS Cap. 4.6 & 7.7)
+    # -------------------------------------------------------------------------
+    st.markdown(
+        f"""<div style="background:rgba(15,23,42,0.92); border:1px solid #334155; border-left:4px solid #38BDF8; border-radius:8px; padding:10px 14px; margin:6px 0 10px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <div>
+              <span style="font-size:17px; font-weight:900; color:#FFFFFF; letter-spacing:0.5px;">🎵 {song.title.upper()}</span>
+              <span style="font-size:12.5px; color:#94A3B8; margin-left:6px;">&bull; {song.artist or 'Autore non specificato'}</span>
+              <div style="font-size:11px; color:#38BDF8; font-weight:600; margin-top:2px;">
+                Tonalità: <code style="color:#FFD600;">{song.key_current}</code> &bull; Tempo: <code style="color:#00E676;">{song.bpm} BPM</code> &bull; Versione: <b>Rev #{song.current_revision}</b> &bull; Lock: {'🔒 Tuo' if can_edit else '👁️ Sola Lettura'}
+              </div>
+            </div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    t_btn_new, t_btn_save, t_btn_unlock, t_btn_del = st.columns([1, 1.4, 1.1, 1], gap="small")
+
+    with t_btn_new:
+        with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
+            st.markdown("##### ✍️ Nuovo Brano Autoprodotto")
+            st.caption("Scrivi o incolla il tuo testo per aggiungerlo all'archivio.")
+            new_top_title = st.text_input("Titolo:", placeholder="es. La Mia Canzone", key="top_auto_title").strip()
+            new_top_artist = st.text_input("Autore / Artista:", value=st.session_state.get("current_user_name", "Autore"), key="top_auto_artist").strip()
+            new_top_key = st.text_input("Tonalità:", value="DO", key="top_auto_key").strip()
+            new_top_text = st.text_area("Testo e Accordi:", placeholder="Incolla qui strofe o accordi...", height=140, key="top_auto_text")
+            if st.button("💾 Crea e Apri", type="primary", disabled=not current_user.can_edit(), key="btn_create_top_song", width="stretch"):
+                if new_top_title:
+                    if new_top_text.strip():
+                        if "[" in new_top_text and "]" in new_top_text:
+                            doc = AMLParser.parse(new_top_text)
+                        else:
+                            doc = AMLParser.import_traditional_chords_over_text(new_top_text)
+                        body_aml = doc.to_aml()
+                    else:
+                        body_aml = "{verse}\n[DO]Prima strofa del nuovo brano...\n\n{chorus}\n[FA]Ritornello [SOL]qui [DO]!\n"
+                    aml_lines = [
+                        f"{{title: {new_top_title}}}",
+                        f"{{artist: {new_top_artist}}}",
+                        f"{{key: {new_top_key or 'DO'}}}",
+                        "",
+                        body_aml
+                    ]
+                    new_s_obj = Song(
+                        title=new_top_title,
+                        artist=new_top_artist,
+                        author=new_top_artist,
+                        key_original=new_top_key or "DO",
+                        key_current=new_top_key or "DO",
+                        bpm=120,
+                        aml_content="\n".join(aml_lines),
+                        tags=["autoprodotto"]
+                    )
+                    saved_top = storage.save_song(new_s_obj, user_email, user_name, "Creazione brano autoprodotto da toolbar")
+                    st.session_state["selected_song_uuid"] = saved_top.uuid
+                    log_op("✍️", "BRANO", f"Creato brano '{saved_top.title}' ({saved_top.artist})", "SUCCESS")
+                    st.rerun()
+
+    with t_btn_save:
+        if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, width="stretch", key="top_bar_btn_save_rev", help="Salva immediatamente una nuova revisione del brano corrente"):
+            # Update song metadata and content from inputs if available
+            if 'title_input' in locals() and title_input:
+                song.title = title_input
+            if 'artist_input' in locals() and artist_input:
+                song.artist = artist_input
+            if 'key_input' in locals() and key_input:
+                song.key_current = key_input
+            if 'bpm_input' in locals() and bpm_input:
+                song.bpm = bpm_input
+            if 'genre_input' in locals() and genre_input:
+                song.genre = genre_input
+            if 'tags_input' in locals() and tags_input:
+                song.tags = [t.strip().lower() for t in tags_input.split(",") if t.strip()]
+            if 'aml_editor_text' in locals() and aml_editor_text:
+                song.aml_content = aml_editor_text
+            
+            saved = storage.save_song(song, user_email, user_name, "Salvataggio rapido da toolbar in alto")
+            log_op("💾", "SALVATAGGIO", f"Salvata Nuova Revisione #{saved.current_revision} per '{song.title}'", "SUCCESS")
+            st.success(f"✅ Salvato con successo! Nuova Revisione #{saved.current_revision}")
+            st.rerun()
+
+    with t_btn_unlock:
+        if st.button("🔓 Rilascia Lock", width="stretch", key="top_bar_btn_unlock", help="Rilascia il blocco di modifica per permettere ad altri di modificare"):
+            lock_mgr.release_lock(song.uuid, user_email)
+            st.session_state[f"released_lock_{song.uuid}"] = True
+            log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{song.title}'", "INFO")
+            st.info("Lock rilasciato.")
+            st.rerun()
+
+    with t_btn_del:
+        with st.popover("🗑️ Elimina Brano", width="stretch", help="Elimina brano con protezione cestino 30 giorni"):
+            st.warning(f"Vuoi spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
+            if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_top_bar_{song.uuid}", width="stretch"):
+                lock_mgr.release_lock(song.uuid, user_email, force=True)
+                storage.delete_song(song.uuid, user_email, user_name)
+                log_op("🗑️", "CESTINO", f"Brano '{song.title}' spostato nel cestino (soft-delete 30gg)", "WARNING")
+                st.session_state["selected_song_uuid"] = None
+                st.success(f"Brano '{song.title}' spostato nel cestino.")
+                st.rerun()
 
     col_edit, col_prev = st.columns([1, 1])
 
@@ -2432,13 +2551,31 @@ elif menu_choice == "🤖 Band AI (Opzionale)":
                         st.success(f"Nuovo tempo: **{nbpm} BPM**")
                         st.rerun()
             with c_ai_dyn:
-                if st.button("🎸 Genera Idee di Dinamica & Sezioni", key="btn_gen_dyn_arr", width="stretch"):
+                st.markdown("<div style='font-size:12px; font-weight:700; color:#38BDF8; margin-bottom:4px;'>🎯 Consigli Specifici per Musicista / Strumento:</div>", unsafe_allow_html=True)
+                inst_pick = st.selectbox(
+                    "Seleziona Ruolo Musicista:",
+                    [
+                        "Globale (Intero gruppo)",
+                        "🎹 Tastiera (con Preset Yamaha Montage)",
+                        "🎤 Voce",
+                        "🎸 Chitarra ritmica",
+                        "⚡ Chitarra elettrica (Lead)",
+                        "🎸 Basso",
+                        "🥁 Batteria"
+                    ],
+                    index=0,
+                    key="ai_arr_inst_choice",
+                    label_visibility="collapsed"
+                )
+
+                if st.button("🎸 Genera Idee di Arrangiamento & Suggerimenti", key="btn_gen_dyn_arr", type="primary", width="stretch"):
                     arr_text = BandAIService.suggest_arrangement_ideas(
                         title=s_obj.title,
                         genre=s_obj.genre,
                         key=s_obj.key_current,
                         bpm=s_obj.bpm,
-                        artist=s_obj.artist
+                        artist=s_obj.artist,
+                        instrument=inst_pick
                     )
                     st.markdown(arr_text)
 
@@ -3002,47 +3139,48 @@ elif menu_choice == "📑 Scalette Live":
                 key = item.custom_key or (s_info.get("key_current", "-") if s_info else "-")
                 bpm = item.custom_bpm or (s_info.get("bpm", "-") if s_info else "-")
 
-                # Single compact row per song in setlist
-                r_c_idx, r_c_title, r_c_up, r_c_dn, r_c_del = st.columns(
-                    [0.4, 3.4, 0.45, 0.45, 0.45], gap="small", vertical_alignment="center"
-                )
+                # Single compact row per song in setlist (forced horizontal on all mobile devices)
+                with st.container(key=f"set_order_item_{idx}"):
+                    r_c_idx, r_c_title, r_c_up, r_c_dn, r_c_del = st.columns(
+                        [0.4, 3.4, 0.45, 0.45, 0.45], gap="small", vertical_alignment="center"
+                    )
 
-                with r_c_idx:
-                    st.markdown(f"<div style='font-size:12px; font-weight:800; color:#38BDF8; background:rgba(56,189,248,0.12); width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(56,189,248,0.3);'>#{idx + 1}</div>", unsafe_allow_html=True)
+                    with r_c_idx:
+                        st.markdown(f"<div style='font-size:12px; font-weight:800; color:#38BDF8; background:rgba(56,189,248,0.12); width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(56,189,248,0.3);'>#{idx + 1}</div>", unsafe_allow_html=True)
 
-                with r_c_title:
-                    art_badge = f"<span style='font-size:10.5px; color:#888;'> &bull; {artist}</span>" if artist else ""
-                    st.markdown(f"<div style='line-height:1.2; padding:2px 0;'>"
-                                f"<b style='font-size:12.5px; color:#FFFFFF;'>{title.upper()}</b>{art_badge}<br>"
-                                f"<span style='font-size:10px; color:#94A3B8;'>Tonalità: <code style='color:#FFD600;'>{key}</code> &bull; BPM: <code style='color:#00E676;'>{bpm}</code></span>"
-                                f"</div>", unsafe_allow_html=True)
+                    with r_c_title:
+                        art_badge = f"<span style='font-size:10.5px; color:#888;'> &bull; {artist}</span>" if artist else ""
+                        st.markdown(f"<div style='line-height:1.2; padding:2px 0;'>"
+                                    f"<b style='font-size:12.5px; color:#FFFFFF;'>{title.upper()}</b>{art_badge}<br>"
+                                    f"<span style='font-size:10px; color:#94A3B8;'>Tonalità: <code style='color:#FFD600;'>{key}</code> &bull; BPM: <code style='color:#00E676;'>{bpm}</code></span>"
+                                    f"</div>", unsafe_allow_html=True)
 
-                with r_c_up:
-                    if idx > 0 and st.button("⬆️", key=f"set_up_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano prima"):
-                        active_setlist.items[idx], active_setlist.items[idx - 1] = active_setlist.items[idx - 1], active_setlist.items[idx]
-                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                        st.rerun()
+                    with r_c_up:
+                        if idx > 0 and st.button("⬆️", key=f"set_up_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano prima"):
+                            active_setlist.items[idx], active_setlist.items[idx - 1] = active_setlist.items[idx - 1], active_setlist.items[idx]
+                            storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                            st.rerun()
 
-                with r_c_dn:
-                    if idx < len(active_setlist.items) - 1 and st.button("⬇️", key=f"set_dn_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano dopo"):
-                        active_setlist.items[idx], active_setlist.items[idx + 1] = active_setlist.items[idx + 1], active_setlist.items[idx]
-                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                        st.rerun()
+                    with r_c_dn:
+                        if idx < len(active_setlist.items) - 1 and st.button("⬇️", key=f"set_dn_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Sposta brano dopo"):
+                            active_setlist.items[idx], active_setlist.items[idx + 1] = active_setlist.items[idx + 1], active_setlist.items[idx]
+                            storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                            st.rerun()
 
-                with r_c_del:
-                    if st.button("❌", key=f"set_rem_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Rimuovi brano dalla sequenza (con opzione Undo immediata)"):
-                        removed_it = active_setlist.items.pop(idx)
-                        storage.save_setlist(active_setlist, current_user.email, current_user.name)
-                        st.session_state["undo_removed_setlist_item"] = {
-                            "setlist_uuid": active_setlist.uuid,
-                            "item": removed_it,
-                            "index": idx,
-                            "title": title
-                        }
-                        log_op("❌", "SCALETTA", f"Rimosso '{title}' dalla scaletta '{active_setlist.title}' (Undo pronto)", "INFO")
-                        st.rerun()
+                    with r_c_del:
+                        if st.button("❌", key=f"set_rem_{idx}_{item.song_uuid}", disabled=not current_user.can_edit(), help="Rimuovi brano dalla sequenza (con opzione Undo immediata)"):
+                            removed_it = active_setlist.items.pop(idx)
+                            storage.save_setlist(active_setlist, current_user.email, current_user.name)
+                            st.session_state["undo_removed_setlist_item"] = {
+                                "setlist_uuid": active_setlist.uuid,
+                                "item": removed_it,
+                                "index": idx,
+                                "title": title
+                            }
+                            log_op("❌", "SCALETTA", f"Rimosso '{title}' dalla scaletta '{active_setlist.title}' (Undo pronto)", "INFO")
+                            st.rerun()
 
-                st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0;'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0;'></div>", unsafe_allow_html=True)
         else:
             st.markdown(
                 """<div style="text-align:center; padding:30px 15px; background:rgba(15,23,42,0.4); border:1px dashed #334155; border-radius:8px; margin-top:8px;">

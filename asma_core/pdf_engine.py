@@ -88,21 +88,25 @@ class NumberedCanvas(canvas.Canvas):
             self.setLineWidth(0.5)
             self.line(15 * mm, page_h - 11 * mm, page_w - 15 * mm, page_h - 11 * mm)
 
-        # 3. Footer line and page numbering
-        self.setFont("Helvetica", 8)
+        # 3. Footer line and page numbering (proportional to page width and safe from content overlap)
+        foot_m_side = min(12.0 * mm, page_w * 0.08)
+        foot_line_y = 9.5 * mm
+        foot_text_y = 6.0 * mm
+
+        self.setFont("Helvetica", 7.5)
         self.setFillColor(colors.HexColor("#777777"))
         self.setStrokeColor(colors.HexColor("#CCCCCC"))
         self.setLineWidth(0.5)
-        self.line(15 * mm, 12 * mm, page_w - 15 * mm, 12 * mm)
+        self.line(foot_m_side, foot_line_y, page_w - foot_m_side, foot_line_y)
 
         # Left footer: metadata
         date_str = datetime.now().strftime("%d/%m/%Y")
         footer_left = f"Generato: {date_str} {self.version_str}"
-        self.drawString(15 * mm, 8 * mm, footer_left)
+        self.drawString(foot_m_side, foot_text_y, footer_left)
 
         # Right footer: Page X of Y
         footer_right = f"Pagina {self._pageNumber} di {total_pages}"
-        self.drawRightString(page_w - 15 * mm, 8 * mm, footer_right)
+        self.drawRightString(page_w - foot_m_side, foot_text_y, footer_right)
 
         self.restoreState()
 
@@ -164,7 +168,8 @@ class PDFEngine:
 
         # Top margin: exactly 58 pt (px) default for single songs, lateral margins from profile
         top_m = 58.0
-        bot_m = prof.margin_bottom_mm * mm
+        # Bottom margin: at least 15.0 mm to guarantee no overlap with the footer line (which sits at 9.5 mm)
+        bot_m = max(prof.margin_bottom_mm, 15.0) * mm
         left_m = prof.margin_left_mm * mm
         right_m = prof.margin_right_mm * mm
         usable_w = pagesize[0] - left_m - right_m
@@ -442,6 +447,26 @@ class PDFEngine:
     )
 
     @classmethod
+    def _format_lyric_spaces(cls, text: str) -> str:
+        """Preserves indentation and multi-space alignment while keeping breakable single spaces between words."""
+        if not text:
+            return ""
+        lead_len = len(text) - len(text.lstrip(" "))
+        content = text.lstrip(" ")
+        content = re.sub(r" {2,}", lambda m: "&nbsp;" * (len(m.group(0)) - 1) + " ", content)
+        return ("&nbsp;" * lead_len) + content
+
+    @classmethod
+    def _format_chord_spaces(cls, text: str) -> str:
+        """Preserves chord horizontal alignment while allowing line breaks between distant chord groups."""
+        if not text:
+            return ""
+        lead_len = len(text) - len(text.lstrip(" "))
+        content = text.lstrip(" ")
+        content = re.sub(r" {2,}", lambda m: "&nbsp;" * (len(m.group(0)) - 1) + " ", content)
+        return ("&nbsp;" * lead_len) + content
+
+    @classmethod
     def is_guitar_tab_line(cls, line: str) -> bool:
         """Rileva se una riga di testo appartiene a una tablatura di chitarra/basso o staff tab."""
         s = line.strip()
@@ -625,7 +650,7 @@ class PDFEngine:
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                     ]))
-                    add_flowable(KeepTogether([grid_table, Spacer(1, 0.8 * mm)]))
+                    add_flowable(KeepTogether([grid_table, Spacer(1, 2.5 * mm)]))
                     last_was_inst_marker = False
                 else:
                     # Nel PDF solo testo per il cantante, le sequenze di accordi/battute sono segnalate come (Strumentale)
@@ -662,8 +687,8 @@ class PDFEngine:
 
                 if include_chords and chords_str.strip():
                     # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
-                    p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{chords_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
-                    p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
+                    p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{cls._format_chord_spaces(chords_str)}</b></font>", styles["ChordText"])
+                    p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
                     
                     pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
                     pair_table.setStyle(TableStyle([
@@ -693,13 +718,13 @@ class PDFEngine:
                                 add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
                                 last_was_inst_marker = True
                         else:
-                            # Nel PDF con accordi, renderizzali in evidenza come riga di accordi
-                            p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{lyrics_str.replace(' ', '&nbsp;')}</b></font>", styles["LyricText"])
-                            add_flowable(KeepTogether([p_chords, Spacer(1, 0.8 * mm)]))
+                            # Nel PDF con accordi, renderizzali in evidenza come riga di accordi con stile ChordText
+                            p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{cls._format_chord_spaces(lyrics_str)}</b></font>", styles["ChordText"])
+                            add_flowable(KeepTogether([Spacer(1, 1.2 * mm), p_chords, Spacer(1, 1.5 * mm)]))
                             last_was_inst_marker = False
                     elif lyrics_str.strip():
                         # Singer lyrics-only (or line with only lyrics)
-                        p_lyrics = Paragraph(lyrics_str.replace(' ', '&nbsp;'), styles["LyricText"])
+                        p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"])
                         add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]))
                         last_was_inst_marker = False
                     elif chords_str.strip():
