@@ -3646,22 +3646,21 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
         st.warning("Nessuna scaletta o brano disponibile nell'archivio per utilizzare la modalità palco.")
         st.stop()
 
-    if setlists:
-        default_mode_idx = 1 if st.session_state.get("stage_source_type") == "🎵 Singolo Brano" else 0
-        stage_source = st.radio(
-            "🎯 Sorgente Esecuzione Palco:",
-            options=["📑 Scaletta Live", "🎵 Singolo Brano"],
-            index=default_mode_idx,
-            horizontal=True,
-            key="stage_source_selector"
-        )
-        st.session_state["stage_source_type"] = stage_source
-    else:
-        stage_source = "🎵 Singolo Brano"
-        st.session_state["stage_source_type"] = stage_source
-        st.info("ℹ️ Nessuna scaletta presente. La Modalità Palco è attiva in modalità **Singolo Brano** da repertorio.")
+    default_mode_idx = 1 if st.session_state.get("stage_source_type") == "🎵 Singolo Brano" else 0
+    stage_source = st.radio(
+        "🎯 Sorgente Esecuzione Palco:",
+        options=["📑 Scaletta Live", "🎵 Singolo Brano"],
+        index=default_mode_idx,
+        horizontal=True,
+        key="stage_source_selector"
+    )
+    st.session_state["stage_source_type"] = stage_source
 
     if stage_source == "📑 Scaletta Live":
+        if not setlists:
+            st.info("ℹ️ Nessuna scaletta presente al momento. Crea o compila una scaletta nel menu **📑 Scalette Live**, oppure seleziona **🎵 Singolo Brano** qui sopra per eseguire un brano da un repertorio.")
+            st.stop()
+
         col_s1, col_s2 = st.columns([3, 1])
         with col_s1:
             setlist_options = {s.uuid: s for s in setlists}
@@ -3704,7 +3703,7 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
             rep_idx = rep_ids.index(curr_rep_id) if curr_rep_id in rep_ids else 0
 
             selected_rep_uuid = st.selectbox(
-                "📁 Filtra da Repertorio:",
+                "📁 Seleziona Repertorio:",
                 options=rep_ids,
                 format_func=lambda rid: next(opt[1] for opt in rep_options if opt[0] == rid),
                 index=rep_idx,
