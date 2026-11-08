@@ -219,6 +219,59 @@ class TestStorageManager(unittest.TestCase):
         tags_after_del = self.storage.list_all_tags()
         self.assertNotIn("hard-rock", tags_after_del)
 
+    def test_repertoire_song_uniqueness_rules(self):
+        """Rule: two different versions of the same song allowed in different repertoires, but not in the same repertoire."""
+        r1 = Repertoire(name="Repertorio Elettrico", description="Set rock")
+        r2 = Repertoire(name="Repertorio Acustico", description="Set club")
+        self.storage.save_repertoire(r1)
+        self.storage.save_repertoire(r2)
+
+        # Version 1 in R1
+        song1 = Song(title="Sultans of Swing", key_current="Dm")
+        self.storage.save_song(song1)
+        self.storage.move_song_to_repertoire(song1.uuid, r1.uuid)
+
+        # Version 2 with same title in R2 -> MUST BE ALLOWED!
+        song2 = Song(title="Sultans of Swing", key_current="Em", aml_content="Versione Acustica")
+        self.storage.save_song(song2)
+        can_add_r2, _ = self.storage.can_add_song_to_repertoire(r2.uuid, song2.title)
+        self.assertTrue(can_add_r2)
+        self.storage.move_song_to_repertoire(song2.uuid, r2.uuid)
+
+        # Version 3 with same title in R1 -> MUST BE BLOCKED!
+        can_add_r1_dup, reason = self.storage.can_add_song_to_repertoire(r1.uuid, "Sultans of Swing")
+        self.assertFalse(can_add_r1_dup)
+        self.assertIn("esiste già un brano intitolato", reason)
+
+        with self.assertRaises(ValueError):
+            self.storage.move_song_to_repertoire(song2.uuid, r1.uuid)
+
+    def test_repertoire_and_song_trash_and_restore(self):
+        """Test soft delete and restore for repertoires and songs."""
+        rep = Repertoire(name="Repertorio Test Trash", description="Test")
+        self.storage.save_repertoire(rep)
+
+        song = Song(title="Canzone da Eliminare", key_current="A")
+        self.storage.save_song(song)
+
+        # Delete song and verify list_deleted_songs
+        self.storage.delete_song(song.uuid)
+        del_songs = self.storage.list_deleted_songs()
+        self.assertTrue(any(s.get("data", {}).get("uuid") == song.uuid for s in del_songs))
+
+        # Delete repertoire and verify list_deleted_repertoires
+        del_rep_ok = self.storage.delete_repertoire(rep.uuid)
+        self.assertTrue(del_rep_ok)
+        del_reps = self.storage.list_deleted_repertoires()
+        self.assertTrue(any(r.get("data", {}).get("uuid") == rep.uuid for r in del_reps))
+
+        # Restore repertoire
+        restored_rep = self.storage.restore_repertoire(rep.uuid)
+        self.assertIsNotNone(restored_rep)
+        self.assertEqual(restored_rep.uuid, rep.uuid)
+        active_reps = self.storage.list_repertoires()
+        self.assertTrue(any(r.uuid == rep.uuid for r in active_reps))
+
 
 if __name__ == "__main__":
     unittest.main()

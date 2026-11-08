@@ -506,7 +506,43 @@ div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlo
     letter-spacing: 0.4px !important;
   }
 
-  /* Responsive Compact KPI Cards Grid */
+  /* LOOK & FEEL: Visual distinction between FIXED panels and EDITABLE areas */
+  /* Fixed / Navigation & Lists Background: Deep Midnight Slate */
+  div[class*="st-key-top_navbar_container"],
+  div[class*="top_nav_pills_r1"],
+  div[class*="top_nav_pills_r2"],
+  div[data-testid="stSidebar"] {
+    background: #0B0F19 !important;
+  }
+
+  /* List & fixed inspection cards */
+  div.asma-list-card {
+    background: #111827 !important;
+    border: 1px solid #1E293B !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Editable Form & Editor Workspace: Distinct Elevated Background */
+  div.asma-editable-workspace {
+    background: #1E293B !important;
+    border: 1px solid #334155 !important;
+    border-left: 4px solid #38BDF8 !important;
+    border-radius: 8px !important;
+    padding: 14px !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* Highlight editable inputs vs read-only elements */
+  div[data-testid="stTextInput"] input:focus,
+  div[data-testid="stTextArea"] textarea:focus {
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+    background: #0F172A !important;
+  }
+
+  /* Mobile responsive adjustments */
   .asma-kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1067,30 +1103,60 @@ curr_user_idx = user_emails.index(current_user.email) if current_user.email in u
 dev_list = device_mgr.list_devices()
 dev_names = [d.name for d in dev_list]
 
-# Resolve Active Device: Session State -> Query Params -> Stored Preferences -> Default
-# Always strictly preserve user device and layout formatting across navigation between all functions
+def get_client_device_category() -> str:
+    """Classifies client device category from user-agent headers: mobile_phone, tablet, desktop."""
+    ua = ""
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "headers"):
+            ua = st.context.headers.get("user-agent", "").lower()
+    except Exception:
+        ua = ""
+    if "iphone" in ua or ("android" in ua and "mobile" in ua):
+        return "mobile_phone"
+    elif "ipad" in ua or ("android" in ua and "mobile" not in ua):
+        return "tablet"
+    elif "windows" in ua or "macintosh" in ua or ("linux" in ua and "android" not in ua):
+        return "desktop"
+    return "mobile_phone"
+
+_client_dev_cat = get_client_device_category()
+_user_dev_key = f"device::{current_user.email}::{_client_dev_cat}"
+
+# Resolve Active Device: Session State -> Query Params -> Stored Preferences (User+Device) -> Smart Default
 _qp_dev = st.query_params.get("device")
 if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
 elif _qp_dev and _qp_dev in dev_names:
     _active_dev = _qp_dev
-elif _client_prefs.get("active_device") and _client_prefs.get("active_device") in dev_names:
-    _active_dev = _client_prefs.get("active_device")
+elif _client_prefs.get(_user_dev_key) and _client_prefs.get(_user_dev_key) in dev_names:
+    _active_dev = _client_prefs.get(_user_dev_key)
+elif _client_prefs.get(f"active_device::{current_user.email}") and _client_prefs.get(f"active_device::{current_user.email}") in dev_names:
+    _active_dev = _client_prefs.get(f"active_device::{current_user.email}")
 else:
-    _active_dev = dev_names[0] if dev_names else "Pixel 8 pro"
+    # Smart device category defaults: smartphone -> Pixel 8, PC -> A4 Desktop, Tablet -> Huawei MatePad
+    if _client_dev_cat == "desktop":
+        _active_dev = "A4: Stampabile (Desktop)" if "A4: Stampabile (Desktop)" in dev_names else (dev_names[0] if dev_names else "A4: Stampabile (Desktop)")
+    elif _client_dev_cat == "tablet":
+        _active_dev = "Huawei MatePad 11.5" if "Huawei MatePad 11.5" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+    else:
+        _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
 
 st.session_state["user_preferred_device"] = _active_dev
 st.query_params["device"] = _active_dev
-if _client_prefs.get("active_device") != _active_dev:
-    _client_prefs["active_device"] = _active_dev
+if _client_prefs.get(_user_dev_key) != _active_dev:
+    _client_prefs[_user_dev_key] = _active_dev
+    _client_prefs[f"active_device::{current_user.email}"] = _active_dev
     save_client_preferences(_client_prefs)
 
 def set_active_device_globally(new_dev_name: str):
-    """Updates the active hardware device globally and persistently across all views and functions."""
+    """Updates active hardware device persistently for the current (user, device_category) pair."""
     if new_dev_name and new_dev_name in dev_names:
         st.session_state["user_preferred_device"] = new_dev_name
         st.query_params["device"] = new_dev_name
         _cp = load_client_preferences()
+        _dcat = get_client_device_category()
+        _cp[f"device::{current_user.email}::{_dcat}"] = new_dev_name
+        _cp[f"active_device::{current_user.email}"] = new_dev_name
         _cp["active_device"] = new_dev_name
         save_client_preferences(_cp)
 
@@ -1107,6 +1173,8 @@ if "ui_zoom_level" not in st.session_state:
 # Layout & Typography Preferences (SRS Cap. 13 & Cap. 17)
 if "layout_font_size" not in st.session_state:
     st.session_state["layout_font_size"] = _client_prefs.get("layout_font_size", 12)
+if "layout_font_size_chords" not in st.session_state:
+    st.session_state["layout_font_size_chords"] = _client_prefs.get("layout_font_size_chords", 13)
 if "layout_margin_lateral" not in st.session_state:
     st.session_state["layout_margin_lateral"] = _client_prefs.get("layout_margin_lateral", 10)
 if "layout_columns" not in st.session_state:
@@ -1123,6 +1191,7 @@ def get_layout_device_profile(base_profile_name: Optional[str] = None) -> Device
     dev_name = base_profile_name or st.session_state.get("user_preferred_device", "Pixel 8 pro")
     base = device_mgr.get_device_by_name(dev_name) or DeviceProfile()
     f_size = float(st.session_state.get("layout_font_size", 12))
+    fc_size = float(st.session_state.get("layout_font_size_chords", round(f_size * 1.08, 1)))
     m_lat = float(st.session_state.get("layout_margin_lateral", 10))
     cols = int(st.session_state.get("layout_columns", 1))
     c_txt = st.session_state.get("layout_color_text", "#111111")
@@ -1138,7 +1207,7 @@ def get_layout_device_profile(base_profile_name: Optional[str] = None) -> Device
         font_lyrics=base.font_lyrics,
         font_chords=base.font_chords,
         font_size_lyrics=f_size,
-        font_size_chords=round(f_size * 1.08, 1),
+        font_size_chords=fc_size,
         margin_top_mm=base.margin_top_mm,
         margin_bottom_mm=base.margin_bottom_mm,
         margin_left_mm=m_lat,
@@ -1277,22 +1346,41 @@ with st.container(key="top_navbar_container"):
             ])
 
             with tab_lay_geom:
-                curr_f_size = int(st.session_state.get("layout_font_size", 12))
-                new_f_size = st.slider(
-                    "Dimensione Carattere (10 - 30 px):",
-                    min_value=10,
-                    max_value=30,
-                    value=curr_f_size,
-                    step=1,
-                    key="slider_layout_font_size",
-                    help="Dimensione in px del testo e degli accordi nel PDF"
-                )
-                if new_f_size != curr_f_size:
-                    st.session_state["layout_font_size"] = new_f_size
-                    _cp = load_client_preferences()
-                    _cp["layout_font_size"] = new_f_size
-                    save_client_preferences(_cp)
-                    st.rerun()
+                c_fs1, c_fs2 = st.columns(2, gap="small")
+                with c_fs1:
+                    curr_f_size = int(st.session_state.get("layout_font_size", 12))
+                    new_f_size = st.slider(
+                        "Dimensione Testo (px):",
+                        min_value=8,
+                        max_value=30,
+                        value=curr_f_size,
+                        step=1,
+                        key="slider_layout_font_size",
+                        help="Dimensione del carattere del testo e dei testi nel PDF e anteprima"
+                    )
+                    if new_f_size != curr_f_size:
+                        st.session_state["layout_font_size"] = new_f_size
+                        _cp = load_client_preferences()
+                        _cp["layout_font_size"] = new_f_size
+                        save_client_preferences(_cp)
+                        st.rerun()
+                with c_fs2:
+                    curr_fc_size = int(st.session_state.get("layout_font_size_chords", 13))
+                    new_fc_size = st.slider(
+                        "Dimensione Accordi (px):",
+                        min_value=8,
+                        max_value=32,
+                        value=curr_fc_size,
+                        step=1,
+                        key="slider_layout_font_size_chords",
+                        help="Dimensione regolabile indipendente per gli accordi nel PDF e anteprima"
+                    )
+                    if new_fc_size != curr_fc_size:
+                        st.session_state["layout_font_size_chords"] = new_fc_size
+                        _cp = load_client_preferences()
+                        _cp["layout_font_size_chords"] = new_fc_size
+                        save_client_preferences(_cp)
+                        st.rerun()
 
                 c_geom1, c_geom2 = st.columns(2, gap="small")
                 with c_geom1:
@@ -1768,10 +1856,60 @@ elif menu_choice == "📝 Brani":
     st.subheader("📝 Gestione & Editor Brani (AML & Anteprima)")
     st.caption("Importa, visualizza, componi in AML e controlla l'anteprima device-aware con accordi e trasposizione.")
 
-    songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
+    all_reps = storage.list_repertoires()
+    rep_filter_options = {"__ALL__": "🌐 Tutti i Repertori (Archivio Globale)"}
+    for r in all_reps:
+        rep_filter_options[r.uuid] = f"📁 {r.name} ({len(r.song_uuids)} brani)"
+
+    selected_rep_filter_id = st.session_state.get("song_editor_rep_filter", "__ALL__")
+    if selected_rep_filter_id not in rep_filter_options:
+        selected_rep_filter_id = "__ALL__"
+
+    col_rf1, col_rf2 = st.columns([2.5, 1.5], gap="small")
+    with col_rf1:
+        new_rep_filter = st.selectbox(
+            "📁 Filtra Brani per Repertorio di Lavoro:",
+            list(rep_filter_options.keys()),
+            index=list(rep_filter_options.keys()).index(selected_rep_filter_id),
+            format_func=lambda x: rep_filter_options[x],
+            key="song_editor_repertoire_selector"
+        )
+        if new_rep_filter != selected_rep_filter_id:
+            st.session_state["song_editor_rep_filter"] = new_rep_filter
+            st.session_state["selected_song_uuid"] = None
+            st.rerun()
+
+    active_rep_obj = next((r for r in all_reps if r.uuid == new_rep_filter), None)
+    with col_rf2:
+        if active_rep_obj:
+            st.caption(f"📂 Repertorio attivo: **{active_rep_obj.name}**\n\n*Regola: brano unico in questo repertorio.*")
+        else:
+            st.caption("🌐 Visualizzazione di tutti i brani dell'archivio.")
+
+    if active_rep_obj:
+        st.markdown(
+            f"""<div style="background: linear-gradient(90deg, rgba(14,165,233,0.18) 0%, rgba(99,102,241,0.18) 100%); border: 1px solid #38BDF8; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #38BDF8; letter-spacing: 1px;">📁 REPERTORIO ATTIVO IN EDIT:</span>
+                <span style="font-size: 15px; font-weight: 900; color: #FFFFFF; margin-left: 8px;">{active_rep_obj.name}</span>
+                <span style="font-size: 12px; color: #94A3B8; margin-left: 10px;">({len(active_rep_obj.song_uuids)} brani)</span>
+              </div>
+              <div style="font-size: 11px; color: #FBBF24; font-weight: 600;">
+                🔒 Regola: versione unica per titolo in questo repertorio (diverse versioni ammesse in altri repertori)
+              </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        songs = [s for s in storage.list_songs() if s["uuid"] in active_rep_obj.song_uuids]
+        songs = sorted(songs, key=lambda s: s["title"].lower())
+    else:
+        songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
+
     if not songs:
-        st.warning("Nessun brano disponibile. Creane uno dalla sezione 'Repertori'.")
-        st.stop()
+        if active_rep_obj:
+            st.info(f"Nessun brano presente nel repertorio '{active_rep_obj.name}'. Creane uno con il pulsante qui sotto!")
+        else:
+            st.warning("Nessun brano disponibile nell'archivio. Creane uno dalla sezione 'Repertori'.")
 
     song_choices = {s["uuid"]: s["title"] for s in songs}
     curr_uuid = st.session_state.get("selected_song_uuid")
@@ -1845,7 +1983,16 @@ elif menu_choice == "📝 Brani":
                         aml_content="\n".join(aml_lines),
                         tags=["autoprodotto"]
                     )
+                    if active_rep_obj:
+                        can_add, reason = storage.can_add_song_to_repertoire(active_rep_obj.uuid, new_auto_title)
+                        if not can_add:
+                            st.error(reason)
+                            st.stop()
+
                     saved = storage.save_song(new_song, user_email, user_name, "Creazione brano autoprodotto")
+                    if active_rep_obj:
+                        storage.move_song_to_repertoire(saved.uuid, active_rep_obj.uuid, user_email, user_name)
+
                     st.session_state["selected_song_uuid"] = saved.uuid
                     log_op("✍️", "BRANO", f"Creato brano autoprodotto '{saved.title}' ({saved.artist})", "SUCCESS")
                     st.success(f"Brano '{saved.title}' creato con successo!")
@@ -1903,7 +2050,7 @@ elif menu_choice == "📝 Brani":
         unsafe_allow_html=True
     )
 
-    t_btn_new, t_btn_save, t_btn_unlock, t_btn_del = st.columns([1, 1.4, 1.1, 1], gap="small")
+    t_btn_new, t_btn_save, t_btn_clone, t_btn_unlock, t_btn_del = st.columns([1, 1.3, 1.2, 1, 1], gap="small")
 
     with t_btn_new:
         with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
@@ -1963,10 +2110,57 @@ elif menu_choice == "📝 Brani":
             if 'aml_editor_text' in locals() and aml_editor_text:
                 song.aml_content = aml_editor_text
             
+            # Enforce title uniqueness in same repertoire
+            if 'title_input' in locals() and title_input:
+                clean_new_title = title_input.strip()
+                if clean_new_title.lower() != song.title.strip().lower():
+                    reps_with_song = [r for r in all_reps if song.uuid in r.song_uuids]
+                    for r in reps_with_song:
+                        can_add, reason = storage.can_add_song_to_repertoire(r.uuid, clean_new_title, exclude_song_uuid=song.uuid)
+                        if not can_add:
+                            st.error(reason)
+                            st.stop()
             saved = storage.save_song(song, user_email, user_name, "Salvataggio rapido da toolbar in alto")
             log_op("💾", "SALVATAGGIO", f"Salvata Nuova Revisione #{saved.current_revision} per '{song.title}'", "SUCCESS")
             st.success(f"✅ Salvato con successo! Nuova Revisione #{saved.current_revision}")
             st.rerun()
+
+    with t_btn_clone:
+        with st.popover("📋 Clona per Altro Repertorio", help="Crea una versione indipendente di questo brano in un altro repertorio", width="stretch"):
+            st.markdown("##### 📋 Clona Versione in Altro Repertorio")
+            st.caption("Crea una copia indipendente di questo brano (nuovo UUID) da arrangiare diversamente (es. versione acustica, club, elettrica).")
+            if all_reps:
+                target_clone_rep = st.selectbox("Repertorio di destinazione:", all_reps, format_func=lambda r: f"📁 {r.name}", key=f"sel_clone_rep_{song.uuid}")
+                clone_title = st.text_input("Titolo nuova versione:", value=song.title, key=f"clone_title_{song.uuid}").strip()
+                if st.button("🚀 Conferma Clona Versione", type="primary", disabled=not current_user.can_edit(), key=f"btn_confirm_clone_{song.uuid}", width="stretch"):
+                    can_add, reason = storage.can_add_song_to_repertoire(target_clone_rep.uuid, clone_title)
+                    if not can_add:
+                        st.error(reason)
+                    else:
+                        cloned_song = Song(
+                            title=clone_title,
+                            artist=song.artist,
+                            author=song.author,
+                            genre=song.genre,
+                            year=song.year,
+                            duration_seconds=song.duration_seconds,
+                            bpm=song.bpm,
+                            time_signature=song.time_signature,
+                            capo=song.capo,
+                            key_original=song.key_original,
+                            key_current=song.key_current,
+                            notation_system=song.notation_system,
+                            tags=list(song.tags),
+                            shared_notes=song.shared_notes,
+                            aml_content=song.aml_content
+                        )
+                        saved_clone = storage.save_song(cloned_song, user_email, user_name, f"Clonata versione da '{song.title}' per '{target_clone_rep.name}'")
+                        storage.move_song_to_repertoire(saved_clone.uuid, target_clone_rep.uuid, user_email, user_name)
+                        st.session_state["song_editor_rep_filter"] = target_clone_rep.uuid
+                        st.session_state["selected_song_uuid"] = saved_clone.uuid
+                        log_op("📋", "CLONA", f"Creata versione '{saved_clone.title}' nel repertorio '{target_clone_rep.name}'", "SUCCESS")
+                        st.success(f"Versione clonata nel repertorio '{target_clone_rep.name}'!")
+                        st.rerun()
 
     with t_btn_unlock:
         if st.button("🔓 Rilascia Lock", width="stretch", key="top_bar_btn_unlock", help="Rilascia il blocco di modifica per permettere ad altri di modificare"):
@@ -2608,6 +2802,24 @@ elif menu_choice == "📚 Repertori":
                         st.error(str(err))
 
         if selected_rep:
+            with st.popover("✏️ Rinomina Repertorio", width="stretch"):
+                st.write("##### Rinomina Repertorio")
+                ren_name = st.text_input("Nuovo Nome:", value=selected_rep.name, key=f"ren_name_{selected_rep.uuid}")
+                ren_desc = st.text_input("Nuova Descrizione:", value=selected_rep.description, key=f"ren_desc_{selected_rep.uuid}")
+                if st.button("Salva Modifiche", type="primary", disabled=not current_user.can_edit(), key=f"btn_ren_save_{selected_rep.uuid}"):
+                    clean_ren = (ren_name or "").strip()
+                    if not clean_ren:
+                        st.error("Inserisci un nome valido.")
+                    elif any(r.name.strip().lower() == clean_ren.lower() and r.uuid != selected_rep.uuid for r in repertoires):
+                        st.error(f"Un altro repertorio con il nome '{clean_ren}' esiste già.")
+                    else:
+                        selected_rep.name = clean_ren
+                        selected_rep.description = ren_desc
+                        storage.save_repertoire(selected_rep, current_user.email, current_user.name)
+                        log_op("✏️", "REPERTORIO", f"Rinominato repertorio in '{clean_ren}'", "SUCCESS")
+                        st.success(f"Repertorio rinominato in '{clean_ren}'!")
+                        st.rerun()
+
             with st.popover("🗑️ Elimina Repertorio", width="stretch"):
                 st.warning(f"Vuoi eliminare il repertorio **'{selected_rep.name}'**?\n\n*Nota: I brani NON verranno cancellati e resteranno nell'archivio generale.*")
                 if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete()):
@@ -2971,14 +3183,17 @@ elif menu_choice == "📑 Scalette Live":
     )
 
     # -------------------------------------------------------------------------
-    # MAIN WORKSPACE: 2 COLUMNS (PC & Tablet: 1:1.3 / Mobile: Vertical Stacking)
+    # MAIN WORKSPACE: TABS (Mobile Friendly: Full Width Ordine di Palco & Aggiungi)
     # -------------------------------------------------------------------------
-    col_add_rep, col_sequence = st.columns([1.1, 1.4], gap="medium")
+    tab_sequence, tab_add_rep = st.tabs([
+        f"🎤 Ordine di Palco ({len(active_setlist.items)} Brani)",
+        "📚 Aggiungi Brani dai Repertori"
+    ])
 
     # =========================================================================
-    # COLONNA 1: AGGIUNGI BRANI DAI DIVERSI REPERTORI
+    # SCHEDA 2: AGGIUNGI BRANI DAI DIVERSI REPERTORI
     # =========================================================================
-    with col_add_rep:
+    with tab_add_rep:
         st.markdown(
             """<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
               <span style="font-size:13px; font-weight:800; color:#38BDF8; text-transform:uppercase; letter-spacing:0.5px;">
@@ -3064,9 +3279,9 @@ elif menu_choice == "📑 Scalette Live":
             st.info("Nessun brano trovato per il repertorio o filtro selezionato.")
 
     # =========================================================================
-    # COLONNA 2: SEQUENZA LIVE E ORDINAMENTO BRANI
+    # SCHEDA 1: SEQUENZA LIVE E ORDINAMENTO BRANI
     # =========================================================================
-    with col_sequence:
+    with tab_sequence:
         st.markdown(
             f"""<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
               <span style="font-size:13px; font-weight:800; color:#00E676; text-transform:uppercase; letter-spacing:0.5px;">
@@ -3088,7 +3303,7 @@ elif menu_choice == "📑 Scalette Live":
                 # Single compact row per song in setlist (forced horizontal on all mobile devices)
                 with st.container(key=f"set_order_item_{idx}"):
                     r_c_idx, r_c_title, r_c_up, r_c_dn, r_c_del = st.columns(
-                        [0.4, 3.4, 0.45, 0.45, 0.45], gap="small", vertical_alignment="center"
+                        [0.5, 4.2, 0.6, 0.6, 0.6], gap="small", vertical_alignment="center"
                     )
 
                     with r_c_idx:
@@ -3141,7 +3356,7 @@ elif menu_choice == "📑 Scalette Live":
     # ESPLORAZIONE, PDF UNIFICATO & LIVE PALCO
     # -------------------------------------------------------------------------
     st.divider()
-    st.markdown("##### 📤 Esportazione Scaletta Unificata & Modalità Palco")
+    st.markdown("##### 📤 Esportazione Scaletta & Download PDF Unico")
 
     c_exp_l, c_exp_r = st.columns([1.2, 1.8], gap="medium")
 
@@ -3780,44 +3995,109 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                             st.error(msg)
 
         with tab_trash:
-            st.write("#### 🗑️ Cestino Brani Eliminati (Soft-Delete a 30 giorni)")
-            st.info("I brani eliminati vengono conservati qui prima dell'eventuale eliminazione definitiva.")
-            deleted_songs = storage.list_songs(include_deleted=True)
-            soft_deleted = [s for s in deleted_songs if s.get("is_deleted") == 1]
-            if soft_deleted:
-                st.dataframe(soft_deleted, width="stretch")
+            st.write("#### 🗑️ Cestino di Sistema (Soft-Delete a 30 giorni)")
+            st.caption("Recupera o elimina definitivamente qualsiasi elemento cancellato da musicisti o amministratori.")
 
-                col_tr_top1, col_tr_top2 = st.columns([3, 1])
-                with col_tr_top2:
-                    with st.popover("🧹 Svuota Cestino", width="stretch"):
-                        st.warning("Vuoi eliminare definitivamente TUTTI i brani nel cestino? L'operazione è irreversibile.")
-                        if st.button("Conferma Svuota Cestino", type="secondary", disabled=not current_user.can_admin()):
-                            purged = storage.empty_trash(current_user.email, current_user.name)
-                            log_op("🧹", "CESTINO", f"Cestino svuotato: eliminati definitivamente {purged} brani", "WARNING")
-                            st.success(f"Cestino svuotato: {purged} brani eliminati definitivamente.")
-                            st.rerun()
+            tab_tr_songs, tab_tr_sets, tab_tr_reps = st.tabs([
+                "🎵 Brani nel Cestino",
+                "📑 Scalette nel Cestino",
+                "📚 Repertori nel Cestino"
+            ])
 
-                st.write("##### Azioni per Singolo Brano:")
-                for sd in soft_deleted:
-                    c_sd1, c_sd2, c_sd3 = st.columns([3, 1, 1.2])
-                    with c_sd1:
-                        st.write(f"🎵 **{sd['title']}** — {sd.get('artist', '')} (Key: `{sd.get('key_current', '-')}`)")
-                    with c_sd2:
-                        if st.button("🔄 Ripristina", key=f"restore_{sd['uuid']}", width="stretch"):
-                            storage.restore_song(sd["uuid"], current_user.email, current_user.name)
-                            log_op("♻️", "RIPRISTINO", f"Brano '{sd['title']}' ripristinato dal cestino", "SUCCESS")
-                            st.success(f"Brano '{sd['title']}' ripristinato nell'archivio!")
-                            st.rerun()
-                    with c_sd3:
-                        with st.popover("🔥 Elimina", width="stretch"):
-                            st.write(f"Eliminare definitivamente **'{sd['title']}'**?")
-                            if st.button("Conferma", key=f"purge_{sd['uuid']}", type="secondary", disabled=not current_user.can_admin()):
-                                storage.purge_song_permanently(sd["uuid"], current_user.email, current_user.name)
-                                log_op("🔥", "CESTINO", f"Brano '{sd['title']}' eliminato definitivamente", "WARNING")
-                                st.success(f"Brano '{sd['title']}' eliminato definitivamente.")
+            with tab_tr_songs:
+                del_songs = storage.list_deleted_songs()
+                if del_songs:
+                    col_ts1, col_ts2 = st.columns([3, 1])
+                    with col_ts1:
+                        st.info(f"Sono presenti **{len(del_songs)}** brani nel cestino.")
+                    with col_ts2:
+                        with st.popover("🧹 Svuota Cestino Brani", width="stretch"):
+                            st.warning("Eliminare definitivamente tutti i brani nel cestino?")
+                            if st.button("Conferma Svuota", type="secondary", disabled=not current_user.can_admin(), key="btn_purge_all_songs"):
+                                p_cnt = storage.empty_trash(current_user.email, current_user.name)
+                                log_op("🧹", "CESTINO", f"Eliminati definitivamente {p_cnt} elementi", "WARNING")
+                                st.success("Cestino svuotato.")
                                 st.rerun()
-            else:
-                st.write("Il cestino è attualmente vuoto.")
+
+                    for sm in del_songs:
+                        s_data = sm.get("data", {})
+                        s_uid = s_data.get("uuid")
+                        s_title = s_data.get("title", "Senza Titolo")
+                        s_art = s_data.get("artist", "")
+                        s_key = s_data.get("key_current", "-")
+                        s_del_time = sm.get("deleted_at", "")[:16].replace("T", " ")
+
+                        c_sd1, c_sd2, c_sd3 = st.columns([3.5, 1, 1])
+                        with c_sd1:
+                            st.markdown(f"🎵 **{s_title}** &bull; {s_art} (Key: `{s_key}`) &bull; <small style='color:#888;'>Eliminato: {s_del_time}</small>", unsafe_allow_html=True)
+                        with c_sd2:
+                            if st.button("↩️ Ripristina", key=f"res_song_{s_uid}", width="stretch"):
+                                storage.restore_song(s_uid, current_user.email, current_user.name)
+                                log_op("♻️", "RIPRISTINO", f"Brano '{s_title}' ripristinato dal cestino", "SUCCESS")
+                                st.success(f"Brano '{s_title}' ripristinato!")
+                                st.rerun()
+                        with c_sd3:
+                            with st.popover("🔥 Elimina", width="stretch"):
+                                st.write(f"Eliminare definitivamente **'{s_title}'**?")
+                                if st.button("Conferma", key=f"purge_song_{s_uid}", type="secondary", disabled=not current_user.can_admin()):
+                                    storage.purge_song_permanently(s_uid, current_user.email, current_user.name)
+                                    log_op("🔥", "CESTINO", f"Brano '{s_title}' eliminato definitivamente", "WARNING")
+                                    st.success(f"Brano '{s_title}' eliminato definitivamente.")
+                                    st.rerun()
+                        st.divider()
+                else:
+                    st.info("Nessun brano attualmente nel cestino.")
+
+            with tab_tr_sets:
+                del_sets = storage.list_deleted_setlists()
+                if del_sets:
+                    st.info(f"Sono presenti **{len(del_sets)}** scalette nel cestino.")
+                    for set_m in del_sets:
+                        st_data = set_m.get("data", {})
+                        st_uid = st_data.get("uuid")
+                        st_title = st_data.get("title", "Senza Titolo")
+                        st_date = st_data.get("date", "")
+                        st_cnt = len(st_data.get("items", []))
+                        st_del_time = set_m.get("deleted_at", "")[:16].replace("T", " ")
+
+                        c_st1, c_st2 = st.columns([4, 1.2])
+                        with c_st1:
+                            st.markdown(f"📑 **{st_title}** ({st_cnt} brani) &bull; Data: {st_date} &bull; <small style='color:#888;'>Eliminata: {st_del_time}</small>", unsafe_allow_html=True)
+                        with c_st2:
+                            if st.button("↩️ Ripristina", key=f"res_set_{st_uid}", type="primary", width="stretch"):
+                                storage.restore_setlist(st_uid, current_user.email, current_user.name)
+                                log_op("♻️", "RIPRISTINO", f"Scaletta '{st_title}' ripristinata", "SUCCESS")
+                                st.success(f"Scaletta '{st_title}' ripristinata!")
+                                st.rerun()
+                        st.divider()
+                else:
+                    st.info("Nessuna scaletta attualmente nel cestino.")
+
+            with tab_tr_reps:
+                del_reps = storage.list_deleted_repertoires()
+                if del_reps:
+                    st.info(f"Sono presenti **{len(del_reps)}** repertori nel cestino.")
+                    for rep_m in del_reps:
+                        rp_data = rep_m.get("data", {})
+                        rp_uid = rp_data.get("uuid")
+                        rp_name = rp_data.get("name", "Repertorio")
+                        rp_desc = rp_data.get("description", "")
+                        rp_cnt = len(rp_data.get("song_uuids", []))
+                        rp_del_time = rep_m.get("deleted_at", "")[:16].replace("T", " ")
+
+                        c_rp1, c_rp2 = st.columns([4, 1.2])
+                        with c_rp1:
+                            st.markdown(f"📚 **{rp_name}** ({rp_cnt} brani collegati) &bull; *{rp_desc}* &bull; <small style='color:#888;'>Eliminato: {rp_del_time}</small>", unsafe_allow_html=True)
+                        with c_rp2:
+                            if st.button("↩️ Ripristina", key=f"res_rep_{rp_uid}", type="primary", width="stretch"):
+                                res_rep = storage.restore_repertoire(rp_uid, current_user.email, current_user.name)
+                                if res_rep:
+                                    log_op("♻️", "RIPRISTINO", f"Repertorio '{res_rep.name}' ripristinato", "SUCCESS")
+                                    st.success(f"Repertorio '{res_rep.name}' ripristinato!")
+                                st.rerun()
+                        st.divider()
+                else:
+                    st.info("Nessun repertorio attualmente nel cestino.")
 
         with tab_gist:
             st.write("#### Sincronizzazione Remota GitHub Gist (SRS Cap. 18.9 & 22.8)")

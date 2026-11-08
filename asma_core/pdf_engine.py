@@ -519,7 +519,8 @@ class PDFEngine:
         if os.path.exists(logo_path):
             try:
                 from reportlab.platypus import Image as RLImage
-                logo_flowable = RLImage(logo_path, width=28 * mm, height=11 * mm)
+                # Logo rimpicciolito (18mm x 7mm) per non coprire mai il titolo del brano
+                logo_flowable = RLImage(logo_path, width=18 * mm, height=7 * mm)
             except Exception:
                 pass
 
@@ -528,8 +529,8 @@ class PDFEngine:
                 [title_p, logo_flowable],
                 [artist_p, meta_p]
             ]
-            col1_w = usable_width * 0.65
-            col2_w = usable_width * 0.35
+            col1_w = usable_width * 0.78
+            col2_w = usable_width * 0.22
             t = Table(table_data, colWidths=[col1_w, col2_w])
             t.setStyle(TableStyle([
                 ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
@@ -633,25 +634,18 @@ class PDFEngine:
             elif isinstance(node, ChordGridLineNode):
                 if in_tab_block or cls.is_guitar_tab_line(node.to_aml()):
                     continue
-                # Measure grid line: | Bm | F#7 | A | E | (o sequenza accordi MI | DO | LA)
+                # Measure grid line senza tabelle: accordi divisi dal simbolo |
                 if include_chords:
-                    grid_cells = []
+                    grid_tokens = []
                     for measure in node.measures:
-                        grid_cells.append(Paragraph(f"<b>{' '.join(measure)}</b>", styles["ChordText"]))
-
-                    num_cells = len(grid_cells)
-                    cell_w = usable_width / max(num_cells, 1)
-                    grid_table = Table([grid_cells], colWidths=[cell_w] * num_cells)
-                    grid_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F0F4F8")),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('GRID', (0, 0), (-1, -1), 1.0, colors.HexColor("#90A4AE")),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                    ]))
-                    add_flowable(KeepTogether([grid_table, Spacer(1, 2.5 * mm)]))
-                    last_was_inst_marker = False
+                        m_txt = " ".join(measure).strip()
+                        if m_txt:
+                            grid_tokens.append(m_txt)
+                    grid_line_text = " | ".join(grid_tokens)
+                    if grid_line_text:
+                        p_grid = Paragraph(f"<font color='{c_chord_hex}'><b>{grid_line_text}</b></font>", styles["ChordText"])
+                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_grid, Spacer(1, 1.2 * mm)]))
+                        last_was_inst_marker = False
                 else:
                     # Nel PDF solo testo per il cantante, le sequenze di accordi/battute sono segnalate come (Strumentale)
                     if not last_was_inst_marker:

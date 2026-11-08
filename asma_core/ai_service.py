@@ -472,6 +472,52 @@ class BandAIService:
         t_lower = (title or "").lower()
         k_str = key or "Tonica"
 
+        # Tentativo chiamata Gemini AI per consigli dinamici e su misura per lo specifico brano
+        api_key = cls.get_api_key()
+        if api_key:
+            prompt = (
+                f"Sei un maestro arrangiatore e direttore musicale per una live band (Tastiera Yamaha Montage, Voce, Chitarra ritmica, Chitarra elettrica, Basso, Batteria).\n"
+                f"Fornisci consigli creativi, professionali e SPECIFICI per l'esecuzione live di questo brano:\n"
+                f"- Titolo: '{title}'\n"
+                f"- Artista: '{artist}'\n"
+                f"- Tonalità: '{k_str}'\n"
+                f"- Andamento: {songbpm_bpm} BPM\n"
+                f"- Genere: {genre or 'Pop/Rock/Musica leggera'}\n"
+                f"- Strumento target: {instrument}\n\n"
+                f"Istruzioni:\n"
+                f"1. Dai consigli personalizzati per '{title}', facendo riferimento alla struttura, dinamica, intro, strofe e ritornelli tipici di questo specifico pezzo.\n"
+                f"2. Se lo strumento target include 'Tastiera', consiglia la performance o i timbri più adatti per Yamaha Montage (o workstation synth/piano/organo/pad) e impostazioni per Scene e Super Knob.\n"
+                f"3. Se lo strumento è 'Voce', 'Chitarra', 'Basso' o 'Batteria', dai suggerimenti precisi su suono, dinamica, stacchi e interplay con il resto della band.\n"
+                f"4. Se lo strumento è 'Globale', offri una guida per l'intera band (Intro, Strofa, Ritornello, Bridge/Assolo, Finale).\n"
+                f"Formatta la risposta in Markdown chiaro ed elegante con elenchi puntati."
+            )
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1000}
+            }
+            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"]
+            for model in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=4.0) as resp:
+                        if resp.status == 200:
+                            data = json.loads(resp.read().decode("utf-8"))
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                if parts:
+                                    ai_reply = parts[0].get("text", "").strip()
+                                    if ai_reply and len(ai_reply) > 50:
+                                        return f"### 🤖 Consulente Arrangiamento AI — '{title}'\n*Analisi su misura generata in tempo reale per {instrument}*\n\n" + ai_reply
+                except Exception:
+                    continue
+
         # Determinazione del preset Yamaha Montage ottimale
         if any(w in g_lower or w in t_lower for w in ["rock", "blues", "hard"]):
             montage_preset = "**All Revved Up** (Organo Hammond B3 con Leslie su Pedale FC7) oppure **Prog Organ**"

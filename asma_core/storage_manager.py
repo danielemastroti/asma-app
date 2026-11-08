@@ -200,6 +200,29 @@ class StorageManager:
 
             return song
 
+    def can_add_song_to_repertoire(
+        self,
+        repertoire_uuid: str,
+        song_title: str,
+        exclude_song_uuid: Optional[str] = None
+    ) -> Tuple[bool, str]:
+        """Checks if a song title can be added to a repertoire without violating the rule:
+        No two different versions of the same song in the SAME repertoire.
+        (Two different versions in DIFFERENT repertoires are permitted)."""
+        reps = self.list_repertoires()
+        target_rep = next((r for r in reps if r.uuid == repertoire_uuid), None)
+        if not target_rep:
+            return False, "Repertorio non trovato."
+
+        clean_title = song_title.strip().lower()
+        for s_id in target_rep.song_uuids:
+            if exclude_song_uuid and s_id == exclude_song_uuid:
+                continue
+            s = self.get_song(s_id)
+            if s and s.title.strip().lower() == clean_title:
+                return False, f"Nel repertorio '{target_rep.name}' esiste già un brano intitolato '{s.title}'. Nello stesso repertorio non possono coesistere due versioni con lo stesso titolo."
+        return True, ""
+
     def get_song(self, song_uuid: str) -> Optional[Song]:
         """Retrieves a song by UUID."""
         song_path = os.path.join(self._songs_dir, f"{song_uuid}.json")
@@ -312,6 +335,22 @@ class StorageManager:
                 os.remove(rev_file)
             self.audit.log("PURGE", "SONG", song_uuid, user_email, user_name, {})
             return True
+
+    def list_deleted_songs(self) -> list:
+        """Lists all soft-deleted songs currently in trash."""
+        deleted = []
+        if not os.path.exists(self._trash_dir):
+            return []
+        for f in os.listdir(self._trash_dir):
+            if f.startswith("song_") and f.endswith(".json"):
+                try:
+                    with open(os.path.join(self._trash_dir, f), "r", encoding="utf-8") as fp:
+                        meta = json.load(fp)
+                        deleted.append(meta)
+                except Exception:
+                    pass
+        deleted.sort(key=lambda x: x.get("deleted_at", ""), reverse=True)
+        return deleted
 
     def empty_trash(
         self,
@@ -593,16 +632,76 @@ class StorageManager:
             json.dump([r.to_dict() for r in repertoires], f, indent=2, ensure_ascii=False)
 
     def delete_repertoire(self, repertoire_uuid: str, user_email: str = "system", user_name: str = "System") -> bool:
-        """Deletes a repertoire without deleting the songs contained within it."""
+        """Soft-deletes a repertoire to trash without deleting the songs contained within it."""
         reps = self.list_repertoires()
         target_rep = next((r for r in reps if r.uuid == repertoire_uuid), None)
         if not target_rep:
             return False
+        trash_path = os.path.join(self._trash_dir, f"repertoire_{repertoire_uuid}.json")
+        trash_meta = {
+            "deleted_at": current_iso_timestamp(),
+            "entity_type": "REPERTOIRE",
+            "entity_uuid": repertoire_uuid,
+            "data": target_rep.to_dict()
+        }
+        with open(trash_path, "w", encoding="utf-8") as f:
+            json.dump(trash_meta, f, indent=2, ensure_ascii=False)
+
         reps = [r for r in reps if r.uuid != repertoire_uuid]
         self._save_repertoires_file(reps)
         self._load_all_into_index()
         self.audit.log("DELETE", "REPERTOIRE", repertoire_uuid, user_email, user_name, {"name": target_rep.name})
         return True
+
+    def list_deleted_repertoires(self) -> list:
+        """Lists all soft-deleted repertoires currently in trash."""
+        deleted = []
+        if not os.path.exists(self._trash_dir):
+            return []
+        for f in os.listdir(self._trash_dir):
+            if f.startswith("repertoire_") and f.endswith(".json"):
+                try:
+                    with open(os.path.join(self._trash_dir, f), "r", encoding="utf-8") as fp:
+                        meta = json.load(fp)
+                        deleted.append(meta)
+                except Exception:
+                    pass
+        deleted.sort(key=lambda x: x.get("deleted_at", ""), reverse=True)
+        return deleted
+
+    def restore_repertoire(
+        self,
+        repertoire_uuid: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> Optional[Repertoire]:
+        """Restores a soft-deleted repertoire from trash."""
+        with self._mutex:
+            trash_path = os.path.join(self._trash_dir, f"repertoire_{repertoire_uuid}.json")
+            if not os.path.exists(trash_path):
+                return None
+            try:
+                with open(trash_path, "r", encoding="utf-8") as fp:
+                    meta = json.load(fp)
+                rep = Repertoire.from_dict(meta["data"])
+                reps = self.list_repertoires()
+                existing_names = [r.name.strip().lower() for r in reps]
+                orig_name = rep.name.strip()
+                new_name = orig_name
+                counter = 1
+                while new_name.lower() in existing_names:
+                    new_name = f"{orig_name} (Ripristinato {counter})"
+                    counter += 1
+                rep.name = new_name
+                rep.updated_at = current_iso_timestamp()
+                reps.append(rep)
+                self._save_repertoires_file(reps)
+                os.remove(trash_path)
+                self._load_all_into_index()
+                self.audit.log("RESTORE", "REPERTOIRE", rep.uuid, user_email, user_name, {"name": rep.name})
+                return rep
+            except Exception:
+                return None
 
     def move_song_to_repertoire(
         self,
@@ -611,11 +710,17 @@ class StorageManager:
         user_email: str = "system",
         user_name: str = "System"
     ) -> bool:
-        """Moves a song between repertoires preserving UUID, revision history, and tags."""
+        """Moves a song between repertoires preserving UUID, revision history, and tags, enforcing title uniqueness."""
         reps = self.list_repertoires()
         target_rep = next((r for r in reps if r.uuid == target_repertoire_uuid), None)
         if not target_rep:
             return False
+
+        song = self.get_song(song_uuid)
+        if song and song_uuid not in target_rep.song_uuids:
+            can_add, reason = self.can_add_song_to_repertoire(target_repertoire_uuid, song.title, exclude_song_uuid=song_uuid)
+            if not can_add:
+                raise ValueError(reason)
 
         if song_uuid not in target_rep.song_uuids:
             target_rep.song_uuids.append(song_uuid)
