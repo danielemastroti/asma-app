@@ -790,63 +790,10 @@ from asma_core.backup_engine import BackupEngine
 from asma_core.device_manager import DeviceManager
 from asma_core.aml_tag_manager import AMLTagManager, AMLTagDefinition
 
-import importlib
-import asma_core.storage_manager
-importlib.reload(asma_core.storage_manager)
 from asma_core.storage_manager import StorageManager
-
-# Ensure fallback methods for setlist soft-delete / restore are always dynamically attached
-def _dyn_get_setlist(self, setlist_uuid: str):
-    for s in self.list_setlists():
-        if s.uuid == setlist_uuid:
-            return s
-    return None
-
-def _dyn_list_deleted_setlists(self):
-    del_list = []
-    t_dir = getattr(self, "_trash_dir", os.path.join(getattr(self, "_base_dir", "data"), "trash"))
-    if os.path.exists(t_dir):
-        for fname in os.listdir(t_dir):
-            if fname.startswith("setlist_") and fname.endswith(".json"):
-                try:
-                    with open(os.path.join(t_dir, fname), "r", encoding="utf-8") as fp:
-                        del_list.append(json.load(fp))
-                except Exception:
-                    pass
-    del_list.sort(key=lambda x: x.get("deleted_at", ""), reverse=True)
-    return del_list
-
-def _dyn_restore_setlist(self, setlist_uuid: str, user_email="system", user_name="System"):
-    t_dir = getattr(self, "_trash_dir", os.path.join(getattr(self, "_base_dir", "data"), "trash"))
-    t_path = os.path.join(t_dir, f"setlist_{setlist_uuid}.json")
-    if not os.path.exists(t_path):
-        return None
-    try:
-        with open(t_path, "r", encoding="utf-8") as fp:
-            meta = json.load(fp)
-        s_data = meta.get("data", {})
-        restored = Setlist.from_dict(s_data)
-        self.save_setlist(restored, user_email, user_name)
-        os.remove(t_path)
-        return restored
-    except Exception:
-        return None
-
-if not hasattr(StorageManager, "get_setlist"):
-    StorageManager.get_setlist = _dyn_get_setlist
-if not hasattr(StorageManager, "list_deleted_setlists"):
-    StorageManager.list_deleted_setlists = _dyn_list_deleted_setlists
-if not hasattr(StorageManager, "restore_setlist"):
-    StorageManager.restore_setlist = _dyn_restore_setlist
 
 # Initialize Singletons
 storage = StorageManager()
-if not hasattr(storage, "get_setlist"):
-    storage.get_setlist = _dyn_get_setlist.__get__(storage, StorageManager)
-if not hasattr(storage, "list_deleted_setlists"):
-    storage.list_deleted_setlists = _dyn_list_deleted_setlists.__get__(storage, StorageManager)
-if not hasattr(storage, "restore_setlist"):
-    storage.restore_setlist = _dyn_restore_setlist.__get__(storage, StorageManager)
 lock_mgr = LockManager()
 audit = AuditLogger()
 op_logger = OperationLogger()
