@@ -278,6 +278,8 @@ class TestStorageManager(unittest.TestCase):
         r_dst = Repertoire(name="Destination Rep", description="Destinazione")
         self.storage.save_repertoire(r_src)
         self.storage.save_repertoire(r_dst)
+        self.assertIsNotNone(self.storage.get_repertoire(r_dst.uuid))
+        self.assertIsNone(self.storage.get_repertoire("non_existent_uuid"))
 
         s1 = Song(title="Batch Song 1", key_current="C")
         s2 = Song(title="Batch Song 2", key_current="G")

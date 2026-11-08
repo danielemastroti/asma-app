@@ -757,6 +757,11 @@ class StorageManager:
         except Exception:
             return []
 
+    def get_repertoire(self, repertoire_uuid: str) -> Optional[Repertoire]:
+        """Retrieves a single repertoire by its UUID."""
+        reps = self.list_repertoires()
+        return next((r for r in reps if r.uuid == repertoire_uuid), None)
+
     def save_repertoire(self, repertoire: Repertoire, user_email: str = "system", user_name: str = "System") -> Repertoire:
         clean_name = repertoire.name.strip()
         if not clean_name:
