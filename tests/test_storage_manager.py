@@ -272,6 +272,62 @@ class TestStorageManager(unittest.TestCase):
         active_reps = self.storage.list_repertoires()
         self.assertTrue(any(r.uuid == rep.uuid for r in active_reps))
 
+    def test_batch_operations(self):
+        """Test batch move, link, clone, and delete operations."""
+        r_src = Repertoire(name="Source Rep", description="Origine")
+        r_dst = Repertoire(name="Destination Rep", description="Destinazione")
+        self.storage.save_repertoire(r_src)
+        self.storage.save_repertoire(r_dst)
+
+        s1 = Song(title="Batch Song 1", key_current="C")
+        s2 = Song(title="Batch Song 2", key_current="G")
+        self.storage.save_song(s1)
+        self.storage.save_song(s2)
+        self.storage.move_song_to_repertoire(s1.uuid, r_src.uuid)
+        self.storage.move_song_to_repertoire(s2.uuid, r_src.uuid)
+
+        # 1. Batch move from r_src to r_dst
+        moved, skipped = self.storage.batch_move_songs_to_repertoire(
+            [s1.uuid, s2.uuid], r_dst.uuid, source_repertoire_uuid=r_src.uuid
+        )
+        self.assertEqual(moved, 2)
+        self.assertEqual(skipped, 0)
+
+        # Verify on reloaded repertoires
+        reps = self.storage.list_repertoires()
+        dst_loaded = next(r for r in reps if r.uuid == r_dst.uuid)
+        src_loaded = next(r for r in reps if r.uuid == r_src.uuid)
+        self.assertIn(s1.uuid, dst_loaded.song_uuids)
+        self.assertIn(s2.uuid, dst_loaded.song_uuids)
+        self.assertNotIn(s1.uuid, src_loaded.song_uuids)
+        self.assertNotIn(s2.uuid, src_loaded.song_uuids)
+
+        # 2. Batch link to r_src without removing from r_dst
+        linked, skipped = self.storage.batch_link_songs_to_repertoire(
+            [s1.uuid, s2.uuid], r_src.uuid
+        )
+        self.assertEqual(linked, 2)
+        reps = self.storage.list_repertoires()
+        src_loaded = next(r for r in reps if r.uuid == r_src.uuid)
+        dst_loaded = next(r for r in reps if r.uuid == r_dst.uuid)
+        self.assertIn(s1.uuid, src_loaded.song_uuids)
+        self.assertIn(s1.uuid, dst_loaded.song_uuids)
+
+        # 3. Batch clone to a new repertoire
+        r_cloned = Repertoire(name="Cloned Rep", description="Cloni")
+        self.storage.save_repertoire(r_cloned)
+        cloned, _ = self.storage.batch_clone_songs_to_repertoire([s1.uuid], r_cloned.uuid)
+        self.assertEqual(cloned, 1)
+        reps = self.storage.list_repertoires()
+        cloned_loaded = next(r for r in reps if r.uuid == r_cloned.uuid)
+        self.assertEqual(len(cloned_loaded.song_uuids), 1)
+        self.assertNotEqual(cloned_loaded.song_uuids[0], s1.uuid)
+
+        # 4. Batch delete
+        del_count = self.storage.batch_delete_songs([s1.uuid, s2.uuid])
+        self.assertEqual(del_count, 2)
+        self.assertIsNone(self.storage.get_song(s1.uuid))
+
 
 if __name__ == "__main__":
     unittest.main()

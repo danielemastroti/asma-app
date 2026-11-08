@@ -903,8 +903,168 @@ class StorageManager:
         self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
         self._trigger_background_gist_sync("ALL")
         return True
-        self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
-        return True
+
+    def batch_move_songs_to_repertoire(
+        self,
+        song_uuids: List[str],
+        target_repertoire_uuid: str,
+        source_repertoire_uuid: Optional[str] = None,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> Tuple[int, int]:
+        """Atomically moves multiple songs to target repertoire, removing from source or other repertoires."""
+        with self._mutex:
+            reps = self.list_repertoires()
+            target_rep = next((r for r in reps if r.uuid == target_repertoire_uuid), None)
+            if not target_rep:
+                return 0, len(song_uuids)
+
+            moved_count = 0
+            skipped_count = 0
+
+            for uid in song_uuids:
+                s_obj = self.get_song(uid)
+                if not s_obj:
+                    skipped_count += 1
+                    continue
+                can_add, _ = self.can_add_song_to_repertoire(target_repertoire_uuid, s_obj.title, exclude_song_uuid=uid)
+                if not can_add and uid not in target_rep.song_uuids:
+                    skipped_count += 1
+                    continue
+
+                if uid not in target_rep.song_uuids:
+                    target_rep.song_uuids.append(uid)
+
+                # Remove from source repertoire or from other repertoires
+                if source_repertoire_uuid and source_repertoire_uuid not in ("__ALL__", "__UNASSIGNED__"):
+                    src_rep = next((r for r in reps if r.uuid == source_repertoire_uuid), None)
+                    if src_rep and src_rep.uuid != target_rep.uuid and uid in src_rep.song_uuids:
+                        src_rep.song_uuids.remove(uid)
+                else:
+                    for other_r in reps:
+                        if other_r.uuid != target_rep.uuid and uid in other_r.song_uuids:
+                            other_r.song_uuids.remove(uid)
+
+                moved_count += 1
+
+            if moved_count > 0:
+                self._save_repertoires_file(reps)
+                self._load_all_into_index()
+                self._trigger_background_gist_sync("ALL")
+                self.audit.log("UPDATE", "REPERTOIRE", target_rep.uuid, user_email, user_name, {
+                    "action": "batch_move",
+                    "count": moved_count,
+                    "song_uuids": song_uuids
+                })
+
+            return moved_count, skipped_count
+
+    def batch_link_songs_to_repertoire(
+        self,
+        song_uuids: List[str],
+        target_repertoire_uuid: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> Tuple[int, int]:
+        """Atomically links/associates multiple songs to target repertoire without removing from others."""
+        with self._mutex:
+            reps = self.list_repertoires()
+            target_rep = next((r for r in reps if r.uuid == target_repertoire_uuid), None)
+            if not target_rep:
+                return 0, len(song_uuids)
+
+            added_count = 0
+            skipped_count = 0
+
+            for uid in song_uuids:
+                if uid in target_rep.song_uuids:
+                    skipped_count += 1
+                    continue
+                s_obj = self.get_song(uid)
+                if not s_obj:
+                    skipped_count += 1
+                    continue
+                can_add, _ = self.can_add_song_to_repertoire(target_repertoire_uuid, s_obj.title, exclude_song_uuid=uid)
+                if not can_add:
+                    skipped_count += 1
+                    continue
+
+                target_rep.song_uuids.append(uid)
+                added_count += 1
+
+            if added_count > 0:
+                self._save_repertoires_file(reps)
+                self._load_all_into_index()
+                self._trigger_background_gist_sync("ALL")
+                self.audit.log("UPDATE", "REPERTOIRE", target_rep.uuid, user_email, user_name, {
+                    "action": "batch_link",
+                    "count": added_count,
+                    "song_uuids": song_uuids
+                })
+
+            return added_count, skipped_count
+
+    def batch_clone_songs_to_repertoire(
+        self,
+        song_uuids: List[str],
+        target_repertoire_uuid: str,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> Tuple[int, int]:
+        """Clones multiple songs as independent copies in target repertoire."""
+        reps = self.list_repertoires()
+        target_rep = next((r for r in reps if r.uuid == target_repertoire_uuid), None)
+        if not target_rep:
+            return 0, len(song_uuids)
+
+        cloned_count = 0
+        skipped_count = 0
+
+        for uid in song_uuids:
+            s_obj = self.get_song(uid)
+            if not s_obj:
+                skipped_count += 1
+                continue
+            can_add, _ = self.can_add_song_to_repertoire(target_repertoire_uuid, s_obj.title)
+            if not can_add:
+                skipped_count += 1
+                continue
+
+            cloned_song = Song(
+                title=s_obj.title,
+                artist=s_obj.artist,
+                author=s_obj.author,
+                genre=s_obj.genre,
+                year=s_obj.year,
+                duration_seconds=s_obj.duration_seconds,
+                bpm=s_obj.bpm,
+                time_signature=s_obj.time_signature,
+                capo=s_obj.capo,
+                key_original=s_obj.key_original,
+                key_current=s_obj.key_current,
+                tags=list(s_obj.tags or []),
+                aml_content=s_obj.aml_content,
+                shared_notes=s_obj.shared_notes
+            )
+            saved = self.save_song(cloned_song, user_email, user_name, f"Clonata versione in batch per '{target_rep.name}'")
+            self.move_song_to_repertoire(saved.uuid, target_repertoire_uuid, user_email, user_name)
+            cloned_count += 1
+
+        return cloned_count, skipped_count
+
+    def batch_delete_songs(
+        self,
+        song_uuids: List[str],
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> int:
+        """Soft-deletes multiple songs to trash."""
+        deleted_count = 0
+        for uid in song_uuids:
+            self.lock_mgr.release_lock(uid, user_email, force=True)
+            self.delete_song(uid, user_email, user_name)
+            deleted_count += 1
+        return deleted_count
 
     # --- SETLISTS CRUD ---
 

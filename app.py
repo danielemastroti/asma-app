@@ -3323,14 +3323,16 @@ elif menu_choice == "🗂️ Smistamento Rapido":
         unsafe_allow_html=True
     )
 
+    rep_dict = {r.uuid: r for r in all_reps}
     col_target, col_btn_move, col_btn_clone, col_btn_add, col_btn_del = st.columns([1.8, 1.2, 1.2, 1.2, 1.2], gap="small")
     with col_target:
-        target_dest_rep = st.selectbox(
+        target_dest_uuid = st.selectbox(
             "🎯 Repertorio di Destinazione:",
-            options=all_reps,
-            format_func=lambda r: f"📁 {r.name} ({len(r.song_uuids)} brani)",
-            key="batch_dest_repertoire"
+            options=list(rep_dict.keys()),
+            format_func=lambda uid: f"📁 {rep_dict[uid].name} ({len(rep_dict[uid].song_uuids)} brani)",
+            key="batch_dest_repertoire_uuid"
         )
+        target_dest_rep = rep_dict[target_dest_uuid]
 
     with col_btn_move:
         btn_batch_move = st.button(
@@ -3369,36 +3371,17 @@ elif menu_choice == "🗂️ Smistamento Rapido":
     # ESECUZIONE 1-CLICK: SPOSTA
     # -------------------------------------------------------------
     if btn_batch_move and selected_uuids:
-        moved_count = 0
-        skipped_count = 0
-        for uid in selected_uuids:
-            s_obj = storage.get_song(uid)
-            if not s_obj:
-                continue
-            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title, exclude_song_uuid=uid)
-            if not can_add and uid not in target_dest_rep.song_uuids:
-                skipped_count += 1
-                continue
-
-            if uid not in target_dest_rep.song_uuids:
-                target_dest_rep.song_uuids.append(uid)
-
-            if sel_rep_filter != "__ALL__" and sel_rep_filter != "__UNASSIGNED__":
-                src_rep = next((r for r in all_reps if r.uuid == sel_rep_filter), None)
-                if src_rep and src_rep.uuid != target_dest_rep.uuid and uid in src_rep.song_uuids:
-                    src_rep.song_uuids.remove(uid)
-            else:
-                for other_r in all_reps:
-                    if other_r.uuid != target_dest_rep.uuid and uid in other_r.song_uuids:
-                        other_r.song_uuids.remove(uid)
-            moved_count += 1
-
+        moved_count, skipped_count = storage.batch_move_songs_to_repertoire(
+            selected_uuids,
+            target_dest_uuid,
+            source_repertoire_uuid=sel_rep_filter,
+            user_email=current_user.email,
+            user_name=current_user.name
+        )
         if moved_count > 0:
-            storage._save_repertoires_file(all_reps)
-            storage._load_all_into_index()
-            storage._trigger_background_gist_sync("ALL")
             log_op("➡️", "BATCH", f"Spostati con 1 click {moved_count} brani nel repertorio '{target_dest_rep.name}'", "SUCCESS")
             st.success(f"✅ Spostati con 1 click **{moved_count}** brani nel repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} duplicati ignorati)" if skipped_count else ""))
+            st.session_state.pop("batch_songs_data_editor", None)
             st.rerun()
         else:
             st.warning("Nessun brano spostato: verifica che non siano già presenti nel repertorio di destinazione.")
@@ -3407,41 +3390,16 @@ elif menu_choice == "🗂️ Smistamento Rapido":
     # ESECUZIONE 1-CLICK: CLONA
     # -------------------------------------------------------------
     elif btn_batch_clone and selected_uuids:
-        cloned_count = 0
-        skipped_count = 0
-        for uid in selected_uuids:
-            s_obj = storage.get_song(uid)
-            if not s_obj:
-                continue
-            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title)
-            if not can_add:
-                skipped_count += 1
-                continue
-
-            cloned_song = Song(
-                title=s_obj.title,
-                artist=s_obj.artist,
-                author=s_obj.author,
-                genre=s_obj.genre,
-                year=s_obj.year,
-                duration_seconds=s_obj.duration_seconds,
-                bpm=s_obj.bpm,
-                time_signature=s_obj.time_signature,
-                capo=s_obj.capo,
-                key_original=s_obj.key_original,
-                key_current=s_obj.key_current,
-                tags=list(s_obj.tags or []),
-                aml_content=s_obj.aml_content,
-                notes=s_obj.notes
-            )
-            saved_clone = storage.save_song(cloned_song, current_user.email, current_user.name, f"Clonata versione in batch per '{target_dest_rep.name}'")
-            storage.move_song_to_repertoire(saved_clone.uuid, target_dest_rep.uuid, current_user.email, current_user.name)
-            cloned_count += 1
-
+        cloned_count, skipped_count = storage.batch_clone_songs_to_repertoire(
+            selected_uuids,
+            target_dest_uuid,
+            user_email=current_user.email,
+            user_name=current_user.name
+        )
         if cloned_count > 0:
-            storage._trigger_background_gist_sync("ALL")
             log_op("📑", "BATCH", f"Clonati con 1 click {cloned_count} brani per il repertorio '{target_dest_rep.name}'", "SUCCESS")
             st.success(f"✅ Create e clonate con 1 click **{cloned_count}** nuove versioni indipendenti nel repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} duplicati ignorati)" if skipped_count else ""))
+            st.session_state.pop("batch_songs_data_editor", None)
             st.rerun()
         else:
             st.warning("Nessun brano clonato: i brani selezionati risultano già presenti nel repertorio di destinazione.")
@@ -3450,28 +3408,16 @@ elif menu_choice == "🗂️ Smistamento Rapido":
     # ESECUZIONE 1-CLICK: COLLEGA / ASSOCIA
     # -------------------------------------------------------------
     elif btn_batch_add and selected_uuids:
-        added_count = 0
-        skipped_count = 0
-        for uid in selected_uuids:
-            if uid in target_dest_rep.song_uuids:
-                skipped_count += 1
-                continue
-            s_obj = storage.get_song(uid)
-            if not s_obj:
-                continue
-            can_add, reason = storage.can_add_song_to_repertoire(target_dest_rep.uuid, s_obj.title, exclude_song_uuid=uid)
-            if not can_add:
-                skipped_count += 1
-                continue
-            target_dest_rep.song_uuids.append(uid)
-            added_count += 1
-
+        added_count, skipped_count = storage.batch_link_songs_to_repertoire(
+            selected_uuids,
+            target_dest_uuid,
+            user_email=current_user.email,
+            user_name=current_user.name
+        )
         if added_count > 0:
-            storage._save_repertoires_file(all_reps)
-            storage._load_all_into_index()
-            storage._trigger_background_gist_sync("ALL")
             log_op("📥", "BATCH", f"Collegati con 1 click {added_count} brani al repertorio '{target_dest_rep.name}'", "SUCCESS")
             st.success(f"✅ Collegati con 1 click **{added_count}** brani al repertorio **'{target_dest_rep.name}'**!" + (f" ({skipped_count} già presenti ignorati)" if skipped_count else ""))
+            st.session_state.pop("batch_songs_data_editor", None)
             st.rerun()
         else:
             st.warning("Nessun brano collegato: i brani selezionati sono già presenti in questo repertorio.")
@@ -3480,12 +3426,11 @@ elif menu_choice == "🗂️ Smistamento Rapido":
     # ESECUZIONE 1-CLICK: ELIMINA (SPOSTA NEL CESTINO)
     # -------------------------------------------------------------
     elif 'btn_batch_del_confirm' in locals() and btn_batch_del_confirm and selected_uuids:
-        deleted_count = 0
-        for uid in selected_uuids:
-            lock_mgr.release_lock(uid, current_user.email, force=current_user.is_admin())
-            storage.delete_song(uid, current_user.email, current_user.name)
-            deleted_count += 1
-
+        deleted_count = storage.batch_delete_songs(
+            selected_uuids,
+            user_email=current_user.email,
+            user_name=current_user.name
+        )
         if deleted_count > 0:
             log_op("🗑️", "BATCH", f"Spostati con 1 click {deleted_count} brani nel cestino", "WARNING")
             st.success(f"🗑️ Spostati con 1 click **{deleted_count}** brani nel cestino (recuperabili per 30 giorni)!")
