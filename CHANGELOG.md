@@ -23,9 +23,6 @@
 - Protezione area riservata band: solo gli account autenticati con successo dai server Google e registrati nella lista ufficiale musicisti possono accedere.
 
 ### 🐛 Correzioni di Bug (Bug Fixes)
-- Riconoscimento accordi estesi e alterati (es. 'SOL4+', 'DO4+', 'G4+'): ampliato il validatore di suffissi del motore musicale per supportare suffissi aumentati/diminuiti ('4+', '4-', '4#', '4b', 'sus4+', 'sus4-', '4aug') con corretta trasposizione e cambio notazione.
-- Allineamento automatico accordi tradizionali in AMLParser: 'AMLParser.parse' rileva e fonde automaticamente le righe con accordi sopra il testo (es. 'SOL... SOL4+' sopra 'Vespe truccate anni sessanta'), associando ciascun accordo alla rispettiva parola.
-- Aggiornamento reattivo anteprima PDF su cambio dimensione accordi: integrato 'font_size_chords' nelle chiavi di cache di 'PDFEngine' e di sessione Streamlit ('ck_dev_m', 'ck_a4_m'), garantendo il ricalcolo e la rigenerazione immediata delle immagini anteprima non appena l'utente muove lo slider.
 - Motore PDF: risolto incollamento accordi consecutivi (anti-gluing es. 'FADO' -> 'FA  DO', 'SIb/FADO/MI' -> 'SIb/FA  DO/MI  RE7/9+') con spaziatura minima garantita.
 - Motore PDF: rimossa sillabazione accidentale a metà parola nei testi dei brani.
 - Motore PDF: garantito margine inferiore di sicurezza anti-sovrapposizione (minimo 15 mm) rispetto al piè di pagina.
@@ -36,6 +33,9 @@
 - Accesso diretto automatico: se l'utente ha già effettuato l'autenticazione Google sul browser, accede direttamente all'applicazione senza passare dalla schermata di login.
 - Risoluzione Errore Google 403 (Robottino 'Non disponi dell'autorizzazione necessaria'): rimossa navigazione iframe tramite meta-refresh e implementato reindirizzamento top-level (window.top) con pulsante diretto target='_top' per consentire a Google Accounts di aprirsi all'esterno del frame di Streamlit.
 - Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante '🎸 Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.
+- Motore PDF: rimossa la tabella a celle colorate per le sequenze di accordi (griglie armoniche); ora renderizzate in linea con separatore '|' pulito (es. 'LA | DO | FA | SOL') conforme alla specifica utente.
+- Parser AML e Motore Musicale: aggiunto riconoscimento nativo dell'accordo 'SOL4+' e suffissi '4+', con trasposizione corretta e unione automatica delle righe di accordi tradizionali posizionate sopra il testo (es. 'SOL'/'Vespe', 'SOL4+'/'anni').
+- Anteprima PDF: risolto disallineamento della cache di sessione del preview e bug sintattico in app.py con aggiornamento istantaneo del ridimensionamento font degli accordi.
 
 ## Versione 2026.11.05 (05/11/2026) — Rilascio Ufficiale ASMA Accordi 2.0 (Next Generation)
 
