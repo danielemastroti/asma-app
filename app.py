@@ -38,8 +38,28 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Inject Browser Compatibility Polyfills for Android & Huawei Tablets (ES2023 toSorted, toReversed, toSpliced)
+# Inject Browser Compatibility Polyfills & Mobile Dropdown Guard (ES2023 + suppress virtual keyboard on selectboxes)
 st.markdown(asma_core.browser_polyfill.POLYFILL_SCRIPT, unsafe_allow_html=True)
+st.components.v1.html(
+    f"""<script>
+    try {{
+      var frame = window.frameElement;
+      if (frame) {{
+        frame.style.display = 'none';
+        frame.style.height = '0px';
+        frame.style.margin = '0px';
+        frame.style.padding = '0px';
+        frame.style.border = 'none';
+        var p = frame.parentElement;
+        if (p && p.classList.contains('element-container')) {{
+          p.style.display = 'none';
+        }}
+      }}
+    }} catch(e) {{}}
+    {asma_core.browser_polyfill.MOBILE_DROPDOWN_GUARD_JS}
+    </script>""",
+    height=0
+)
 
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
@@ -139,24 +159,107 @@ st.markdown("""
 
   /* Responsive Scaletta Toolbar - stays horizontal on smartphones and tablets */
   div[class*="st-key-scaletta_toolbar_container"] [data-testid="stHorizontalBlock"],
-  
-div[class*="st-key-set_order_item_"] [data-testid="stHorizontalBlock"] {
+  div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     gap: 4px !important;
-}
-div[class*="st-key-set_order_item_"] [data-testid="column"] {
-    min-width: unset !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  div[class*="st-key-scaletta_toolbar_container"] [data-testid="stColumn"],
+  div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stColumn"] {
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+  }
+
+  /* Responsive Setlist Song Row (Ordine di Palco) - Perfect Fit on Mobile Screens */
+  div[class*="st-key-set_order_item_"] {
+    background: rgba(30, 41, 59, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 3px 6px !important;
+    margin-bottom: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  div[class*="st-key-set_order_item_"] [data-testid="stHorizontalBlock"],
+  div[class*="st-key-set_order_item_"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"],
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"],
+  div[class*="st-key-set_order_item_"] [data-testid="column"],
+  div[class*="st-key-set_order_item_"] div[data-testid="column"] {
+    min-width: 0 !important;
+    width: auto !important;
     flex-shrink: 0 !important;
-}
-div[class*="st-key-set_order_item_"] [data-testid="column"]:nth-child(2) {
+  }
+  /* Column 1: Index Badge */
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"]:nth-child(1),
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"]:nth-child(1) {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+  }
+  /* Column 2: Song Title & Key/BPM details */
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"]:nth-child(2),
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"]:nth-child(2) {
+    flex: 1 1 auto !important;
     flex-grow: 1 !important;
     flex-shrink: 1 !important;
     min-width: 0 !important;
     overflow: hidden !important;
-}
+  }
+  /* Columns 3, 4, 5: Action buttons (Up, Down, Delete) */
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"]:nth-child(3),
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"]:nth-child(3),
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"]:nth-child(4),
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"]:nth-child(4),
+  div[class*="st-key-set_order_item_"] [data-testid="stColumn"]:nth-child(5),
+  div[class*="st-key-set_order_item_"] div[data-testid="stColumn"]:nth-child(5) {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+  }
+  /* Buttons styling in setlist row */
+  div[class*="st-key-set_order_item_"] [data-testid="stButton"] {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  div[class*="st-key-set_order_item_"] [data-testid="stButton"] button {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  }
+  div[class*="st-key-set_order_item_"] [data-testid="stButton"] button:hover {
+    background: rgba(2, 136, 209, 0.35) !important;
+    border-color: #00E5FF !important;
+  }
 
 div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
@@ -723,6 +826,16 @@ div[class*="st-key-scaletta_toolbar_container"] div[data-testid="stHorizontalBlo
     border-radius: 6px !important;
   }
 
+  /* Soppressione tastiera virtuale e puntatore touch su tutti i selectbox/dropdown */
+  div[data-testid="stSelectbox"] div[data-baseweb="select"] input,
+  .st-key-main_song_selector div[data-baseweb="select"] input,
+  .st-key-rep_song_selector div[data-baseweb="select"] input {
+    caret-color: transparent !important;
+    cursor: pointer !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+
   /* Evidenziazione speciale per la Casella Selezione Brano (Brani e Repertori) */
   .st-key-main_song_selector div[data-baseweb="select"] > div,
   .st-key-rep_song_selector div[data-baseweb="select"] > div {
@@ -1117,23 +1230,34 @@ def get_client_device_category() -> str:
         return "tablet"
     elif "windows" in ua or "macintosh" in ua or ("linux" in ua and "android" not in ua):
         return "desktop"
-    return "mobile_phone"
+    # Fallback to desktop for PC/workstation browsers
+    return "desktop"
 
 _client_dev_cat = get_client_device_category()
 _user_dev_key = f"device::{current_user.email}::{_client_dev_cat}"
+_clean_email_cookie = re.sub(r'[^a-zA-Z0-9]', '_', current_user.email.lower())
+_cookie_key = f"asma_dev_{_clean_email_cookie}"
 
-# Resolve Active Device: Session State -> Query Params -> Stored Preferences (User+Device) -> Smart Default
+# Read client device cookie if sent by browser
+_client_cookie_dev = None
+try:
+    if hasattr(st, "context") and hasattr(st.context, "cookies"):
+        _client_cookie_dev = st.context.cookies.get(_cookie_key)
+except Exception:
+    _client_cookie_dev = None
+
+# Resolve Active Device: Session State -> Browser Cookie -> Query Params -> User+DeviceCategory Pref -> Smart Hardware Default
 _qp_dev = st.query_params.get("device")
 if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
+elif _client_cookie_dev and _client_cookie_dev in dev_names:
+    _active_dev = _client_cookie_dev
 elif _qp_dev and _qp_dev in dev_names:
     _active_dev = _qp_dev
 elif _client_prefs.get(_user_dev_key) and _client_prefs.get(_user_dev_key) in dev_names:
     _active_dev = _client_prefs.get(_user_dev_key)
-elif _client_prefs.get(f"active_device::{current_user.email}") and _client_prefs.get(f"active_device::{current_user.email}") in dev_names:
-    _active_dev = _client_prefs.get(f"active_device::{current_user.email}")
 else:
-    # Smart device category defaults: smartphone -> Pixel 8, PC -> A4 Desktop, Tablet -> Huawei MatePad
+    # Strictly isolated per hardware category (PC -> A4 Desktop, Tablet -> Huawei, Smartphone -> Pixel 8)
     if _client_dev_cat == "desktop":
         _active_dev = "A4: Stampabile (Desktop)" if "A4: Stampabile (Desktop)" in dev_names else (dev_names[0] if dev_names else "A4: Stampabile (Desktop)")
     elif _client_dev_cat == "tablet":
@@ -1145,7 +1269,6 @@ st.session_state["user_preferred_device"] = _active_dev
 st.query_params["device"] = _active_dev
 if _client_prefs.get(_user_dev_key) != _active_dev:
     _client_prefs[_user_dev_key] = _active_dev
-    _client_prefs[f"active_device::{current_user.email}"] = _active_dev
     save_client_preferences(_client_prefs)
 
 def set_active_device_globally(new_dev_name: str):
@@ -1156,9 +1279,24 @@ def set_active_device_globally(new_dev_name: str):
         _cp = load_client_preferences()
         _dcat = get_client_device_category()
         _cp[f"device::{current_user.email}::{_dcat}"] = new_dev_name
-        _cp[f"active_device::{current_user.email}"] = new_dev_name
-        _cp["active_device"] = new_dev_name
         save_client_preferences(_cp)
+
+# Persist device cookie and localStorage directly on client browser
+st.components.v1.html(
+    f"""<script>
+    (function() {{
+      var ckName = "{_cookie_key}";
+      var devVal = "{_active_dev}";
+      var d = new Date();
+      d.setTime(d.getTime() + (365*24*60*60*1000));
+      document.cookie = ckName + "=" + encodeURIComponent(devVal) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
+      try {{
+        localStorage.setItem(ckName, devVal);
+      }} catch(e) {{}}
+    }})();
+    </script>""",
+    height=0
+)
 
 curr_pref = _active_dev
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
@@ -3264,7 +3402,7 @@ elif menu_choice == "📑 Scalette Live":
                     c_bpm = c_song.get("bpm", "-")
                     is_in_set = c_uid in existing_set_song_ids
 
-                    c_row_info, c_row_btn = st.columns([3.2, 1], gap="small", vertical_alignment="center")
+                    c_row_info, c_row_btn = st.columns([3.5, 1.2], gap=4, vertical_alignment="center", wrap=False)
                     with c_row_info:
                         art_str = f" &bull; <small style='color:#888;'>{c_artist}</small>" if c_artist else ""
                         badge_in = " <span style='font-size:9.5px; color:#00E676; font-weight:700;'>✓ in scaletta</span>" if is_in_set else ""
@@ -3307,15 +3445,15 @@ elif menu_choice == "📑 Scalette Live":
                 # Single compact row per song in setlist (forced horizontal on all mobile devices)
                 with st.container(key=f"set_order_item_{idx}"):
                     r_c_idx, r_c_title, r_c_up, r_c_dn, r_c_del = st.columns(
-                        [0.5, 4.2, 0.6, 0.6, 0.6], gap="small", vertical_alignment="center"
+                        [0.6, 6.0, 0.8, 0.8, 0.8], gap=4, vertical_alignment="center", wrap=False
                     )
 
                     with r_c_idx:
                         st.markdown(f"<div style='font-size:12px; font-weight:800; color:#38BDF8; background:rgba(56,189,248,0.12); width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(56,189,248,0.3);'>#{idx + 1}</div>", unsafe_allow_html=True)
 
                     with r_c_title:
-                        art_badge = f"<span style='font-size:10.5px; color:#888;'> &bull; {artist}</span>" if artist else ""
-                        st.markdown(f"<div style='line-height:1.2; padding:2px 0;'>"
+                        art_badge = f"<span style='font-size:10.5px; color:#94A3B8;'> &bull; {artist}</span>" if artist else ""
+                        st.markdown(f"<div style='line-height:1.2; padding:2px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>"
                                     f"<b style='font-size:12.5px; color:#FFFFFF;'>{title.upper()}</b>{art_badge}<br>"
                                     f"<span style='font-size:10px; color:#94A3B8;'>Tonalità: <code style='color:#FFD600;'>{key}</code> &bull; BPM: <code style='color:#00E676;'>{bpm}</code></span>"
                                     f"</div>", unsafe_allow_html=True)

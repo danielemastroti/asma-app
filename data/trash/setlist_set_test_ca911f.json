@@ -1,0 +1,14 @@
+{
+  "deleted_at": "2026-11-08T21:50:39.025973+00:00",
+  "entity_type": "SETLIST",
+  "entity_uuid": "set_test_ca911f",
+  "data": {
+    "uuid": "set_test_ca911f",
+    "title": "Test",
+    "date": "",
+    "description": "",
+    "items": [],
+    "created_at": "2026-11-08T10:06:32.179754+00:00",
+    "updated_at": "2026-11-08T10:06:32.179754+00:00"
+  }
+}

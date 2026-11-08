@@ -1,0 +1,35 @@
+{
+  "deleted_at": "2026-11-08T21:53:51.934888+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "09ae8650-521f-4d60-a770-de390145315b",
+  "data": {
+    "uuid": "09ae8650-521f-4d60-a770-de390145315b",
+    "title": "KNOCK ON WOOD",
+    "artist": "Amii Stewart",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 140,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "LAb",
+    "key_current": "LAb",
+    "notation_system": "INT",
+    "tags": [
+      "importato-web"
+    ],
+    "shared_notes": "",
+    "aml_content": "{title: KNOCK ON WOOD}\n{artist: Amii Stewart}\n{key: LAb}\n{source: https://www.accordiespartiti.it/accordi/internazionali/stewart-amii/knock-on-wood/}\n\n\nIntro:\n[LAb]       [SI]   [DO#]       [MIb]       [FA#]     [MIb]    [DO#]    [SI]\n[LAb]       [SI]   [DO#]       [MIb]       [FA#]     [MIb]    [DO#]    [SI]    [LAb]\nI don't want to [DO#]lose you\n\nThis good thing, that I got\n'Cause if I [LAb]do, I will surely\n\nSurely lose a lot\n'Cause your [DO#]love, is better\n\nThan any love I know\nIt's like [LAb]thunder, [DO#]lightning\n [LAb]The way you love me is [DO#]frightening\nOh you better [LAb]knock, knock\n\nOn [LAb]wood, [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh, [LAb]ooh   [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh, [LAb]ooh, ooh\n\nI'm not super[DO#]stitious, about ya\n\nBut I can't take no chance\n [LAb]You got me spinnin' baby\n\nYou know that I'm in a trance\n'Cause your [DO#]love, is better\n\nThan any love I know\nIt's like [LAb]thunder, [DO#]lightning\n [LAb]The way you love me is [DO#]frightenin'\nOh you better [LAb]knock, knock, knock\n\nOn [LAb]wood, [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh, [LAb]ooh   [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh, [LAb]ooh, ooh\n\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock)\n\n [SIbm]Ooh, [DOm]baby[DO#], ooh.[MI]..  [MIb]\nIt's no [DO#]secret about it\n\n'Cause with his loving touch\nHe [LAb]sees to it that I get enough\nFeel [DO#]his touch all over\n\nYou know it means so much\nIt's like [LAb]thunder, burstin' [DO#]lightning\n [LAb]The way you love me is [DO#]frightening\nYou better [LAb]knock, knock, knock on wood, baby\n\nOn [LAb]wood, [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh, [LAb]ooh   [DO#][SI]ba-by\n[MIb]Ooh, [FA#]ooh, [MIb]ooh, [DO#]ooh, [SI]ooh...\n\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n(Think you better [LAb]knock, knock, knock on [DO#]wood)\n\n",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 7,
+    "created_at": "2026-11-06T22:38:23.693957+00:00",
+    "updated_at": "2026-11-06T23:57:10.599681+00:00"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "deleted_at": "2026-11-08T21:53:51.934888+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "f19f0502-f67c-4295-bc7a-938677bf9efb",
+  "data": {
+    "uuid": "f19f0502-f67c-4295-bc7a-938677bf9efb",
+    "title": "SWEET HOME CHICAGO",
+    "artist": "The Blues Brothers",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 126,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "MI",
+    "key_current": "MI",
+    "notation_system": "INT",
+    "tags": [
+      "importato-web"
+    ],
+    "shared_notes": "",
+    "aml_content": "{title: SWEET HOME CHICAGO}\n{artist: The Blues Brothers}\n{key: MI}\n{source: https://www.accordiespartiti.it/accordi/colonne-sonore/musical-e-film-musicali/blues-brothers-the/testo-accordi-e-tablatura-per-chitarra-di-sweet-home-chicago-the-blues-brothers/}\n\n\nIntro:\n\ne|-----10-------10-----9--|\nB|-/12----12-/12---12--10-|\nG|------------------------|\nD|------------------------|\nA|------------------------|\nE|------------------------|\n\ne|------10-------10------9----7--------|\nB|--/12----12-/12---12---10---8--------|\nG|--------------------------------9----|\nD|-------------------------------------|\nA|-------------------------------------|\nE|-------------------------------------|\n\ne|---4------3------2---0---------------|\nB|-------------------------------------|\nG|-4---4--3---3--2---2-----------------|\nD|-------------------------------------|\nA|-------------------------0-1-2-------|\nE|-------------------------------------|\n\nCome [MI7]on, oh [LA7]baby, don't you wanna [MI7]go?\nCome [LA7]on, oh baby, don't you wanna [MI7]go\nBack to that [SI7]same old place [LA7]\nSweet home [MI7]Chicago    [SI7]\nCome [MI7]on, [LA7]baby, don't you wanna [MI7]go?\nHida-[LA7]hey, baby, don't you wanna [MI7]go?\nBack to that [SI7]same old place  [LA7]\nOh, sweet home [MI7]Chicago   [SI7]\n\nWell, [MI7]one and one is two\n\nSix and two is eight\n\nCome on, baby, don't you make me late\nHida-[LA7]hey, baby, don't you wanna [MI7]go?\nBack to that [SI7]same old place [LA7]\nSweet home [MI7]Chicago\nCome on, [LA7]baby, don't you wanna [MI7]go?\nOh, come [LA7]on, baby, don't you wanna [MI7]go?\nBack to that [SI7]same old place  [LA7]\nSweet home [MI7]Chicago    [SI7]\n\n[MI7]     [LA7]     [MI7]       [LA7]       [MI7]\n[SI7]     [LA7]     [MI7]       [SI7]\n[MI7]       [LA7]       [MI7]       [SI7]     [LA7]     [MI7]\n [MI7]Six and three is nine\n\nNine and nine is eighteen\n\nLook there, brother, baby and\n\nYou'll see what I seen\nHida-[LA7]hey, baby, don't you wanna [MI7]go?\nBack to that [SI7]same old place  [LA7]\nSweet home [MI7]Chicago   [SI7]\nOh, come [MI7]on, [LA7]baby, don't you wanna [MI7]go\nCome [LA7]on, baby, don't you wanna [MI7]go?\nBack to that [SI7]same old place  [LA7]\nMy sweet home [MI7]Chicago\n\n[MI7]       [LA7]       [MI7]       [SI7]     [LA7]     [MI7]    [SI7]",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 2,
+    "created_at": "2026-11-06T22:46:23.314521+00:00",
+    "updated_at": "2026-11-06T23:46:46.263646+00:00"
+  }
+}

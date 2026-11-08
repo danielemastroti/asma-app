@@ -1,0 +1,36 @@
+{
+  "deleted_at": "2026-11-06T22:53:13.489115+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "ec4edeaa-e4b8-4fb6-b9a3-e29de30679f3",
+  "data": {
+    "uuid": "ec4edeaa-e4b8-4fb6-b9a3-e29de30679f3",
+    "title": "Baila",
+    "artist": "Zucchero",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 100,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "C",
+    "key_current": "C",
+    "notation_system": "INT",
+    "tags": [
+      "importato-web",
+      "ultimate-guitar"
+    ],
+    "shared_notes": "",
+    "aml_content": "{title: Baila}\n{artist: Zucchero}\n{key: C}\n{source: https://tabs.ultimate-guitar.com/tab/zucchero/baila-chords-724627}\n\n[Verse]\n\n\n\n\n\n[Instrumental]\n\n[Gm]      [C]     [Gm]      [C]\n\n[Verse]\n\n\n\n\n\n[Pre-Chorus]\n\n\n\n\n\n[Chorus]\n\n\n\n\n\n[Instrumental]\n\n[C]     [Gm]      [C]\n\n[Verse]\n\n\n\n\n\n[Pre-Chorus]\n\n\n\n\n\n[Chorus]\n\n\n\n\n\n\n\n\n[Instrumental]\n\n[C]     [Gm]      [C]     [Gm]      [C]     [Gm]      [C]\n\n[Bridge]\n\n\n\n\n[Chorus]\n\n\n\n\n\n\n\n",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-06T22:52:53.897276+00:00",
+    "updated_at": "2026-11-06T22:52:53.899278+00:00"
+  }
+}

@@ -100,7 +100,7 @@ class StorageManager:
             self._db_conn.execute("CREATE INDEX IF NOT EXISTS idx_genre ON songs_index(genre)")
 
     def _load_all_into_index(self) -> None:
-        """Loads all existing song files from disk into the in-memory SQLite index."""
+        """Loads all existing song files from disk into the in-memory SQLite index, filtering out tombstones in trash."""
         repertoires = self.list_repertoires()
         song_rep_map: Dict[str, List[str]] = {}
         for r in repertoires:
@@ -109,6 +109,13 @@ class StorageManager:
 
         if not os.path.exists(self._songs_dir):
             return
+
+        # Tombstones: identify all soft-deleted songs in trash
+        deleted_song_uuids = set()
+        if os.path.exists(self._trash_dir):
+            for f in os.listdir(self._trash_dir):
+                if f.startswith("song_") and f.endswith(".json"):
+                    deleted_song_uuids.add(f[5:-5])
 
         with self._db_conn:
             self._db_conn.execute("DELETE FROM songs_index")
@@ -119,8 +126,16 @@ class StorageManager:
                         with open(filepath, "r", encoding="utf-8") as f:
                             data = json.load(f)
                             song = Song.from_dict(data)
-                            reps = song_rep_map.get(song.uuid, [])
-                            self._upsert_index_record(song, reps)
+                            if song.uuid in deleted_song_uuids:
+                                # Clean lingering file from songs_dir and mark deleted in index
+                                try:
+                                    os.remove(filepath)
+                                except Exception:
+                                    pass
+                                self._upsert_index_record(song, song_rep_map.get(song.uuid, []), is_deleted=1)
+                            else:
+                                reps = song_rep_map.get(song.uuid, [])
+                                self._upsert_index_record(song, reps, is_deleted=0)
                     except Exception:
                         pass
 
@@ -129,7 +144,7 @@ class StorageManager:
         with self._mutex:
             self._load_all_into_index()
 
-    def _upsert_index_record(self, song: Song, repertoire_uuids: Optional[List[str]] = None) -> None:
+    def _upsert_index_record(self, song: Song, repertoire_uuids: Optional[List[str]] = None, is_deleted: int = 0) -> None:
         reps_str = json.dumps(repertoire_uuids or [])
         tags_str = ",".join(song.tags)
         with self._db_conn:
@@ -140,12 +155,12 @@ class StorageManager:
                     key_original, key_current, notation_system, tags,
                     current_revision, created_at, updated_at, is_deleted,
                     repertoire_uuids
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 song.uuid, song.title, song.artist, song.author, song.genre, song.year,
                 song.duration_seconds, song.bpm, song.time_signature, song.capo,
                 song.key_original, song.key_current, song.notation_system, tags_str,
-                song.current_revision, song.created_at, song.updated_at, reps_str
+                song.current_revision, song.created_at, song.updated_at, is_deleted, reps_str
             ))
 
     # --- SONGS CRUD ---
@@ -214,13 +229,13 @@ class StorageManager:
         if not target_rep:
             return False, "Repertorio non trovato."
 
-        clean_title = song_title.strip().lower()
+        clean_title = song_title.strip().upper()
         for s_id in target_rep.song_uuids:
             if exclude_song_uuid and s_id == exclude_song_uuid:
                 continue
             s = self.get_song(s_id)
-            if s and s.title.strip().lower() == clean_title:
-                return False, f"Nel repertorio '{target_rep.name}' esiste già un brano intitolato '{s.title}'. Nello stesso repertorio non possono coesistere due versioni con lo stesso titolo."
+            if s and s.title.strip().upper() == clean_title:
+                return False, f"Nel repertorio '{target_rep.name}' esiste già un brano intitolato '{s.title.upper()}'. Nello stesso repertorio non possono coesistere due versioni con lo stesso titolo."
         return True, ""
 
     def get_song(self, song_uuid: str) -> Optional[Song]:
@@ -599,10 +614,27 @@ class StorageManager:
             self._save_repertoires_file(defaults)
             return defaults
 
+        # Tombstones: identify repertoires currently in trash
+        deleted_rep_uuids = set()
+        if os.path.exists(self._trash_dir):
+            for f in os.listdir(self._trash_dir):
+                if f.startswith("repertoire_") and f.endswith(".json"):
+                    deleted_rep_uuids.add(f[11:-5])
+
         try:
             with open(self._repertoires_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return [Repertoire.from_dict(d) for d in data]
+                active_reps = [
+                    Repertoire.from_dict(d) for d in data
+                    if d.get("uuid") not in deleted_rep_uuids
+                ]
+                if len(active_reps) != len(data):
+                    try:
+                        with open(self._repertoires_file, "w", encoding="utf-8") as wf:
+                            json.dump([r.to_dict() for r in active_reps], wf, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
+                return active_reps
         except Exception:
             return []
 
@@ -754,10 +786,28 @@ class StorageManager:
     def list_setlists(self) -> List[Setlist]:
         if not os.path.exists(self._setlists_file):
             return []
+        # Tombstones: identify setlists currently in trash
+        deleted_setlist_uuids = set()
+        if os.path.exists(self._trash_dir):
+            for f in os.listdir(self._trash_dir):
+                if f.startswith("setlist_") and f.endswith(".json"):
+                    deleted_setlist_uuids.add(f[8:-5])
+
         try:
             with open(self._setlists_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return [Setlist.from_dict(d) for d in data]
+                active_setlists = [
+                    Setlist.from_dict(d) for d in data
+                    if d.get("uuid") not in deleted_setlist_uuids
+                ]
+                # Prune deleted setlists from file if any were found
+                if len(active_setlists) != len(data):
+                    try:
+                        with open(self._setlists_file, "w", encoding="utf-8") as wf:
+                            json.dump([s.to_dict() for s in active_setlists], wf, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
+                return active_setlists
         except Exception:
             return []
 
@@ -909,6 +959,19 @@ class StorageManager:
         synced_setlists = 0
         synced_songs = 0
 
+        # Tombstones: collect all entities in trash to never resurrect deleted items
+        deleted_song_uuids = set()
+        deleted_setlist_uuids = set()
+        deleted_rep_uuids = set()
+        if os.path.exists(self._trash_dir):
+            for f in os.listdir(self._trash_dir):
+                if f.startswith("song_") and f.endswith(".json"):
+                    deleted_song_uuids.add(f[5:-5])
+                elif f.startswith("setlist_") and f.endswith(".json"):
+                    deleted_setlist_uuids.add(f[8:-5])
+                elif f.startswith("repertoire_") and f.endswith(".json"):
+                    deleted_rep_uuids.add(f[11:-5])
+
         with self._mutex:
             # 1. Hydrate songs from remote repertory.json if present
             if "repertory.json" in remote_files:
@@ -920,7 +983,7 @@ class StorageManager:
                             if not isinstance(r_item, dict):
                                 continue
                             s_id = r_item.get("id") or r_item.get("uuid")
-                            if not s_id:
+                            if not s_id or s_id in deleted_song_uuids:
                                 continue
                             song_path = os.path.join(self._songs_dir, f"{s_id}.json")
                             if not os.path.exists(song_path):
@@ -992,6 +1055,8 @@ class StorageManager:
                     merged_dict: Dict[str, Setlist] = {s.uuid: s for s in local_setlists}
 
                     for r_set in remote_setlists:
+                        if r_set.uuid in deleted_setlist_uuids:
+                            continue
                         if r_set.uuid not in merged_dict:
                             merged_dict[r_set.uuid] = r_set
                             synced_setlists += 1
