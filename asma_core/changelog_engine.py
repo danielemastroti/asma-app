@@ -29,7 +29,9 @@ CHANGELOG_ENTRIES = [
             "Rimozione voce ridondante 'Logout' dai sottomenu orizzontali."
         ],
         "security": [
-            "Verifica autenticazione Google OAuth reale: reindirizzamento effettivo ad accounts.google.com ed eliminazione del bypass fittizio su ambienti cloud per proteggere l'area riservata della band."
+            "Autenticazione Google OAuth reale e obbligatoria per tutti gli accessi: digitazione email autorizzata con login_hint e reindirizzamento diretto a Google per la verifica di sicurezza dell'identità (nessun bypass consentito).",
+            "Risoluzione errore 400 redirect_uri_mismatch: allineamento e normalizzazione automatica dell'URI di reindirizzamento su '/oauth2callback' in perfetta corrispondenza con la configurazione di Google Cloud Console.",
+            "Protezione area riservata band: solo gli account autenticati con successo dai server Google e registrati nella lista ufficiale musicisti possono accedere."
         ],
         "bug_fixes": [
             "Motore PDF: risolto incollamento accordi consecutivi (anti-gluing es. 'FADO' -> 'FA  DO', 'SIb/FADO/MI' -> 'SIb/FA  DO/MI  RE7/9+') con spaziatura minima garantita.",

@@ -921,11 +921,14 @@ if _oauth_code:
         except Exception:
             pass
     if _g_conf.get("client_id") and _g_conf.get("client_secret"):
+        _g_red_cb = _g_conf.get("redirect_uri", "https://asma-app.streamlit.app/oauth2callback")
+        if not _g_red_cb.endswith("/oauth2callback"):
+            _g_red_cb = _g_red_cb.rstrip("/") + "/oauth2callback"
         _u_info = auth_mgr.exchange_google_code_for_user(
             _oauth_code,
             _g_conf["client_id"],
             _g_conf["client_secret"],
-            _g_conf.get("redirect_uri", "https://asma-app.streamlit.app")
+            _g_red_cb
         )
         if _u_info and _u_info.get("email"):
             _g_email = _u_info["email"].lower()
@@ -976,37 +979,9 @@ if not st.session_state.get("authenticated"):
             unsafe_allow_html=True
         )
 
-        # Login form principale con email autorizzata (sempre accessibile senza blocchi OAuth)
-        with st.form("form_login_by_email", clear_on_submit=False):
-            typed_email = st.text_input(
-                "Email autorizzata:",
-                placeholder="es. nome@gmail.com",
-                key="input_login_email"
-            ).strip().lower()
-
-            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
-            if submit_login:
-                if not typed_email:
-                    st.warning("⚠️ Inserisci la tua email per accedere.")
-                elif auth_mgr.is_email_allowed(typed_email):
-                    matched_user = auth_mgr.get_user_by_email(typed_email)
-                    if not matched_user:
-                        matched_user = auth_mgr.authenticate_or_register_google(typed_email)
-                    st.session_state["authenticated"] = True
-                    st.session_state["current_user_email"] = matched_user.email
-                    st.session_state["current_user_name"] = matched_user.name
-                    _cp = load_client_preferences()
-                    _cp["active_user_email"] = matched_user.email
-                    save_client_preferences(_cp)
-                    st.query_params["user"] = matched_user.email
-                    log_op("🟢", "AUTH", f"Login effettuato con successo da {matched_user.name} ({matched_user.email})", "SUCCESS")
-                    st.rerun()
-                else:
-                    st.error("❌ Accesso negato: indirizzo email non autorizzato per la band.")
-
-        # Opzione autenticazione Google OAuth
+        # Recupero credenziali Google OAuth
         _g_cid = ""
-        _g_red = "https://asma-app.streamlit.app"
+        _g_red = "https://asma-app.streamlit.app/oauth2callback"
         if hasattr(st, "secrets") and "google_auth" in st.secrets:
             _g_cid = st.secrets["google_auth"].get("client_id", "")
             _g_red = st.secrets["google_auth"].get("redirect_uri", _g_red)
@@ -1020,11 +995,53 @@ if not st.session_state.get("authenticated"):
             except Exception:
                 pass
 
+        # Autenticazione Obbligatoria Reale con Google OAuth (Digitazione Email -> Reindirizzamento Google)
+        with st.form("form_google_login_flow", clear_on_submit=False):
+            typed_email = st.text_input(
+                "Inserisci la tua email musicista autorizzata:",
+                placeholder="es. danyposta@gmail.com",
+                key="input_login_email"
+            ).strip().lower()
+
+            submit_login = st.form_submit_button("Accedi con Verifica Google", type="primary", use_container_width=True)
+
+        if submit_login:
+            if not typed_email:
+                st.warning("⚠️ Inserisci la tua email prima di procedere.")
+            elif not auth_mgr.is_email_allowed(typed_email):
+                st.error(f"❌ Accesso negato: l'email '{typed_email}' non appartiene alla lista musicisti autorizzati della band ASMA.")
+            elif not _g_cid or "YOUR_GOOGLE" in _g_cid:
+                st.error("⚠️ Configurazione Google OAuth non trovata nei secrets dell'app.")
+            else:
+                _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red, login_hint=typed_email)
+                st.info(f"Reindirizzamento a Google in corso per verificare la proprietà dell'account **{typed_email}**...")
+                st.link_button(f"🔐 Conferma identità su Google per {typed_email}", _oauth_url, type="primary", use_container_width=True)
+                st.markdown(f'<meta http-equiv="refresh" content="0; url={_oauth_url}">', unsafe_allow_html=True)
+                st.markdown(f'<script>window.location.href="{_oauth_url}";</script>', unsafe_allow_html=True)
+
+        # Accesso diretto tramite selettore account Google
+        if not _g_red.endswith("/oauth2callback"):
+            _g_red = _g_red.rstrip("/") + "/oauth2callback"
+
         if _g_cid and "YOUR_GOOGLE" not in _g_cid:
-            st.markdown("<div style='text-align:center; margin:12px 0 8px 0; color:#64748B; font-size:12px;'>— oppure —</div>", unsafe_allow_html=True)
-            _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red)
-            st.link_button("🔑 Accedi con Account Google", _oauth_url, use_container_width=True)
-            st.caption("🔒 Verifica Google OAuth autorizzata per il dominio registrato.")
+            _oauth_generic_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red)
+            st.markdown("<div style='text-align:center; margin:10px 0 8px 0; color:#64748B; font-size:11px;'>— oppure —</div>", unsafe_allow_html=True)
+            st.link_button("🔑 Seleziona direttamente il tuo Account Google", _oauth_generic_url, use_container_width=True)
+            st.caption("🔒 L'autenticazione è reale e obbligatoria tramite i server di Google. Solo gli account convalidati da Google e presenti nella lista band possono entrare.")
+
+        # Avviso tecnico per la configurazione del redirect URI di Google Cloud Console
+        with st.expander("ℹ️ Se Google mostra l'errore 'redirect_uri_mismatch'"):
+            st.markdown(
+                f"""
+                Google OAuth richiede che l'URI di reindirizzamento sia registrato nella Google Cloud Console:
+                1. Accedi a [Google Cloud Console](https://console.cloud.google.com/) ➔ **API e Servizi** ➔ **Credenziali**.
+                2. Apri il tuo **Client ID OAuth 2.0**.
+                3. Nella sezione **URI di reindirizzamento autorizzati**, inserisci esattamente:
+                   - `https://asma-app.streamlit.app/oauth2callback`
+                   - `http://localhost:8501/oauth2callback`
+                4. Clicca su **Salva**.
+                """
+            )
 
     st.stop()
 
