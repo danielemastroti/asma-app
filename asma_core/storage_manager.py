@@ -8,6 +8,7 @@ Conforms to SRS Cap. 4, 7, 10, 15, 18, 22 and Blueprint CRIT-04.
 from __future__ import annotations
 import os
 import json
+import re
 import sqlite3
 import threading
 from datetime import datetime, timezone, timedelta
@@ -101,7 +102,7 @@ class StorageManager:
             self._db_conn.execute("CREATE INDEX IF NOT EXISTS idx_genre ON songs_index(genre)")
 
     def _load_all_into_index(self) -> None:
-        """Loads all existing song files from disk into the in-memory SQLite index, filtering out tombstones in trash."""
+        """Loads all existing song files from disk into the in-memory SQLite index, filtering out tombstones and deduplicating by title."""
         repertoires = self.list_repertoires()
         song_rep_map: Dict[str, List[str]] = {}
         for r in repertoires:
@@ -120,6 +121,7 @@ class StorageManager:
 
         with self._db_conn:
             self._db_conn.execute("DELETE FROM songs_index")
+            loaded_songs: List[Tuple[Song, str]] = []
             for filename in os.listdir(self._songs_dir):
                 if filename.endswith(".json"):
                     filepath = os.path.join(self._songs_dir, filename)
@@ -135,10 +137,67 @@ class StorageManager:
                                     pass
                                 self._upsert_index_record(song, song_rep_map.get(song.uuid, []), is_deleted=1)
                             else:
-                                reps = song_rep_map.get(song.uuid, [])
-                                self._upsert_index_record(song, reps, is_deleted=0)
+                                loaded_songs.append((song, filepath))
                     except Exception:
                         pass
+
+            # Title Deduplication: detect and eliminate duplicate files on disk
+            by_title: Dict[str, List[Tuple[Song, str]]] = {}
+            for s, fp in loaded_songs:
+                norm_title = re.sub(r"[^A-Z0-9]", "", s.title.upper())
+                by_title.setdefault(norm_title, []).append((s, fp))
+
+            reps_need_update = False
+            for norm_title, song_tuples in by_title.items():
+                if len(song_tuples) == 1:
+                    song, _ = song_tuples[0]
+                    reps = song_rep_map.get(song.uuid, [])
+                    self._upsert_index_record(song, reps, is_deleted=0)
+                else:
+                    # Check if there is a canonical slug version and obsolete legacy GUID duplicates
+                    slug_tuples = [t for t in song_tuples if not re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", t[0].uuid)]
+                    guid_tuples = [t for t in song_tuples if re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", t[0].uuid)]
+
+                    if slug_tuples and guid_tuples:
+                        canonical_song, _ = slug_tuples[0]
+                        reps = song_rep_map.get(canonical_song.uuid, [])
+                        self._upsert_index_record(canonical_song, reps, is_deleted=0)
+
+                        for dup_song, dup_fp in guid_tuples:
+                            trash_path = os.path.join(self._trash_dir, f"song_{dup_song.uuid}.json")
+                            trash_meta = {
+                                "deleted_at": current_iso_timestamp(),
+                                "entity_type": "SONG",
+                                "entity_uuid": dup_song.uuid,
+                                "reason": f"Deduplicato GUID legacy a favore di '{canonical_song.uuid}'",
+                                "data": dup_song.to_dict()
+                            }
+                            try:
+                                with open(trash_path, "w", encoding="utf-8") as tf:
+                                    json.dump(trash_meta, tf, indent=2, ensure_ascii=False)
+                                if os.path.exists(dup_fp):
+                                    os.remove(dup_fp)
+                            except Exception:
+                                pass
+
+                            self._upsert_index_record(dup_song, song_rep_map.get(dup_song.uuid, []), is_deleted=1)
+
+                            for r in repertoires:
+                                if dup_song.uuid in r.song_uuids:
+                                    r.song_uuids = [canonical_song.uuid if sid == dup_song.uuid else sid for sid in r.song_uuids]
+                                    r.song_uuids = list(dict.fromkeys(r.song_uuids))
+                                    reps_need_update = True
+                    else:
+                        for s, _ in song_tuples:
+                            reps = song_rep_map.get(s.uuid, [])
+                            self._upsert_index_record(s, reps, is_deleted=0)
+
+            if reps_need_update:
+                try:
+                    self._save_repertoires_file(repertoires)
+                    self._trigger_background_gist_sync("ALL")
+                except Exception:
+                    pass
 
     def reload_from_disk(self) -> None:
         """Forces full reload of in-memory SQLite index from JSON files on disk."""
@@ -260,13 +319,29 @@ class StorageManager:
             return None
 
     def list_songs(self, include_deleted: bool = False) -> List[Dict[str, Any]]:
-        """Fast listing of all songs from in-memory SQLite index in case-insensitive alphabetical order."""
+        """Fast listing of all songs from in-memory SQLite index in case-insensitive alphabetical order, deduplicated by title."""
         query = "SELECT * FROM songs_index WHERE is_deleted = 0 ORDER BY title COLLATE NOCASE ASC"
         if include_deleted:
             query = "SELECT * FROM songs_index ORDER BY title COLLATE NOCASE ASC"
         cursor = self._db_conn.cursor()
         rows = cursor.execute(query).fetchall()
-        return [dict(r) for r in rows]
+        results = [dict(r) for r in rows]
+        if not include_deleted:
+            seen_combos = set()
+            unique_results = []
+            for r in results:
+                norm = re.sub(r"[^A-Z0-9]", "", (r.get("title") or "").upper())
+                raw_reps = r.get("repertoire_uuids") or "[]"
+                try:
+                    reps_list = tuple(sorted(json.loads(raw_reps)))
+                except Exception:
+                    reps_list = ()
+                combo_key = (norm, reps_list) if reps_list else norm
+                if combo_key not in seen_combos:
+                    seen_combos.add(combo_key)
+                    unique_results.append(r)
+            return unique_results
+        return results
 
     def delete_song(
         self,
