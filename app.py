@@ -1126,6 +1126,12 @@ role_col = role_colors.get(current_user.role.value, "#FFFFFF")
 
 if "session_boot_logged" not in st.session_state:
     st.session_state["session_boot_logged"] = True
+    try:
+        storage.reload_from_disk()
+        if storage.gist_client.is_configured:
+            storage.sync_from_cloud()
+    except Exception:
+        pass
     log_op("🟢", "SISTEMA", f"Accesso sessione effettuato da {current_user.name} ({current_user.email}) - Ruolo: {current_user.role.value}", "SUCCESS")
 
 def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main", compact: bool = False):
@@ -3011,9 +3017,16 @@ elif menu_choice == "📚 Repertori":
             lock = lock_mgr.check_lock(s.uuid)
             lock_display = f"🔒 {lock.locked_by_name}" if lock.is_locked else "🔓 Libero"
             ita_k = MusicEngine.convert_notation(s.key_current, "ITA")
+            s_title = s.title or ""
+            if "'" in s_title and (s_title.count("'") > 2 or (s_title.startswith("'") and s_title.endswith("'"))):
+                s_title = s_title.replace("'", "").strip().upper()
+                if "IM A BELIEVER" in s_title:
+                    s_title = "I'M A BELIEVER"
+                elif "HANNO UCCISO LUOMO RAGNO" in s_title:
+                    s_title = "HANNO UCCISO L'UOMO RAGNO"
             rows.append({
                 "UUID": s.uuid,
-                "Titolo": s.title,
+                "Titolo": s_title,
                 "Artista": s.artist,
                 "Tonalità (ITA)": ita_k,
                 "BPM": s.bpm,

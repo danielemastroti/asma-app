@@ -63,7 +63,8 @@ class StorageManager:
         self._load_all_into_index()
 
         # Initial automatic cloud synchronization (prevent data loss on cloud deploy/restart)
-        if self.gist_client.is_configured:
+        default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+        if data_dir is None and os.path.abspath(self._base_dir) == default_base and self.gist_client.is_configured:
             try:
                 self.sync_from_cloud()
             except Exception:
@@ -147,6 +148,13 @@ class StorageManager:
     def _upsert_index_record(self, song: Song, repertoire_uuids: Optional[List[str]] = None, is_deleted: int = 0) -> None:
         reps_str = json.dumps(repertoire_uuids or [])
         tags_str = ",".join(song.tags)
+        clean_title = song.title or ""
+        if "'" in clean_title and (clean_title.count("'") > 2 or (clean_title.startswith("'") and clean_title.endswith("'"))):
+            clean_title = clean_title.replace("'", "").strip().upper()
+            if "IM A BELIEVER" in clean_title:
+                clean_title = "I'M A BELIEVER"
+            elif "HANNO UCCISO LUOMO RAGNO" in clean_title:
+                clean_title = "HANNO UCCISO L'UOMO RAGNO"
         with self._db_conn:
             self._db_conn.execute("""
                 INSERT OR REPLACE INTO songs_index (
@@ -157,7 +165,7 @@ class StorageManager:
                     repertoire_uuids
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                song.uuid, song.title, song.artist, song.author, song.genre, song.year,
+                song.uuid, clean_title, song.artist, song.author, song.genre, song.year,
                 song.duration_seconds, song.bpm, song.time_signature, song.capo,
                 song.key_original, song.key_current, song.notation_system, tags_str,
                 song.current_revision, song.created_at, song.updated_at, is_deleted, reps_str
@@ -213,6 +221,7 @@ class StorageManager:
                 details={"title": song.title, "revision": next_rev_num, "key": song.key_current}
             )
 
+            self._trigger_background_gist_sync("ALL")
             return song
 
     def can_add_song_to_repertoire(
@@ -297,6 +306,7 @@ class StorageManager:
                 user_name=user_name,
                 details={"title": song.title}
             )
+            self._trigger_background_gist_sync("ALL")
             return True
 
     def restore_song(
@@ -332,6 +342,7 @@ class StorageManager:
                 user_name=user_name,
                 details={"title": song.title}
             )
+            self._trigger_background_gist_sync("ALL")
             return song
 
     def purge_song_permanently(
@@ -683,6 +694,7 @@ class StorageManager:
         self._save_repertoires_file(reps)
         self._load_all_into_index()
         self.audit.log("DELETE", "REPERTOIRE", repertoire_uuid, user_email, user_name, {"name": target_rep.name})
+        self._trigger_background_gist_sync("ALL")
         return True
 
     def list_deleted_repertoires(self) -> list:
@@ -731,6 +743,7 @@ class StorageManager:
                 os.remove(trash_path)
                 self._load_all_into_index()
                 self.audit.log("RESTORE", "REPERTOIRE", rep.uuid, user_email, user_name, {"name": rep.name})
+                self._trigger_background_gist_sync("ALL")
                 return rep
             except Exception:
                 return None
@@ -759,6 +772,7 @@ class StorageManager:
             self._save_repertoires_file(reps)
             self._load_all_into_index()
             self.audit.log("UPDATE", "REPERTOIRE", target_rep.uuid, user_email, user_name, {"action": "song_added", "song_uuid": song_uuid})
+            self._trigger_background_gist_sync("ALL")
             return True
         return True
 
@@ -778,6 +792,9 @@ class StorageManager:
         rep.song_uuids.remove(song_uuid)
         self._save_repertoires_file(reps)
         self._load_all_into_index()
+        self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
+        self._trigger_background_gist_sync("ALL")
+        return True
         self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
         return True
 
@@ -849,7 +866,7 @@ class StorageManager:
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
         self.audit.log("DELETE", "SETLIST", setlist_uuid, user_email, user_name, {"title": target.title})
-        self._trigger_background_gist_sync("SETLISTS")
+        self._trigger_background_gist_sync("ALL")
         return True
 
     def restore_setlist(self, setlist_uuid: str, user_email: str = "system", user_name: str = "System") -> Optional[Setlist]:
@@ -866,6 +883,7 @@ class StorageManager:
             self.save_setlist(restored, user_email, user_name)
             os.remove(trash_path)
             self.audit.log("RESTORE", "SETLIST", setlist_uuid, user_email, user_name, {"title": restored.title})
+            self._trigger_background_gist_sync("ALL")
             return restored
         except Exception:
             return None
@@ -958,6 +976,20 @@ class StorageManager:
 
         synced_setlists = 0
         synced_songs = 0
+
+        # Tombstones: restore remote trash first if available
+        if "trash_tombstones.json" in remote_files:
+            try:
+                tombstones = json.loads(remote_files["trash_tombstones.json"])
+                if isinstance(tombstones, dict):
+                    os.makedirs(self._trash_dir, exist_ok=True)
+                    for tf_name, tf_data in tombstones.items():
+                        tf_path = os.path.join(self._trash_dir, tf_name)
+                        if not os.path.exists(tf_path):
+                            with open(tf_path, "w", encoding="utf-8") as tf:
+                                json.dump(tf_data, tf, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
 
         # Tombstones: collect all entities in trash to never resurrect deleted items
         deleted_song_uuids = set()
@@ -1074,7 +1106,66 @@ class StorageManager:
                 except Exception:
                     pass
 
-        return True, f"Sincronizzazione completata: {synced_setlists} scalette, {synced_songs} nuovi brani importati dal Gist."
+            # 3. Hydrate repertoires from remote repertoires.json
+            synced_repertoires = 0
+            if "repertoires.json" in remote_files:
+                try:
+                    remote_reps_data = json.loads(remote_files["repertoires.json"])
+                    if isinstance(remote_reps_data, list):
+                        local_reps = self.list_repertoires()
+                        merged_reps: Dict[str, Repertoire] = {r.uuid: r for r in local_reps}
+                        for r_item in remote_reps_data:
+                            if not isinstance(r_item, dict):
+                                continue
+                            r_uuid = r_item.get("uuid")
+                            if not r_uuid or r_uuid in deleted_rep_uuids:
+                                continue
+                            rem_rep = Repertoire.from_dict(r_item)
+                            if r_uuid not in merged_reps:
+                                merged_reps[r_uuid] = rem_rep
+                                synced_repertoires += 1
+                            else:
+                                local_up = merged_reps[r_uuid].updated_at or ""
+                                rem_up = rem_rep.updated_at or ""
+                                if rem_up >= local_up:
+                                    merged_reps[r_uuid] = rem_rep
+                                    synced_repertoires += 1
+                        final_reps = list(merged_reps.values())
+                        self._save_repertoires_file(final_reps)
+                        self._load_all_into_index()
+                except Exception:
+                    pass
+            elif self.gist_client.is_configured:
+                try:
+                    self.sync_push_repertoires_to_gist()
+                except Exception:
+                    pass
+
+        return True, f"Sincronizzazione completata: {synced_setlists} scalette, {synced_songs} brani, {synced_repertoires} repertori dal Gist."
+
+    def sync_push_repertoires_to_gist(self) -> Tuple[bool, str]:
+        """Pushes all active repertoires to remote GitHub Gist."""
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return False, "Gist non configurato."
+        reps = self.list_repertoires()
+        content = json.dumps([r.to_dict() for r in reps], indent=2, ensure_ascii=False)
+        return self.gist_client.push_files({"repertoires.json": content})
+
+    def sync_push_tombstones_to_gist(self) -> Tuple[bool, str]:
+        """Pushes all trash tombstones to remote GitHub Gist."""
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return False, "Gist non configurato."
+        tombstones = {}
+        if os.path.exists(self._trash_dir):
+            for f in os.listdir(self._trash_dir):
+                if f.endswith(".json"):
+                    try:
+                        with open(os.path.join(self._trash_dir, f), "r", encoding="utf-8") as tf:
+                            tombstones[f] = json.load(tf)
+                    except Exception:
+                        pass
+        content = json.dumps(tombstones, indent=2, ensure_ascii=False)
+        return self.gist_client.push_files({"trash_tombstones.json": content})
 
     def sync_push_setlists_to_gist(self) -> Tuple[bool, str]:
         """Pushes all local setlists to remote GitHub Gist in dual-compatible format."""
@@ -1124,7 +1215,8 @@ class StorageManager:
 
     def _trigger_background_gist_sync(self, target: str = "SETLISTS") -> None:
         """Launches a non-blocking daemon thread to sync changes with GitHub Gist."""
-        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+        default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+        if os.path.abspath(self._base_dir) != default_base or not hasattr(self, "gist_client") or not self.gist_client.is_configured:
             return
 
         def _worker():
@@ -1133,6 +1225,10 @@ class StorageManager:
                     self.sync_push_setlists_to_gist()
                 if target in ("SONGS", "ALL"):
                     self.sync_push_repertory_to_gist()
+                if target in ("REPERTOIRES", "ALL"):
+                    self.sync_push_repertoires_to_gist()
+                if target in ("TRASH", "ALL"):
+                    self.sync_push_tombstones_to_gist()
             except Exception:
                 pass
 

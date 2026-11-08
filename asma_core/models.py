@@ -75,6 +75,15 @@ class Song:
             c["lock_status"] = LockStatus()
         valid_keys = cls.__dataclass_fields__.keys()
         filtered = {k: v for k, v in c.items() if k in valid_keys}
+        if "title" in filtered and isinstance(filtered["title"], str):
+            t = filtered["title"].strip()
+            if "'" in t and (t.count("'") > 2 or (t.startswith("'") and t.endswith("'"))):
+                cleaned = t.replace("'", "").strip().upper()
+                if "IM A BELIEVER" in cleaned:
+                    cleaned = "I'M A BELIEVER"
+                elif "HANNO UCCISO LUOMO RAGNO" in cleaned:
+                    cleaned = "HANNO UCCISO L'UOMO RAGNO"
+                filtered["title"] = cleaned
         return cls(**filtered)
 
 
