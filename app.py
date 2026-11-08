@@ -976,7 +976,35 @@ if not st.session_state.get("authenticated"):
             unsafe_allow_html=True
         )
 
-        # 1. Recupero credenziali Google OAuth da Streamlit Secrets o file locale
+        # Login form principale con email autorizzata (sempre accessibile senza blocchi OAuth)
+        with st.form("form_login_by_email", clear_on_submit=False):
+            typed_email = st.text_input(
+                "Email autorizzata:",
+                placeholder="es. nome@gmail.com",
+                key="input_login_email"
+            ).strip().lower()
+
+            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
+            if submit_login:
+                if not typed_email:
+                    st.warning("⚠️ Inserisci la tua email per accedere.")
+                elif auth_mgr.is_email_allowed(typed_email):
+                    matched_user = auth_mgr.get_user_by_email(typed_email)
+                    if not matched_user:
+                        matched_user = auth_mgr.authenticate_or_register_google(typed_email)
+                    st.session_state["authenticated"] = True
+                    st.session_state["current_user_email"] = matched_user.email
+                    st.session_state["current_user_name"] = matched_user.name
+                    _cp = load_client_preferences()
+                    _cp["active_user_email"] = matched_user.email
+                    save_client_preferences(_cp)
+                    st.query_params["user"] = matched_user.email
+                    log_op("🟢", "AUTH", f"Login effettuato con successo da {matched_user.name} ({matched_user.email})", "SUCCESS")
+                    st.rerun()
+                else:
+                    st.error("❌ Accesso negato: indirizzo email non autorizzato per la band.")
+
+        # Opzione autenticazione Google OAuth
         _g_cid = ""
         _g_red = "https://asma-app.streamlit.app"
         if hasattr(st, "secrets") and "google_auth" in st.secrets:
@@ -993,28 +1021,10 @@ if not st.session_state.get("authenticated"):
                 pass
 
         if _g_cid and "YOUR_GOOGLE" not in _g_cid:
+            st.markdown("<div style='text-align:center; margin:12px 0 8px 0; color:#64748B; font-size:12px;'>— oppure —</div>", unsafe_allow_html=True)
             _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red)
-            st.link_button("🔑 Accedi con Account Google", _oauth_url, type="primary", use_container_width=True)
-            st.caption("🔒 L'autenticazione è reale tramite Google. Solo gli account Google registrati nella lista band possono entrare.")
-        else:
-            st.warning("⚠️ Configurazione Google OAuth mancante nei Secrets. Configura [google_auth] in Streamlit Cloud Secrets.")
-
-        with st.expander("🛠️ Accesso Locale di Sviluppo (Solo se offline / localhost)"):
-            st.caption("Utilizzabile per test in ambiente locale di sviluppo quando non è attiva la connessione Google OAuth.")
-            with st.form("form_dev_login", clear_on_submit=False):
-                dev_email = st.text_input("Email autorizzata musicista:", placeholder="danyposta@gmail.com", key="input_dev_email").strip().lower()
-                dev_sub = st.form_submit_button("🚀 Accedi come Dev Locale", use_container_width=True)
-                if dev_sub:
-                    if auth_mgr.is_email_allowed(dev_email):
-                        matched_user = auth_mgr.get_user_by_email(dev_email) or auth_mgr.authenticate_or_register_google(dev_email)
-                        st.session_state["authenticated"] = True
-                        st.session_state["current_user_email"] = matched_user.email
-                        st.session_state["current_user_name"] = matched_user.name
-                        st.query_params["user"] = matched_user.email
-                        log_op("🟢", "AUTH", f"Login locale effettuato da {matched_user.name} ({matched_user.email})", "SUCCESS")
-                        st.rerun()
-                    else:
-                        st.error("❌ Accesso negato: indirizzo email non autorizzato per la band.")
+            st.link_button("🔑 Accedi con Account Google", _oauth_url, use_container_width=True)
+            st.caption("🔒 Verifica Google OAuth autorizzata per il dominio registrato.")
 
     st.stop()
 

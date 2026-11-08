@@ -36,7 +36,8 @@ CHANGELOG_ENTRIES = [
             "Motore PDF: rimossa sillabazione accidentale a metà parola nei testi dei brani.",
             "Motore PDF: garantito margine inferiore di sicurezza anti-sovrapposizione (minimo 15 mm) rispetto al piè di pagina.",
             "Eliminazione permanente di brani dummy non caricati dall'utente (es. 'Sultans of Swing', 'Hotel California', 'Canzone per un'amica') dal repository e dai seeder di test.",
-            "Live Stage: risolto blocco dell'autoscroll automatico causato da misurazione prematura dell'altezza del DOM."
+            "Live Stage: risolto blocco dell'autoscroll automatico causato da misurazione prematura dell'altezza del DOM.",
+            "Schermata di Login: ripristinato form di accesso primario per email autorizzata band-only per garantire ingresso immediato anche in navigazione in incognito in caso di mancata registrazione degli URI di reindirizzamento nella Google Cloud Console."
         ]
     },
     {
