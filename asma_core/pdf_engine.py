@@ -155,6 +155,7 @@ class PDFEngine:
         cache_key = (
             f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.target_device}_{prof.orientation}_"
             f"{getattr(prof, 'columns', 1)}_{getattr(prof, 'font_size_lyrics', 12)}_"
+            f"{getattr(prof, 'font_size_chords', 13)}_"
             f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
             f"{getattr(prof, 'color_chords', '')}_{getattr(prof, 'color_aml_markup', '')}_"
             f"{template_name}_{watermark}_{include_chords}"
@@ -573,6 +574,8 @@ class PDFEngine:
         prof_obj = profile or DeviceProfile()
         c_chord_hex = getattr(prof_obj, "color_chords", "#B71C1C") or "#B71C1C"
         c_aml_hex = getattr(prof_obj, "color_aml_markup", "#4A148C") or "#4A148C"
+        base_chords_size = getattr(prof_obj, "font_size_chords", 13.0) or 13.0
+        base_lyrics_size = getattr(prof_obj, "font_size_lyrics", 12.0) or 12.0
         """
         Converts AML AST nodes into ReportLab Flowables.
         Groups section items into KeepTogether blocks to prevent orphan lines.
@@ -643,7 +646,7 @@ class PDFEngine:
                             grid_tokens.append(m_txt)
                     grid_line_text = " | ".join(grid_tokens)
                     if grid_line_text:
-                        p_grid = Paragraph(f"<font color='{c_chord_hex}'><b>{grid_line_text}</b></font>", styles["ChordText"])
+                        p_grid = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{grid_line_text}</b></font>", styles["ChordText"])
                         add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_grid, Spacer(1, 1.2 * mm)]))
                         last_was_inst_marker = False
                 else:
@@ -688,7 +691,7 @@ class PDFEngine:
 
                 if include_chords and chords_str.strip():
                     # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
-                    p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{cls._format_chord_spaces(chords_str)}</b></font>", styles["ChordText"])
+                    p_chords = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{cls._format_chord_spaces(chords_str)}</b></font>", styles["ChordText"])
                     p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
                     
                     pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
@@ -720,7 +723,7 @@ class PDFEngine:
                                 last_was_inst_marker = True
                         else:
                             # Nel PDF con accordi, renderizzali in evidenza come riga di accordi con stile ChordText
-                            p_chords = Paragraph(f"<font color='{c_chord_hex}'><b>{cls._format_chord_spaces(lyrics_str)}</b></font>", styles["ChordText"])
+                            p_chords = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{cls._format_chord_spaces(lyrics_str)}</b></font>", styles["ChordText"])
                             add_flowable(KeepTogether([Spacer(1, 1.2 * mm), p_chords, Spacer(1, 1.5 * mm)]))
                             last_was_inst_marker = False
                     elif lyrics_str.strip():

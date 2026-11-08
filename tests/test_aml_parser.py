@@ -143,6 +143,20 @@ I've come to talk with you again"""
         self.assertEqual(lyrics[0].segments[0].text, "Almeno adesso che")
         self.assertEqual(lyrics[1].segments[0].text, "GUARDAMI")
 
+    def test_traditional_chord_over_lyric_merge(self):
+        """Test that AMLParser automatically merges traditional chord lines over lyric lines."""
+        aml = """SOL            SOL4+
+Vespe truccate anni sessanta"""
+        doc = AMLParser.parse(aml)
+        lines = [n for n in doc.nodes if isinstance(n, ChordLyricLineNode)]
+        self.assertEqual(len(lines), 1)
+        segs = lines[0].segments
+        self.assertEqual(len(segs), 2)
+        self.assertEqual(segs[0].chord.chord_text, "SOL")
+        self.assertEqual(segs[0].text, "Vespe truccate ")
+        self.assertEqual(segs[1].chord.chord_text, "SOL4+")
+        self.assertEqual(segs[1].text, "anni sessanta")
+
 
 
 if __name__ == "__main__":

@@ -3,13 +3,6 @@
 ## Versione 2026.11.08 (08/11/2026) — Sincronizzazione Cloud Persistente, Spaziatura Accordi, Controlli Palco e Unicità Repertori
 
 ### 🚀 Nuove Funzionalità (New Features)
-- Permanenza Profili Display Utente/Dispositivo: memorizzazione indipendente del profilo hardware basata sull'accoppiamento utente e tipo dispositivo (smartphone es. Pixel 8, desktop PC es. A4 stampabile, tablet), evitando sovrascritture incrociate tra login successivi da device diversi.
-- Dimensione Carattere Accordi Indipendente: aggiunto slider dedicato nel popover 'Formato & Testo' per regolare in modo autonomo la dimensione degli accordi (8-32 px) rispetto a quella del testo/testi.
-- Scalette Mobile-Friendly: riorganizzazione dell'area di lavoro in schede 'Ordine di Palco' e 'Aggiungi Brani dai Repertori' a tutta larghezza, eliminando il restringimento su mobile e rendendo le colonne perfettamente fruibili.
-- Gestione Repertori Potenziata: aggiunta funzione 'Rinomina Repertorio' con validazione di univocità del nome (case-insensitive).
-- Clonazione Brani tra Repertori: pulsante 'Clona per Altro Repertorio' per creare versioni indipendenti (nuovo UUID) con diverso arrangiamento (es. versione acustica vs elettrica).
-- Cestino Amministrativo Completo: suddivisione chiara del cestino in 3 sezioni ('Brani', 'Scalette', 'Repertori') con metadati completi e ripristino istantaneo con singolo click.
-- Suggerimenti AI Arrangiamento Dinamici: integrazione avanzata Gemini per produrre analisi armonica e arrangiamento personalizzati e unici per ciascun brano con fallback contestuale.
 - Sincronizzazione Cloud Persistente bidirezionale (GitHub Gist) per scalette, brani e repertori: garanzia assoluta contro la perdita di dati dopo riavvii o nuovi deploy su Streamlit Cloud.
 - Idratazione automatica all'avvio: il server recupera istantaneamente le 12 scalette della band e tutti i 41 brani ufficiali con schema dual-compatible.
 - Controlli completi Modalità Palco (Live Stage): aggiunti pulsanti touch e scorciatoie pedali Bluetooth per cambio pagina (Pag Giù / Pag Su), navigazione brani (Prec / Succ), play/pausa e regolatore velocità autoscroll a 60fps.
@@ -18,10 +11,6 @@
 - Suggerimenti preset, scene memory e super knob Yamaha Montage dedicati ai tastieristi.
 
 ### ⚡ Miglioramenti (Improvements)
-- Evidenza Repertorio Attivo in Editing: banner dedicato che mostra chiaramente il repertorio di lavoro attivo durante la modifica dei brani.
-- Regola Obbligatoria Unicità Brani nei Repertori: consentite due versioni diverse dello stesso brano in due repertori differenti, ma vietati duplicati con lo stesso titolo all'interno dello stesso repertorio.
-- Pulizia Schermata Import/Export: eliminato qualsiasi richiamo o visualizzazione della modalità palco con autoscroll dalla schermata di Import/Export.
-- Design & Look and Feel: gerarchia visiva con colori di sfondo ben distinti tra parti fisse/strutturali (deep slate #0B0F19 / #111827) e parti modificabili/editor (#1E293B con accento cyan #38BDF8).
 - Layout scalette ottimizzato: pulsanti sposta brano ('⬆️', '⬇️') ed elimina ('❌') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.
 - Unicità rigorosa dei repertori: divieto assoluto di creare o rinominare repertori con nomi duplicati (case-insensitive), con notifica immediata d'errore.
 - Cancellazione repertori fittizi o vuoti duplicati dal database.
@@ -34,8 +23,9 @@
 - Protezione area riservata band: solo gli account autenticati con successo dai server Google e registrati nella lista ufficiale musicisti possono accedere.
 
 ### 🐛 Correzioni di Bug (Bug Fixes)
-- Motore PDF Griglie Armoniche: resa delle sequenze di soli accordi senza tabelle, separate semplicemente dal simbolo ' | ' come da specifica.
-- Motore PDF Dimensioni Logo: rimpicciolito il logo band nell'intestazione per prevenire qualsiasi sovrapposizione con i titoli dei brani lunghi.
+- Riconoscimento accordi estesi e alterati (es. 'SOL4+', 'DO4+', 'G4+'): ampliato il validatore di suffissi del motore musicale per supportare suffissi aumentati/diminuiti ('4+', '4-', '4#', '4b', 'sus4+', 'sus4-', '4aug') con corretta trasposizione e cambio notazione.
+- Allineamento automatico accordi tradizionali in AMLParser: 'AMLParser.parse' rileva e fonde automaticamente le righe con accordi sopra il testo (es. 'SOL... SOL4+' sopra 'Vespe truccate anni sessanta'), associando ciascun accordo alla rispettiva parola.
+- Aggiornamento reattivo anteprima PDF su cambio dimensione accordi: integrato 'font_size_chords' nelle chiavi di cache di 'PDFEngine' e di sessione Streamlit ('ck_dev_m', 'ck_a4_m'), garantendo il ricalcolo e la rigenerazione immediata delle immagini anteprima non appena l'utente muove lo slider.
 - Motore PDF: risolto incollamento accordi consecutivi (anti-gluing es. 'FADO' -> 'FA  DO', 'SIb/FADO/MI' -> 'SIb/FA  DO/MI  RE7/9+') con spaziatura minima garantita.
 - Motore PDF: rimossa sillabazione accidentale a metà parola nei testi dei brani.
 - Motore PDF: garantito margine inferiore di sicurezza anti-sovrapposizione (minimo 15 mm) rispetto al piè di pagina.

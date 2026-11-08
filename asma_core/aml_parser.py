@@ -190,19 +190,40 @@ class AMLParser:
 
     @classmethod
     def parse(cls, aml_text: str) -> AMLDocument:
-        """Parses a full AML text string into an AMLDocument AST."""
+        """Parses a full AML text string into an AMLDocument AST, supporting interleaved chords and traditional chord-over-lyric pairs."""
         lines = aml_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         nodes: List[ASTNode] = []
 
-        for raw_line in lines:
+        def _is_raw_chord_line(l: str) -> bool:
+            clean_l = l.strip()
+            if not clean_l or clean_l.startswith("{") or clean_l.startswith("#") or clean_l.startswith("|"):
+                return False
+            if "[" in clean_l and "]" in clean_l:
+                return False
+            if re.search(r"\b\w+'\w+\b|[.,!?;:]", clean_l):
+                return False
+            tokens = clean_l.split()
+            if not tokens:
+                return False
+            from asma_core.music_engine import ITALIAN_LOWERCASE_WORDS, MusicEngine
+            if any(t.lower() in ITALIAN_LOWERCASE_WORDS for t in tokens):
+                return False
+            valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t.strip("[](),|")))
+            return valid_chords > 0 and (valid_chords / len(tokens)) >= 0.70
+
+        idx = 0
+        while idx < len(lines):
+            raw_line = lines[idx]
             line = raw_line.strip()
 
             if not line:
                 nodes.append(EmptyLineNode())
+                idx += 1
                 continue
 
             if line.startswith("#"):
                 nodes.append(CommentNode(line.lstrip("#").strip()))
+                idx += 1
                 continue
 
             # Check for directive or section tag: {tag} or {tag: value}
@@ -216,12 +237,15 @@ class AMLParser:
 
                 if tag_name in active_sections:
                     nodes.append(SectionNode(tag_name, label=tag_value or None))
+                    idx += 1
                     continue
                 elif tag_name in active_custom_tags:
                     nodes.append(CustomTagNode(tag_name, content=tag_value))
+                    idx += 1
                     continue
                 else:
                     nodes.append(DirectiveNode(tag_name, tag_value))
+                    idx += 1
                     continue
 
             # Check for chord grid line: | C | Am | F | G |
@@ -234,37 +258,48 @@ class AMLParser:
                     if tokens:
                         measures.append(tokens)
                 if measures:
-                    # Validate that the measures actually contain valid chords or standard chord symbols
                     all_tokens = [t for m in measures for t in m if t not in ["/", "%", "-", "|", "NC", "N.C."]]
                     valid_chords = sum(1 for t in all_tokens if MusicEngine.parse_chord(t))
                     if all_tokens and (valid_chords / len(all_tokens)) >= 0.5:
                         nodes.append(ChordGridLineNode(measures))
+                        idx += 1
                         continue
                     else:
-                        # Line has pipes but contains lyrics/words rather than chords (e.g. "| Almeno | adesso | che |")
                         cleaned_pipe_lyric = " ".join([t for m in measures for t in m])
                         nodes.append(ChordLyricLineNode([LyricSegment(cleaned_pipe_lyric, chord=None)]))
+                        idx += 1
                         continue
 
             # Check for chord/lyric line with [Chord]
             if "[" in raw_line and "]" in raw_line:
                 segments = cls._parse_chord_lyric_line(raw_line)
                 nodes.append(ChordLyricLineNode(segments))
+                idx += 1
                 continue
 
-            # Check if line without brackets is purely chords (e.g. "SIb/FA  DO/MI   RE7/9+" or "RE7/9+" or "MI | DO | LA")
-            tokens = [t.strip("[](),|") for t in line.split() if t.strip("[](),|")]
-            if tokens and not re.search(r"\b\w+'\w+\b|[.,!?;:]", line):
-                valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t))
-                if valid_chords > 0 and (valid_chords == len(tokens) or (valid_chords / len(tokens)) >= 0.75):
-                    chord_segs = []
-                    for t in tokens:
-                        chord_segs.append(LyricSegment("   ", chord=ChordToken(t)))
-                    nodes.append(ChordLyricLineNode(chord_segs))
-                    continue
+            # Check if line is traditional chord line positioned over a subsequent lyric line
+            if _is_raw_chord_line(raw_line):
+                # Check if next line is a lyric line without brackets
+                if (idx + 1 < len(lines)) and lines[idx + 1].strip() and not _is_raw_chord_line(lines[idx + 1]):
+                    next_line_clean = lines[idx + 1].strip()
+                    if not next_line_clean.startswith(("{", "#", "|")) and ("[" not in next_line_clean):
+                        # Merge traditional chord line over lyric line!
+                        merged = cls._merge_chords_into_lyrics(raw_line, lines[idx + 1])
+                        segments = cls._parse_chord_lyric_line(merged)
+                        nodes.append(ChordLyricLineNode(segments))
+                        idx += 2
+                        continue
+
+                # Isolated chord line without lyrics
+                tokens = [t.strip("[](),|") for t in line.split() if t.strip("[](),|")]
+                chord_segs = [LyricSegment("   ", chord=ChordToken(t)) for t in tokens]
+                nodes.append(ChordLyricLineNode(chord_segs))
+                idx += 1
+                continue
 
             # Default plain lyric line without chords
             nodes.append(ChordLyricLineNode([LyricSegment(raw_line, chord=None)]))
+            idx += 1
 
         return AMLDocument(nodes)
 

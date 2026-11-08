@@ -43,7 +43,9 @@ class TestMusicEngine(unittest.TestCase):
             ("LA-", "LA", "", "-"),
             ("SIb", "SI", "b", ""),
             ("DO+", "DO", "", "+"),
-            ("REsus4", "RE", "", "sus4")
+            ("REsus4", "RE", "", "sus4"),
+            ("SOL4+", "SOL", "", "4+"),
+            ("G4+", "G", "", "4+")
         ]
         for chord_str, expected_root, expected_acc, expected_qual in test_cases:
             p = MusicEngine.parse_chord(chord_str)

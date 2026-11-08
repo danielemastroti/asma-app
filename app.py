@@ -2431,13 +2431,17 @@ elif menu_choice == "📝 Brani":
         )
 
         # Generazione PDF sempre aggiornata (use_cache=False) con chiave univoca versionata
-        ck_v = f"v3_{preview_song.current_revision}"
+ck_v = f"v3_{preview_song.current_revision}"
         aml_hash = hash(preview_song.aml_content)
         ck_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', preview_song.title)
-        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
-        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{int(prof.font_size_lyrics)}"
+        ck_fl = int(getattr(prof, "font_size_lyrics", 12) * 10)
+        ck_fc = int(getattr(prof, "font_size_chords", 13) * 10)
+        ck_col_c = getattr(prof, "color_chords", "")
+        ck_col_l = getattr(prof, "color_lyrics", "")
+        ck_a4_m = f"buf_a4_m_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
+        ck_a4_s = f"buf_a4_s_{preview_song.uuid}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
+        ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
+        ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}""
 
         if ck_a4_m not in st.session_state:
             st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=False)
