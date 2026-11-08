@@ -3713,7 +3713,7 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
             st.session_state["selected_repertoire_uuid"] = selected_rep_uuid
 
         if selected_rep_uuid == "__ALL__":
-            candidate_songs = all_songs
+            candidate_songs = [storage.get_song(s["uuid"]) for s in all_songs if storage.get_song(s["uuid"])]
         else:
             target_rep = storage.get_repertoire(selected_rep_uuid)
             if target_rep:
@@ -3725,7 +3725,7 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
             st.warning("Nessun brano disponibile nel repertorio selezionato.")
             st.stop()
 
-        candidate_songs = sorted(candidate_songs, key=lambda s: s.title.strip().upper())
+        candidate_songs = sorted(candidate_songs, key=lambda s: (getattr(s, "title", "") or "").strip().upper())
         candidate_dict = {s.uuid: s for s in candidate_songs}
         candidate_ids = list(candidate_dict.keys())
 
