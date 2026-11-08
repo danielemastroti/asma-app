@@ -298,6 +298,19 @@ class StorageManager:
             with self._db_conn:
                 self._db_conn.execute("UPDATE songs_index SET is_deleted = 1 WHERE uuid = ?", (song_uuid,))
 
+            # Remove soft-deleted song UUID from all active repertoires
+            try:
+                reps = self.list_repertoires()
+                rep_mod = False
+                for r in reps:
+                    if song_uuid in r.song_uuids:
+                        r.song_uuids = [sid for sid in r.song_uuids if sid != song_uuid]
+                        rep_mod = True
+                if rep_mod:
+                    self._save_repertoires_file(reps)
+            except Exception:
+                pass
+
             self.audit.log(
                 action="DELETE",
                 entity_type="SONG",
@@ -625,12 +638,23 @@ class StorageManager:
             self._save_repertoires_file(defaults)
             return defaults
 
-        # Tombstones: identify repertoires currently in trash
+        # Tombstones: identify repertoires and songs currently in trash
         deleted_rep_uuids = set()
+        deleted_song_uuids = set()
         if os.path.exists(self._trash_dir):
             for f in os.listdir(self._trash_dir):
                 if f.startswith("repertoire_") and f.endswith(".json"):
                     deleted_rep_uuids.add(f[11:-5])
+                elif f.startswith("song_") and f.endswith(".json"):
+                    deleted_song_uuids.add(f[5:-5])
+
+        active_song_uuids = set()
+        if os.path.exists(self._songs_dir):
+            for f in os.listdir(self._songs_dir):
+                if f.endswith(".json"):
+                    sid = f[:-5]
+                    if sid not in deleted_song_uuids:
+                        active_song_uuids.add(sid)
 
         try:
             with open(self._repertoires_file, "r", encoding="utf-8") as f:
@@ -639,10 +663,19 @@ class StorageManager:
                     Repertoire.from_dict(d) for d in data
                     if d.get("uuid") not in deleted_rep_uuids
                 ]
-                if len(active_reps) != len(data):
+                needs_save = len(active_reps) != len(data)
+                for r in active_reps:
+                    if active_song_uuids:
+                        cleaned = [sid for sid in r.song_uuids if sid in active_song_uuids]
+                    else:
+                        cleaned = [sid for sid in r.song_uuids if sid not in deleted_song_uuids]
+                    if len(cleaned) != len(r.song_uuids):
+                        r.song_uuids = cleaned
+                        needs_save = True
+
+                if needs_save:
                     try:
-                        with open(self._repertoires_file, "w", encoding="utf-8") as wf:
-                            json.dump([r.to_dict() for r in active_reps], wf, indent=2, ensure_ascii=False)
+                        self._save_repertoires_file(active_reps)
                     except Exception:
                         pass
                 return active_reps

@@ -2032,16 +2032,12 @@ elif menu_choice == "📝 Brani":
 
     if active_rep_obj:
         st.markdown(
-            f"""<div style="background: linear-gradient(90deg, rgba(14,165,233,0.18) 0%, rgba(99,102,241,0.18) 100%); border: 1px solid #38BDF8; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-              <div>
-                <span style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #38BDF8; letter-spacing: 1px;">📁 REPERTORIO ATTIVO IN EDIT:</span>
-                <span style="font-size: 15px; font-weight: 900; color: #FFFFFF; margin-left: 8px;">{active_rep_obj.name}</span>
-                <span style="font-size: 12px; color: #94A3B8; margin-left: 10px;">({len(active_rep_obj.song_uuids)} brani)</span>
-              </div>
-              <div style="font-size: 11px; color: #FBBF24; font-weight: 600;">
-                🔒 Regola: versione unica per titolo in questo repertorio (diverse versioni ammesse in altri repertori)
-              </div>
-            </div>""",
+            f'<div style="background:linear-gradient(90deg, rgba(14,165,233,0.18) 0%, rgba(99,102,241,0.18) 100%); border:1px solid #38BDF8; border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">'
+            f'<div><span style="font-size:11px; text-transform:uppercase; font-weight:800; color:#38BDF8; letter-spacing:1px;">📁 REPERTORIO ATTIVO IN EDIT:</span>'
+            f'<span style="font-size:15px; font-weight:900; color:#FFFFFF; margin-left:8px;">{active_rep_obj.name}</span>'
+            f'<span style="font-size:12px; color:#94A3B8; margin-left:10px;">({len(active_rep_obj.song_uuids)} brani)</span></div>'
+            f'<div style="font-size:11px; color:#FBBF24; font-weight:600;">🔒 Regola: versione unica per titolo in questo repertorio (diverse versioni ammesse in altri repertori)</div>'
+            f'</div>',
             unsafe_allow_html=True
         )
         songs = [s for s in storage.list_songs() if s["uuid"] in active_rep_obj.song_uuids]
@@ -2051,9 +2047,56 @@ elif menu_choice == "📝 Brani":
 
     if not songs:
         if active_rep_obj:
-            st.info(f"Nessun brano presente nel repertorio '{active_rep_obj.name}'. Creane uno con il pulsante qui sotto!")
+            st.info(f"📂 Il repertorio **'{active_rep_obj.name}'** è attualmente vuoto. Puoi creare un nuovo brano autoprodotto o inserire un brano esistente dell'archivio.")
+            c_empty1, c_empty2 = st.columns([1, 2], gap="small")
+            with c_empty1:
+                with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
+                    st.markdown("##### ✍️ Nuovo Brano Autoprodotto")
+                    st.caption("Scrivi o incolla il tuo testo per aggiungerlo al repertorio.")
+                    new_e_title = st.text_input("Titolo:", placeholder="es. La Mia Canzone", key="empty_auto_title").strip()
+                    new_e_artist = st.text_input("Autore / Artista:", value=st.session_state.get("current_user_name", "Autore"), key="empty_auto_artist").strip()
+                    new_e_key = st.text_input("Tonalità:", value="DO", key="empty_auto_key").strip()
+                    new_e_text = st.text_area("Testo e Accordi:", placeholder="Incolla qui strofe o accordi...", height=140, key="empty_auto_text")
+                    if st.button("💾 Crea e Salva nel Repertorio", type="primary", disabled=not current_user.can_edit(), key="btn_create_empty_song", width="stretch"):
+                        if new_e_title:
+                            if new_e_text.strip():
+                                if "[" in new_e_text and "]" in new_e_text:
+                                    doc = AMLParser.parse(new_e_text)
+                                else:
+                                    doc = AMLParser.import_traditional_chords_over_text(new_e_text)
+                                body_aml = doc.to_aml()
+                            else:
+                                body_aml = "{verse}\n[DO]Prima strofa...\n\n{chorus}\n[FA]Ritornello [SOL]qui [DO]!\n"
+                            new_song = Song(
+                                title=new_e_title,
+                                artist=new_e_artist,
+                                author=new_e_artist,
+                                key_original=new_e_key or "DO",
+                                key_current=new_e_key or "DO",
+                                aml_content=f"{{title: {new_e_title}}}\n{{artist: {new_e_artist}}}\n{{key: {new_e_key or 'DO'}}}\n\n{body_aml}"
+                            )
+                            saved = storage.save_song(new_song, user_email, user_name, "Creazione brano autoprodotto")
+                            storage.move_song_to_repertoire(saved.uuid, active_rep_obj.uuid, user_email, user_name)
+                            st.session_state["selected_song_uuid"] = saved.uuid
+                            st.success(f"Brano '{saved.title}' aggiunto al repertorio!")
+                            st.rerun()
+            with c_empty2:
+                all_unassigned = sorted([s for s in storage.list_songs() if s["uuid"] not in active_rep_obj.song_uuids], key=lambda s: s["title"].lower())
+                if all_unassigned:
+                    with st.expander("📥 Inserisci brano esistente dell'archivio in questo repertorio"):
+                        s_add_id = st.selectbox(
+                            "Seleziona brano da collegare:",
+                            [s["uuid"] for s in all_unassigned],
+                            format_func=lambda uid: next(f"{s['title']} ({s.get('artist', 'Sconosciuto')})" for s in all_unassigned if s["uuid"] == uid),
+                            key=f"sel_add_empty_{active_rep_obj.uuid}"
+                        )
+                        if st.button("➕ Aggiungi al Repertorio", disabled=not current_user.can_edit(), key=f"btn_add_empty_{active_rep_obj.uuid}"):
+                            storage.move_song_to_repertoire(s_add_id, active_rep_obj.uuid, user_email, user_name)
+                            st.success("Brano associato con successo!")
+                            st.rerun()
         else:
-            st.warning("Nessun brano disponibile nell'archivio. Creane uno dalla sezione 'Repertori'.")
+            st.warning("Nessun brano disponibile nell'archivio. Creane uno per iniziare.")
+        st.stop()
 
     song_choices = {s["uuid"]: s["title"] for s in songs}
     curr_uuid = st.session_state.get("selected_song_uuid")
@@ -2063,18 +2106,16 @@ elif menu_choice == "📝 Brani":
     curr_pre_song = storage.get_song(keys_list[default_idx]) if keys_list else None
     artist_subtitle = f"({curr_pre_song.artist})" if curr_pre_song and curr_pre_song.artist else ""
     key_bpm_subtitle = f"Tonalità: {curr_pre_song.key_current} &bull; 🌐 SongBPM: {curr_pre_song.bpm} BPM" if curr_pre_song else ""
+    sub_title = f"{artist_subtitle} {key_bpm_subtitle}".strip()
+    sub_span = f'<span style="font-size:11px; color:#94A3B8; font-weight:600;">{sub_title}</span>' if sub_title else ''
 
     c_top_sel, c_top_new = st.columns([3, 1], gap="small")
     with c_top_sel:
         st.markdown(
-            f"""<div style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 12px; font-weight: 800; color: #38BDF8; letter-spacing: 0.6px; text-transform: uppercase;">
-                🎵 Brano Attivo Selezionato:
-              </span>
-              <span style="font-size: 11px; color: #94A3B8; font-weight: 600;">
-                {artist_subtitle} {key_bpm_subtitle}
-              </span>
-            </div>""",
+            f'<div style="margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">'
+            f'<span style="font-size:12px; font-weight:800; color:#38BDF8; letter-spacing:0.6px; text-transform:uppercase;">🎵 Brano Attivo Selezionato:</span>'
+            f'{sub_span}'
+            f'</div>',
             unsafe_allow_html=True
         )
         selected_uuid = st.selectbox(
@@ -2086,7 +2127,7 @@ elif menu_choice == "📝 Brani":
             key="main_song_selector"
         )
     with c_top_new:
-        st.markdown("""<div style="height: 20px;"></div>""", unsafe_allow_html=True)
+        st.markdown('<div style="height:20px;"></div>', unsafe_allow_html=True)
         with st.popover("➕ Nuovo Brano", help="Inserisci un testo autoprodotto o componi un nuovo brano", width="stretch"):
             st.markdown("##### ✍️ Nuovo Brano Autoprodotto")
             st.caption("Scrivi o incolla il tuo testo: verrà formattato e aggiunto immediatamente all'archivio.")
@@ -3045,15 +3086,12 @@ elif menu_choice == "📚 Repertori":
         pre_ita_k = MusicEngine.convert_notation(pre_s_obj.key_current, "ITA")
         pre_art = f"({pre_s_obj.artist})" if pre_s_obj.artist else ""
 
+        sub_meta_quick = f"{pre_art} &bull; Tonalità: {pre_ita_k} &bull; 🌐 SongBPM: {pre_s_obj.bpm} BPM".strip()
         st.markdown(
-            f"""<div style="margin: 12px 0 4px 0; display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 12px; font-weight: 800; color: #38BDF8; letter-spacing: 0.6px; text-transform: uppercase;">
-                🎵 Brano Selezionato per Azioni Rapide:
-              </span>
-              <span style="font-size: 11px; color: #94A3B8; font-weight: 600;">
-                {pre_art} &bull; Tonalità: {pre_ita_k} &bull; 🌐 SongBPM: {pre_s_obj.bpm} BPM
-              </span>
-            </div>""",
+            f'<div style="margin:12px 0 4px 0; display:flex; align-items:center; justify-content:space-between;">'
+            f'<span style="font-size:12px; font-weight:800; color:#38BDF8; letter-spacing:0.6px; text-transform:uppercase;">🎵 Brano Selezionato per Azioni Rapide:</span>'
+            f'<span style="font-size:11px; color:#94A3B8; font-weight:600;">{sub_meta_quick}</span>'
+            f'</div>',
             unsafe_allow_html=True
         )
 
