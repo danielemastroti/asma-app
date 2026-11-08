@@ -853,64 +853,68 @@ def get_band_logo_b64() -> str:
                 return ""
     return ""
 
-# Check Google OAuth code redirect
-_oauth_code = st.query_params.get("code")
-if _oauth_code:
-    _g_conf = {}
-    if hasattr(st, "secrets") and "google_auth" in st.secrets:
-        _g_conf = st.secrets["google_auth"]
-    elif os.path.exists(".streamlit/secrets.toml"):
-        try:
-            try:
-                import tomllib
-                with open(".streamlit/secrets.toml", "rb") as _tf:
-                    _t_data = tomllib.load(_tf)
-            except ImportError:
-                import toml
-                with open(".streamlit/secrets.toml", "r", encoding="utf-8") as _tf:
-                    _t_data = toml.load(_tf)
-            _g_conf = _t_data.get("google_auth", {})
-        except Exception:
-            pass
-    if _g_conf.get("client_id") and _g_conf.get("client_secret"):
-        _g_red_cb = _g_conf.get("redirect_uri", "https://asma-app.streamlit.app/oauth2callback")
-        if not _g_red_cb.endswith("/oauth2callback"):
-            _g_red_cb = _g_red_cb.rstrip("/") + "/oauth2callback"
-        _u_info = auth_mgr.exchange_google_code_for_user(
-            _oauth_code,
-            _g_conf["client_id"],
-            _g_conf["client_secret"],
-            _g_red_cb
-        )
-        if _u_info and _u_info.get("email"):
-            _g_email = _u_info["email"].lower()
-            if auth_mgr.is_email_allowed(_g_email):
-                _auth_user = auth_mgr.authenticate_or_register_google(_g_email, _u_info.get("name", ""), _u_info.get("picture", ""))
-                st.session_state["authenticated"] = True
-                st.session_state["current_user_email"] = _auth_user.email
-                st.session_state["current_user_name"] = _auth_user.name
-                _cp = load_client_preferences()
-                _cp["active_user_email"] = _auth_user.email
-                save_client_preferences(_cp)
-                st.query_params.clear()
-                st.rerun()
-            else:
-                st.error(f"❌ Accesso negato per {_g_email}. Questo account Google non è abilitato nella lista musicisti della band.")
+# -----------------------------------------------------------------------------
+# GOOGLE OIDC AUTHENTICATION (Allineato al progetto Accordi prima versione)
+# -----------------------------------------------------------------------------
 
-# Resolve initial authentication state: se già autenticato, entra direttamente
-if "authenticated" not in st.session_state:
+def get_authenticated_google_email():
+    """Recupera solo l'email verificata da sessione Streamlit OIDC (st.user) o headers."""
+    # 1. Controllo utente autenticato Streamlit OIDC (st.user)
+    user = getattr(st, "user", None)
+    if user and getattr(user, "is_logged_in", False):
+        email = getattr(user, "email", None)
+        if not email and hasattr(user, "get"):
+            email = user.get("email")
+        if email:
+            return str(email).strip().lower()
+
+    # 2. Controllo headers di autenticazione Streamlit Cloud / proxy Google
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "headers"):
+            headers = st.context.headers
+            for h in ("x-streamlit-user-email", "x-forwarded-email", "x-auth-request-email", "x-user-email"):
+                val = headers.get(h)
+                if val:
+                    return str(val).strip().lower()
+    except Exception:
+        pass
+
+    return None
+
+def _has_oidc_configuration() -> bool:
+    """Verifica se la configurazione OIDC è presente nei Secrets."""
+    try:
+        auth_config = st.secrets["auth"]
+        return bool(auth_config.get("client_id") and auth_config.get("client_secret"))
+    except Exception:
+        return False
+
+# Verifica se l'utente risulta autenticato tramite Google
+_auth_google_email = get_authenticated_google_email()
+
+if _auth_google_email:
+    if auth_mgr.is_email_allowed(_auth_google_email):
+        st.session_state["authenticated"] = True
+        st.session_state["current_user_email"] = _auth_google_email
+        _cp = load_client_preferences()
+        _cp["active_user_email"] = _auth_google_email
+        save_client_preferences(_cp)
+    else:
+        st.error(f"❌ Accesso negato: l'account Google '{_auth_google_email}' non appartiene alla lista musicisti autorizzati della band ASMA.")
+        if hasattr(st, "logout"):
+            st.button("Esci dall'account Google", key="btn_logout_unauth", on_click=st.logout)
+        st.stop()
+elif not st.session_state.get("authenticated", False):
+    # Ripristino da sessione salvata sul client se valida
     _saved_email = _client_prefs.get("active_user_email")
     if _saved_email and auth_mgr.is_email_allowed(_saved_email):
         st.session_state["authenticated"] = True
         st.session_state["current_user_email"] = _saved_email
-    else:
-        st.session_state["authenticated"] = False
 
-# LIGHTWEIGHT SECURE LOGIN SCREEN (Google OAuth Verified)
-if not st.session_state.get("authenticated"):
+# Se non autenticato, mostra la schermata di login originale
+if not st.session_state.get("authenticated", False):
     _, col_login, _ = st.columns([1, 2.2, 1])
     with col_login:
-        # Logo Band
         logo_file = "assets/band_logo.png" if os.path.exists("assets/band_logo.png") else ("../assets/band_logo.png" if os.path.exists("../assets/band_logo.png") else None)
         if logo_file:
             st.image(logo_file, use_container_width=True)
@@ -926,79 +930,24 @@ if not st.session_state.get("authenticated"):
 
         st.markdown(
             """<div style="text-align:center; margin-top:-6px; margin-bottom:20px;">
-              <div style="font-size:13px; color:#38BDF8; font-weight:800; letter-spacing:1px; text-transform:uppercase;">
+              <div style="font-size:14px; color:#38BDF8; font-weight:800; letter-spacing:1px; text-transform:uppercase;">
                 Area Riservata Band
               </div>
-              <div style="font-size:11px; color:#94A3B8; margin-top:4px;">
-                Accesso protetto esclusivo per i musicisti della band ASMA
+              <div style="font-size:12px; color:#94A3B8; margin-top:4px;">
+                Accedi con l'account Google autorizzato dalla band per consultare e modificare il repertorio.
               </div>
             </div>""",
             unsafe_allow_html=True
         )
 
-        # Recupero credenziali Google OAuth
-        _g_cid = ""
-        _g_red = "https://asma-app.streamlit.app/oauth2callback"
-        if hasattr(st, "secrets") and "google_auth" in st.secrets:
-            _g_cid = st.secrets["google_auth"].get("client_id", "")
-            _g_red = st.secrets["google_auth"].get("redirect_uri", _g_red)
-        elif os.path.exists(".streamlit/secrets.toml"):
-            try:
-                import tomllib
-                with open(".streamlit/secrets.toml", "rb") as _tf:
-                    _sec_data = tomllib.load(_tf)
-                    _g_cid = _sec_data.get("google_auth", {}).get("client_id", "")
-                    _g_red = _sec_data.get("google_auth", {}).get("redirect_uri", _g_red)
-            except Exception:
-                pass
-
-        if not _g_red.endswith("/oauth2callback"):
-            _g_red = _g_red.rstrip("/") + "/oauth2callback"
-
-        # Form di login unico: solo email e conferma per reindirizzamento Google
-        with st.form("form_login_by_email", clear_on_submit=False):
-            typed_email = st.text_input(
-                "Email musicista autorizzata:",
-                placeholder="es. danyposta@gmail.com",
-                key="input_login_email"
-            ).strip().lower()
-
-            submit_login = st.form_submit_button("Accedi", type="primary", use_container_width=True)
-
-        if submit_login:
-            if not typed_email:
-                st.warning("⚠️ Inserisci la tua email prima di procedere.")
-            elif not auth_mgr.is_email_allowed(typed_email):
-                st.error(f"❌ Accesso negato: l'email '{typed_email}' non appartiene alla lista musicisti autorizzati della band ASMA.")
-            elif not _g_cid or "YOUR_GOOGLE" in _g_cid:
-                st.error("⚠️ Configurazione Google OAuth mancante nei secrets dell'app.")
-            else:
-                _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red, login_hint=typed_email)
-                import streamlit.components.v1 as components
-                components.html(
-                    f"""
-                    <script>
-                        try {{
-                            window.top.location.href = "{_oauth_url}";
-                        }} catch (e) {{
-                            window.location.href = "{_oauth_url}";
-                        }}
-                    </script>
-                    """,
-                    height=0,
-                    width=0,
-                )
-                st.markdown(
-                    f"""
-                    <div style="text-align: center; margin-top: 15px;">
-                        <p style="color: #38BDF8; font-size: 13px; margin-bottom: 8px;">Reindirizzamento su Google in corso...</p>
-                        <a href="{_oauth_url}" target="_top" style="display: block; width: 100%; background: #0284C7; color: #FFFFFF; font-weight: 700; text-align: center; padding: 12px 16px; border-radius: 8px; text-decoration: none; font-size: 15px;">
-                            👉 Clicca qui per completare l'accesso su Google
-                        </a>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        if not _has_oidc_configuration():
+            st.error(
+                "Accesso Google non configurato. Completa la sezione [auth] e [access] "
+                "nei Secrets di Streamlit prima di avviare l'app."
+            )
+        else:
+            # Pulsante identico alla prima versione (Accordi)
+            st.button("🎸 Accedi con Google", key="btn_login_google", on_click=st.login, type="primary", use_container_width=True)
 
     st.stop()
 
@@ -1467,6 +1416,11 @@ with st.container(key="top_navbar_container"):
             _cp.pop("active_user_email", None)
             save_client_preferences(_cp)
             st.query_params.clear()
+            if hasattr(st, "logout"):
+                try:
+                    st.logout()
+                except Exception:
+                    pass
             st.rerun()
 
     # Row 2: Ultra-Compact Navigation Pills (Strictly Single Row, Never Wrap)
