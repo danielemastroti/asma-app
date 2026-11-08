@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-08T12:30:37.784049+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "gimme_some_lovin_d520de",
+  "data": {
+    "uuid": "gimme_some_lovin_d520de",
+    "title": "Gimme Some Lovin’",
+    "artist": "The Spencer Davis Group",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "DO",
+    "key_current": "DO",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "Intro:\n[SOL5]\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL]Hey...  [DO/SOL]        [SOL]     [DO/SOL]\nWell, my [SOL]temperature's [DO/SOL]rising,\nand my [SOL]feet on the [DO/SOL]floor\n[SOL]Crazy people [DO/SOL]knocking\n'cause they're [SOL]wanting some [DO/SOL]more\n[SOL]Let me in, [DO/SOL]baby, I don't [SOL]know what you [DO/SOL]got\nBut you [SOL]better take [DO/SOL]it easy,  [SOL]this place is [DO/SOL]hot\nAnd I'm [SOL]so glad we [SIb]made it\n [DO]So glad we [MIb]made it, you gotta\n\n [SOL]Gimme some [DO/SOL]loving\n [SOL]Gimme some [DO/SOL]loving\n [SOL]Gimme some [DO/SOL]loving every [SOL5]day\n\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL]Hey...  [DO/SOL]        [SOL]     [DO/SOL]\nWell I [SOL]feel so [DO/SOL]good, every[SOL]thing is soun[DO/SOL]ding hot\n[SOL]Better take [DO/SOL]it easy 'cos the [SOL]place is on [DO/SOL]fire\n[SOL]Been a hard [DO/SOL]day and nothing [SOL]went too [DO/SOL]good\nNow I'm [SOL]gonna [DO/SOL]relax like-a [SOL]everybody [DO/SOL]should\nAnd I'm [SOL]so glad we [SIb]made it\n [DO]So glad we [MIb]made it, you gotta\n\n [SOL]Gimme some [DO/SOL]loving\n [SOL]Gimme some [DO/SOL]loving\n [SOL]Gimme some [DO/SOL]loving every [SOL5]day\n\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL7]           [DO/SOL]       [SOL7]     [DO/SOL]       [SOL]\n[SOL]     [DO/SOL]        [SOL]     [DO/SOL]\nWell I [SOL]feel so [DO/SOL]good, every[SOL]body's [DO/SOL]getting high\n[SOL]Better take [DO/SOL]it easy 'cos the [SOL]place is [DO/SOL]on fire\n[SOL]Been a hard [DO/SOL]day and nothing [SOL]went too [DO/SOL]good\n[SOL]We made it, [DO/SOL]baby, and it [SOL]happened to [DO/SOL]you\nAnd I'm [SOL]so glad we [SIb]made it\n [DO]So glad we [MIb]made it, you gotta\n\n [SOL]Gimme some [DO/SOL]loving...\n [SOL]Gimme some [DO/SOL]loving...\n [SOL]Gimme some [DO/SOL]loving...\n [SOL]Gimme some [DO/SOL]loving...\n [SOL]Gimme some [DO/SOL]loving...\n [SOL]Gimme some [DO/SOL]loving...",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-08T09:59:11.723481+00:00",
+    "updated_at": "2026-11-08T09:59:11.723481+00:00"
+  }
+}

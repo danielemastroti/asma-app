@@ -2403,24 +2403,24 @@ elif menu_choice == "📝 Brani":
             with c_bpm_btn:
                 st.write("")
                 st.write("")
-                if st.button("🔍 SongBPM", help="Trova il BPM reale dal database SongBPM.com o con l'AI", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
+                if st.button("🌐 SongBPM", help="Interroga SongBPM.com per il BPM ufficiale da internet (default 120 se non trovato)", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
                     sb_info = BandAIService.fetch_songbpm_info(song.title, song.artist)
                     if sb_info and sb_info.get("bpm"):
-                        new_bpm = sb_info["bpm"]
-                        src_msg = f"SongBPM ({sb_info.get('matched', '')})"
+                        new_bpm = int(sb_info["bpm"])
+                        src_msg = f"SongBPM.com ({sb_info.get('matched', '')})"
                         extra_info = []
                         if sb_info.get("key"):
                             extra_info.append(f"Key: {sb_info['key']}")
                         if sb_info.get("duration"):
                             extra_info.append(f"Durata: {sb_info['duration']}")
                         extra_str = f" ({', '.join(extra_info)})" if extra_info else ""
-                        st.success(f"🎯 BPM trovato su **SongBPM.com**: **{new_bpm} BPM**{extra_str}")
+                        st.success(f"🎯 BPM verificato su **SongBPM.com**: **{new_bpm} BPM**{extra_str}")
                     else:
-                        new_bpm = BandAIService.estimate_song_bpm(song.title, song.artist)
-                        src_msg = "AI / Analisi"
-                        st.info(f"🤖 BPM stimato con AI/Analisi: **{new_bpm} BPM**")
+                        new_bpm = 120
+                        src_msg = "Default (non trovato su SongBPM)"
+                        st.warning("⚠️ Brano non trovato su SongBPM.com. Impostato valore di default: **120 BPM**")
                     song.bpm = new_bpm
-                    storage.save_song(song, user_email, user_name, f"Aggiornamento BPM da {src_msg}")
+                    storage.save_song(song, user_email, user_name, f"Aggiornamento BPM ({src_msg})")
                     log_op("🎯", "BPM", f"BPM per '{song.title}': {new_bpm} BPM ({src_msg})", "SUCCESS")
                     st.rerun()
         with meta_c3:
@@ -2881,13 +2881,13 @@ elif menu_choice == "🤖 Band AI (Opzionale)":
                             log_op("🎯", "BPM", f"BPM per '{s_obj.title}' sincronizzato con SongBPM: {sb_bpm} BPM", "SUCCESS")
                             st.rerun()
                 else:
+                    st.warning("🌐 **SongBPM.com:** Non trovato (Default: 120 BPM)")
                     st.caption(f"Tempo archiviato: **{s_obj.bpm} BPM**")
-                    if st.button("🔍 Cerca su SongBPM", key=f"btn_recalc_bpm_{s_obj.uuid}", width="stretch"):
-                        nbpm = BandAIService.estimate_song_bpm(s_obj.title, s_obj.artist)
-                        s_obj.bpm = nbpm
-                        storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], "Ricalcolo BPM da SongBPM/AI")
-                        st.success(f"Nuovo tempo: **{nbpm} BPM**")
-                        st.rerun()
+                    if s_obj.bpm != 120:
+                        if st.button("↩️ Imposta Default (120 BPM)", key=f"btn_apply_def_bpm_{s_obj.uuid}", width="stretch"):
+                            s_obj.bpm = 120
+                            storage.save_song(s_obj, st.session_state["current_user_email"], st.session_state["current_user_name"], "Tempo impostato su default 120 BPM")
+                            st.rerun()
             with c_ai_dyn:
                 st.markdown("<div style='font-size:12px; font-weight:700; color:#38BDF8; margin-bottom:4px;'>🎯 Consigli Specifici per Musicista / Strumento:</div>", unsafe_allow_html=True)
                 inst_pick = st.selectbox(
@@ -3367,6 +3367,18 @@ elif menu_choice == "🗂️ Smistamento Rapido":
             st.warning(f"Vuoi spostare **{num_sel}** brani selezionati nel cestino?\n\n*Potrai ripristinarli entro 30 giorni dal Cestino.*")
             btn_batch_del_confirm = st.button("Conferma Eliminazione", type="secondary", width="stretch", key="btn_confirm_batch_del")
 
+    col_u_info, col_u_sync = st.columns([3, 2], gap="small")
+    with col_u_info:
+        st.caption("💡 *Tutti i BPM sono verificati online da SongBPM.com (con fallback a 120 BPM se assente).*")
+    with col_u_sync:
+        btn_batch_sync_bpm = st.button(
+            f"🌐 Sincronizza BPM con SongBPM ({num_sel if num_sel > 0 else 'Tutti'})",
+            disabled=(not current_user.can_edit()),
+            help="Interroga in tempo reale SongBPM.com su internet per ciascun brano selezionato (o tutti) e ne imposta il BPM reale (default 120 se non trovato)",
+            width="stretch",
+            key="btn_batch_sync_bpm"
+        )
+
     # -------------------------------------------------------------
     # ESECUZIONE 1-CLICK: SPOSTA
     # -------------------------------------------------------------
@@ -3434,6 +3446,24 @@ elif menu_choice == "🗂️ Smistamento Rapido":
         if deleted_count > 0:
             log_op("🗑️", "BATCH", f"Spostati con 1 click {deleted_count} brani nel cestino", "WARNING")
             st.success(f"🗑️ Spostati con 1 click **{deleted_count}** brani nel cestino (recuperabili per 30 giorni)!")
+            st.session_state.pop("batch_songs_data_editor", None)
+            st.rerun()
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: SINCRONIZZA BPM DA SONGBPM.COM
+    # -------------------------------------------------------------
+    elif btn_batch_sync_bpm:
+        target_sync_list = selected_uuids if selected_uuids else [s.uuid for s in filtered_songs]
+        if target_sync_list:
+            with st.spinner(f"🌐 Interrogazione SongBPM.com per {len(target_sync_list)} brani in corso..."):
+                res = storage.batch_sync_songs_bpm(
+                    target_sync_list,
+                    default_bpm=120,
+                    user_email=current_user.email,
+                    user_name=current_user.name
+                )
+            log_op("🌐", "BATCH_BPM", f"Sincronizzati BPM: {res['updated_from_songbpm']} da SongBPM.com, {res['defaulted']} a 120 BPM", "SUCCESS")
+            st.success(f"🌐 **Sincronizzazione SongBPM completata!** {res['updated_from_songbpm']} brani aggiornati con tempo reale da internet, {res['defaulted']} impostati su default (120 BPM).")
             st.session_state.pop("batch_songs_data_editor", None)
             st.rerun()
 

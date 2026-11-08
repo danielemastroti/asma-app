@@ -330,6 +330,15 @@ class TestStorageManager(unittest.TestCase):
         self.assertEqual(del_count, 2)
         self.assertIsNone(self.storage.get_song(s1.uuid))
 
+    def test_batch_sync_songs_bpm(self):
+        """Batch sync BPM updates from SongBPM or falls back to default 120."""
+        s = Song(title="Knock On Wood", artist="Amii Stewart", bpm=120)
+        self.storage.save_song(s)
+        res = self.storage.batch_sync_songs_bpm([s.uuid])
+        self.assertEqual(res["total"], 1)
+        s_reloaded = self.storage.get_song(s.uuid)
+        self.assertEqual(s_reloaded.bpm, 140)
+
 
 if __name__ == "__main__":
     unittest.main()

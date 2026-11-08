@@ -267,141 +267,110 @@ class BandAIService:
     @classmethod
     def fetch_songbpm_info(cls, title: str, artist: str = "") -> Optional[Dict[str, Any]]:
         """
-        Interroga direttamente il database di SongBPM (https://songbpm.com) per estrarre:
-        - BPM reale della canzone
-        - Tonalita (Key)
+        Interroga esclusivamente il database di SongBPM (https://songbpm.com) per estrarre:
+        - BPM reale del brano
+        - Tonalità (Key) normalizzata
         - Durata
-        Protetto da timeout (3.5s) e user-agent realistico. Restituisce None se offline o brano non trovato.
+        Applica filtro intelligente per parole chiave del titolo per evitare falsi positivi
+        e fallback sul solo titolo se con l'artista non trova riscontro.
+        Restituisce None se offline o se il brano non è presente su SongBPM.
         """
         import urllib.parse
         from bs4 import BeautifulSoup
 
-        clean_title = re.sub(r"[\(\[\{].*?[\)\]\}]", "", title or "").strip()
-        clean_artist = re.sub(r"[\(\[\{].*?[\)\]\}]", "", artist or "").strip()
-        clean_title = re.sub(r"[^\w\s-]", " ", clean_title)
-        clean_artist = re.sub(r"[^\w\s-]", " ", clean_artist)
-        query = " ".join(f"{clean_title} {clean_artist}".split())
-        if not query:
+        clean_t = re.sub(r"[\(\[\{].*?[\)\]\}]", "", title or "").strip()
+        clean_a = re.sub(r"[\(\[\{].*?[\)\]\}]", "", artist or "").strip()
+        clean_t = re.sub(r"[^\w\s-]", " ", clean_t).strip()
+        clean_a = re.sub(r"[^\w\s-]", " ", clean_a).strip()
+        title_keywords = [w.lower() for w in re.findall(r"\b\w+\b", clean_t) if len(w) > 2]
+
+        def _search_query(q_str: str) -> Optional[Dict[str, Any]]:
+            if not q_str.strip():
+                return None
+            url = "https://songbpm.com/searches"
+            data = urllib.parse.urlencode({"query": q_str}).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept-Language": "it,en;q=0.9"
+                }
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=5.0) as resp:
+                    html = resp.read().decode("utf-8", errors="ignore")
+                    soup = BeautifulSoup(html, "html.parser")
+                    candidates = []
+                    for a in soup.find_all("a"):
+                        href = a.get("href", "")
+                        if href.startswith("/@") and "/apple-music" not in href and "/spotify" not in href:
+                            raw_txt = a.get_text(" ", strip=True)
+                            txt = raw_txt.replace("\u266f", "#").replace("\u266d", "b")
+                            m_bpm = re.search(r"BPM\s+(\d+)", txt)
+                            m_key = re.search(r"Key\s+([A-G][b#]?(?:\s*(?:maj|min|m))?)", txt, re.IGNORECASE)
+                            m_dur = re.search(r"Duration\s+(\d+:\d+)", txt)
+                            if m_bpm:
+                                bpm_val = int(m_bpm.group(1))
+                                if 40 <= bpm_val <= 260:
+                                    k_val = m_key.group(1).strip() if m_key else None
+                                    if k_val:
+                                        k_val = k_val.replace("♯", "#").replace("♭", "b")
+                                    txt_lower = txt.lower()
+                                    score = sum(1 for w in title_keywords if w in txt_lower)
+                                    candidates.append({
+                                        "bpm": bpm_val,
+                                        "key": k_val,
+                                        "duration": m_dur.group(1) if m_dur else None,
+                                        "source": "SongBPM.com",
+                                        "matched": txt[:80],
+                                        "score": score
+                                    })
+                    if candidates:
+                        candidates.sort(key=lambda c: c["score"], reverse=True)
+                        best = candidates[0]
+                        if best["score"] > 0 or not title_keywords:
+                            return {
+                                "bpm": best["bpm"],
+                                "key": best["key"],
+                                "duration": best["duration"],
+                                "source": best["source"],
+                                "matched": best["matched"]
+                            }
+            except Exception:
+                return None
             return None
 
-        url = "https://songbpm.com/searches"
-        data = urllib.parse.urlencode({"query": query}).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept-Language": "it,en;q=0.9"
-            }
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
-                html = resp.read().decode("utf-8", errors="ignore")
-                soup = BeautifulSoup(html, "html.parser")
-                for a in soup.find_all("a"):
-                    href = a.get("href", "")
-                    if href.startswith("/@"):
-                        txt = a.get_text(" ", strip=True)
-                        m_bpm = re.search(r"BPM\s+(\d+)", txt)
-                        m_key = re.search(r"Key\s+([A-G][b#]?(?:\s*(?:maj|min|m))?)", txt, re.IGNORECASE)
-                        m_dur = re.search(r"Duration\s+(\d+:\d+)", txt)
-                        if m_bpm:
-                            bpm = int(m_bpm.group(1))
-                            if 40 <= bpm <= 260:
-                                return {
-                                    "bpm": bpm,
-                                    "key": m_key.group(1).strip() if m_key else None,
-                                    "duration": m_dur.group(1) if m_dur else None,
-                                    "source": "SongBPM.com",
-                                    "matched": txt[:80]
-                                }
-        except Exception:
-            return None
+        # 1. Tentativo con Titolo + Artista
+        combo_query = " ".join(f"{clean_t} {clean_a}".split())
+        res = _search_query(combo_query)
+        if res:
+            return res
+
+        # 2. Fallback con solo Titolo se l'artista era specificato
+        if clean_a and clean_t:
+            res_title_only = _search_query(clean_t)
+            if res_title_only:
+                return res_title_only
+
         return None
 
     @classmethod
-    def estimate_song_bpm(cls, title: str, artist: str = "") -> int:
+    def estimate_song_bpm(cls, title: str, artist: str = "", default_bpm: int = 120) -> int:
         """
-        Stima il tempo reale (BPM) di un brano evitando il valore fisso/rigido di 120 BPM:
-        1. Ricerca prioritaria nel catalogo di standard rock/pop (istantaneo <0.1ms).
-        2. Ricerca in tempo reale sul database musicale SongBPM (https://songbpm.com).
-        3. Modello AI Gemini gratuito e ultraleggero (se chiave configurata o disponibile).
-        4. Euristiche lessicali su genere e stile deducibili da titolo/artista.
+        Restituisce il tempo reale (BPM) del brano ottenuto esclusivamente da SongBPM (https://songbpm.com).
+        Se il brano non viene trovato su SongBPM o in assenza di connessione internet,
+        viene impostato il valore di default specificato (120 BPM).
+        Nessuna stima arbitraria o AI: solo dati verificati da SongBPM con fallback di default.
         """
-        clean_title = (title or "").strip().lower()
-        clean_artist = (artist or "").strip().lower()
-        if not clean_title:
-            return 100
+        if not (title or "").strip():
+            return default_bpm
 
-        # 1. Ricerca rapida nel catalogo di riferimento
-        for song_k, bpm_v in cls.KNOWN_SONG_BPM.items():
-            if song_k in clean_title or clean_title in song_k:
-                return bpm_v
+        sb_info = cls.fetch_songbpm_info(title, artist)
+        if sb_info and sb_info.get("bpm"):
+            return int(sb_info["bpm"])
 
-        # 2. Ricerca su SongBPM.com
-        songbpm_info = cls.fetch_songbpm_info(title, artist)
-        if songbpm_info and songbpm_info.get("bpm"):
-            return songbpm_info["bpm"]
-
-        # 3. Richiesta AI Gemini (gratuito e istantaneo, max 10 token)
-        api_key = cls.get_api_key()
-        if api_key:
-            prompt = (
-                f"Qual è il tempo musicale tipico in BPM (battiti per minuto) del brano '{title}' "
-                f"{f'dell\'artista {artist}' if artist else ''}? "
-                "Rispondi ESCLUSIVAMENTE con un singolo numero intero rappresentante i BPM (ad esempio: 75, 128, 140, 92). "
-                "Nessun testo aggiuntivo o spiegazione."
-            )
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "temperature": 0.0,
-                    "maxOutputTokens": 10
-                }
-            }
-            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite"]
-            for model in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-                try:
-                    req = urllib.request.Request(
-                        url,
-                        data=json.dumps(payload).encode("utf-8"),
-                        headers={"Content-Type": "application/json"},
-                        method="POST"
-                    )
-                    with urllib.request.urlopen(req, timeout=2.5) as resp:
-                        if resp.status == 200:
-                            data = json.loads(resp.read().decode("utf-8"))
-                            candidates = data.get("candidates", [])
-                            if candidates:
-                                parts = candidates[0].get("content", {}).get("parts", [])
-                                if parts:
-                                    num_match = re.search(r"\b([4-9]\d|1\d\d|2[0-4]\d)\b", parts[0].get("text", ""))
-                                    if num_match:
-                                        val = int(num_match.group(1))
-                                        if 40 <= val <= 240:
-                                            return val
-                except Exception:
-                    pass
-
-        # 3. Euristiche lessicali sul titolo / artista
-        hint = f"{clean_title} {clean_artist}"
-        if any(w in hint for w in ["ballad", "lento", "slow", "love", "notte", "piano", "adagio"]):
-            return 68
-        if any(w in hint for w in ["dance", "disco", "club", "house", "remix"]):
-            return 128
-        if any(w in hint for w in ["reggae", "dub", "ska"]):
-            return 78
-        if any(w in hint for w in ["punk", "metal", "fast", "speed", "rap"]):
-            return 155
-        if any(w in hint for w in ["funk", "groove", "r&b", "soul"]):
-            return 104
-        if any(w in hint for w in ["rock", "roll"]):
-            return 124
-        if any(w in hint for w in ["pop", "acoustic", "folk"]):
-            return 95
-
-        return 100
+        return default_bpm
 
     @classmethod
     def suggest_medley_transition(

@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-08T12:30:02.793612+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "proud_mary_003ac4",
+  "data": {
+    "uuid": "proud_mary_003ac4",
+    "title": "Proud Mary",
+    "artist": "Tina Turner",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "RE",
+    "key_current": "RE",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "[RE]Left a good job down in the city\n\nWorkin' for the Man every night and day\n\nBut I never lost one minute of sleepin'\n\nI was worryin' 'bout the way things might have been\n[LA]Big wheel keep on turnin'\n[SIm]Proud Mary keep on [SOL]burnin'\nAnd we're [RE]rollin', rollin', rollin' on the river\n\n[RE]Cleaned a lot of plates in Memphis\n\nYou know I pumped a lot of 'tane down in New Orleans\n\nBut I never saw the good side of the city\n\nUntil I hitched a ride on the river boat queen\nYou know that [LA]big wheel keep on turnin'\n[SIm]Proud Mary keep on [SOL]burnin'\nAnd we're [RE]rollin', rollin', rollin', rollin',\n\nrollin' on the river\n\nWe're rolling on the river\n\nSay we're rollin', rollin', rollin', rollin', \n\nrollin' on the river,\nWe're rolling on the [SOL]ri---[RE]ver      [DO]   [SOL]\n\nI [RE]left a good job in the city\n\nWorkin' for the Man every night and day\n\nAnd I never lost a minute of sleepin'\n\nWorryin' 'bout the way things might have been\n[LA]Big wheel keep on turnin'\n[SIm]Proud Mary keep on [SOL]burnin'\n[RE]Rollin', rollin', rollin' on the river\n\nSay we're rollin', we're rollin', \n\nrollin' on the river\n\n[DO]   [LA]    [DO]   [LA]    [DO]   [LA]   [SOL]    [FA]      [RE]\n[DO]     [SOL]I [RE]cleaned a lot of plates in Memphis\n\nAnd I pumped a lot of 'tane down in New Orleans\n\nBut I never saw the good side of a city\n\n'Til I hitched a ride on the riverboat queen\n[LA]Big wheel keep on turnin'\n[SIm]Proud Mary keep on [SOL]burnin'\nAnd we're [RE]rollin', so we're rollin',\n\nwe're rollin' on the river\n\nI tell you we're rollin', rollin', \n\nwe're rollin' on the river\n\n[DO]   [LA]    [DO]   [LA]    [DO]   [LA]   [SOL]    [FA]      [RE]\n[RE]If you come down to the river\n\nI bet you're gonna find some people who live\n\nAnd you don't have to worry if you got no money\n\nPeople on the river are happy to give\n[LA]Big wheel keep on turnin'\n[SIm]Proud Mary keep on [SOL]burnin'\nAnd we're [RE]rollin', and we're rollin',\n\nand we're rollin' on the river\n\nTell me one more time\n\nRollin', rollin', rollin' on the river\n\n[DO]   [LA]    [DO]   [LA]    [DO]   [LA]   [SOL]    [FA]\n[RE]Rollin', rollin', rollin' on the river\n\nWe're rollin', rollin', rollin' on the river\n\nSo we're rollin', rollin', rollin' on the river\n\nI tell you we're rollin', we're rollin',\n\nwe're rollin' on the river\n\n[RE]Rollin', rollin', rollin' on the river\n\nWe're rollin', rollin', rollin' on the river\n\nSo we're rollin', rollin', rollin' on the river\n\nI tell you we're rollin', we're rollin',\n\nwe're rollin' on the river...",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-08T09:59:11.738886+00:00",
+    "updated_at": "2026-11-08T09:59:11.738886+00:00"
+  }
+}

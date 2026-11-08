@@ -1071,6 +1071,67 @@ class StorageManager:
             deleted_count += 1
         return deleted_count
 
+    def batch_sync_songs_bpm(
+        self,
+        song_uuids: Optional[List[str]] = None,
+        default_bpm: int = 120,
+        user_email: str = "system",
+        user_name: str = "System"
+    ) -> Dict[str, Any]:
+        """
+        Interroga SongBPM.com per ciascun brano indicato (o tutti se None).
+        Se trovato, imposta il BPM verificato da SongBPM.
+        Se non trovato, imposta il valore di default specificato (120 BPM).
+        Restituisce un riepilogo con conteggi e dettagli.
+        """
+        from asma_core.ai_service import BandAIService
+
+        if song_uuids is None:
+            all_songs = self.list_songs()
+            target_uuids = [s["uuid"] for s in all_songs]
+        else:
+            target_uuids = song_uuids
+
+        updated_count = 0
+        defaulted_count = 0
+        details = []
+
+        for uid in target_uuids:
+            s_obj = self.get_song(uid)
+            if not s_obj:
+                continue
+
+            sb_info = BandAIService.fetch_songbpm_info(s_obj.title, s_obj.artist)
+            if sb_info and sb_info.get("bpm"):
+                new_bpm = int(sb_info["bpm"])
+                source_lbl = "SongBPM.com"
+                updated_count += 1
+            else:
+                new_bpm = default_bpm
+                source_lbl = f"Default ({default_bpm} BPM)"
+                defaulted_count += 1
+
+            old_bpm = s_obj.bpm
+            if s_obj.bpm != new_bpm:
+                s_obj.bpm = new_bpm
+                self.save_song(s_obj, user_email, user_name, f"BPM sincronizzato ({source_lbl}: {new_bpm} BPM)")
+
+            details.append({
+                "uuid": s_obj.uuid,
+                "title": s_obj.title,
+                "artist": s_obj.artist,
+                "old_bpm": old_bpm,
+                "new_bpm": new_bpm,
+                "source": source_lbl
+            })
+
+        return {
+            "total": len(target_uuids),
+            "updated_from_songbpm": updated_count,
+            "defaulted": defaulted_count,
+            "details": details
+        }
+
     # --- SETLISTS CRUD ---
 
     def list_setlists(self) -> List[Setlist]:

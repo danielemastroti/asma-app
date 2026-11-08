@@ -1,0 +1,31 @@
+{
+  "uuid": "4a97e2e4-e012-4250-834a-e77041e64aad",
+  "title": "Gimme Some Lovin",
+  "artist": "The Spencer Davis Group",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 147,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "G",
+  "key_current": "G",
+  "notation_system": "INT",
+  "tags": [
+    "importato-web",
+    "ultimate-guitar"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: Gimme Some Lovin}\n{artist: The Spencer Davis Group}\n{key: G}\n{source: https://tabs.ultimate-guitar.com/tab/the-spencer-davis-group/gimme-some-lovin-chords-66785}\n\n[Verse 1]\nWell, my [E]temperature's [A/E]rising and my [E]feet on the [A/E]floor\n[E]Twenty [A/E]people knockin 'cause they're [E]wanting some [A/E]more\n[E]Let me in [A/E]baby, I don't [E]know what you've [A/E]got\nBut you'd [E]better take [A/E]it easy, [E]this place is [A/E]hot\n\n[Chorus]\n  [E]So glad we [G]made it,[A]   so glad we [C]made it\nYou gotta  [E]   gimme [A/E]some lovin', [E]   gimme [A/E]some lovin',  [E]\nGimme [A/E]some lovin,   every [E]day\n\n[Verse 2]\nWell, I feel so good everything sounding hot\nBetter take it easy 'cause the place is on fire\nBeen a hard day, and I don't know what to do\nWait a minute baby it could happen to you\n\n[Verse]\nWell, I feel so good, everybody's gettin' high\nBetter take it easy 'cause the place is on fire\nBeen a hard day, nothin' went too good,\nNow I'm gonna relax, honey, everybody should",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T23:33:26.633283+00:00",
+  "updated_at": "2026-11-08T23:33:26.633283+00:00"
+}

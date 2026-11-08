@@ -1,0 +1,17 @@
+{
+  "deleted_at": "2026-11-08T22:38:27.161236+00:00",
+  "entity_type": "REPERTOIRE",
+  "entity_uuid": "9d1205ad-1ced-49f4-bf03-1bb854e1c5be",
+  "data": {
+    "uuid": "9d1205ad-1ced-49f4-bf03-1bb854e1c5be",
+    "name": "Repertorio di test",
+    "description": "Primo repertorio per test sito",
+    "song_uuids": [
+      "im_a_believer_880443",
+      "lo_spettacolo_b5b0b5",
+      "sweet_home_chicago_e7cb2a"
+    ],
+    "created_at": "2026-11-06T23:55:07.029104+00:00",
+    "updated_at": "2026-11-06T23:55:07.030104+00:00"
+  }
+}

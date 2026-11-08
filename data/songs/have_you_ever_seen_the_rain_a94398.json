@@ -6,7 +6,7 @@
   "genre": "",
   "year": null,
   "duration_seconds": 0,
-  "bpm": 120,
+  "bpm": 116,
   "time_signature": "4/4",
   "capo": 0,
   "key_original": "DO",
@@ -24,5 +24,5 @@
   },
   "current_revision": 1,
   "created_at": "2026-11-08T09:59:11.750341+00:00",
-  "updated_at": "2026-11-08T09:59:11.750341+00:00"
+  "updated_at": "2026-11-08T23:43:02.077669+00:00"
 }

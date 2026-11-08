@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-08T12:31:22.533802+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "baila_morena_703f25",
+  "data": {
+    "uuid": "baila_morena_703f25",
+    "title": "Baila Morena",
+    "artist": "Zucchero",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "SOL minore",
+    "key_current": "SOL minore",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "Intro:\n[SOLm7]        [DO7]    [SOLm7]        [DO7]\n[SOLm7]        [DO7]    [SOLm7]        [DO7]\n  [SOLm7]Adesso credo nei miracol[DO7]i\n [SOLm7]in questa notte di tequila boom [DO7]boom\n  [SOLm7]Sei cosa sexy cosa  sexy [DO7]thing\n[SOLm7]ormai ti ho messo gli occhi addosso e lo [DO7]sai\n\n[SOLm7]       [DO]     [SOLm7]       [DO]\n  [SOLm7]Che devi avere un caos dentro di [DO7]te\n  [SOLm7]per far fiorire una stella che [DO7]balla\n  [SOLm7]Inferno e paradiso dentro di te[DO7]\n [SOLm7]la luna è un sole guarda come brilla\n[DOm7]Baby    [FA]the night is on [SOLm]fire\n  [SIb]siamo [DO]fiamme nel cielo\n[RE7/9+]Lampi in mezzo al buio... what you say\n\n[SOLm]Baila..[MIb]. baila more[SIb]na...\n  [FA]sotto questa luna [SOLm]piena\n  [MIb]Under the [SIb]moonlight..\n  [FA]under the [SOLm]moonlight[DO]    [SOLm7]       [DO]\n\n[SOLm7]Vai chica vai cocca che mi [DO7]sa cocca\n  [SOLm7]che questa sera qualche [DO7]cosa ti tocca\n [SOLm7]Ho un cuore d'oro sai il [DO7]cuore di un santo\n [SOLm7]per così poco me la [DO7]merito tanto\n[DOm7]Baby    [FA]the night is on [SOLm7]fire\n  [SIb]siamo [DO]fiamme nel cielo\n[RE7/9+]Scandalo nel buio... what you say\n\n[SOLm]Baila..[MIb]. baila more[SIb]na...\n  [FA]sotto questa luna [SOLm]piena\n  [MIb]Under the [SIb]moonlight [FA]\n[SOLm]Baila..[MIb]. under the [SIb]moonlight...\n  [FA]sotto questa luna [SOLm]piena\n  [MIb]baila More[SIb]na....\n  [FA]yeah yeah [SOLm7]yeah!  [DO7]     [SOLm7]       [DO7]\n\n[SOLm7]       [DO7]     [SOLm7]       [DO7]\n  [SOLm]You got me hurtin so bad, so bad\n\nI got to have it, so bad\n  [RE7/9+]what you say... what you say\n\n[SOLm]Baila..[MIb]. baila More[SIb]na...\n  [FA]sotto questa luna [SOLm]piena\n  [MIb]Under the [SIb]moonlight [FA]\nE [SOLm]daila..[MIb]. under the [SIb]moonlight..\n  [FA]sotto questa luna [SOLm]piena\n  [MIb]daila more[SIb]na....\n  [FA]sotto questa luna [SOLm7]piena\n  [DO]sotto questa luna [SOLm7]piena\n  [DO]sotto questa luna [SOLm7]piena\n  [DO]Under the [SOLm7]moonlight\n\n| SIb/FA | DO/MI | RE7/9+ |",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-08T09:59:11.732879+00:00",
+    "updated_at": "2026-11-08T09:59:11.732879+00:00"
+  }
+}

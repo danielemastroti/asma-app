@@ -296,17 +296,17 @@ E|-------------------|
         self.assertTrue(pdf_lyrics.startswith(b"%PDF-"))
 
     def test_bpm_estimation_not_defaulting_to_120(self):
-        """AI / Music service estimates realistic BPM and does not blindly suggest 120 BPM."""
+        """Music service fetches verified BPM from SongBPM.com and falls back to 120 only when not found."""
         from asma_core.ai_service import BandAIService
         bpm_knock = BandAIService.estimate_song_bpm("KNOCK ON WOOD", "Amii Stewart")
         self.assertEqual(bpm_knock, 140)
         self.assertNotEqual(bpm_knock, 120)
 
         bpm_albachiara = BandAIService.estimate_song_bpm("Albachiara", "Vasco Rossi")
-        self.assertEqual(bpm_albachiara, 68)
+        self.assertEqual(bpm_albachiara, 145)
 
-        bpm_hotel = BandAIService.estimate_song_bpm("Hotel California", "Eagles")
-        self.assertEqual(bpm_hotel, 74)
+        bpm_unknown = BandAIService.estimate_song_bpm("Brano Inesistente 99999", "Artista Inesistente")
+        self.assertEqual(bpm_unknown, 120)
 
     def test_songs_alphabetical_sorting(self):
         """All songs from storage are returned in case-insensitive alphabetical order."""

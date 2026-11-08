@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-08T12:34:10.207037+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "knock_on_wood_ec4f5e",
+  "data": {
+    "uuid": "knock_on_wood_ec4f5e",
+    "title": "Knock on Wood",
+    "artist": "Amii Stewart",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "REb",
+    "key_current": "REb",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "Intro:\n[LAb]       [SI]   [REb]       [MIb]       [SOLb]     [MIb]    [REb]    [SI]\n[LAb]       [SI]   [REb]       [MIb]       [SOLb]     [MIb]    [REb]    [SI]    [LAb]\nI don't want to [REb]lose you\n\nThis good thing, that I got\n'Cause if I [LAb]do, I will surely\n\nSurely lose a lot\n'Cause your [REb]love, is better\n\nThan any love I know\nIt's like [LAb]thunder, [REb]lightning\n [LAb]The way you love me is [REb]frightening\nOh you better [LAb]knock, knock\n\nOn [LAb]wood, [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh, [LAb]ooh   [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh, [LAb]ooh, ooh\n\nI'm not super[REb]stitious, about ya\n\nBut I can't take no chance\n [LAb]You got me spinnin' baby\n\nYou know that I'm in a trance\n'Cause your [REb]love, is better\n\nThan any love I know\nIt's like [LAb]thunder, [REb]lightning\n [LAb]The way you love me is [REb]frightenin'\nOh you better [LAb]knock, knock, knock\n\nOn [LAb]wood, [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh, [LAb]ooh   [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh, [LAb]ooh, ooh\n\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock)\n\n [SIbm]Ooh, [DOm]baby[REb], ooh.[MI]..  [MIb]\nIt's no [REb]secret about it\n\n'Cause with his loving touch\nHe [LAb]sees to it that I get enough\nFeel [REb]his touch all over\n\nYou know it means so much\nIt's like [LAb]thunder, burstin' [REb]lightning\n [LAb]The way you love me is [REb]frightening\nYou better [LAb]knock, knock, knock on wood, baby\n\nOn [LAb]wood, [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh, [LAb]ooh   [REb][SI]ba-by\n[MIb]Ooh, [SOLb]ooh, [MIb]ooh, [REb]ooh, [SI]ooh...\n\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)\n(Think you better [LAb]knock, knock, knock on [REb]wood)",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-08T09:59:11.729808+00:00",
+    "updated_at": "2026-11-08T09:59:11.729808+00:00"
+  }
+}

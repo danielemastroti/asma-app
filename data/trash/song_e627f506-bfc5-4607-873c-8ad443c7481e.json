@@ -1,0 +1,34 @@
+{
+  "deleted_at": "2026-11-08T22:37:39.500936+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "e627f506-bfc5-4607-873c-8ad443c7481e",
+  "reason": "Deduplicato GUID legacy a favore di '50_special_bebdbb'",
+  "data": {
+    "uuid": "e627f506-bfc5-4607-873c-8ad443c7481e",
+    "title": "50 SPECIAL",
+    "artist": "Lunapop",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "SOL",
+    "key_current": "SOL",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "Intro:\n[SOL]     [DO]    [MIm]     [RE]    [DO]    [SOL]     [RE]\n[SOL]     [DO]    [MIm]     [RE]    [DO]    [SOL]     [RE]\n[SOL]Vespe truccate [SOL4+]anni sessanta\n[SOL4]girano in centro sfio[SOL]rando i novanta\n[SOL]rosse di fuoco [LA7/DO#]comincia la danza\n[DO]due frecce con dietro atta[SOL/SI]ccata una targa\n[DO]Dammi una special l'est[RE]ate che avanza\n[DO]dammi una vespa e ti [RE]porto in vacanza\n\nMa quant'è [SOL]bello andare in [DO]giro\ncon le [MIm]ali sotto ai [RE]piedi\nse hai una [DO]vespa special [SOL]che\nti toglie i proble[RE]mi\nMa quant'è [SOL]bello andare in [DO]giro\nper i [MIm]colli bologne[RE]si\nse hai una [DO]vespa special [SOL]che\nti toglie i proble[RE]mi\nLa scuola non [DO]va\nma ho una [SOL]vespa, una donna non [DO]ho\nho una [SOL]vespa e domenica è [DO]già\ne una [SOL]vespa mi porte[RE]rà...\nmi porterà... mi porte[RE7]rà...\nfuori [SOL]città   [DO]    [MIm]     [RE]    [DO]    [SOL]     [RE]\n\n[SOL]     [DO]    [MIm]     [RE]    [DO]    [SOL]     [RE]\n[SOL]Esco di fretta [SOL4+]dalla mia stanza\na [DO]marce ingranate dalla [SOL/SI]prima alla quarta\n[SOL]devo fare in fretta devo [LA7/DO#]andare a una festa\n[DO]fammi fare un giro prima [SOL/SI]sulla mia vespa\n[LAm]Dammi una special [RE]l'estate che avanza\n[LAm]dammi una vespa e ti [RE]porto in vacanza\n\nMa quant'è [SOL]bello andare in [DO]giro\ncon le [MIm]ali sotto ai [RE]piedi\nse hai una [DO]vespa special [SOL]che\nti toglie i proble[RE]mi\nMa quant'è [SOL]bello andare in [DO]giro\nper i [MIm]colli bologne[RE]si\nse hai una [DO]vespa special [SOL]che\nti toglie i proble[RE]mi\nLa scuola non [DO]va\nma ho una [SOL]vespa, una donna non [DO]ho\nho una [SOL]vespa e domenica è [DO]già\ne una [SOL]vespa mi porte[RE]rà...\nmi porterà... mi porte[RE7]rà...\nfuori [SOL]città   [DO]    [MIm]     [RE]    [DO]    [SOL]     [RE]\n\n| SOL | DO | MIm | RE | DO | SOL | RE |",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-08T22:29:44.452738+00:00",
+    "updated_at": "2026-11-08T22:29:44.452766+00:00"
+  }
+}
