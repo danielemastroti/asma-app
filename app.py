@@ -861,10 +861,15 @@ if _oauth_code:
         _g_conf = st.secrets["google_auth"]
     elif os.path.exists(".streamlit/secrets.toml"):
         try:
-            import toml
-            with open(".streamlit/secrets.toml", "r", encoding="utf-8") as _tf:
-                _t_data = toml.load(_tf)
-                _g_conf = _t_data.get("google_auth", {})
+            try:
+                import tomllib
+                with open(".streamlit/secrets.toml", "rb") as _tf:
+                    _t_data = tomllib.load(_tf)
+            except ImportError:
+                import toml
+                with open(".streamlit/secrets.toml", "r", encoding="utf-8") as _tf:
+                    _t_data = toml.load(_tf)
+            _g_conf = _t_data.get("google_auth", {})
         except Exception:
             pass
     if _g_conf.get("client_id") and _g_conf.get("client_secret"):
@@ -969,9 +974,31 @@ if not st.session_state.get("authenticated"):
                 st.error("⚠️ Configurazione Google OAuth mancante nei secrets dell'app.")
             else:
                 _oauth_url = auth_mgr.build_google_oauth_url(_g_cid, _g_red, login_hint=typed_email)
-                st.info(f"Reindirizzamento su Google in corso per la verifica di sicurezza dell'account **{typed_email}**...")
-                st.markdown(f'<meta http-equiv="refresh" content="0; url={_oauth_url}">', unsafe_allow_html=True)
-                st.markdown(f'<script>window.location.href="{_oauth_url}";</script>', unsafe_allow_html=True)
+                import streamlit.components.v1 as components
+                components.html(
+                    f"""
+                    <script>
+                        try {{
+                            window.top.location.href = "{_oauth_url}";
+                        }} catch (e) {{
+                            window.location.href = "{_oauth_url}";
+                        }}
+                    </script>
+                    """,
+                    height=0,
+                    width=0,
+                )
+                st.markdown(
+                    f"""
+                    <div style="text-align: center; margin-top: 15px;">
+                        <p style="color: #38BDF8; font-size: 13px; margin-bottom: 8px;">Reindirizzamento su Google in corso...</p>
+                        <a href="{_oauth_url}" target="_top" style="display: block; width: 100%; background: #0284C7; color: #FFFFFF; font-weight: 700; text-align: center; padding: 12px 16px; border-radius: 8px; text-decoration: none; font-size: 15px;">
+                            👉 Clicca qui per completare l'accesso su Google
+                        </a>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     st.stop()
 
