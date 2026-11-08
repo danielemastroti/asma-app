@@ -667,16 +667,23 @@ class PDFEngine:
                 chord_line_parts = []
                 lyric_line_parts = []
 
-                for seg in node.segments:
+                for idx, seg in enumerate(node.segments):
                     c_text = seg.chord.chord_text if seg.chord else ""
                     l_text = seg.text or ""
 
-                    max_len = max(len(c_text), len(l_text))
-                    if c_text:
-                        chord_line_parts.append(c_text.ljust(max_len))
+                    has_following_chord = any(s.chord for s in node.segments[idx + 1:])
+                    if c_text and has_following_chord and (len(l_text) <= len(c_text)):
+                        gap = 2
+                        max_len = len(c_text) + gap
+                        chord_line_parts.append(c_text + " " * gap)
+                        lyric_line_parts.append(l_text.ljust(max_len))
                     else:
-                        chord_line_parts.append(" " * max_len)
-                    lyric_line_parts.append(l_text.ljust(max_len))
+                        max_len = max(len(c_text), len(l_text))
+                        if c_text:
+                            chord_line_parts.append(c_text.ljust(max_len))
+                        else:
+                            chord_line_parts.append(" " * max_len)
+                        lyric_line_parts.append(l_text.ljust(max_len))
 
                 chords_str = "".join(chord_line_parts).rstrip()
                 lyrics_str = "".join(lyric_line_parts).rstrip()

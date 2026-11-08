@@ -19,6 +19,7 @@ from asma_core.models import (
 )
 from asma_core.audit_logger import AuditLogger
 from asma_core.lock_manager import LockManager
+from asma_core.gist_client import GistClient
 
 
 class StorageManager:
@@ -53,12 +54,20 @@ class StorageManager:
 
         self.audit = AuditLogger()
         self.lock_mgr = LockManager()
+        self.gist_client = GistClient()
 
         # Initialize In-Memory SQLite Index
         self._db_conn = sqlite3.connect(":memory:", check_same_thread=False)
         self._db_conn.row_factory = sqlite3.Row
         self._init_sqlite_schema()
         self._load_all_into_index()
+
+        # Initial automatic cloud synchronization (prevent data loss on cloud deploy/restart)
+        if self.gist_client.is_configured:
+            try:
+                self.sync_from_cloud()
+            except Exception:
+                pass
 
     def _init_sqlite_schema(self) -> None:
         with self._db_conn:
@@ -559,13 +568,24 @@ class StorageManager:
             return []
 
     def save_repertoire(self, repertoire: Repertoire, user_email: str = "system", user_name: str = "System") -> Repertoire:
+        clean_name = repertoire.name.strip()
+        if not clean_name:
+            raise ValueError("Il nome del repertorio non può essere vuoto.")
+        repertoire.name = clean_name
+
         reps = self.list_repertoires()
+        # Enforce unique repertoire name (case-insensitive)
+        for existing in reps:
+            if existing.uuid != repertoire.uuid and existing.name.strip().lower() == clean_name.lower():
+                raise ValueError(f"Un repertorio con il nome '{clean_name}' esiste già. I nomi dei repertori devono essere univoci.")
+
         reps = [r for r in reps if r.uuid != repertoire.uuid]
         repertoire.updated_at = current_iso_timestamp()
         reps.append(repertoire)
         self._save_repertoires_file(reps)
         self._load_all_into_index()
         self.audit.log("UPDATE", "REPERTOIRE", repertoire.uuid, user_email, user_name, {"name": repertoire.name})
+        self._trigger_background_gist_sync("ALL")
         return repertoire
 
     def _save_repertoires_file(self, repertoires: List[Repertoire]) -> None:
@@ -650,6 +670,7 @@ class StorageManager:
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
         self.audit.log("UPDATE", "SETLIST", setlist.uuid, user_email, user_name, {"title": setlist.title, "songs_count": len(setlist.items)})
+        self._trigger_background_gist_sync("SETLISTS")
         return setlist
 
     def delete_setlist(self, setlist_uuid: str, user_email: str = "system", user_name: str = "System") -> bool:
@@ -673,6 +694,7 @@ class StorageManager:
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
         self.audit.log("DELETE", "SETLIST", setlist_uuid, user_email, user_name, {"title": target.title})
+        self._trigger_background_gist_sync("SETLISTS")
         return True
 
     def restore_setlist(self, setlist_uuid: str, user_email: str = "system", user_name: str = "System") -> Optional[Setlist]:
@@ -764,3 +786,185 @@ class StorageManager:
                 except Exception:
                     pass
         return deleted_count
+
+    # --- CLOUD SYNCHRONIZATION ENGINE (GitHub Gist Two-Way Persistence) ---
+
+    def sync_from_cloud(self) -> Tuple[bool, str]:
+        """
+        Pulls data from remote GitHub Gist and hydrates local storage.
+        Prevents data loss on ephemeral cloud deployments (Streamlit Cloud).
+        """
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return False, "Gist non configurato (modalità offline)."
+
+        ok, remote_files, msg = self.gist_client.pull_all_files()
+        if not ok:
+            return False, f"Impossibile sincronizzare da Gist: {msg}"
+
+        synced_setlists = 0
+        synced_songs = 0
+
+        with self._mutex:
+            # 1. Hydrate songs from remote repertory.json if present
+            if "repertory.json" in remote_files:
+                try:
+                    rep_data = json.loads(remote_files["repertory.json"])
+                    if isinstance(rep_data, list):
+                        from asma_core.import_engine import ImportEngine
+                        for r_item in rep_data:
+                            if not isinstance(r_item, dict):
+                                continue
+                            s_id = r_item.get("id") or r_item.get("uuid")
+                            if not s_id:
+                                continue
+                            song_path = os.path.join(self._songs_dir, f"{s_id}.json")
+                            if not os.path.exists(song_path):
+                                raw_text = r_item.get("raw_text") or ""
+                                title = r_item.get("title") or "Brano Senza Titolo"
+                                try:
+                                    song = ImportEngine.import_from_traditional(raw_text, default_title=title)
+                                    song.uuid = s_id
+                                    song.artist = r_item.get("artist") or song.artist
+                                    song.key_current = r_item.get("key") or song.key_current
+                                    song.key_original = r_item.get("key") or song.key_original
+                                    if r_item.get("bpm"):
+                                        try:
+                                            song.bpm = int(r_item.get("bpm"))
+                                        except Exception:
+                                            pass
+                                    if r_item.get("genre"):
+                                        song.genre = str(r_item.get("genre"))
+                                    if r_item.get("tags") and isinstance(r_item["tags"], list):
+                                        song.tags = [str(t) for t in r_item["tags"]]
+
+                                    with open(song_path, "w", encoding="utf-8") as sf:
+                                        json.dump(song.to_dict(), sf, indent=2, ensure_ascii=False)
+                                    self._upsert_index_record(song)
+                                    synced_songs += 1
+                                except Exception:
+                                    pass
+                except Exception:
+                    pass
+
+            # 2. Hydrate setlists from remote setlists.json
+            if "setlists.json" in remote_files:
+                try:
+                    raw_sets = json.loads(remote_files["setlists.json"])
+                    remote_setlists: List[Setlist] = []
+
+                    if isinstance(raw_sets, dict):
+                        for k, v in raw_sets.items():
+                            if not isinstance(v, dict):
+                                continue
+                            s_id = v.get("uuid") or v.get("id") or k
+                            s_title = v.get("title") or v.get("name") or k
+                            s_date = v.get("date", "")
+                            s_desc = v.get("description", "")
+                            raw_items = v.get("items", [])
+                            if not raw_items and "song_ids" in v:
+                                raw_items = [{"song_uuid": sid} for sid in v.get("song_ids", [])]
+                            items = [
+                                SetlistItem.from_dict(it) if isinstance(it, dict) else SetlistItem(song_uuid=str(it))
+                                for it in raw_items
+                            ]
+                            created_at = v.get("created_at") or current_iso_timestamp()
+                            updated_at = v.get("updated_at") or created_at
+                            remote_setlists.append(Setlist(
+                                uuid=s_id,
+                                title=s_title,
+                                date=s_date,
+                                description=s_desc,
+                                items=items,
+                                created_at=created_at,
+                                updated_at=updated_at
+                            ))
+                    elif isinstance(raw_sets, list):
+                        for it in raw_sets:
+                            if isinstance(it, dict):
+                                remote_setlists.append(Setlist.from_dict(it))
+
+                    local_setlists = self.list_setlists()
+                    merged_dict: Dict[str, Setlist] = {s.uuid: s for s in local_setlists}
+
+                    for r_set in remote_setlists:
+                        if r_set.uuid not in merged_dict:
+                            merged_dict[r_set.uuid] = r_set
+                            synced_setlists += 1
+                        else:
+                            local_up = merged_dict[r_set.uuid].updated_at or ""
+                            remote_up = r_set.updated_at or ""
+                            if remote_up > local_up:
+                                merged_dict[r_set.uuid] = r_set
+                                synced_setlists += 1
+
+                    final_setlists = list(merged_dict.values())
+                    with open(self._setlists_file, "w", encoding="utf-8") as f:
+                        json.dump([s.to_dict() for s in final_setlists], f, indent=2, ensure_ascii=False)
+
+                except Exception:
+                    pass
+
+        return True, f"Sincronizzazione completata: {synced_setlists} scalette, {synced_songs} nuovi brani importati dal Gist."
+
+    def sync_push_setlists_to_gist(self) -> Tuple[bool, str]:
+        """Pushes all local setlists to remote GitHub Gist in dual-compatible format."""
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return False, "Gist non configurato."
+
+        setlists = self.list_setlists()
+        payload_dict = {}
+        for s in setlists:
+            payload_dict[s.uuid] = {
+                "id": s.uuid,
+                "uuid": s.uuid,
+                "name": s.title,
+                "title": s.title,
+                "date": s.date,
+                "description": s.description,
+                "song_ids": [it.song_uuid for it in s.items],
+                "items": [it.to_dict() for it in s.items],
+                "created_at": s.created_at,
+                "updated_at": s.updated_at
+            }
+        content = json.dumps(payload_dict, indent=2, ensure_ascii=False)
+        return self.gist_client.push_files({"setlists.json": content})
+
+    def sync_push_repertory_to_gist(self) -> Tuple[bool, str]:
+        """Pushes active repertoire songs to remote GitHub Gist."""
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return False, "Gist non configurato."
+
+        songs = [self.get_song(s["uuid"]) for s in self.list_songs(include_deleted=False)]
+        songs = [s for s in songs if s is not None]
+        rep_list = []
+        for s in songs:
+            rep_list.append({
+                "id": s.uuid,
+                "title": s.title,
+                "artist": s.artist,
+                "key": s.key_current,
+                "bpm": s.bpm,
+                "genre": s.genre,
+                "tags": s.tags,
+                "raw_text": s.aml_content,
+                "updated_at": s.updated_at
+            })
+        content = json.dumps(rep_list, indent=2, ensure_ascii=False)
+        return self.gist_client.push_files({"repertory.json": content})
+
+    def _trigger_background_gist_sync(self, target: str = "SETLISTS") -> None:
+        """Launches a non-blocking daemon thread to sync changes with GitHub Gist."""
+        if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+            return
+
+        def _worker():
+            try:
+                if target in ("SETLISTS", "ALL"):
+                    self.sync_push_setlists_to_gist()
+                if target in ("SONGS", "ALL"):
+                    self.sync_push_repertory_to_gist()
+            except Exception:
+                pass
+
+        thread = threading.Thread(target=_worker, daemon=True)
+        thread.start()

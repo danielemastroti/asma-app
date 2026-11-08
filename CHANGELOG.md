@@ -1,5 +1,32 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.08 (08/11/2026) — Sincronizzazione Cloud Persistente, Spaziatura Accordi, Controlli Palco e Unicità Repertori
+
+### 🚀 Nuove Funzionalità (New Features)
+- Sincronizzazione Cloud Persistente bidirezionale (GitHub Gist) per scalette, brani e repertori: garanzia assoluta contro la perdita di dati dopo riavvii o nuovi deploy su Streamlit Cloud.
+- Idratazione automatica all'avvio: il server recupera istantaneamente le 12 scalette della band e tutti i 41 brani ufficiali con schema dual-compatible.
+- Controlli completi Modalità Palco (Live Stage): aggiunti pulsanti touch e scorciatoie pedali Bluetooth per cambio pagina (Pag Giù / Pag Su), navigazione brani (Prec / Succ), play/pausa e regolatore velocità autoscroll a 60fps.
+- Toolbar persistente sezione Brani: header con titolo attivo e pulsanti compatti ('Nuovo brano', 'Salva nuova revisione', 'Rilascia lock', 'Elimina brano').
+- Consulente arrangiamento AI multi-strumento con suggerimenti specifici per Tastiera, Voce, Chitarra ritmica, Chitarra elettrica, Basso, Batteria e Globale.
+- Suggerimenti preset, scene memory e super knob Yamaha Montage dedicati ai tastieristi.
+
+### ⚡ Miglioramenti (Improvements)
+- Layout scalette ottimizzato: pulsanti sposta brano ('⬆️', '⬇️') ed elimina ('❌') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.
+- Unicità rigorosa dei repertori: divieto assoluto di creare o rinominare repertori con nomi duplicati (case-insensitive), con notifica immediata d'errore.
+- Cancellazione repertori fittizi o vuoti duplicati dal database.
+- Selettore profili utente e simulazione ruoli riservato esclusivamente agli utenti Admin.
+- Rimozione voce ridondante 'Logout' dai sottomenu orizzontali.
+
+### 🛡️ Sicurezza (Security)
+- Verifica autenticazione Google OAuth reale: reindirizzamento effettivo ad accounts.google.com ed eliminazione del bypass fittizio su ambienti cloud per proteggere l'area riservata della band.
+
+### 🐛 Correzioni di Bug (Bug Fixes)
+- Motore PDF: risolto incollamento accordi consecutivi (anti-gluing es. 'FADO' -> 'FA  DO', 'SIb/FADO/MI' -> 'SIb/FA  DO/MI  RE7/9+') con spaziatura minima garantita.
+- Motore PDF: rimossa sillabazione accidentale a metà parola nei testi dei brani.
+- Motore PDF: garantito margine inferiore di sicurezza anti-sovrapposizione (minimo 15 mm) rispetto al piè di pagina.
+- Eliminazione permanente di brani dummy non caricati dall'utente (es. 'Sultans of Swing', 'Hotel California', 'Canzone per un'amica') dal repository e dai seeder di test.
+- Live Stage: risolto blocco dell'autoscroll automatico causato da misurazione prematura dell'altezza del DOM.
+
 ## Versione 2026.11.05 (05/11/2026) — Rilascio Ufficiale ASMA Accordi 2.0 (Next Generation)
 
 ### 🚀 Nuove Funzionalità (New Features)

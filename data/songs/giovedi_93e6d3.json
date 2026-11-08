@@ -1,0 +1,28 @@
+{
+  "uuid": "giovedi_93e6d3",
+  "title": "GIOVEDI’",
+  "artist": "The New ASMA",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "RE",
+  "key_current": "RE",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: GIOVEDI’}\n{artist: The New ASMA}\n{key: D major}\n\n\n[INTRO GUITAR]\n[D]\n[VERSO]\n[D]Giovedì sera come sempre piove[G]\n[D]Succede solo quando facci[A]amo le prove\n[G]Puma guarda il cielo, legge il mess[D]aggio e gode\n[A]Mentre Sentimental sotto l'acqua si [D]consuma e rode\n\n[VERSO]\n[D]Red impreca dietro al trasme[G]ttitore\n[D]Maurino è disperso den[A]tro l'amplificatore\n[G]Mingo sposta i piatti e pesta sul[D] tamburo\n[A]Con quella faccia che lo appenderesti [D]contro il muro\n\n[BRIDGE]\n[Bm]Entro in saletta sono tutti [F#m]già al lavoro\n[G]Non sto fermo un attimo ma son stanco [D]più io di loro\n[Bm]e se mi chiedono di scendere [F#m]di un tono\n[G]Non ne sono capace \nAllora urlo un poco [A]meno \n\n[CHORUS]\n[D]Poi scatta [A]qualcosa che non so spiegare[G]\n[D]Una strana[A] alchimia che ci fa respirare[G]\n[Bm]Uno, due, due, quattro e si va via[F#m]\n[G]Si fa musica[A] davvero ed è magia[D]\n\nSTACCO GUITAR: \n[D]    [A]    [G]    [D]    [A]    [G]\n[D]Entro in saletta sono tutti già al lavoro[G]\n[D]Tra cavi fumo e sogni lasciati fuori dalla porta [A]loro\n[G]e se mi chiedono di [D]abbassare ancora\n[A]Stringo i denti e canto fino all'ul[D]tima ora\n\n[CHORUS]\n[D]Poi scatta q[A]ualcosa che non so spiegare[G] \n[D]Una scintilla[A] viva che ci fa dimenticare[G]\n[Bm]Uno, due, tre, quattro e così sia[F#m]\n[G]Si fa musica su[A]l serio ed è magia[D]\n\n[SOLO GUITAR]\n[D]    [A]    [G]    [D]    [A]    [G]    [Bm]     [F#m]      [G]    [A]    [D]\n(solo guitar acustica) \n\n[CHORUS]\n[D]Poi scatta qualcosa ch[A]e non [G]so spiegare\n[D]È davvero quell'alc[A]himia che [G]non si può toccare\n\n(TUTTI) \n[Bm]Uno, due, tre, quattro Follia è [F#m]poesia\nS[G]i fa [A]musica insieme ed è magia[D]\n\n[OUTRO GUITAR]\n| D | A | G | D | A | G | D |",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T09:59:11.815351+00:00",
+  "updated_at": "2026-11-08T09:59:11.815351+00:00"
+}

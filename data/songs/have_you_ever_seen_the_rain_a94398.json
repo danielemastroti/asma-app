@@ -1,0 +1,28 @@
+{
+  "uuid": "have_you_ever_seen_the_rain_a94398",
+  "title": "Have You Ever Seen the Rain?",
+  "artist": "Creedence Clearwater Revival",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "DO",
+  "key_current": "DO",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "Intro:\n[LAm]     [FA]    [DO]    [SOL]     [DO]\n [DO]Someone told me long ago\n\nThere's a calm before the storm\nI [SOL]know.. It's been comin' [DO]for some time\n\nWhen it's over, so they say\n\nIt'll rain a sunny day\nI [SOL]know.. Shinin' down like [DO]water\n\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]Comin' [SOL]down on a sunny [DO]day?\n\n [DO]Yesterday, and days before\n\nSun is cold and rain is hard,\nI [SOL]know.. Been that way for [DO]all my time\n\n'Til forever, on it goes\n\nThrough the circle, fast and slow,\nI [SOL]know.. It can't stop, I [DO]wonder\n\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]Comin' [SOL]down on a sunny [DO]day?\n\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]I want to [SOL]know\nHave you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]\n [FA]Comin' [SOL]down on a sunny [DO]day?  [SOL]     [DO]",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T09:59:11.750341+00:00",
+  "updated_at": "2026-11-08T09:59:11.750341+00:00"
+}

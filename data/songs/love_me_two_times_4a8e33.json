@@ -1,0 +1,28 @@
+{
+  "uuid": "love_me_two_times_4a8e33",
+  "title": "Love Me Two Times",
+  "artist": "The Doors",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "MI minore",
+  "key_current": "MI minore",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "Intro (tonalità originale):\n\n[MI7] \ne|-------------------------------------------|\nB|-------------------------------------------|\nG|-------------------------0t1--------0t1----|\nD|---0----2-----0-2--------------------------|\nA|-2----2----2(0)----2--2-------2--2---------|\nE|-------------------0--0------------------0-|\n\nLove me two times [MI7]baby, love me twice today\nLove me two times [LA7]girl\nI'm goin' [MI7]away\nLove me two times [RE7]girl\nOne for tomorrow, one just for today [DO7]\n\n[SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7]away\n\nLove me one time, [MI7]could not speak\nLove me one time [LA7]\nYeah, my knees got [MI7]weak\nLove me two times [RE7]girl\nLast me all through the week [DO7]\n\n[SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7/9+]away\n[SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7]away\n\nStrumentale:\n[MI7]      [LA7]       [MI7]\n[RE7]      [DO7]\n[SOL]     [RE7]     [DO7]    [SI7]       [MI7/9+]\n[SOL]     [RE7]     [DO7]    [SI7]       [MI7]\n Love me one time, [MI7]could not speak\n Love me one time [LA7]baby\n Yeah, my knees got [MI7]weak\n Love me two times [RE7]girl\n Last me all through the week [DO7]\n\n [SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7/9+]away\n [SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7]away\n\n Love me two times [MI7]baby, love me twice today\n Love me two times [LA7]girl\n I'm [MI7]goin' away\n Love me two times [RE7]girl\n One for tomorrow, one just for today [DO7]\n\n [SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7/9+]away\n [SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7/9+]away\n [SOL]Love me two [RE7]times   [DO7]I'm [SI7]goin' [MI7/9+]away",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T09:59:11.782789+00:00",
+  "updated_at": "2026-11-08T09:59:11.782789+00:00"
+}

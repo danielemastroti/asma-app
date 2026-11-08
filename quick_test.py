@@ -67,11 +67,14 @@ I've come to talk with you again"""
 
     # 3. Test Storage & Multi-Criteria SQL Search (< 2ms)
     print("\n--- 3. TEST STORAGE & IN-MEMORY SQLITE INDEX (< 2ms) ---")
-    storage = StorageManager()
+    import tempfile, shutil
+    test_temp = tempfile.mkdtemp()
+    StorageManager._instance = None
+    storage = StorageManager(data_dir=test_temp)
 
-    s1 = Song(title="Hotel California", artist="Eagles", genre="Rock", key_current="Bm", bpm=74, tags=["live", "chitarra"])
-    s2 = Song(title="Canzone per un'amica", artist="Nomadi", genre="Cantautore", key_current="G", bpm=92, tags=["live", "classico"])
-    s3 = Song(title="Sultans of Swing", artist="Dire Straits", genre="Rock", key_current="Dm", bpm=148, tags=["assolo"])
+    s1 = Song(title="Test Song Rock", artist="Band Test", genre="Rock", key_current="Bm", bpm=74, tags=["live", "chitarra"])
+    s2 = Song(title="Test Song Acoustic", artist="Band Test", genre="Cantautore", key_current="G", bpm=92, tags=["live", "classico"])
+    s3 = Song(title="Test Song Solo", artist="Band Test", genre="Rock", key_current="Dm", bpm=148, tags=["assolo"])
 
     storage.save_song(s1, user_name="Daniele", revision_comment="Caricamento iniziale")
     storage.save_song(s2, user_name="Roberto", revision_comment="Caricamento iniziale")
@@ -109,6 +112,8 @@ I've come to talk with you again"""
     print(f"• Daniele riprova: {msg3}")
 
     lock_mgr.release_lock(song_uuid, "daniele@band.org")
+    StorageManager._instance = None
+    shutil.rmtree(test_temp, ignore_errors=True)
 
     print("\n" + "=" * 65)
     print("   TUTTI I TEST DEI MODULI CORE SONO STATI COMPLETATI CON SUCCESSO!")

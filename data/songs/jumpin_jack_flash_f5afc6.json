@@ -1,0 +1,28 @@
+{
+  "uuid": "jumpin_jack_flash_f5afc6",
+  "title": "Jumpin’ Jack Flash",
+  "artist": "The Rolling Stones",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "MI",
+  "key_current": "MI",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "Intro:\n[SI]     [MI]   [LA]    [SI]     [MI]   [LA]\n[SI]     [MI]   [LA]    [SI]\nI was [SI]born in a crossfire hurricane\n\nAnd I howled at my ma in the driving rain\nBut it's [RE]all [LA]right [MI]now, in fact it's a [SI]gas\nBut it's [RE]all [LA]right\nI'm [MI]Jumpin' Jack Flash, it's a [SI]gas, gas, gas\n\nI was [SI]raised by a toothless, bearded hag\n\nI was schooled with a strap right across my back\nBut it's [RE]all [LA]right [MI]now, in fact it's a [SI]gas\nBut it's [RE]all [LA]right\nI'm [MI]Jumpin' Jack Flash, it's a [SI]gas, gas, gas\n\n[SI]     [MI]   [LA]   [SI]     [MI]   [LA]   [SI]     [MI]   [LA]   [SI]     [MI]   [LA]   [SI]\nI was [SI]drowned, I was washed up and left for dead\n\nI fell down, to my feet and I saw they bled\n\nYeah, and I frowned at the crumbs\n\nof a crust of bread, yeah yeah\n\nYeah, I was crowned with a spike\n\nright through my head\nBut it's [RE]all [LA]right [MI]now, in fact it's a [SI]gas\nBut it's [RE]all [LA]right\nI'm [MI]Jumpin' Jack Flash, it's a [SI]gas, gas, gas\n\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas\n[SI]Jumpin' Jack Flash, [MI]it's a [LA]gas...",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T09:59:11.780380+00:00",
+  "updated_at": "2026-11-08T09:59:11.780380+00:00"
+}

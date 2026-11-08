@@ -26,13 +26,13 @@ class TestStorageManager(unittest.TestCase):
     def test_save_and_retrieve_song(self):
         """Test song persistence and automatic revision creation."""
         song = Song(
-            title="Sultans of Swing",
+            title="Test Mock Song Alpha",
             artist="Dire Straits",
             author="Mark Knopfler",
             genre="Rock",
             bpm=148,
             key_current="Dm",
-            aml_content="{title: Sultans of Swing}\n[Dm]You get a shiver in the dark"
+            aml_content="{title: Test Mock Song Alpha}\n[Dm]You get a shiver in the dark"
         )
         saved = self.storage.save_song(song, user_email="daniele@band.org", user_name="Daniele")
         self.assertEqual(saved.current_revision, 1)
@@ -40,7 +40,7 @@ class TestStorageManager(unittest.TestCase):
         # Retrieve
         fetched = self.storage.get_song(saved.uuid)
         self.assertIsNotNone(fetched)
-        self.assertEqual(fetched.title, "Sultans of Swing")
+        self.assertEqual(fetched.title, "Test Mock Song Alpha")
         self.assertEqual(fetched.key_current, "Dm")
 
         # Verify revision history
@@ -129,6 +129,15 @@ class TestStorageManager(unittest.TestCase):
         def_rep_updated = next(r for r in self.storage.list_repertoires() if r.uuid == def_rep.uuid)
         self.assertIn(song.uuid, def_rep_updated.song_uuids)
 
+
+    def test_repertoire_duplicate_name_rejected(self):
+        """Test that creating a repertoire with a duplicate name is strictly rejected."""
+        rep1 = Repertoire(name="Repertorio Esclusivo")
+        self.storage.save_repertoire(rep1)
+
+        rep_dup = Repertoire(name="  repertorio esclusivo  ")
+        with self.assertRaises(ValueError):
+            self.storage.save_repertoire(rep_dup)
 
     def test_delete_repertoire_and_setlist(self):
         """Test deleting repertoires and setlists cleanly without losing songs."""

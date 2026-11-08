@@ -51,8 +51,10 @@ L'auto veloce correva
     def test_changelog_engine(self):
         """SRS Cap. 4.10: Single version per day ISO format AAAA.MM.GG."""
         version = ChangelogEngine.get_latest_version()
-        self.assertEqual(version, "2026.11.05")
+        self.assertRegex(version, r"^\d{4}\.\d{2}\.\d{2}$")
+        self.assertEqual(version, "2026.11.08")
         md = ChangelogEngine.get_changelog_markdown()
+        self.assertIn("Versione 2026.11.08", md)
         self.assertIn("Versione 2026.11.05", md)
         self.assertIn("Nuove Funzionalità", md)
 

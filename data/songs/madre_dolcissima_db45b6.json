@@ -1,0 +1,28 @@
+{
+  "uuid": "madre_dolcissima_db45b6",
+  "title": "Madre Dolcissima",
+  "artist": "Zucchero",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "MI minore",
+  "key_current": "MI minore",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "Intro:\n[La]    [Sol6]      [Re]    [Do6]\n[La]    [Sol]     [Re]    [Do]\n[La]Niente di nuovo[Sol6]      [Re]\ntranne l'af[Do]fitto per [La]me   [Sol6]      [Re]    [Do6]\n[La]che mi ritrovo[Sol]     [Re]\nMib Mib [Do]riperdo [La]perché[Sol]     [Re]    [Do]\n[La]non ho più un Dio non ho\n [Fa6]e ho perso l'anima\n [La]vago nel vento [Do/Re]\n\nvado però!\n[La]Niente di nuovo[Sol]     [Re]\ntranne l'af[Do]fitto per [La]me   [Sol6]      [Readd9]        [Do]\n[La]che ci riprovo[Sol]     [Re]\ne non [Do]capisco cos'[La]è   [Sol6]      [Readd9]        [Do]\nti [La]amo perché ne ho bisogno\n [Fa6]non perché ho bisogno di te\n  [La]io vago nel vento\n  [Do/Re]vado però!\n\n[La]Mama[Sol6]      [Re]salvami l'ani[Do]ma\n[La]Mama[Sol6]      [Re]salvami l'ani[Do]ma\n[La]Mama[Sol6]      [Re]salvami l'ani[Do]ma\n[La]Mama[Sol6]      [Re]salvami l'anim[Do]a salvami l'anima\n\n[La]Niente di nuovo [Sol]man    [Re]\ntranne l'af[Do]fitto per [La]me   [Sol]     [Re]    [Do]\ne [La]non è per [Sol]caso    [Re]che\nvengo in [Do]ginocchio da [La]te  [Sol]     [Re]    [Do]\n[La]madre dolcissima\n [Fa6]carezzami la testa\n [La]che vado nel vento\n [Do/Re]vago però!\n\n[La]Mama[Sol6]      [Re]salvami l'ani[Do]ma\n[La]Mama[Sol6]      [Re]salvami l'ani[Do]ma\n[La]Mama[Sol6]      [Re]salvami l'ani[Do6]ma\n[La]Mama[Sol6]      [Re]salvami l'anim[Do]a salvami l'anima\n\n| La | Sol6 | Re | Do |",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-08T09:59:11.770999+00:00",
+  "updated_at": "2026-11-08T09:59:11.770999+00:00"
+}

@@ -259,7 +259,7 @@ class AMLParser:
                 if valid_chords > 0 and (valid_chords == len(tokens) or (valid_chords / len(tokens)) >= 0.75):
                     chord_segs = []
                     for t in tokens:
-                        chord_segs.append(LyricSegment(" ", chord=ChordToken(t)))
+                        chord_segs.append(LyricSegment("   ", chord=ChordToken(t)))
                     nodes.append(ChordLyricLineNode(chord_segs))
                     continue
 

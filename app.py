@@ -2654,12 +2654,20 @@ elif menu_choice == "📚 Repertori":
             new_r_name = st.text_input("Nome:", placeholder="Es. Repertorio Acustico")
             new_r_desc = st.text_input("Descrizione:", placeholder="Brani per set acustico")
             if st.button("Crea Repertorio", type="primary", disabled=not current_user.can_edit()):
-                if new_r_name:
-                    created_rep = Repertoire(name=new_r_name, description=new_r_desc)
-                    storage.save_repertoire(created_rep, current_user.email, current_user.name)
-                    log_op("📚", "REPERTORIO", f"Creato nuovo repertorio '{new_r_name}'", "SUCCESS")
-                    st.success(f"Repertorio '{new_r_name}' creato!")
-                    st.rerun()
+                clean_name = (new_r_name or "").strip()
+                if not clean_name:
+                    st.error("Inserisci un nome valido per il repertorio.")
+                elif any(r.name.strip().lower() == clean_name.lower() for r in repertoires):
+                    st.error(f"Un repertorio con il nome '{clean_name}' esiste già. I nomi dei repertori devono essere univoci.")
+                else:
+                    try:
+                        created_rep = Repertoire(name=clean_name, description=new_r_desc)
+                        storage.save_repertoire(created_rep, current_user.email, current_user.name)
+                        log_op("📚", "REPERTORIO", f"Creato nuovo repertorio '{clean_name}'", "SUCCESS")
+                        st.success(f"Repertorio '{clean_name}' creato!")
+                        st.rerun()
+                    except ValueError as err:
+                        st.error(str(err))
 
         if selected_rep:
             with st.popover("🗑️ Elimina Repertorio", width="stretch"):
