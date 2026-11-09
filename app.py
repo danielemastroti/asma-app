@@ -159,6 +159,14 @@ st.markdown("""
     width: auto !important;
   }
 
+  /* Brand column: dedicated auto-fit box so it never collides or overlaps user profile */
+  div[class*="st-key-top_navbar_container"] [data-testid="stColumn"]:first-child,
+  div[class*="st-key-top_navbar_container"] div[data-testid="stColumn"]:first-child {
+    flex: 0 0 auto !important;
+    min-width: 140px !important;
+    max-width: 180px !important;
+  }
+
   /* Compact popovers in top navbar - side-by-side on the top right */
   div[class*="st-key-top_navbar_container"] [data-testid="stPopover"] {
     display: inline-block !important;
@@ -1426,11 +1434,14 @@ with st.container(key="top_navbar_container"):
         logo_b64 = get_band_logo_b64()
         logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:26px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
         st.markdown(
-            f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:8px;'>
+            f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:7px; max-width:100%; overflow:hidden;'>
               {logo_img_tag}
-              <div style='line-height:1.15;'>
-                <span style='font-size:12.5px; font-weight:800; color:#FFFFFF; letter-spacing:0.3px; display:block;'>THE New ASMA</span>
-                <span style='font-size:8.5px; color:#00E676; font-weight:700; letter-spacing:0.5px;'>● ONLINE</span>
+              <div style='display:flex; flex-direction:column; justify-content:center; line-height:1.1; min-width:0;'>
+                <span style='font-size:12px; font-weight:800; color:#FFFFFF; letter-spacing:0.3px; white-space:nowrap;'>THE New ASMA</span>
+                <span style='font-size:8.5px; color:#00E676; font-weight:700; letter-spacing:0.4px; display:flex; align-items:center; gap:3px; white-space:nowrap;'>
+                  <span style='display:inline-block; width:5px; height:5px; background:#00E676; border-radius:50%; box-shadow:0 0 4px #00E676;'></span>
+                  ONLINE
+                </span>
               </div>
             </div>""",
             unsafe_allow_html=True
