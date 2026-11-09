@@ -82,81 +82,101 @@ class PreferencesManager:
             pass
 
     def _sync_from_cloud(self) -> None:
-        """Pulls all user-device preference records from Turso Cloud on startup."""
+        """Pulls all user-device preference records from Turso Cloud on startup synchronously."""
         if not self.turso.is_configured:
             return
 
-        def _bg_pull():
-            try:
-                records = self.turso.fetch_all_user_preferences()
-                with self._mutex:
-                    for rec in records:
-                        email = rec.get("email", "").lower().strip()
-                        dev_name = rec.get("device_name", "")
-                        if not email or not dev_name:
-                            continue
-                        if email not in self._cache:
-                            self._cache[email] = {
-                                "last_active_device": dev_name,
-                                "devices": {},
-                                "user_prefs": {}
-                            }
-
-                        if "user_prefs" not in self._cache[email]:
-                            self._cache[email]["user_prefs"] = {}
-
-                        if rec.get("is_last_active"):
-                            self._cache[email]["last_active_device"] = dev_name
-
-                        # Extract layout preferences
-                        dev_prefs = {
-                            "layout_font_size": rec.get("font_size_lyrics", 12),
-                            "layout_font_size_chords": rec.get("font_size_chords", 13),
-                            "layout_columns": rec.get("columns", 1),
-                            "layout_margin_lateral": rec.get("margin_lateral_mm", 10),
-                            "layout_margin_top": rec.get("margin_top_mm", 8),
-                            "layout_margin_bottom": rec.get("margin_bottom_mm", 8),
-                            "layout_color_text": rec.get("color_text", "#111111"),
-                            "layout_color_chords": rec.get("color_chords", "#B71C1C"),
-                            "layout_color_aml": rec.get("color_aml", "#4A148C"),
-                            "ui_zoom_level": rec.get("zoom_level", 1.0),
-                            "updated_at": rec.get("updated_at", "")
+        try:
+            records = self.turso.fetch_all_user_preferences()
+            with self._mutex:
+                for rec in records:
+                    email = rec.get("email", "").lower().strip()
+                    dev_name = rec.get("device_name", "")
+                    if not email or not dev_name:
+                        continue
+                    if email not in self._cache:
+                        self._cache[email] = {
+                            "last_active_device": dev_name,
+                            "devices": {},
+                            "user_prefs": {}
                         }
 
-                        # Also retain any extra custom keys in dev_prefs and user_prefs
-                        for k, v in rec.items():
-                            if k not in dev_prefs and k not in (
-                                "email", "device_name", "font_size_lyrics", "font_size_chords",
-                                "columns", "margin_lateral_mm", "margin_top_mm", "margin_bottom_mm",
-                                "color_text", "color_chords", "color_aml", "zoom_level",
-                                "is_last_active", "updated_at", "extra_json"
-                            ):
-                                dev_prefs[k] = v
-                                # If it's a user preference like table columns, populate user_prefs
-                                if k.startswith("table_") or k.endswith("_columns") or k == "user_prefs":
-                                    if k == "user_prefs" and isinstance(v, dict):
-                                        self._cache[email]["user_prefs"].update(v)
-                                    else:
-                                        self._cache[email]["user_prefs"][k] = v
+                    if "user_prefs" not in self._cache[email]:
+                        self._cache[email]["user_prefs"] = {}
 
-                        self._cache[email]["devices"][dev_name] = dev_prefs
-                    self._save_cache()
-            except Exception:
-                pass
+                    if rec.get("is_last_active"):
+                        self._cache[email]["last_active_device"] = dev_name
 
-        t = threading.Thread(target=_bg_pull, daemon=True)
-        t.start()
+                    # Extract layout preferences
+                    dev_prefs = {
+                        "layout_font_size": rec.get("font_size_lyrics", 12),
+                        "layout_font_size_chords": rec.get("font_size_chords", 13),
+                        "layout_columns": rec.get("columns", 1),
+                        "layout_margin_lateral": rec.get("margin_lateral_mm", 10),
+                        "layout_margin_top": rec.get("margin_top_mm", 8),
+                        "layout_margin_bottom": rec.get("margin_bottom_mm", 8),
+                        "layout_color_text": rec.get("color_text", "#111111"),
+                        "layout_color_chords": rec.get("color_chords", "#B71C1C"),
+                        "layout_color_aml": rec.get("color_aml", "#4A148C"),
+                        "ui_zoom_level": rec.get("zoom_level", 1.0),
+                        "updated_at": rec.get("updated_at", "")
+                    }
+
+                    # Also retain any extra custom keys in dev_prefs and user_prefs
+                    for k, v in rec.items():
+                        if k not in dev_prefs and k not in (
+                            "email", "device_name", "font_size_lyrics", "font_size_chords",
+                            "columns", "margin_lateral_mm", "margin_top_mm", "margin_bottom_mm",
+                            "color_text", "color_chords", "color_aml", "zoom_level",
+                            "is_last_active", "updated_at", "extra_json"
+                        ):
+                            dev_prefs[k] = v
+                            if k.startswith("table_") or k.endswith("_columns") or k == "user_prefs":
+                                if k == "user_prefs" and isinstance(v, dict):
+                                    self._cache[email]["user_prefs"].update(v)
+                                else:
+                                    self._cache[email]["user_prefs"][k] = v
+
+                    self._cache[email]["devices"][dev_name] = dev_prefs
+                self._save_cache()
+        except Exception:
+            pass
 
     def get_last_active_device(self, user_email: str) -> Optional[str]:
-        """Returns the last active device used by the specified user."""
+        """Returns the last active device used by the specified user from cache or Turso Cloud."""
         email_clean = user_email.lower().strip()
         with self._mutex:
-            if email_clean in self._cache:
+            if email_clean in self._cache and self._cache[email_clean].get("last_active_device"):
                 return self._cache[email_clean].get("last_active_device")
+
+        if self.turso.is_configured:
+            try:
+                records = self.turso.fetch_all_user_preferences(email_clean)
+                for r in records:
+                    if r.get("is_last_active"):
+                        dev = r.get("device_name")
+                        with self._mutex:
+                            if email_clean not in self._cache:
+                                self._cache[email_clean] = {"last_active_device": dev, "devices": {}, "user_prefs": {}}
+                            else:
+                                self._cache[email_clean]["last_active_device"] = dev
+                            self._save_cache()
+                        return dev
+                if records:
+                    dev = records[0].get("device_name")
+                    with self._mutex:
+                        if email_clean not in self._cache:
+                            self._cache[email_clean] = {"last_active_device": dev, "devices": {}, "user_prefs": {}}
+                        else:
+                            self._cache[email_clean]["last_active_device"] = dev
+                        self._save_cache()
+                    return dev
+            except Exception:
+                pass
         return None
 
     def set_last_active_device(self, user_email: str, device_name: str) -> None:
-        """Marks the specified device as active for this user and pushes to Turso."""
+        """Marks the specified device as active for this user in cache and Turso."""
         email_clean = user_email.lower().strip()
         with self._mutex:
             if email_clean not in self._cache:
@@ -170,17 +190,15 @@ class PreferencesManager:
             self._save_cache()
 
         if self.turso.is_configured:
-            def _push_active():
-                try:
-                    self.turso.set_last_active_device(email_clean, device_name)
-                except Exception:
-                    pass
-            threading.Thread(target=_push_active, daemon=True).start()
+            try:
+                self.turso.set_last_active_device(email_clean, device_name)
+            except Exception:
+                pass
 
     def get_preferences(self, user_email: str, device_name: str) -> Dict[str, Any]:
         """
         Retrieves all layout & typography preferences for a specific (user, device) pair.
-        If no customization exists yet, defaults to the optimal hardware profile from DeviceManager.
+        Checks local cache first, then Turso Cloud DB, and only defaults if neither has records.
         """
         email_clean = user_email.lower().strip()
         with self._mutex:
@@ -188,6 +206,24 @@ class PreferencesManager:
             dev_data = user_data.get("devices", {}).get(device_name)
             if dev_data:
                 return dict(dev_data)
+
+        # Direct Turso fallback before seeding hardware defaults
+        if self.turso.is_configured:
+            try:
+                cloud_rec = self.turso.fetch_user_device_preference(email_clean, device_name)
+                if cloud_rec:
+                    with self._mutex:
+                        if email_clean not in self._cache:
+                            self._cache[email_clean] = {
+                                "last_active_device": device_name,
+                                "devices": {},
+                                "user_prefs": {}
+                            }
+                        self._cache[email_clean]["devices"][device_name] = dict(cloud_rec)
+                        self._save_cache()
+                    return dict(cloud_rec)
+            except Exception:
+                pass
 
         # Generate base hardware defaults for this specific device
         dev_mgr = DeviceManager()
@@ -213,7 +249,7 @@ class PreferencesManager:
             "ui_zoom_level": zoom
         }
 
-        # Save seeded defaults to cache
+        # Save seeded defaults to cache and push to Turso
         with self._mutex:
             if email_clean not in self._cache:
                 self._cache[email_clean] = {
@@ -224,6 +260,17 @@ class PreferencesManager:
             self._cache[email_clean]["devices"][device_name] = dict(default_prefs)
             self._save_cache()
 
+        if self.turso.is_configured:
+            try:
+                self.turso.push_user_device_preference(
+                    email=email_clean,
+                    device_name=device_name,
+                    prefs=default_prefs,
+                    is_last_active=True
+                )
+            except Exception:
+                pass
+
         return default_prefs
 
     def save_preferences(
@@ -233,7 +280,7 @@ class PreferencesManager:
         updated_prefs: Dict[str, Any]
     ) -> None:
         """
-        Saves layout preferences for (user, device) in local cache and pushes to Turso Cloud.
+        Saves layout preferences for (user, device) in local cache and pushes to Turso Cloud synchronously.
         """
         email_clean = user_email.lower().strip()
         with self._mutex:
@@ -251,19 +298,17 @@ class PreferencesManager:
             full_prefs = dict(self._cache[email_clean]["devices"][device_name])
             self._save_cache()
 
-        # Push to Turso Cloud
+        # Push to Turso Cloud immediately so that subsequent reboots/logins have the new values
         if self.turso.is_configured:
-            def _bg_push():
-                try:
-                    self.turso.push_user_device_preference(
-                        email=email_clean,
-                        device_name=device_name,
-                        prefs=full_prefs,
-                        is_last_active=True
-                    )
-                except Exception:
-                    pass
-            threading.Thread(target=_bg_push, daemon=True).start()
+            try:
+                self.turso.push_user_device_preference(
+                    email=email_clean,
+                    device_name=device_name,
+                    prefs=full_prefs,
+                    is_last_active=True
+                )
+            except Exception:
+                pass
 
     def get_user_preference(self, user_email: str, key: str, default: Any = None) -> Any:
         """

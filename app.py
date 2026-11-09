@@ -45,14 +45,24 @@ st.components.v1.html(
     try {{
       var frame = window.frameElement;
       if (frame) {{
-        frame.style.display = 'none';
+        frame.style.width = '0px';
         frame.style.height = '0px';
+        frame.style.opacity = '0';
+        frame.style.position = 'absolute';
+        frame.style.left = '-9999px';
+        frame.style.border = 'none';
         frame.style.margin = '0px';
         frame.style.padding = '0px';
-        frame.style.border = 'none';
+        frame.style.pointerEvents = 'none';
         var p = frame.parentElement;
         if (p && p.classList.contains('element-container')) {{
-          p.style.display = 'none';
+          p.style.width = '0px';
+          p.style.height = '0px';
+          p.style.margin = '0px';
+          p.style.padding = '0px';
+          p.style.position = 'absolute';
+          p.style.left = '-9999px';
+          p.style.overflow = 'hidden';
         }}
       }}
     }} catch(e) {{}}
@@ -80,13 +90,29 @@ st.markdown("""
   [data-testid="stDecoration"],
   [data-testid="stToolbar"],
   [data-testid="manage-app-button"],
+  #manage-app-button,
+  [aria-label*="Manage app"],
+  button[aria-label*="Manage app"],
   div[class*="viewerBadge"],
+  div[class*="styles_viewerBadge"],
+  div[class*="manageApp"],
+  div[class*="HostBadge"],
+  div[class*="FloatingBadge"],
+  div[class*="embeddedAppMetaInfoBar"],
   div[class*="stDeployButton"],
   [data-testid="stAppDeployButton"],
   .viewerBadge_container__1S-k-,
+  .viewerBadge_container__1QSob,
+  .styles_viewerBadge__1yB5_,
   .viewerBadge_link__qRIco,
+  .viewerBadge_link__1S137,
+  a[class*="viewerBadge"],
   a[href*="github.com"],
-  a[href*="streamlit.io"] {
+  a[href*="streamlit.io"],
+  img[src*="githubusercontent.com"],
+  img[src*="identicon"],
+  #GithubIcon,
+  svg[class*="viewerBadge"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -96,6 +122,8 @@ st.markdown("""
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
   }
 
   /* Make central page span full width with HTML-frame fixed top header */

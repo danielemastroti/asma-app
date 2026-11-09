@@ -19,14 +19,48 @@ MOBILE_DROPDOWN_GUARD_JS = """
         rootDocs.push(window.parent.document);
       }
     } catch(e) {}
+    try {
+      if (window.top && window.top.document && rootDocs.indexOf(window.top.document) === -1) {
+        rootDocs.push(window.top.document);
+      }
+    } catch(e) {}
 
     rootDocs.forEach(function(targetDoc) {
       if (!targetDoc || targetDoc.__asma_dropdown_guard_installed) return;
       targetDoc.__asma_dropdown_guard_installed = true;
 
+      try {
+        if (targetDoc.head && !targetDoc.getElementById('asma-purge-badges-css')) {
+          var stEl = targetDoc.createElement('style');
+          stEl.id = 'asma-purge-badges-css';
+          stEl.textContent = [
+            'footer, [data-testid="stFooter"], #MainMenu,',
+            '[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"],',
+            '[data-testid="manage-app-button"], #manage-app-button,',
+            '[aria-label*="Manage app"], button[aria-label*="Manage app"],',
+            'div[class*="viewerBadge"], div[class*="styles_viewerBadge"],',
+            'div[class*="manageApp"], div[class*="HostBadge"], div[class*="FloatingBadge"],',
+            'div[class*="embeddedAppMetaInfoBar"], div[class*="stDeployButton"],',
+            'a[class*="viewerBadge"], a[href*="github.com"], a[href*="streamlit.io"],',
+            'img[src*="githubusercontent.com"], img[src*="identicon"], #GithubIcon, svg[class*="viewerBadge"] {',
+            '  display: none !important;',
+            '  visibility: hidden !important;',
+            '  opacity: 0 !important;',
+            '  pointer-events: none !important;',
+            '  width: 0 !important;',
+            '  height: 0 !important;',
+            '  margin: 0 !important;',
+            '  padding: 0 !important;',
+            '  position: absolute !important;',
+            '  left: -9999px !important;',
+            '}'
+          ].join(' ');
+          targetDoc.head.appendChild(stEl);
+        }
+      } catch(e) {}
+
       function guardSelectInput(inp) {
         if (!inp) return;
-        // Suppress on-screen virtual keyboard on touch/mobile devices
         inp.setAttribute('inputmode', 'none');
         inp.setAttribute('readonly', 'readonly');
         inp.readOnly = true;
@@ -61,7 +95,11 @@ MOBILE_DROPDOWN_GUARD_JS = """
             '[aria-label*="Manage app"]',
             'button[aria-label*="Manage app"]',
             'img[src*="githubusercontent.com"]',
-            '#GithubIcon'
+            'img[src*="identicon"]',
+            '#GithubIcon',
+            'div[class*="manageApp"]',
+            'div[class*="embeddedAppMetaInfoBar"]',
+            'div[class*="HostBadge"]'
           ].join(',');
           var badEls = targetDoc.querySelectorAll(sel);
           for (var j = 0; j < badEls.length; j++) {
@@ -69,14 +107,27 @@ MOBILE_DROPDOWN_GUARD_JS = """
             badEls[j].style.setProperty('visibility', 'hidden', 'important');
             try { badEls[j].remove(); } catch(e) {}
           }
+
+          var floatingCandidates = targetDoc.querySelectorAll('body > div, body > a, body > button, #root ~ div');
+          for (var k = 0; k < floatingCandidates.length; k++) {
+            var el = floatingCandidates[k];
+            if (!el || el.id === 'root' || el.hasAttribute('data-baseweb')) continue;
+            var txt = (el.innerText || el.textContent || '').toLowerCase();
+            var h = el.innerHTML || '';
+            if (txt.indexOf('manage app') !== -1 || txt.indexOf('streamlit') !== -1 ||
+                h.indexOf('githubusercontent') !== -1 || h.indexOf('identicon') !== -1 ||
+                h.indexOf('streamlit.io') !== -1 || h.indexOf('github.com') !== -1) {
+              el.style.setProperty('display', 'none', 'important');
+              el.style.setProperty('visibility', 'hidden', 'important');
+              try { el.remove(); } catch(e) {}
+            }
+          }
         } catch(err) {}
       }
 
-      // Initial scan
       scanAllSelectboxes();
       removeBottomBadgesAndLogos();
 
-      // Intercept touch and pointer down on capture phase before browser displays virtual keyboard
       var handleTouch = function(e) {
         var target = e.target;
         if (!target) return;
@@ -102,7 +153,6 @@ MOBILE_DROPDOWN_GUARD_JS = """
         }
       }, { capture: true });
 
-      // Observe React dynamic rendering
       if (window.MutationObserver && targetDoc.body) {
         var observer = new MutationObserver(function() {
           scanAllSelectboxes();
@@ -110,6 +160,8 @@ MOBILE_DROPDOWN_GUARD_JS = """
         });
         observer.observe(targetDoc.body, { childList: true, subtree: true });
       }
+
+      setInterval(removeBottomBadgesAndLogos, 300);
     });
   }
 
