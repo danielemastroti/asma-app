@@ -71,6 +71,33 @@ st.markdown("""
     display: none !important;
   }
 
+  /* Completely eliminate bottom clickable logos (GitHub, Streamlit), footer, badges, and headers */
+  footer,
+  [data-testid="stFooter"],
+  #MainMenu,
+  header [data-testid="stHeader"],
+  [data-testid="stStatusWidget"],
+  [data-testid="stDecoration"],
+  [data-testid="stToolbar"],
+  [data-testid="manage-app-button"],
+  div[class*="viewerBadge"],
+  div[class*="stDeployButton"],
+  [data-testid="stAppDeployButton"],
+  .viewerBadge_container__1S-k-,
+  .viewerBadge_link__qRIco,
+  a[href*="github.com"],
+  a[href*="streamlit.io"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
   /* Make central page span full width with HTML-frame fixed top header */
   [data-testid="stAppViewContainer"],
   section[data-testid="stMain"],
@@ -3829,8 +3856,12 @@ elif menu_choice == "📑 Scalette Live":
     # -------------------------------------------------------------------------
     # MAIN WORKSPACE: TABS (Mobile Friendly: Full Width Ordine di Palco & Aggiungi)
     # -------------------------------------------------------------------------
+    just_added_feedback = st.session_state.pop("setlist_song_just_added", None)
+    if just_added_feedback:
+        st.toast(f"✅ Inserito: {just_added_feedback['title']} (#{just_added_feedback['pos']}) in scaletta!", icon="🎵")
+
     tab_sequence, tab_add_rep = st.tabs([
-        f"🎤 Ordine di Palco ({len(active_setlist.items)} Brani)",
+        "🎤 Ordine di Palco",
         "📚 Aggiungi Brani dai Repertori"
     ])
 
@@ -3847,6 +3878,13 @@ elif menu_choice == "📑 Scalette Live":
             </div>""",
             unsafe_allow_html=True
         )
+
+        if just_added_feedback:
+            st.success(
+                f"✅ Brano **'{just_added_feedback['title']}'** "
+                f"{('(' + just_added_feedback['artist'] + ')') if just_added_feedback.get('artist') else ''} "
+                f"inserito con successo in scaletta alla posizione **#{just_added_feedback['pos']}**! (Totale: {len(active_setlist.items)} brani)"
+            )
 
         rep_choices = {"__all__": "🌐 Tutti i Repertori (Archivio Globale)"}
         for r in all_reps:
@@ -3889,8 +3927,13 @@ elif menu_choice == "📑 Scalette Live":
                     active_setlist.items.append(SetlistItem(song_uuid=add_song_pick))
                     storage.save_setlist(active_setlist, current_user.email, current_user.name)
                     st.session_state["undo_removed_setlist_item"] = None
-                    log_op("➕", "SCALETTA", f"Aggiunto '{cand_map[add_song_pick]['title']}' a scaletta '{active_setlist.title}'", "INFO")
-                    st.success(f"Aggiunto '{cand_map[add_song_pick]['title']}'!")
+                    st.session_state["setlist_song_just_added"] = {
+                        "title": cand_map[add_song_pick]['title'],
+                        "artist": cand_map[add_song_pick].get('artist', ''),
+                        "pos": len(active_setlist.items),
+                        "setlist": active_setlist.title
+                    }
+                    log_op("➕", "SCALETTA", f"Aggiunto '{cand_map[add_song_pick]['title']}' a scaletta '{active_setlist.title}' (Pos #{len(active_setlist.items)})", "INFO")
                     st.rerun()
 
             # Accordion / Quick List of songs in the chosen repertoire
@@ -3917,7 +3960,13 @@ elif menu_choice == "📑 Scalette Live":
                             active_setlist.items.append(SetlistItem(song_uuid=c_uid))
                             storage.save_setlist(active_setlist, current_user.email, current_user.name)
                             st.session_state["undo_removed_setlist_item"] = None
-                            log_op("➕", "SCALETTA", f"Aggiunto '{c_title}' alla scaletta", "INFO")
+                            st.session_state["setlist_song_just_added"] = {
+                                "title": c_title,
+                                "artist": c_artist,
+                                "pos": len(active_setlist.items),
+                                "setlist": active_setlist.title
+                            }
+                            log_op("➕", "SCALETTA", f"Aggiunto '{c_title}' alla scaletta (Pos #{len(active_setlist.items)})", "INFO")
                             st.rerun()
         else:
             st.info("Nessun brano trovato per il repertorio o filtro selezionato.")

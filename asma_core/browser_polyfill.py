@@ -45,8 +45,18 @@ MOBILE_DROPDOWN_GUARD_JS = """
         } catch(err) {}
       }
 
+      function removeBottomBadgesAndLogos() {
+        try {
+          var badEls = targetDoc.querySelectorAll('footer, [data-testid="stFooter"], div[class*="viewerBadge"], a[href*="github.com"], a[href*="streamlit.io"], [data-testid="manage-app-button"]');
+          for (var j = 0; j < badEls.length; j++) {
+            badEls[j].remove();
+          }
+        } catch(err) {}
+      }
+
       // Initial scan
       scanAllSelectboxes();
+      removeBottomBadgesAndLogos();
 
       // Intercept touch and pointer down on capture phase before browser displays virtual keyboard
       var handleTouch = function(e) {
@@ -78,6 +88,7 @@ MOBILE_DROPDOWN_GUARD_JS = """
       if (window.MutationObserver && targetDoc.body) {
         var observer = new MutationObserver(function() {
           scanAllSelectboxes();
+          removeBottomBadgesAndLogos();
         });
         observer.observe(targetDoc.body, { childList: true, subtree: true });
       }
