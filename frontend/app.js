@@ -672,6 +672,14 @@ function openStageModal() {
   const container = document.getElementById('stage-lyrics');
   container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
   container.scrollTop = 0;
+  scrollAccumulator = 0;
+
+  // Sync scrollAccumulator whenever user manually scrolls or touches lyrics
+  container.onscroll = () => {
+    if (!state.isAutoscrolling) {
+      scrollAccumulator = container.scrollTop;
+    }
+  };
 
   const speedDisp = document.getElementById('stage-speed-display');
   if (speedDisp) speedDisp.textContent = `${Math.round(state.scrollSpeed)} px/s`;
@@ -685,6 +693,8 @@ function openStageModal() {
   }
 }
 
+let scrollAccumulator = 0;
+let lastScrollTime = 0;
 let metronomeTimer = null;
 let isMetronomeActive = false;
 
@@ -717,7 +727,7 @@ function startMetronomePulse(bpm) {
 }
 
 function adjustStageScrollSpeed(delta) {
-  state.scrollSpeed = Math.max(10, Math.min(120, state.scrollSpeed + delta));
+  state.scrollSpeed = Math.max(5, Math.min(180, state.scrollSpeed + delta));
   const disp = document.getElementById('stage-speed-display');
   if (disp) disp.textContent = `${Math.round(state.scrollSpeed)} px/s`;
   showToast(`Velocità palco: ${Math.round(state.scrollSpeed)} px/s`);
@@ -762,13 +772,31 @@ function startAutoscroll() {
   }
 
   const container = document.getElementById('stage-lyrics');
-  if (state.scrollIntervalId) clearInterval(state.scrollIntervalId);
+  if (container) {
+    scrollAccumulator = container.scrollTop;
+  }
+  lastScrollTime = performance.now();
 
-  state.scrollIntervalId = setInterval(() => {
-    if (container) {
-      container.scrollTop += (state.scrollSpeed / 60);
+  if (state.scrollIntervalId) {
+    cancelAnimationFrame(state.scrollIntervalId);
+    state.scrollIntervalId = null;
+  }
+
+  function step(now) {
+    if (!state.isAutoscrolling) return;
+    const dt = (now - lastScrollTime) / 1000;
+    lastScrollTime = now;
+
+    if (dt > 0 && dt < 0.2) {
+      scrollAccumulator += (state.scrollSpeed * dt);
+      if (container) {
+        container.scrollTop = scrollAccumulator;
+      }
     }
-  }, 1000 / 60);
+    state.scrollIntervalId = requestAnimationFrame(step);
+  }
+
+  state.scrollIntervalId = requestAnimationFrame(step);
 }
 
 function stopAutoscroll() {
@@ -779,7 +807,7 @@ function stopAutoscroll() {
     btn.style.backgroundColor = '#10b981';
   }
   if (state.scrollIntervalId) {
-    clearInterval(state.scrollIntervalId);
+    cancelAnimationFrame(state.scrollIntervalId);
     state.scrollIntervalId = null;
   }
 }

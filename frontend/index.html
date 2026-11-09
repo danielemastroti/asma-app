@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=2.2">
+  <link rel="stylesheet" href="/style.css?v=2.3">
 </head>
 <body>
 
@@ -244,29 +244,40 @@
 
   <!-- FULLSCREEN LIVE STAGE MODAL (TELEPROMPTER 60FPS) -->
   <div id="stage-modal" class="stage-fullscreen" style="display: none;">
+    <!-- TOP HEADER: TITLE & NAVIGATION (NEVER OVERFLOWS) -->
     <div class="stage-header">
-      <div>
-        <div id="stage-song-title" style="font-size: 18px; font-weight: 900; color: #fff;"></div>
-        <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8;"></div>
+      <div style="flex: 1; min-width: 0; overflow: hidden; padding-right: 8px;">
+        <div id="stage-song-title" style="font-size: 19px; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+        <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <div id="stage-metronome-dot" class="stage-metronome-dot" title="Metronomo visivo (tocca per attivare/disattivare)" onclick="toggleMetronome()"></div>
-        <div class="stepper" style="background: rgba(15,23,42,0.8); border: 1px solid #334155; border-radius: 8px; padding: 2px 6px;">
-          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0;" onclick="adjustStageScrollSpeed(-4)">🐢</button>
-          <span id="stage-speed-display" style="color:#ffd600; font-weight:800; font-size:12px; min-width:44px; text-align:center;">28 px/s</span>
-          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0;" onclick="adjustStageScrollSpeed(4)">🐇</button>
-        </div>
-        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px;" onclick="adjustStageFontSize(-2)">A−</button>
-        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px;" onclick="adjustStageFontSize(2)">A+</button>
+      <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
-        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 900; color: #ef4444;" onclick="closeStageModal()">✕ Esci</button>
+        <button class="btn btn-danger" style="min-height: 38px; padding: 4px 14px; font-weight: 900;" onclick="closeStageModal()">✕ Esci</button>
       </div>
     </div>
+
+    <!-- MAIN SCROLLING CONTENT -->
     <div id="stage-lyrics" class="stage-content" onclick="toggleAutoscroll()">
       <!-- Teleprompter lines -->
     </div>
+
+    <!-- BOTTOM FLOATING CONTROLS (ERGONOMIC FOR LEGGIO) -->
     <div class="stage-controls">
+      <!-- Left Pill: Speed, Font Size & Metronome -->
+      <div class="stage-control-panel">
+        <div id="stage-metronome-dot" class="stage-metronome-dot" title="Metronomo visivo (tocca per accendere/spegnere)" onclick="toggleMetronome()"></div>
+        <div class="stepper" style="gap: 4px;">
+          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; border-radius:50%;" onclick="adjustStageScrollSpeed(-5)" title="Rallenta">🐢</button>
+          <span id="stage-speed-display" style="color:#ffd600; font-weight:800; font-size:12.5px; min-width:44px; text-align:center;">28 px/s</span>
+          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; border-radius:50%;" onclick="adjustStageScrollSpeed(5)" title="Accelera">🐇</button>
+        </div>
+        <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
+        <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(-2)" title="Riduci font">A−</button>
+        <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(2)" title="Ingrandisci font">A+</button>
+      </div>
+
+      <!-- Right: Big Play/Pause Toggle -->
       <button id="btn-stage-toggle" class="btn-stage-circle" style="background-color: #10b981;" onclick="toggleAutoscroll()">
         ▶️
       </button>
@@ -277,6 +288,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=2.2"></script>
+  <script src="/app.js?v=2.3"></script>
 </body>
 </html>
