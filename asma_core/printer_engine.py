@@ -33,7 +33,7 @@ class PrinterEngine:
 
         pages_b64: List[str] = []
         for page in doc_pdf:
-            pix = page.get_pixmap(dpi=200)
+            pix = page.get_pixmap(dpi=140)
             img_b64 = base64.b64encode(pix.tobytes("png")).decode("utf-8")
             pages_b64.append(img_b64)
 

@@ -105,7 +105,7 @@ MOBILE_DROPDOWN_GUARD_JS = """
           for (var j = 0; j < badEls.length; j++) {
             badEls[j].style.setProperty('display', 'none', 'important');
             badEls[j].style.setProperty('visibility', 'hidden', 'important');
-            try { badEls[j].remove(); } catch(e) {}
+            badEls[j].style.setProperty("opacity", "0", "important"); badEls[j].style.setProperty("pointer-events", "none", "important");
           }
 
           var floatingCandidates = targetDoc.querySelectorAll('body > div, body > a, body > button, #root ~ div');
@@ -119,7 +119,7 @@ MOBILE_DROPDOWN_GUARD_JS = """
                 h.indexOf('streamlit.io') !== -1 || h.indexOf('github.com') !== -1) {
               el.style.setProperty('display', 'none', 'important');
               el.style.setProperty('visibility', 'hidden', 'important');
-              try { el.remove(); } catch(e) {}
+              el.style.setProperty("opacity", "0", "important"); el.style.setProperty("pointer-events", "none", "important");
             }
           }
         } catch(err) {}

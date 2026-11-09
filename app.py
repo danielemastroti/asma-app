@@ -1305,6 +1305,23 @@ def get_band_logo_b64() -> str:
             return ""
     return ""
 
+# -----------------------------------------------------------------------------
+# HIGH PERFORMANCE CACHED ENGINES FOR INSTANT BRANI PREVIEW & BUTTONS
+# -----------------------------------------------------------------------------
+@st.cache_data(show_spinner=False, max_entries=80)
+def get_cached_pdf_pages_images(pdf_bytes: bytes, dpi: int = 130) -> list:
+    import pymupdf
+    doc_pdf = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+    pages = []
+    for page in doc_pdf:
+        pix = page.get_pixmap(dpi=dpi)
+        pages.append(pix.tobytes("png"))
+    return pages
+
+@st.cache_data(show_spinner=False, max_entries=50)
+def get_cached_print_buttons_html(pdf_chords_bytes: bytes, pdf_lyrics_bytes: bytes, title: str) -> str:
+    return PrinterEngine.render_print_buttons_component(pdf_chords_bytes, pdf_lyrics_bytes, title)
+
 all_users = auth_mgr.list_users()
 user_emails = [u.email for u in all_users]
 curr_user_idx = user_emails.index(current_user.email) if current_user.email in user_emails else 0
@@ -1320,10 +1337,11 @@ def get_client_device_category() -> str:
             ua = st.context.headers.get("user-agent", "").lower()
     except Exception:
         ua = ""
-    if "iphone" in ua or ("android" in ua and "mobile" in ua):
-        return "mobile_phone"
-    elif "ipad" in ua or ("android" in ua and "mobile" not in ua):
+    # Check tablet first (before mobile, because many Android/Huawei tablets send 'mobile safari')
+    if "tablet" in ua or "pad" in ua or "matepad" in ua or "mediapad" in ua or "ipad" in ua or "bah" in ua or "sm-t" in ua:
         return "tablet"
+    elif "iphone" in ua or ("android" in ua and "mobile" in ua) or "mobile" in ua:
+        return "mobile_phone"
     elif "windows" in ua or "macintosh" in ua or ("linux" in ua and "android" not in ua):
         return "desktop"
     # Fallback to desktop for PC/workstation browsers
@@ -1342,29 +1360,40 @@ try:
 except Exception:
     _client_cookie_dev = None
 
-# Resolve Active Device: Query Params -> Session State -> Turso DB Last Active for Category -> Browser Cookie -> Smart Hardware Default
-_qp_dev = st.query_params.get("device")
-if _qp_dev and _qp_dev in dev_names:
-    _active_dev = _qp_dev
-elif "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
+# Resolve Active Device: Session State -> Turso DB Category -> Turso DB Active -> Turso DB Configured -> Hardware Default
+if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
 else:
-    # Look up last active device SPECIFIC to this hardware category (desktop vs tablet vs mobile)
+    # 1. Look up last active device SPECIFIC to this hardware category (desktop vs tablet vs mobile)
     _cat_last_dev = pref_mgr.get_last_active_device_for_category(u_email, _client_dev_cat)
     if _cat_last_dev and _cat_last_dev in dev_names:
         _active_dev = _cat_last_dev
-    elif _client_cookie_dev and _client_cookie_dev in dev_names:
-        _active_dev = _client_cookie_dev
     else:
-        if _client_dev_cat == "desktop":
-            _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
-        elif _client_dev_cat == "tablet":
-            _active_dev = "Huawei MatePad / Tablet (10.4\"/11\")" if "Huawei MatePad / Tablet (10.4\"/11\")" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+        # 2. Check user's overall last active device in Turso Cloud
+        _u_last = pref_mgr.get_last_active_device(u_email)
+        if _u_last and _u_last in dev_names:
+            _active_dev = _u_last
         else:
-            _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+            # 3. Check any configured device for this user in Turso (never force a generic default if user has devices)
+            u_configured_records = pref_mgr.turso.fetch_all_user_preferences(u_email) if pref_mgr.turso.is_configured else []
+            u_configured_names = [r["device_name"] for r in u_configured_records if r.get("device_name") in dev_names]
+            tablet_matches = [d for d in u_configured_names if pref_mgr.classify_device_category(d) == "tablet"]
+            desktop_matches = [d for d in u_configured_names if pref_mgr.classify_device_category(d) == "desktop"]
+            if _client_dev_cat == "desktop" and desktop_matches:
+                _active_dev = desktop_matches[0]
+            elif _client_dev_cat in ("tablet", "mobile_phone") and tablet_matches:
+                _active_dev = tablet_matches[0]
+            elif u_configured_names:
+                _active_dev = u_configured_names[0]
+            else:
+                if _client_dev_cat == "desktop":
+                    _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
+                elif _client_dev_cat == "tablet":
+                    _active_dev = "Huawei MatePad / Tablet (10.4\"/11\")" if "Huawei MatePad / Tablet (10.4\"/11\")" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+                else:
+                    _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
 
 st.session_state["user_preferred_device"] = _active_dev
-st.query_params["device"] = _active_dev
 
 def set_active_device_globally(new_dev_name: str):
     """Updates active hardware device and reloads that device's profile for the user."""
@@ -2286,19 +2315,19 @@ elif menu_choice == "📝 Brani":
         ck_dev_s = f"buf_dev_s_{song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
 
         if ck_a4_m not in st.session_state:
-            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=True, use_cache=False)
+            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=True, use_cache=True)
         pdf_a4_m = st.session_state[ck_a4_m]
 
         if ck_a4_s not in st.session_state:
-            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=False, use_cache=False)
+            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=False, use_cache=True)
         pdf_a4_s = st.session_state[ck_a4_s]
 
         if ck_dev_m not in st.session_state:
-            st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=True, use_cache=False)
+            st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=True, use_cache=True)
         pdf_dev_m = st.session_state[ck_dev_m]
 
         if ck_dev_s not in st.session_state:
-            st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=False, use_cache=False)
+            st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=False, use_cache=True)
         pdf_dev_s = st.session_state[ck_dev_s]
 
         user_score_pref = st.session_state.get("user_score_display_mode", "chords")
@@ -2314,10 +2343,8 @@ elif menu_choice == "📝 Brani":
             </div>""",
             unsafe_allow_html=True
         )
-        st.components.v1.html(
-            PrinterEngine.render_print_buttons_component(pdf_a4_m, pdf_a4_s, clean_title),
-            height=54
-        )
+        print_html = get_cached_print_buttons_html(pdf_a4_m, pdf_a4_s, clean_title)
+        st.components.v1.html(print_html, height=54)
 
         # 2. Salva PDF (Modalità Display del proprio dispositivo)
         st.markdown(
@@ -2423,14 +2450,10 @@ elif menu_choice == "📝 Brani":
                 pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
 
         try:
-            import pymupdf
-            doc_pdf = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-            num_pages = len(doc_pdf)
+            pages_imgs = get_cached_pdf_pages_images(pdf_bytes, dpi=130)
+            num_pages = len(pages_imgs)
             st.caption(f"Totale pagine generate: **{num_pages}** per `{prof.name}`")
-            for page_num in range(num_pages):
-                page = doc_pdf[page_num]
-                pix = page.get_pixmap(dpi=150)
-                img_bytes = pix.tobytes("png")
+            for page_num, img_bytes in enumerate(pages_imgs):
                 st.image(
                     img_bytes,
                     caption=f"Pagina {page_num + 1} di {num_pages} — Formato {prof.name}",
@@ -3094,19 +3117,19 @@ elif menu_choice == "📝 Brani":
             ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
 
             if ck_a4_m not in st.session_state:
-                st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=False)
+                st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=True)
             pdf_a4_m = st.session_state[ck_a4_m]
 
             if ck_a4_s not in st.session_state:
-                st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=False)
+                st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=True)
             pdf_a4_s = st.session_state[ck_a4_s]
 
             if ck_dev_m not in st.session_state:
-                st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=False)
+                st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=True)
             pdf_dev_m = st.session_state[ck_dev_m]
 
             if ck_dev_s not in st.session_state:
-                st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=False)
+                st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=True)
             pdf_dev_s = st.session_state[ck_dev_s]
 
             # Determine preview mode according to user profile preference (default from user profile)
@@ -3127,10 +3150,8 @@ elif menu_choice == "📝 Brani":
                 unsafe_allow_html=True
             )
 
-            st.components.v1.html(
-                PrinterEngine.render_print_buttons_component(pdf_a4_m, pdf_a4_s, clean_title),
-                height=54
-            )
+            print_html_edit = get_cached_print_buttons_html(pdf_a4_m, pdf_a4_s, clean_title)
+            st.components.v1.html(print_html_edit, height=54)
 
             with st.expander("🖥️ Invia a Stampante Server (Spooler Hardware Windows)", expanded=False):
                 sys_printers = PrinterEngine.list_system_printers()
@@ -3260,14 +3281,10 @@ elif menu_choice == "📝 Brani":
                 if show_chords_active != prev_toggle_val:
                     pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
             try:
-                import pymupdf
-                doc_pdf = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-                num_pages = len(doc_pdf)
+                pages_imgs_edit = get_cached_pdf_pages_images(pdf_bytes, dpi=130)
+                num_pages = len(pages_imgs_edit)
                 st.caption(f"Totale pagine generate: **{num_pages}** per `{prof.name}`")
-                for page_num in range(num_pages):
-                    page = doc_pdf[page_num]
-                    pix = page.get_pixmap(dpi=150)
-                    img_bytes = pix.tobytes("png")
+                for page_num, img_bytes in enumerate(pages_imgs_edit):
                     st.image(
                         img_bytes,
                         caption=f"Pagina {page_num + 1} di {num_pages} — Formato {prof.name}",
