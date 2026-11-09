@@ -885,6 +885,7 @@ function renderSetlists() {
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">✏️ Modifica</button>
+        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px; color:#ef4444;" onclick="event.stopPropagation(); deleteSetlist('${s.uuid}')">🗑️ Elimina</button>
       </div>
     </div>
   `).join('');
@@ -975,6 +976,7 @@ function renderSetlistEditor() {
           <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
           <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
           <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
+          <button class="btn btn-secondary" style="color:#ef4444;" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>
           <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
         </div>
       </div>
@@ -1086,15 +1088,47 @@ async function saveCurrentSetlist() {
   }
 }
 
-async function openNewSetlistDialog() {
-  const title = prompt('Inserisci il nome della nuova scaletta (es. Concerto Estivo):');
-  if (!title || !title.trim()) return;
+function showNewSetlistForm() {
+  const form = document.getElementById('new-setlist-form');
+  const btn = document.getElementById('btn-open-new-setlist');
+  if (form) {
+    form.style.display = 'block';
+    const titleInput = document.getElementById('new-setlist-title');
+    if (titleInput) {
+      titleInput.value = '';
+      titleInput.focus();
+    }
+    const dateInput = document.getElementById('new-setlist-date');
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+  }
+  if (btn) btn.style.display = 'none';
+}
 
-  const date = prompt('Data del concerto (es. 2026-07-15) - facoltativo:', new Date().toISOString().split('T')[0]) || '';
+function hideNewSetlistForm() {
+  const form = document.getElementById('new-setlist-form');
+  const btn = document.getElementById('btn-open-new-setlist');
+  if (form) form.style.display = 'none';
+  if (btn) btn.style.display = 'inline-flex';
+}
+
+async function submitNewSetlist() {
+  const titleInput = document.getElementById('new-setlist-title');
+  const dateInput = document.getElementById('new-setlist-date');
+  const descInput = document.getElementById('new-setlist-desc');
+
+  const title = titleInput ? titleInput.value.trim() : '';
+  if (!title) {
+    alert('Inserisci il titolo della scaletta');
+    if (titleInput) titleInput.focus();
+    return;
+  }
+
   const payload = {
-    title: title.trim(),
-    date: date.trim(),
-    description: 'Nuova Scaletta Live',
+    title: title,
+    date: dateInput ? dateInput.value.trim() : '',
+    description: descInput ? descInput.value.trim() : 'Nuova Scaletta Live',
     items: [],
     user_email: state.currentUser.email,
     user_name: state.currentUser.name
@@ -1109,6 +1143,7 @@ async function openNewSetlistDialog() {
     if (res.ok) {
       const data = await res.json();
       showToast(`Scaletta "${title}" creata ✓`);
+      hideNewSetlistForm();
       await loadSetlists();
       if (data.setlist && data.setlist.uuid) {
         openSetlistDetail(data.setlist.uuid);
@@ -1116,6 +1151,25 @@ async function openNewSetlistDialog() {
     }
   } catch (err) {
     console.error('Error creating setlist:', err);
+  }
+}
+
+async function deleteSetlist(uuid) {
+  const s = (state.setlists || []).find(item => item.uuid === uuid) || (state.selectedSetlist && state.selectedSetlist.uuid === uuid ? state.selectedSetlist : null);
+  const title = s ? s.title : 'questa scaletta';
+  if (!confirm(`Sei sicuro di voler eliminare definitivamente la scaletta "${title}"?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists/${uuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+      method: 'DELETE'
+    });
+    if (res.ok) {
+      showToast(`Scaletta "${title}" eliminata ✓`);
+      closeSetlistDetail();
+      await loadSetlists();
+    }
+  } catch (err) {
+    console.error('Error deleting setlist:', err);
   }
 }
 

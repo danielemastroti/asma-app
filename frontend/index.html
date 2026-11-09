@@ -73,8 +73,34 @@
     <section id="view-setlists" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <h3 style="font-size: 18px; font-weight: 800; color: #fff;">📑 Scalette della Band</h3>
-        <button class="btn btn-primary" onclick="openNewSetlistDialog()">+ Nuova Scaletta</button>
+        <button id="btn-open-new-setlist" class="btn btn-primary" onclick="showNewSetlistForm()">+ Nuova Scaletta</button>
       </div>
+
+      <!-- INLINE TOUCH FORM: CREA NUOVA SCALETTA -->
+      <div id="new-setlist-form" style="display: none; background: var(--bg-surface-elevated); border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+        <h4 style="color: var(--accent-cyan); margin-bottom: 10px; font-size: 15px; font-weight: 800;">➕ Crea Nuova Scaletta</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div>
+            <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Titolo Scaletta *</label>
+            <input type="text" id="new-setlist-title" class="search-input" style="width: 100%; margin-top: 4px;" placeholder="es. Concerto Teatro 2026">
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 140px;">
+              <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Data Concerto</label>
+              <input type="date" id="new-setlist-date" class="search-input" style="width: 100%; margin-top: 4px;">
+            </div>
+            <div style="flex: 2; min-width: 200px;">
+              <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Descrizione</label>
+              <input type="text" id="new-setlist-desc" class="search-input" style="width: 100%; margin-top: 4px;" placeholder="es. Scaletta 1° Tempo + Bis">
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <button class="btn btn-success" onclick="submitNewSetlist()">✓ Conferma e Crea</button>
+            <button class="btn btn-secondary" onclick="hideNewSetlistForm()">✕ Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <div id="setlists-list">
         <!-- Rendered by app.js -->
       </div>

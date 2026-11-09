@@ -1,128 +1,52 @@
 [
   {
-    "uuid": "31e17c1d-95f1-4ff9-ba36-5e1ae52bda3f",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
+    "uuid": "2ff2984f-c6bc-46eb-91dd-fddad525e1a4",
+    "title": "Scaletta Live ASMA",
+    "date": "2026-07-15",
+    "description": "Scaletta Ufficiale Live Band - Tour 2026",
     "items": [
       {
-        "song_uuid": "ad5e7353-81f0-40e1-b3f8-25d5d49c5e8d",
+        "song_uuid": "50_special_bebdbb",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
         "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T12:57:57.929327+00:00",
-    "updated_at": "2026-11-09T12:57:58.005358+00:00"
-  },
-  {
-    "uuid": "4236ebb4-3ee5-453b-87a9-ce2dba625da7",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
+        "notes": "Esecuzione Live"
+      },
       {
-        "song_uuid": "5e7fb032-2c65-40f2-a0db-7c4ded7dc69a",
+        "song_uuid": "979224d5-6769-48bf-bd24-a19c12cab3bd",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
         "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T13:22:04.476160+00:00",
-    "updated_at": "2026-11-09T13:22:04.553340+00:00"
-  },
-  {
-    "uuid": "6bcb1e31-2149-4bde-abe2-b1ca34d62dd5",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
+        "notes": "Esecuzione Live"
+      },
       {
-        "song_uuid": "77e92282-d49e-45b5-a99a-9e0f3a79ec67",
+        "song_uuid": "balliamo_sul_mondo_8c101e",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
         "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T13:26:26.084708+00:00",
-    "updated_at": "2026-11-09T13:26:26.152334+00:00"
-  },
-  {
-    "uuid": "25343982-44b0-4a83-9011-c1c9ae783674",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
+        "notes": "Esecuzione Live"
+      },
       {
-        "song_uuid": "28332b00-a4d5-438a-a49b-93d4a14749ee",
+        "song_uuid": "born_to_be_wild_2b194b",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
         "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T14:00:10.051775+00:00",
-    "updated_at": "2026-11-09T14:00:10.118870+00:00"
-  },
-  {
-    "uuid": "83ba1f79-f9b8-4abf-845a-b562b64ca40b",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
+        "notes": "Esecuzione Live"
+      },
       {
-        "song_uuid": "10e67a2f-317a-4f5e-bfb0-f2f6c96d3df1",
+        "song_uuid": "diavolo_in_me_4e5dcf",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
         "custom_bpm": null,
-        "notes": ""
+        "notes": "Esecuzione Live"
       }
     ],
-    "created_at": "2026-11-09T14:22:40.970038+00:00",
-    "updated_at": "2026-11-09T14:22:41.047005+00:00"
-  },
-  {
-    "uuid": "34037bdc-37f7-452d-bff4-0627a6ce9b28",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "5659994f-80f2-45d2-84da-b5b7897f106d",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T14:23:54.556306+00:00",
-    "updated_at": "2026-11-09T14:23:54.634520+00:00"
-  },
-  {
-    "uuid": "e4dd1c92-eb81-4d20-871e-b6e0d348efc4",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "0fed2ef1-6464-4195-9eea-450582c4d036",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T17:00:12.705128+00:00",
-    "updated_at": "2026-11-09T17:00:12.770094+00:00"
+    "created_at": "2026-11-09T22:15:18.943761+00:00",
+    "updated_at": "2026-11-09T22:15:18.943761+00:00"
   }
 ]
