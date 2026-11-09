@@ -2314,14 +2314,6 @@ elif menu_choice == "📝 Brani":
         ck_dev_m = f"buf_dev_m_{song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
         ck_dev_s = f"buf_dev_s_{song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
 
-        if ck_a4_m not in st.session_state:
-            st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=True, use_cache=True)
-        pdf_a4_m = st.session_state[ck_a4_m]
-
-        if ck_a4_s not in st.session_state:
-            st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(song, profile=prof_a4, include_chords=False, use_cache=True)
-        pdf_a4_s = st.session_state[ck_a4_s]
-
         if ck_dev_m not in st.session_state:
             st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=True, use_cache=True)
         pdf_dev_m = st.session_state[ck_dev_m]
@@ -2329,6 +2321,9 @@ elif menu_choice == "📝 Brani":
         if ck_dev_s not in st.session_state:
             st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=False, use_cache=True)
         pdf_dev_s = st.session_state[ck_dev_s]
+
+        pdf_a4_m = pdf_dev_m
+        pdf_a4_s = pdf_dev_s
 
         user_score_pref = st.session_state.get("user_score_display_mode", "chords")
         default_show_chords = (user_score_pref != "lyrics")
@@ -3116,14 +3111,6 @@ elif menu_choice == "📝 Brani":
             ck_dev_m = f"buf_dev_m_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
             ck_dev_s = f"buf_dev_s_{preview_song.uuid}_{clean_dev}_{ck_title}_{ck_v}_{aml_hash}_{prof.columns}_{ck_fl}_{ck_fc}_{ck_col_c}_{ck_col_l}"
 
-            if ck_a4_m not in st.session_state:
-                st.session_state[ck_a4_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=True, use_cache=True)
-            pdf_a4_m = st.session_state[ck_a4_m]
-
-            if ck_a4_s not in st.session_state:
-                st.session_state[ck_a4_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof_a4, include_chords=False, use_cache=True)
-            pdf_a4_s = st.session_state[ck_a4_s]
-
             if ck_dev_m not in st.session_state:
                 st.session_state[ck_dev_m] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=True, use_cache=True)
             pdf_dev_m = st.session_state[ck_dev_m]
@@ -3131,6 +3118,9 @@ elif menu_choice == "📝 Brani":
             if ck_dev_s not in st.session_state:
                 st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=True)
             pdf_dev_s = st.session_state[ck_dev_s]
+
+            pdf_a4_m = pdf_dev_m
+            pdf_a4_s = pdf_dev_s
 
             # Determine preview mode according to user profile preference (default from user profile)
             user_score_pref = st.session_state.get("user_score_display_mode", "chords")
