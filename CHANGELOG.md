@@ -1,8 +1,13 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
-## Versione 2026.11.09 (09/11/2026) — Persistenza Totale Preferenze Utente su Turso Cloud, Palco Start On-Demand, Header Compatto e Clean UI
+## Versione 2026.11.09 (09/11/2026) — Doppia Modalità di Accesso (Semplificata vs Editing), Persistenza Cloud Turso e Clean UI
 
 ### 🚀 Nuove Funzionalità (New Features)
+- Doppia Modalità di Accesso (Editing vs Semplificata): selezione diretta alla pagina di login tra 'Modalità Semplificata' (live e concerto) e 'Modalità Editing' (gestione completa). I permessi del profilo utente (ADMIN, BAND_MEMBER, VIEWER) rimangono rigorosamente inalterati.
+- Nuovo Menu Semplificato su Singola Riga: menu essenziale con funzioni base: Home, Brani, Scalette, Palco, Guida e Logout. Niente menu contestuali o schermate di configurazione inutilizzate prima di un concerto.
+- Menu Brani Semplificato (NO EDIT): interfaccia pulita e immediata priva di tasti, controlli o elenchi a discesa di editing. Include la consultazione del brano, l'anteprima reale delle pagine PDF formattate per il dispositivo, il salvataggio PDF (con accordi / solo testo), l'invio diretto alla stampante A4, l'avvio della Modalità Palco e l'esportazione nei formati musicali (MobileSheets, SongBook Pro, ChordPro, OnSong).
+- Modalità Editing Brani 100% Inalterata: l'accesso completo in modalità Editing preserva inalterate tutte le funzionalità preesistenti di editor AML, trasposizione, gestione lock e cronologia revisioni.
+
 - Preferenza Spartito Personale (Solo Testo vs Testo+Accordi): ogni musicista può configurare nel proprio profilo il formato predefinito di visualizzazione spartito. La preferenza viene memorizzata permanentemente su Turso Cloud DB, caricata ad ogni login e applicata automaticamente come default nell'anteprima PDF. Rimane sempre garantita per tutti i componenti della band la possibilità di stampare o salvare in qualsiasi momento sia la versione con accordi che la versione solo testo.
 - Persistenza Cloud Turso DB per Preferenze Utente & Dispositivo: memorizzazione sincrona e permanente a database per ogni singola coppia (utente, dispositivo). Vengono salvate le dimensioni dei font (testo e accordi), colonne PDF, margini laterali, colori personalizzati (testo, accordi, AML) e zoom dell'interfaccia, garantendo la disponibilità immediata a ogni nuovo login o riavvio dell'applicazione.
 - Autoscroll Palco On-Demand: in Modalità Palco (Live Stage), lo scorrimento automatico non si avvia più da solo all'apertura del brano, ma parte unicamente quando il musicista tocca il pulsante 'AVVIO' o attiva il pedale Bluetooth.

@@ -73,6 +73,14 @@ Le trasposizioni coprono l'intero spettro cromatico da <b>-12 a +12 semitoni</b>
 <br/>&bull; <b>Persistenza Utente/Dispositivo:</b> Le preferenze grafiche sono salvate nel database cloud Turso e associate alla coppia <code>(email_musicista, tipo_dispositivo)</code>.
 <br/>&bull; <b>Parametri Personalizzabili:</b> Dimensione testo (8-30px), dimensione accordi (8-32px), colonne PDF (1 o 2 colonne), margini laterali (4-30mm), palette colori (testo, accordi, markup AML) e zoom dell'interfaccia (75%-110%).
 <br/>&bull; <b>Resistenza a Riavvii e Deploy:</b> Al riavvio dell'applicazione o al login successivo da qualsiasi tablet, smartphone o PC, le impostazioni personalizzate vengono ripristinate automaticamente all'istante."""
+    },
+    {
+        "title": "9. Modalità di Accesso: Editing vs Semplificata",
+        "content": """L'applicazione mette a disposizione due modalità operative selezionabili alla pagina del login:
+<br/>&bull; <b>Modalità Semplificata (Live & Concerto):</b> Dedicata al musicista prima e durante i live. Offre un menu essenziale su singola riga (Home, Brani, Scalette, Palco, Guida, Logout). Nella sezione Brani sono rimosse tutte le funzionalità di editing (nessun campo testo, dropdown o tasto di modifica): il musicista trova subito i brani per visualizzare l'anteprima PDF formattata per il proprio leggio, salvare il file PDF o inviarlo direttamente alla stampante A4, consultare la scaletta e avviare la Modalità Palco.
+<br/>&bull; <b>Modalità Editing (Completa):</b> Offre l'accesso integrale a tutto il sito, compresi l'editor sorgente AML, la gestione avanzata dei repertori, import/export da file e web, amministrazione e Band AI.
+<br/>&bull; <b>Permessi Inalterati:</b> I ruoli di sicurezza (ADMIN, BAND_MEMBER, VIEWER) restano rigorosamente invariati in entrambe le modalità.
+<br/>&bull; <b>Passaggio Rapido:</b> È possibile commutare tra le due modalità in qualsiasi momento dal popover del Profilo Musicista ('👤')."""
     }
 ]
 
