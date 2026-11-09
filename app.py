@@ -1642,9 +1642,16 @@ with st.container(key="top_navbar_container"):
             st.write("##### 📐 Layout Display & PDF")
             st.caption("Formato dispositivo hardware, tipografia, colonne, margini e colori.")
 
+            def _invalidate_pdf_buffers():
+                PDFEngine._cache.clear()
+                keys_to_del = [k for k in list(st.session_state.keys()) if k.startswith("buf_") or k.startswith("print_")]
+                for k in keys_to_del:
+                    st.session_state.pop(k, None)
+
             def _on_device_pop_change():
                 sel = st.session_state.get("pop_layout_dev_sel")
                 if sel and sel != st.session_state.get("user_preferred_device"):
+                    _invalidate_pdf_buffers()
                     set_active_device_globally(sel)
                     st.rerun()
 
@@ -1654,6 +1661,8 @@ with st.container(key="top_navbar_container"):
                     st.session_state["layout_font_size"] = v
                     cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                     pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_font_size": v})
+                    _invalidate_pdf_buffers()
+                    st.rerun()
 
             def _on_chords_size_change():
                 v = st.session_state.get("slider_layout_font_size_chords")
@@ -1661,6 +1670,8 @@ with st.container(key="top_navbar_container"):
                     st.session_state["layout_font_size_chords"] = v
                     cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                     pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_font_size_chords": v})
+                    _invalidate_pdf_buffers()
+                    st.rerun()
 
             def _on_columns_change():
                 v = st.session_state.get("radio_layout_columns")
@@ -1668,6 +1679,8 @@ with st.container(key="top_navbar_container"):
                     st.session_state["layout_columns"] = v
                     cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                     pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_columns": v})
+                    _invalidate_pdf_buffers()
+                    st.rerun()
 
             def _on_margin_lat_change():
                 v = st.session_state.get("slider_layout_margin_lat")
@@ -1675,6 +1688,8 @@ with st.container(key="top_navbar_container"):
                     st.session_state["layout_margin_lateral"] = v
                     cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                     pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_margin_lateral": v})
+                    _invalidate_pdf_buffers()
+                    st.rerun()
 
             st.selectbox(
                 "Dispositivo Display Target:",
@@ -1751,6 +1766,8 @@ with st.container(key="top_navbar_container"):
                         st.session_state["layout_color_text"] = v
                         cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                         pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_text": v})
+                        _invalidate_pdf_buffers()
+                        st.rerun()
 
                 def _on_col_chords_change():
                     v = st.session_state.get("cp_lay_chords")
@@ -1758,6 +1775,8 @@ with st.container(key="top_navbar_container"):
                         st.session_state["layout_color_chords"] = v
                         cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                         pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_chords": v})
+                        _invalidate_pdf_buffers()
+                        st.rerun()
 
                 def _on_col_aml_change():
                     v = st.session_state.get("cp_lay_aml")
@@ -1765,6 +1784,8 @@ with st.container(key="top_navbar_container"):
                         st.session_state["layout_color_aml"] = v
                         cur_dev = st.session_state.get("user_preferred_device", _active_dev)
                         pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_aml": v})
+                        _invalidate_pdf_buffers()
+                        st.rerun()
 
                 c_c1, c_c2, c_c3 = st.columns(3, gap="small")
                 with c_c1:
@@ -1789,6 +1810,7 @@ with st.container(key="top_navbar_container"):
                         "layout_color_chords": "#B71C1C",
                         "layout_color_aml": "#4A148C"
                     })
+                    _invalidate_pdf_buffers()
                     st.rerun()
 
             with tab_lay_zoom:
@@ -1846,10 +1868,13 @@ with st.container(key="top_navbar_container"):
             chosen = st.session_state.get("top_nav_pills_simp")
             if chosen:
                 st.session_state["main_menu_choice"] = chosen
-            else:
-                st.session_state["top_nav_pills_simp"] = st.session_state["main_menu_choice"]
+                st.session_state["_last_synced_menu_simp"] = chosen
 
-        st.session_state["top_nav_pills_simp"] = active_item
+        # Sincronizza lo stato del widget solo se il menu e' stato modificato programmaticamente dall'esterno
+        if st.session_state.get("_last_synced_menu_simp") != active_item:
+            st.session_state["top_nav_pills_simp"] = active_item
+            st.session_state["_last_synced_menu_simp"] = active_item
+
         st.pills(
             "Nav Semplificata",
             options=SIMPLIFIED_MENU_ITEMS,
@@ -1873,30 +1898,29 @@ with st.container(key="top_navbar_container"):
         def _fmt_label(x):
             return MENU_COMPACT_LABELS.get(x, x)
 
-        # Callbacks to cleanly synchronize two rows without event clash or ping-pong
         def _on_nav_r1_change():
             chosen = st.session_state.get("top_nav_pills_r1")
             if chosen:
                 st.session_state["main_menu_choice"] = chosen
+                st.session_state["_last_synced_menu_edit"] = chosen
                 st.session_state["top_nav_pills_r2"] = None
-            else:
-                st.session_state["top_nav_pills_r1"] = st.session_state["main_menu_choice"]
 
         def _on_nav_r2_change():
             chosen = st.session_state.get("top_nav_pills_r2")
             if chosen:
                 st.session_state["main_menu_choice"] = chosen
+                st.session_state["_last_synced_menu_edit"] = chosen
                 st.session_state["top_nav_pills_r1"] = None
-            else:
-                st.session_state["top_nav_pills_r2"] = st.session_state["main_menu_choice"]
 
-        # Keep widget state perfectly in sync with active item before render
-        if active_item in MENU_ITEMS_ROW1:
-            st.session_state["top_nav_pills_r1"] = active_item
-            st.session_state["top_nav_pills_r2"] = None
-        else:
-            st.session_state["top_nav_pills_r2"] = active_item
-            st.session_state["top_nav_pills_r1"] = None
+        # Sincronizza lo stato dei widget delle due righe SOLO se cambiato dall'esterno, mai sovrascrivere il click utente
+        if st.session_state.get("_last_synced_menu_edit") != active_item:
+            st.session_state["_last_synced_menu_edit"] = active_item
+            if active_item in MENU_ITEMS_ROW1:
+                st.session_state["top_nav_pills_r1"] = active_item
+                st.session_state["top_nav_pills_r2"] = None
+            else:
+                st.session_state["top_nav_pills_r2"] = active_item
+                st.session_state["top_nav_pills_r1"] = None
 
         # Row 1 of Navigation Pills (6 items: Home, Import/Export, Brani, AI, Cerca, Repertori)
         st.pills(
@@ -2358,7 +2382,7 @@ elif menu_choice == "📝 Brani":
                 mime="application/pdf",
                 type="primary",
                 width="stretch",
-                key=f"dl_simp_dev_m_{song.uuid}_{clean_dev}"
+                key=f"dl_simp_dev_m_{song.uuid}_{clean_dev}_{prof.columns}_{ck_fl}_{ck_fc}"
             )
         with col_d2:
             st.download_button(
@@ -2368,7 +2392,7 @@ elif menu_choice == "📝 Brani":
                 mime="application/pdf",
                 type="secondary",
                 width="stretch",
-                key=f"dl_simp_dev_s_{song.uuid}_{clean_dev}"
+                key=f"dl_simp_dev_s_{song.uuid}_{clean_dev}_{prof.columns}_{ck_fl}_{ck_fc}"
             )
 
         # 3. Esecuzione Live Palco Singolo Brano
@@ -3186,7 +3210,7 @@ elif menu_choice == "📝 Brani":
                     mime="application/pdf",
                     type="primary",
                     width="stretch",
-                    key=f"dl_dev_m_{preview_song.uuid}_{clean_dev}"
+                    key=f"dl_dev_m_{preview_song.uuid}_{clean_dev}_{prof.columns}_{ck_fl}_{ck_fc}"
                 )
             with col_d2:
                 st.download_button(
@@ -3196,7 +3220,7 @@ elif menu_choice == "📝 Brani":
                     mime="application/pdf",
                     type="secondary",
                     width="stretch",
-                    key=f"dl_dev_s_{preview_song.uuid}_{clean_dev}"
+                    key=f"dl_dev_s_{preview_song.uuid}_{clean_dev}_{prof.columns}_{ck_fl}_{ck_fc}"
                 )
 
             # 3. Esecuzione Live Palco Singolo Brano (SRS Cap. 12 & Live Stage)

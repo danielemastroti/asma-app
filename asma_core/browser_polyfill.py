@@ -160,8 +160,6 @@ MOBILE_DROPDOWN_GUARD_JS = """
         });
         observer.observe(targetDoc.body, { childList: true, subtree: true });
       }
-
-      setInterval(removeBottomBadgesAndLogos, 300);
     });
   }
 
@@ -176,7 +174,7 @@ MOBILE_DROPDOWN_GUARD_JS = """
 })();
 """
 
-POLYFILL_SCRIPT = f"""<!-- ASMA Legacy Tablet & Browser ES2023 Polyfills and Mobile Dropdown Guard -->
+POLYFILL_SCRIPT = f"""<!-- ASMA Polyfill v3.0 No-Remove Safe Mode -->
 <script>
 (function() {{
   if (!Array.prototype.toSorted) {{
@@ -222,14 +220,13 @@ def ensure_streamlit_index_patched() -> bool:
             return False
 
         content = index_path.read_text(encoding="utf-8")
-        if "initMobileDropdownGuard" in content and "Array.prototype.toSorted" in content:
+        if "ASMA Polyfill v3.0 No-Remove Safe Mode" in content:
             return True
 
         needle = "<head>"
         if needle in content:
-            if "Array.prototype.toSorted" in content or "ASMA Legacy Tablet" in content:
-                content = re.sub(r'<!-- ASMA Legacy Tablet.*?-->\s*<script>.*?</script>', '', content, flags=re.DOTALL)
-            new_content = content.replace(needle, f"{needle}\n    {POLYFILL_SCRIPT}")
+            cleaned = re.sub(r'<!-- ASMA (?:Legacy Tablet|Polyfill).*?-->\s*<script>.*?</script>', '', content, flags=re.DOTALL)
+            new_content = cleaned.replace(needle, f"{needle}\n    {POLYFILL_SCRIPT}")
             index_path.write_text(new_content, encoding="utf-8")
             return True
         return False

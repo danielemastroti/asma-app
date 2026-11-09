@@ -32,6 +32,9 @@ CHANGELOG_ENTRIES = [
             "Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live, al sicuro da reset del container effimero di Streamlit Cloud."
         ],
         "bug_fixes": [
+            "Risolto difetto click triplo sui tasti di navigazione: eliminata la sovrascrittura automatica delle chiavi di sessione dei widget di navigazione ad ogni ciclo di render. Ora ogni tocco su tablet e click su PC risponde all'istante al primo click senza richiedere pressioni ripetute.",
+            "Risolto bug generazione PDF a 2 colonne quando impostata 1 colonna: integrata l'invalidazione istantanea della cache dei PDF e chiavi univoche versionate per i pulsanti di download, garantendo la rigenerazione immediata con il numero corretto di colonne.",
+            "Ottimizzazione CPU mobile ed eliminazione polling JS continuo: rimosso il setInterval a 300ms che rallentava i tablet Android/Huawei e protetta la patch di index.html contro vecchi residui di manipolazione DOM.",
             "Risolto Crash Bianco in Modalità Palco ('Node.removeChild'): rimossa la rimozione diretta di nodi DOM gestiti da React nei watchdog di stile, garantendo la transizione fluida e sicura alla Modalità Palco senza interruzioni di rendering.",
             "Correzione Dispositivo Cico e Priorità Profili Turso DB: corretto il riconoscimento hardware dei tablet Huawei e blindata la priorità assoluta ai profili registrati nel database cloud (Foglio A4 da PC, Huawei MatePad da tablet), eliminando alla radice l'assegnazione accidentale di Pixel 8 pro.",
             "Ottimizzazione Prestazioni 'Brani' e Anteprima PDF: introdotto caching istantaneo (@st.cache_data) per rendering pagine PDF, pulsanti di stampa A4 e compilazione documenti musicali, abbattendo il tempo di apertura e selezione brano a meno di 150ms.",
