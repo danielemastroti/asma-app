@@ -742,19 +742,134 @@ function hideNewSongForm() {
 }
 
 function switchImportTab(tab) {
+  const btnWeb = document.getElementById('btn-import-tab-web');
   const btnPaste = document.getElementById('btn-import-tab-paste');
   const btnUrl = document.getElementById('btn-import-tab-url');
   const btnManual = document.getElementById('btn-import-tab-manual');
 
+  if (btnWeb) btnWeb.classList.toggle('active', tab === 'web');
   if (btnPaste) btnPaste.classList.toggle('active', tab === 'paste');
   if (btnUrl) btnUrl.classList.toggle('active', tab === 'url');
   if (btnManual) btnManual.classList.toggle('active', tab === 'manual');
 
+  const paneWeb = document.getElementById('import-pane-web');
   const panePaste = document.getElementById('import-pane-paste');
   const paneUrl = document.getElementById('import-pane-url');
 
+  if (paneWeb) paneWeb.style.display = tab === 'web' ? 'block' : 'none';
   if (panePaste) panePaste.style.display = tab === 'paste' ? 'block' : 'none';
   if (paneUrl) paneUrl.style.display = tab === 'url' ? 'block' : 'none';
+}
+
+async function executeWebSearch() {
+  const tInput = document.getElementById('web-search-title');
+  const aInput = document.getElementById('web-search-artist');
+  const title = tInput ? tInput.value.trim() : '';
+  const artist = aInput ? aInput.value.trim() : '';
+
+  if (!title) {
+    showToast('Inserisci il titolo del brano da cercare');
+    if (tInput) tInput.focus();
+    return;
+  }
+
+  const resultsContainer = document.getElementById('web-search-results');
+  if (resultsContainer) {
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = '<div style="padding: 12px; color: #38bdf8; text-align: center;">🔍 Ricerca accordi in corso su Accordi e Spartiti & Ultimate-Guitar...</div>';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/web-search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.candidates || data.candidates.length === 0) {
+        if (resultsContainer) {
+          resultsContainer.innerHTML = `
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 6px; padding: 12px; color: #fca5a5; font-size: 13px;">
+              Nessun accordo trovato online per <b>"${escapeHtml(title)}"</b>.<br>
+              Puoi provare a incollare il testo nella scheda <i>📋 Incolla Testo</i> oppure scrivere direttamente l'AML.
+            </div>
+          `;
+        }
+        return;
+      }
+
+      let cardsHtml = `
+        <div style="font-size: 12px; color: #10b981; font-weight: 700; margin-bottom: 8px;">
+          ✓ Trovati ${data.candidates.length} spartiti online. Tocca un brano per importarlo:
+        </div>
+      `;
+
+      data.candidates.forEach((cand) => {
+        cardsHtml += `
+          <div class="web-result-card">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 800; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${escapeHtml(cand.title)}
+              </div>
+              <div style="font-size: 12px; color: #38bdf8; margin-top: 2px;">
+                <b>${escapeHtml(cand.artist)}</b> &bull; <span class="portal-badge">${escapeHtml(cand.portal)}</span>
+              </div>
+            </div>
+            <button class="btn btn-success" style="font-weight: 800; min-height: 36px; padding: 4px 14px; white-space: nowrap;" onclick="importCandidateUrl('${encodeURIComponent(cand.url)}')">
+              ⚡ Importa
+            </button>
+          </div>
+        `;
+      });
+
+      if (resultsContainer) {
+        resultsContainer.innerHTML = cardsHtml;
+      }
+    } else {
+      if (resultsContainer) {
+        resultsContainer.innerHTML = '<div style="color:#ef4444; font-size:13px; padding:8px;">Errore durante la ricerca web. Verifica la connessione.</div>';
+      }
+    }
+  } catch (err) {
+    console.error('Web search error:', err);
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '<div style="color:#ef4444; font-size:13px; padding:8px;">Errore di connessione durante la ricerca online.</div>';
+    }
+  }
+}
+
+async function importCandidateUrl(encodedUrl) {
+  const url = decodeURIComponent(encodedUrl);
+  showToast('Download ed elaborazione spartito...');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/import-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const tField = document.getElementById('new-song-title');
+      if (tField) tField.value = data.title;
+      const aField = document.getElementById('new-song-artist');
+      if (aField) aField.value = data.artist;
+      const kField = document.getElementById('new-song-key');
+      if (kField) kField.value = data.key;
+      const bpmField = document.getElementById('new-song-bpm');
+      if (bpmField) bpmField.value = data.bpm || 120;
+      const capoField = document.getElementById('new-song-capo');
+      if (capoField) capoField.value = data.capo || 0;
+      const amlField = document.getElementById('new-song-aml');
+      if (amlField) amlField.value = data.aml;
+
+      // Scroll smoothly down to the form fields
+      if (tField) tField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast(`Brano "${data.title}" importato! Tocca "Salva nel Repertorio" per confermare ✓`);
+    } else {
+      showToast('Impossibile estrarre gli accordi da questo link');
+    }
+  } catch (err) {
+    console.error('Candidate import error:', err);
+    showToast('Errore durante l\'importazione');
+  }
 }
 
 async function convertPastedText() {

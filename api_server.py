@@ -287,6 +287,29 @@ def list_songs(
 
     return all_songs
 
+@app.get("/api/songs/web-search")
+def search_songs_online(
+    title: str = Query(..., description="Titolo del brano"),
+    artist: Optional[str] = Query("", description="Artista opzionale"),
+    limit: int = Query(10, ge=1, le=20)
+):
+    """Searches online chord portals (Accordi e Spartiti, Ultimate Guitar) for candidate charts."""
+    clean_title = title.strip()
+    if not clean_title:
+        raise HTTPException(status_code=400, detail="Il titolo del brano è obbligatorio")
+
+    clean_artist = (artist or "").strip()
+    try:
+        candidates = WebSongImporter.search_online_candidates(clean_title, clean_artist, limit=limit)
+        return {
+            "status": "success",
+            "query": {"title": clean_title, "artist": clean_artist},
+            "count": len(candidates),
+            "candidates": candidates
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore ricerca online: {str(e)}")
+
 @app.get("/api/songs/{uuid}")
 def get_song(uuid: str):
     """Returns single song data, revisions count, and assigned repertoires."""

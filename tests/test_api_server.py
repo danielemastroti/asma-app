@@ -200,6 +200,15 @@ class TestApiServer(unittest.TestCase):
         self.assertEqual(data["title"], "Vespa Test")
         self.assertEqual(data["artist"], "Lunapop")
 
+    def test_12_web_search_endpoint(self):
+        resp = self.client.get("/api/songs/web-search?title=50+Special&artist=Lunapop")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["query"]["title"], "50 Special")
+        self.assertIsInstance(data["candidates"], list)
+        self.assertGreater(data["count"], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

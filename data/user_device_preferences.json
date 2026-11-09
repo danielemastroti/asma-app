@@ -1,6 +1,6 @@
 {
   "danyposta@gmail.com": {
-    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+    "last_active_device": "Huawei MediaPad M5",
     "devices": {
       "Huawei MatePad": {
         "layout_font_size": 18.0,
@@ -63,7 +63,7 @@
       "Huawei MediaPad M5": {
         "layout_font_size": 11.5,
         "layout_font_size_chords": 12.5,
-        "layout_columns": 2,
+        "layout_columns": 1,
         "layout_margin_lateral": 8.0,
         "layout_margin_top": 8.0,
         "layout_margin_bottom": 8.0,
@@ -72,7 +72,10 @@
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
-        "score_display_mode": "chords"
+        "score_display_mode": "chords",
+        "updated_at": "2026-11-09 23:11:41",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C"
       }
     },
     "user_prefs": {
@@ -105,7 +108,7 @@
     }
   },
   "acicchelli65@gmail.com": {
-    "last_active_device": "Huawei MediaPad M5",
+    "last_active_device": "Foglio a 4 stampabile",
     "devices": {
       "Huawei MatePad / Tablet (10.4\"/11\")": {
         "layout_font_size": 20.0,
@@ -157,7 +160,7 @@
     },
     "user_prefs": {
       "app_mode": "simplified",
-      "score_display_mode": "lyrics"
+      "score_display_mode": "chords"
     }
   },
   "testuser@band.it": {

@@ -68,13 +68,41 @@
 
         <!-- IMPORT MODE TABS -->
         <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
-          <button id="btn-import-tab-paste" class="btn btn-secondary active" onclick="switchImportTab('paste')">📋 Incolla Testo / Accordi</button>
-          <button id="btn-import-tab-url" class="btn btn-secondary" onclick="switchImportTab('url')">🌐 Da Link Web</button>
+          <button id="btn-import-tab-web" class="btn btn-secondary active" onclick="switchImportTab('web')">🌐 Cerca sul Web</button>
+          <button id="btn-import-tab-paste" class="btn btn-secondary" onclick="switchImportTab('paste')">📋 Incolla Testo / Accordi</button>
+          <button id="btn-import-tab-url" class="btn btn-secondary" onclick="switchImportTab('url')">🔗 Da Link Web</button>
           <button id="btn-import-tab-manual" class="btn btn-secondary" onclick="switchImportTab('manual')">✍️ Scrivi AML</button>
         </div>
 
-        <!-- TAB 1: PASTE TEXT -->
-        <div id="import-pane-paste">
+        <!-- TAB 1: WEB SEARCH (TITLE + OPTIONAL ARTIST) -->
+        <div id="import-pane-web">
+          <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-size: 13px; font-weight: 800; color: #38bdf8; margin-bottom: 8px;">
+              🔍 Cerca accordi su Accordi e Spartiti, Ultimate-Guitar e portali web:
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+              <div style="flex: 2; min-width: 180px;">
+                <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Titolo del Brano *</label>
+                <input type="text" id="web-search-title" class="search-input" style="width: 100%; margin-top: 2px;" placeholder="es. Albachiara, Baila Morena, Hotel California...">
+              </div>
+              <div style="flex: 1.5; min-width: 150px;">
+                <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Artista (opzionale)</label>
+                <input type="text" id="web-search-artist" class="search-input" style="width: 100%; margin-top: 2px;" placeholder="es. Vasco Rossi, Zucchero...">
+              </div>
+              <button class="btn btn-primary" style="font-weight: 800; min-height: 40px; padding: 0 16px; white-space: nowrap;" onclick="executeWebSearch()">
+                🔍 Cerca sul Web
+              </button>
+            </div>
+          </div>
+
+          <!-- SEARCH RESULTS LIST -->
+          <div id="web-search-results" style="display: none; margin-bottom: 14px;">
+            <!-- Populated dynamically with candidate cards -->
+          </div>
+        </div>
+
+        <!-- TAB 2: PASTE TEXT -->
+        <div id="import-pane-paste" style="display: none;">
           <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Incolla il testo con gli accordi sopra le parole (da internet o foglio):</label>
           <textarea id="import-paste-text" class="touch-textarea" style="min-height: 180px; margin-top: 4px;" placeholder="Es:
 DO            SOL
@@ -86,7 +114,7 @@ girano in centro sfiorando i novanta"></textarea>
           </div>
         </div>
 
-        <!-- TAB 2: IMPORT URL -->
+        <!-- TAB 3: IMPORT URL -->
         <div id="import-pane-url" style="display: none;">
           <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Incolla URL pagina accordi (Accordi e Spartiti, Ultimate-Guitar, Skitarrate):</label>
           <div style="display: flex; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
