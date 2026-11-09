@@ -1,5 +1,5 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v4';
+const CACHE_NAME = 'asma-pwa-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -10,10 +10,10 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
@@ -24,32 +24,21 @@ self.addEventListener('activate', (e) => {
           if (k !== CACHE_NAME) return caches.delete(k);
         })
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-
-  // For API calls, try network first, fallback to cache
-  if (url.pathname.startsWith('/api/')) {
-    e.respondWith(
-      fetch(e.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
-
-  // For static assets, try cache first, fallback to network
+  // Network-First for ALL requests (fresh content online, cached offline)
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(e.request)
+      .then((response) => {
+        if (response && response.status === 200 && e.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
