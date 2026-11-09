@@ -180,6 +180,26 @@ class TestApiServer(unittest.TestCase):
         self.assertIsInstance(users, list)
         self.assertTrue(any(u["name"] == "Cico" for u in users))
 
+    def test_11_convert_text_endpoint(self):
+        raw = """
+        DO            SOL
+        Vespe truccate anni sessanta
+        FA            DO
+        girano in centro sfiorando i novanta
+        """
+        resp = self.client.post("/api/songs/convert-text", json={
+            "raw_text": raw,
+            "title": "Vespa Test",
+            "artist": "Lunapop"
+        })
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("[DO]", data["aml"])
+        self.assertIn("[SOL]", data["aml"])
+        self.assertEqual(data["title"], "Vespa Test")
+        self.assertEqual(data["artist"], "Lunapop")
+
 
 if __name__ == '__main__':
     unittest.main()

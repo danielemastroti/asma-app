@@ -425,6 +425,58 @@ body {
   white-space: pre;
 }
 
+/* QUICK CHORD CHIPS & TOUCH EDITOR */
+.quick-chips-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-surface-elevated);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.quick-chip {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #38bdf8;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.quick-chip:active {
+  background: #0284c7;
+  color: #fff;
+  transform: scale(0.95);
+}
+
+.touch-textarea {
+  width: 100%;
+  min-height: 280px;
+  background: #090d16;
+  border: 1px solid var(--border-color);
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.touch-textarea:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
 /* SETTINGS FORM TOUCH GRID */
 .settings-grid {
   display: grid;

@@ -53,9 +53,101 @@
         <!-- Rendered by app.js -->
       </div>
 
-      <!-- SEARCH BAR -->
-      <div class="controls-bar">
-        <input type="text" id="search-songs" class="search-input" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
+      <!-- SEARCH & NEW SONG BAR -->
+      <div class="controls-bar" style="display: flex; gap: 8px;">
+        <input type="text" id="search-songs" class="search-input" style="flex: 1;" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
+        <button id="btn-open-new-song" class="btn btn-primary" style="white-space: nowrap; font-weight: 800;" onclick="showNewSongForm()">➕ Nuovo / Importa</button>
+      </div>
+
+      <!-- INLINE TOUCH FORM: NUOVO BRANO / IMPORTAZIONE RAPIDA -->
+      <div id="new-song-form" style="display: none; background: var(--bg-surface-elevated); border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h4 style="color: var(--accent-cyan); margin: 0; font-size: 16px; font-weight: 800;">➕ Nuovo Brano & Importazione</h4>
+          <button class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px;" onclick="hideNewSongForm()">✕ Chiudi</button>
+        </div>
+
+        <!-- IMPORT MODE TABS -->
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button id="btn-import-tab-paste" class="btn btn-secondary active" onclick="switchImportTab('paste')">📋 Incolla Testo / Accordi</button>
+          <button id="btn-import-tab-url" class="btn btn-secondary" onclick="switchImportTab('url')">🌐 Da Link Web</button>
+          <button id="btn-import-tab-manual" class="btn btn-secondary" onclick="switchImportTab('manual')">✍️ Scrivi AML</button>
+        </div>
+
+        <!-- TAB 1: PASTE TEXT -->
+        <div id="import-pane-paste">
+          <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Incolla il testo con gli accordi sopra le parole (da internet o foglio):</label>
+          <textarea id="import-paste-text" class="touch-textarea" style="min-height: 180px; margin-top: 4px;" placeholder="Es:
+DO            SOL
+Vespe truccate anni sessanta
+FA            DO
+girano in centro sfiorando i novanta"></textarea>
+          <div style="margin-top: 8px; margin-bottom: 12px;">
+            <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="convertPastedText()">✨ Converti in Formato AML Band</button>
+          </div>
+        </div>
+
+        <!-- TAB 2: IMPORT URL -->
+        <div id="import-pane-url" style="display: none;">
+          <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Incolla URL pagina accordi (Accordi e Spartiti, Ultimate-Guitar, Skitarrate):</label>
+          <div style="display: flex; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
+            <input type="url" id="import-url-input" class="search-input" style="flex: 1;" placeholder="https://www.accordiespartiti.it/accordi/italiani/...">
+            <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800; white-space: nowrap;" onclick="fetchSongFromUrl()">🌐 Scarica Brano</button>
+          </div>
+        </div>
+
+        <!-- METADATA & AML OUTPUT -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Titolo *</label>
+            <input type="text" id="new-song-title" class="search-input" style="width: 100%; margin-top: 2px;" placeholder="es. 50 SPECIAL">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Artista</label>
+            <input type="text" id="new-song-artist" class="search-input" style="width: 100%; margin-top: 2px;" placeholder="es. Lunapop">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Tonalità</label>
+            <input type="text" id="new-song-key" class="search-input" style="width: 100%; margin-top: 2px;" placeholder="es. SOL o C">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">BPM</label>
+            <input type="number" id="new-song-bpm" class="search-input" style="width: 100%; margin-top: 2px;" value="120">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Capotasto</label>
+            <input type="number" id="new-song-capo" class="search-input" style="width: 100%; margin-top: 2px;" value="0">
+          </div>
+        </div>
+
+        <!-- AML CONTENT TEXTAREA -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Contenuto AML (Pronto per il Palco & PDF):</label>
+            <span style="font-size: 11px; color: #10b981;">Tocca i tasti rapidi per inserire accordi:</span>
+          </div>
+          <!-- QUICK CHIPS -->
+          <div class="quick-chips-bar" id="new-song-chips">
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[DO]')">[DO]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[RE]')">[RE]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[MI]')">[MI]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[FA]')">[FA]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SOL]')">[SOL]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[LA]')">[LA]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SI]')">[SI]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[m]')">[m]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[7]')">[7]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '|')">|</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n[INTRO]\n')">[INTRO]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n[RITORNELLO]\n')">[RIT]</button>
+            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n♪ (Strumentale)\n')">♪ Inst</button>
+          </div>
+          <textarea id="new-song-aml" class="touch-textarea" style="min-height: 220px;" placeholder="[SOL]Vespe truccate [SOL4+]anni sessanta..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-success" style="font-weight: 800; min-height: 42px;" onclick="submitNewSong()">✓ Salva Brano nel Repertorio</button>
+          <button class="btn btn-secondary" style="min-height: 42px;" onclick="hideNewSongForm()">✕ Annulla</button>
+        </div>
       </div>
 
       <!-- SONG GRID -->

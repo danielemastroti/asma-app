@@ -126,6 +126,16 @@ class SetlistSaveRequest(BaseModel):
     user_email: Optional[str] = "cico@band.org"
     user_name: Optional[str] = "Cico"
 
+class ConvertTextRequest(BaseModel):
+    raw_text: str
+    title: Optional[str] = "Nuovo Brano"
+    artist: Optional[str] = "Band"
+
+class ImportUrlRequest(BaseModel):
+    url: str
+    user_email: Optional[str] = "cico@band.org"
+    user_name: Optional[str] = "Cico"
+
 class UserPreferencesRequest(BaseModel):
     app_mode: Optional[str] = "simplified"
     score_display_mode: Optional[str] = "chords"
@@ -354,6 +364,48 @@ def delete_song(uuid: str, user_email: str = "cico@band.org", user_name: str = "
     if not success:
         raise HTTPException(status_code=404, detail="Brano non trovato")
     return {"status": "success", "deleted_uuid": uuid}
+
+@app.post("/api/songs/convert-text")
+def convert_raw_text(req: ConvertTextRequest):
+    """Converts traditional chords-over-lyrics or ChordPro into official AML markup."""
+    text = req.raw_text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Testo non fornito")
+
+    # If already bracketed ChordPro with metadata directives
+    if "{" in text and "}" in text and any(d in text.lower() for d in ["title:", "t:", "artist:", "key:"]):
+        song = ImportEngine.import_from_chordpro(text)
+    else:
+        song = ImportEngine.import_from_traditional(text, default_title=req.title or "Nuovo Brano")
+
+    return {
+        "status": "success",
+        "title": song.title or req.title or "Nuovo Brano",
+        "artist": song.artist or req.artist or "Band",
+        "key": song.key_current or "C",
+        "bpm": song.bpm or 120,
+        "capo": song.capo or 0,
+        "aml": song.aml_content
+    }
+
+@app.post("/api/songs/import-url")
+def import_song_from_url(req: ImportUrlRequest):
+    """Fetches chords and lyrics from public URL and returns AML-ready structure."""
+    if not req.url or not req.url.startswith("http"):
+        raise HTTPException(status_code=400, detail="URL non valido")
+    try:
+        song = WebSongImporter.fetch_from_url(req.url)
+        return {
+            "status": "success",
+            "title": song.title or "Nuovo Brano",
+            "artist": song.artist or "Band",
+            "key": song.key_current or "C",
+            "bpm": song.bpm or 120,
+            "capo": song.capo or 0,
+            "aml": song.aml_content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Errore importazione web: {str(e)}")
 
 @app.post("/api/songs/{uuid}/transpose")
 def transpose_song(uuid: str, req: TransposeRequest):

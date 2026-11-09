@@ -553,6 +553,74 @@ function renderSongViewer() {
   if (!container || !state.selectedSong) return;
 
   const s = state.selectedSong;
+
+  // IN-PLACE TOUCH AML EDITOR MODE
+  if (state.isEditingSong) {
+    container.innerHTML = `
+      <div class="viewer-header">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 900; color: #38bdf8;">✏️ Modifica Brano: ${escapeHtml(s.title)}</h2>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Modifica testo, accordi o dati musicali</div>
+        </div>
+        <div class="viewer-tools">
+          <button class="btn btn-success" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit()">💾 Salva Modifiche</button>
+          <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="closeSongEditor()">✕ Annulla</button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 12px 0;">
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Titolo</label>
+          <input type="text" id="edit-song-title" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.title)}">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Artista</label>
+          <input type="text" id="edit-song-artist" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.artist || '')}">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Tonalità</label>
+          <input type="text" id="edit-song-key" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.key_current || 'C')}">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">BPM</label>
+          <input type="number" id="edit-song-bpm" class="search-input" style="width: 100%; margin-top: 2px;" value="${s.bpm || 120}">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Capo</label>
+          <input type="number" id="edit-song-capo" class="search-input" style="width: 100%; margin-top: 2px;" value="${s.capo || 0}">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Testo AML (tocca i tasti rapidi per inserire accordi nel testo):</label>
+        </div>
+        <div class="quick-chips-bar">
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[DO]')">[DO]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[RE]')">[RE]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[MI]')">[MI]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[FA]')">[FA]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SOL]')">[SOL]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[LA]')">[LA]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SI]')">[SI]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[m]')">[m]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[7]')">[7]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '|')">|</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n[RITORNELLO]\\n')">[RIT]</button>
+          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n♪ (Strumentale)\\n')">♪ Inst</button>
+        </div>
+        <textarea id="edit-song-aml" class="touch-textarea" style="min-height: 340px;">${escapeHtml(s.aml_content || '')}</textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 14px;">
+        <button class="btn btn-success" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit()">💾 Salva Modifiche</button>
+        <button class="btn btn-secondary" style="min-height: 42px; padding: 6px 14px;" onclick="closeSongEditor()">✕ Annulla</button>
+      </div>
+    `;
+    return;
+  }
+
   const hasChords = state.scoreMode === 'chords';
   const modeLabel = hasChords ? '🎸 Accordi: ON' : '🎤 Solo Testo';
   const colsLabel = state.userPrefs.layout_columns === 2 ? '2 Colonne' : '1 Colonna';
@@ -576,6 +644,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
+        <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
       </div>
@@ -584,6 +653,240 @@ function renderSongViewer() {
       ${formattedHtml}
     </div>
   `;
+}
+
+// ----------------------------------------------------------------------------
+// TOUCH EDITOR & SONG IMPORT ENGINE (1-Touch Actions)
+// ----------------------------------------------------------------------------
+function openSongEditor() {
+  state.isEditingSong = true;
+  renderSongViewer();
+}
+
+function closeSongEditor() {
+  state.isEditingSong = false;
+  renderSongViewer();
+}
+
+async function saveSongEdit() {
+  if (!state.selectedSong) return;
+  const titleInput = document.getElementById('edit-song-title');
+  const artistInput = document.getElementById('edit-song-artist');
+  const keyInput = document.getElementById('edit-song-key');
+  const bpmInput = document.getElementById('edit-song-bpm');
+  const capoInput = document.getElementById('edit-song-capo');
+  const amlInput = document.getElementById('edit-song-aml');
+
+  const payload = {
+    title: titleInput ? titleInput.value.trim() : state.selectedSong.title,
+    artist: artistInput ? artistInput.value.trim() : state.selectedSong.artist,
+    key_current: keyInput ? keyInput.value.trim() : state.selectedSong.key_current,
+    bpm: bpmInput ? (parseInt(bpmInput.value) || 120) : state.selectedSong.bpm,
+    capo: capoInput ? (parseInt(capoInput.value) || 0) : state.selectedSong.capo,
+    aml_content: amlInput ? amlInput.value : state.selectedSong.aml_content,
+    user_email: state.currentUser.email,
+    user_name: state.currentUser.name,
+    comment: 'Modifica touch da tablet'
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      state.selectedSong = data.song;
+      const idx = state.songs.findIndex(x => x.uuid === state.selectedSong.uuid);
+      if (idx !== -1) {
+        state.songs[idx] = Object.assign(state.songs[idx], state.selectedSong);
+      }
+      state.isEditingSong = false;
+      renderSongGrid();
+      renderSongViewer();
+      showToast(`Brano "${state.selectedSong.title}" salvato con successo ✓`);
+    } else {
+      showToast('Errore durante il salvataggio del brano');
+    }
+  } catch (err) {
+    console.error('Song edit error:', err);
+    showToast('Errore di connessione');
+  }
+}
+
+function insertChordAtCursor(textareaId, textToInsert) {
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const val = textarea.value;
+
+  textarea.value = val.substring(0, start) + textToInsert + val.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
+  textarea.focus();
+}
+
+function showNewSongForm() {
+  const form = document.getElementById('new-song-form');
+  if (form) {
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function hideNewSongForm() {
+  const form = document.getElementById('new-song-form');
+  if (form) form.style.display = 'none';
+}
+
+function switchImportTab(tab) {
+  const btnPaste = document.getElementById('btn-import-tab-paste');
+  const btnUrl = document.getElementById('btn-import-tab-url');
+  const btnManual = document.getElementById('btn-import-tab-manual');
+
+  if (btnPaste) btnPaste.classList.toggle('active', tab === 'paste');
+  if (btnUrl) btnUrl.classList.toggle('active', tab === 'url');
+  if (btnManual) btnManual.classList.toggle('active', tab === 'manual');
+
+  const panePaste = document.getElementById('import-pane-paste');
+  const paneUrl = document.getElementById('import-pane-url');
+
+  if (panePaste) panePaste.style.display = tab === 'paste' ? 'block' : 'none';
+  if (paneUrl) paneUrl.style.display = tab === 'url' ? 'block' : 'none';
+}
+
+async function convertPastedText() {
+  const rawInput = document.getElementById('import-paste-text');
+  const text = rawInput ? rawInput.value.trim() : '';
+  if (!text) {
+    showToast('Incolla prima il testo con gli accordi');
+    return;
+  }
+
+  showToast('Conversione in AML in corso...');
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/convert-text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw_text: text })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.title && data.title !== 'Nuovo Brano') {
+        const tField = document.getElementById('new-song-title');
+        if (tField && !tField.value) tField.value = data.title;
+      }
+      if (data.artist && data.artist !== 'Band') {
+        const aField = document.getElementById('new-song-artist');
+        if (aField && !aField.value) aField.value = data.artist;
+      }
+      if (data.key) {
+        const kField = document.getElementById('new-song-key');
+        if (kField) kField.value = data.key;
+      }
+      const amlField = document.getElementById('new-song-aml');
+      if (amlField) amlField.value = data.aml;
+
+      showToast('Testo convertito con successo in AML ✓');
+    }
+  } catch (err) {
+    console.error('Convert text error:', err);
+    showToast('Errore durante la conversione');
+  }
+}
+
+async function fetchSongFromUrl() {
+  const urlInput = document.getElementById('import-url-input');
+  const url = urlInput ? urlInput.value.trim() : '';
+  if (!url || !url.startsWith('http')) {
+    showToast('Inserisci un URL valido');
+    return;
+  }
+
+  showToast('Scaricamento accordi dal web...');
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/import-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const tField = document.getElementById('new-song-title');
+      if (tField) tField.value = data.title;
+      const aField = document.getElementById('new-song-artist');
+      if (aField) aField.value = data.artist;
+      const kField = document.getElementById('new-song-key');
+      if (kField) kField.value = data.key;
+      const bpmField = document.getElementById('new-song-bpm');
+      if (bpmField) bpmField.value = data.bpm || 120;
+      const amlField = document.getElementById('new-song-aml');
+      if (amlField) amlField.value = data.aml;
+
+      showToast(`Brano "${data.title}" estratto dal web ✓`);
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Impossibile estrarre accordi da questo link');
+    }
+  } catch (err) {
+    console.error('URL import error:', err);
+    showToast('Errore connessione importazione web');
+  }
+}
+
+async function submitNewSong() {
+  const tField = document.getElementById('new-song-title');
+  const title = tField ? tField.value.trim() : '';
+  if (!title) {
+    showToast('Inserisci almeno il titolo del brano');
+    if (tField) tField.focus();
+    return;
+  }
+
+  const artist = (document.getElementById('new-song-artist')?.value || 'Band').trim();
+  const key = (document.getElementById('new-song-key')?.value || 'C').trim();
+  const bpm = parseInt(document.getElementById('new-song-bpm')?.value) || 120;
+  const capo = parseInt(document.getElementById('new-song-capo')?.value) || 0;
+  const aml = document.getElementById('new-song-aml')?.value || '';
+
+  const payload = {
+    title: title.toUpperCase(),
+    artist: artist,
+    key_current: key,
+    bpm: bpm,
+    capo: capo,
+    aml_content: aml,
+    repertoire_uuid: state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null,
+    user_email: state.currentUser.email,
+    user_name: state.currentUser.name
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Brano "${title}" creato con successo ✓`);
+      hideNewSongForm();
+      // Reload repertoire and select created song
+      await loadSongs();
+      const created = state.songs.find(s => s.uuid === data.song.uuid);
+      if (created) {
+        selectSong(created);
+      }
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore creazione brano');
+    }
+  } catch (err) {
+    console.error('Create song error:', err);
+    showToast('Errore creazione brano');
+  }
 }
 
 // Musical chords recognition for Web viewer & Stage Prompter
