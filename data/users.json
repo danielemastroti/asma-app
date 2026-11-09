@@ -58,35 +58,5 @@
     "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Puma",
     "is_active": true,
     "provider": "google"
-  },
-  {
-    "email": "daniele@band.org",
-    "name": "Daniele Rossi (Admin)",
-    "role": "ADMIN",
-    "pseudonym": "Daniele",
-    "instrument": "Admin",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Daniele",
-    "is_active": true,
-    "provider": "google"
-  },
-  {
-    "email": "marco.chitarra@band.org",
-    "name": "Marco Bassi (Chitarra / Band)",
-    "role": "BAND_MEMBER",
-    "pseudonym": "Marco",
-    "instrument": "Chitarra",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Marco",
-    "is_active": true,
-    "provider": "google"
-  },
-  {
-    "email": "ospite@band.org",
-    "name": "Ospite (Solo Lettura)",
-    "role": "VIEWER",
-    "pseudonym": "Ospite",
-    "instrument": "Ospite",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Ospite",
-    "is_active": true,
-    "provider": "google"
   }
 ]

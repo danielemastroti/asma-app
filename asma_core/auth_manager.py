@@ -145,13 +145,6 @@ class AuthManager:
             provider="google"
         ),
         User(
-            email="daniele@band.org",
-            name="Daniele Rossi (Admin)",
-            role=UserRole.ADMIN,
-            picture_url="https://api.dicebear.com/7.x/bottts/svg?seed=Daniele",
-            provider="google"
-        ),
-        User(
             email="maurobovolenta4@gmail.com",
             name="Maurino",
             role=UserRole.BAND_MEMBER,
@@ -184,20 +177,6 @@ class AuthManager:
             name="Puma",
             role=UserRole.BAND_MEMBER,
             picture_url="https://api.dicebear.com/7.x/bottts/svg?seed=Puma",
-            provider="google"
-        ),
-        User(
-            email="marco.chitarra@band.org",
-            name="Marco Bassi (Chitarra / Band)",
-            role=UserRole.BAND_MEMBER,
-            picture_url="https://api.dicebear.com/7.x/bottts/svg?seed=Marco",
-            provider="google"
-        ),
-        User(
-            email="ospite@band.org",
-            name="Ospite (Solo Lettura)",
-            role=UserRole.VIEWER,
-            picture_url="https://api.dicebear.com/7.x/bottts/svg?seed=Ospite",
             provider="google"
         )
     ]
@@ -323,11 +302,11 @@ class AuthManager:
 
         display_name = pseudonym or name or clean_email.split("@")[0].capitalize()
 
-        if clean_email == "danyposta@gmail.com" or "admin" in clean_email or clean_email == "daniele@band.org":
+        if clean_email == "danyposta@gmail.com" or "admin" in clean_email:
 
             initial_role = UserRole.ADMIN
 
-        elif clean_email in self.BAND_PSEUDONYMS or clean_email.endswith("@band.org"):
+        elif clean_email in self.BAND_PSEUDONYMS:
 
             initial_role = UserRole.BAND_MEMBER
 
