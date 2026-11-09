@@ -213,50 +213,65 @@ class AuthManager:
         self._load_users()
 
     def _load_users(self):
-
-        """Loads registered users from JSON storage or seeds default band members."""
-
+        """Loads registered users from Turso Cloud, local JSON storage, or seeds default band members."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        default_data = os.path.abspath("data")
+        is_default = (os.path.abspath(str(self.data_dir)) == default_data)
 
-        if self.users_file.exists():
-
+        # 1. Try loading from Turso Cloud if configured (production data directory only)
+        if is_default:
             try:
-
-                with open(self.users_file, "r", encoding="utf-8") as f:
-
-                    data = json.load(f)
-
-                    for item in data:
-
-                        u = User.from_dict(item)
-
-                        self._users[u.email.lower()] = u
-
+                from asma_core.turso_client import TursoClient
+                turso = TursoClient()
+                if turso.is_configured:
+                    turso_users = turso.fetch_users()
+                    if turso_users:
+                        for item in turso_users:
+                            u = User.from_dict(item)
+                            self._users[u.email.lower()] = u
+                        # Refresh local cache file
+                        data = [u.to_dict() for u in self._users.values()]
+                        with open(self.users_file, "w", encoding="utf-8") as f:
+                            json.dump(data, f, indent=2, ensure_ascii=False)
+                        return
             except Exception:
+                pass
 
+        # 2. Fallback to local JSON storage
+        if self.users_file.exists():
+            try:
+                with open(self.users_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for item in data:
+                        u = User.from_dict(item)
+                        self._users[u.email.lower()] = u
+            except Exception:
                 self._seed_default_users()
-
         else:
-
             self._seed_default_users()
 
     def _seed_default_users(self):
-
         """Initializes default band accounts."""
-
         self._users = {u.email.lower(): u for u in self.DEFAULT_USERS}
-
         self._save_users()
 
     def _save_users(self):
-
-        """Persists registered users to disk."""
-
+        """Persists registered users to disk and synchronizes with Turso Cloud."""
         data = [u.to_dict() for u in self._users.values()]
-
         with open(self.users_file, "w", encoding="utf-8") as f:
-
             json.dump(data, f, indent=2, ensure_ascii=False)
+
+        default_data = os.path.abspath("data")
+        is_default = (os.path.abspath(str(self.data_dir)) == default_data)
+        if is_default:
+            # Synchronize with Turso Cloud
+            try:
+                from asma_core.turso_client import TursoClient
+                turso = TursoClient()
+                if turso.is_configured:
+                    turso.push_users(data)
+            except Exception:
+                pass
 
     def list_users(self) -> List[User]:
 

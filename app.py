@@ -4150,7 +4150,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
             "👥 Utenti & Ruoli Band",
             "💾 Backup & Ripristino",
             "🗑️ Cestino (Retention 30gg)",
-            "☁️ Sincronizzazione GitHub Gist",
+            "☁️ Database Cloud (Turso) & Backup",
             "🏥 Health & Telemetria"
         ])
 
@@ -4716,12 +4716,33 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     st.info("Nessun repertorio attualmente nel cestino.")
 
         with tab_gist:
-            st.write("#### Sincronizzazione Remota GitHub Gist (SRS Cap. 18.9 & 22.8)")
-            st.caption("Sincronizza l'intero archivio musicale con il tuo repository Gist a costo zero.")
+            st.write("#### ☁️ Database Cloud Turso (LibSQL Serverless - Senza Sleep)")
+            st.caption("Database cloud relazionale a zero-sleep e alta concorrenza con 9 GB di archiviazione gratuita.")
+            if hasattr(storage, "turso_client") and storage.turso_client.is_configured:
+                st.success("🟢 **Stato Turso**: Connesso e Operativo (`LibSQL HTTP`)")
+                col_t1, col_t2 = st.columns([2, 1])
+                with col_t1:
+                    st.info("I dati utente, i brani, le scalette e le revisioni vengono sincronizzati istantaneamente sul cloud Turso.")
+                with col_t2:
+                    if st.button("🚀 Sincronizza su Turso Adesso", key="btn_sync_turso_now"):
+                        res = storage.turso_client.migrate_all_local_data_to_turso("data")
+                        err_count = len(res.get("errors", []))
+                        if err_count == 0:
+                            st.success(f"✅ Sincronizzati {res['songs_count']} brani, {res['users_count']} utenti, {res['revisions_count']} revisioni, {res['repertoires_count']} repertori.")
+                            log_op("🚀", "TURSO", f"Sincronizzati {res['songs_count']} brani e {res['users_count']} utenti su Turso", "SUCCESS")
+                        else:
+                            st.warning(f"Sincronizzazione completata con {err_count} avvisi.")
+            else:
+                st.warning("🟡 Stato Turso: Non configurato.")
+                st.info("Per abilitare Turso, aggiungi la sezione `[turso]` con `database_url` e `auth_token` in `.streamlit/secrets.toml`.")
+
+            st.divider()
+            st.write("#### 📦 Backup Secondario GitHub Gist (Opzionale)")
+            st.caption("Snapshot documentale di riserva su GitHub Gist.")
             is_conn, msg = gist_client.test_connection()
             if is_conn:
                 st.success(f"🟢 Stato Connessione Gist: {msg}")
-                if st.button("☁️ Sincronizza Tutti i File su Gist Adesso", type="primary"):
+                if st.button("☁️ Sincronizza File su Gist", key="btn_sync_gist_now"):
                     all_s = storage.list_songs()
                     push_dict = {f"{s['uuid']}.json": json.dumps(s) for s in all_s}
                     push_ok, push_msg = gist_client.push_files(push_dict)
@@ -4731,8 +4752,7 @@ elif menu_choice == "⚙️ Amministrazione & Log":
                     else:
                         st.error(push_msg)
             else:
-                st.warning(f"🟡 Stato Gist: {msg}")
-                st.info("Per abilitare la sincronizzazione automatica remota, configura le variabili di ambiente `GITHUB_TOKEN` e `GIST_ID` o aggiungile a `.streamlit/secrets.toml`.")
+                st.info(f"Stato Gist: {msg}")
 
         with tab_health:
             st.write("#### Endpoint di Controllo Salute `/health`")

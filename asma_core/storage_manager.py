@@ -21,6 +21,7 @@ from asma_core.models import (
 from asma_core.audit_logger import AuditLogger
 from asma_core.lock_manager import LockManager
 from asma_core.gist_client import GistClient
+from asma_core.turso_client import TursoClient
 
 
 class StorageManager:
@@ -56,6 +57,7 @@ class StorageManager:
         self.audit = AuditLogger()
         self.lock_mgr = LockManager()
         self.gist_client = GistClient()
+        self.turso_client = TursoClient()
 
         # Initialize In-Memory SQLite Index
         self._db_conn = sqlite3.connect(":memory:", check_same_thread=False)
@@ -65,7 +67,7 @@ class StorageManager:
 
         # Initial automatic cloud synchronization (prevent data loss on cloud deploy/restart)
         default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
-        if data_dir is None and os.path.abspath(self._base_dir) == default_base and self.gist_client.is_configured:
+        if data_dir is None and os.path.abspath(self._base_dir) == default_base and (self.turso_client.is_configured or self.gist_client.is_configured):
             try:
                 self.sync_from_cloud()
             except Exception:
@@ -1301,8 +1303,40 @@ class StorageManager:
         Pulls data from remote GitHub Gist and hydrates local storage.
         Prevents data loss on ephemeral cloud deployments (Streamlit Cloud).
         """
+        # 0. Turso Cloud Synchronization (Primary Cloud Database - Fast, Zero-Sleep, Relational)
+        if hasattr(self, "turso_client") and self.turso_client.is_configured:
+            try:
+                synced_from_turso = 0
+                turso_songs = self.turso_client.fetch_all_songs()
+                for s_dict in turso_songs:
+                    s_id = s_dict.get("uuid")
+                    if not s_id:
+                        continue
+                    s_path = os.path.join(self._songs_dir, f"{s_id}.json")
+                    if not os.path.exists(s_path):
+                        with open(s_path, "w", encoding="utf-8") as sf:
+                            json.dump(s_dict, sf, indent=2, ensure_ascii=False)
+                        s_obj = Song.from_dict(s_dict)
+                        self._upsert_index_record(s_obj)
+                        synced_from_turso += 1
+
+                turso_reps = self.turso_client.fetch_repertoires()
+                if turso_reps and not os.path.exists(self._repertoires_file):
+                    with open(self._repertoires_file, "w", encoding="utf-8") as rf:
+                        json.dump(turso_reps, rf, indent=2, ensure_ascii=False)
+
+                turso_sets = self.turso_client.fetch_setlists()
+                if turso_sets and not os.path.exists(self._setlists_file):
+                    with open(self._setlists_file, "w", encoding="utf-8") as sf:
+                        json.dump(turso_sets, sf, indent=2, ensure_ascii=False)
+
+                if synced_from_turso > 0:
+                    return True, f"Sincronizzati {synced_from_turso} brani da Turso Cloud Database."
+            except Exception:
+                pass
+
         if not hasattr(self, "gist_client") or not self.gist_client.is_configured:
-            return False, "Gist non configurato (modalità offline)."
+            return False, "Cloud storage non configurato (modalità offline)."
 
         ok, remote_files, msg = self.gist_client.pull_all_files()
         if not ok:
@@ -1548,23 +1582,42 @@ class StorageManager:
         return self.gist_client.push_files({"repertory.json": content})
 
     def _trigger_background_gist_sync(self, target: str = "SETLISTS") -> None:
-        """Launches a non-blocking daemon thread to sync changes with GitHub Gist."""
+        """Launches a non-blocking daemon thread to sync changes with Turso Cloud and GitHub Gist."""
         default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
-        if os.path.abspath(self._base_dir) != default_base or not hasattr(self, "gist_client") or not self.gist_client.is_configured:
+        if os.path.abspath(self._base_dir) != default_base:
             return
 
         def _worker():
-            try:
-                if target in ("SETLISTS", "ALL"):
-                    self.sync_push_setlists_to_gist()
-                if target in ("SONGS", "ALL"):
-                    self.sync_push_repertory_to_gist()
-                if target in ("REPERTOIRES", "ALL"):
-                    self.sync_push_repertoires_to_gist()
-                if target in ("TRASH", "ALL"):
-                    self.sync_push_tombstones_to_gist()
-            except Exception:
-                pass
+            # 1. Turso Cloud Sync (High Priority)
+            if hasattr(self, "turso_client") and self.turso_client.is_configured:
+                try:
+                    if target in ("SONGS", "ALL"):
+                        for s_meta in self.list_songs(include_deleted=True):
+                            s = self.get_song(s_meta["uuid"])
+                            if s:
+                                self.turso_client.push_song(s.to_dict())
+                    if target in ("REPERTOIRES", "ALL"):
+                        reps = [r.to_dict() for r in self.list_repertoires()]
+                        self.turso_client.push_repertoires(reps)
+                    if target in ("SETLISTS", "ALL"):
+                        sets = [s.to_dict() for s in self.list_setlists()]
+                        self.turso_client.push_setlists(sets)
+                except Exception:
+                    pass
+
+            # 2. Legacy GitHub Gist sync (if configured)
+            if hasattr(self, "gist_client") and self.gist_client.is_configured:
+                try:
+                    if target in ("SETLISTS", "ALL"):
+                        self.sync_push_setlists_to_gist()
+                    if target in ("SONGS", "ALL"):
+                        self.sync_push_repertory_to_gist()
+                    if target in ("REPERTOIRES", "ALL"):
+                        self.sync_push_repertoires_to_gist()
+                    if target in ("TRASH", "ALL"):
+                        self.sync_push_tombstones_to_gist()
+                except Exception:
+                    pass
 
         thread = threading.Thread(target=_worker, daemon=True)
         thread.start()
