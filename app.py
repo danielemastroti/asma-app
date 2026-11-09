@@ -71,6 +71,40 @@ st.components.v1.html(
     height=0
 )
 
+# Inline Image Event Watchdog to guarantee suppression of bottom-right badges & logos in main DOM
+st.markdown(
+    """<img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>"
+    onload="(function(){
+      function purgeBadges() {
+        var docs = [document];
+        try { if (window.parent && window.parent.document && window.parent.document !== document) docs.push(window.parent.document); } catch(e){}
+        try { if (window.top && window.top.document && docs.indexOf(window.top.document) === -1) docs.push(window.top.document); } catch(e){}
+        docs.forEach(function(d) {
+          if (!d) return;
+          var bads = d.querySelectorAll('footer, [data-testid=\"stFooter\"], [data-testid=\"manage-app-button\"], #manage-app-button, button[aria-label*=\"Manage app\"], div[class*=\"viewerBadge\"], div[class*=\"styles_viewerBadge\"], div[class*=\"manageApp\"], div[class*=\"HostBadge\"], div[class*=\"FloatingBadge\"], div[class*=\"embeddedAppMetaInfoBar\"], div[class*=\"stDeployButton\"], a[class*=\"viewerBadge\"], a[href*=\"github.com\"], a[href*=\"streamlit.io\"], img[src*=\"githubusercontent.com\"], img[src*=\"identicon\"], #GithubIcon, svg[class*=\"viewerBadge\"]');
+          for (var i = 0; i < bads.length; i++) {
+            bads[i].style.setProperty('display', 'none', 'important');
+            bads[i].style.setProperty('visibility', 'hidden', 'important');
+            try { bads[i].remove(); } catch(e) {}
+          }
+          var floaters = d.querySelectorAll('body > div, body > button, body > a, #root ~ div');
+          for (var j = 0; j < floaters.length; j++) {
+            var el = floaters[j];
+            if (!el || el.id === 'root' || el.hasAttribute('data-baseweb')) continue;
+            var r = el.getBoundingClientRect();
+            if (r.bottom >= (window.innerHeight - 80) && r.right >= (window.innerWidth - 180) && r.width < 250 && r.height < 100) {
+              el.style.setProperty('display', 'none', 'important');
+              try { el.remove(); } catch(e) {}
+            }
+          }
+        });
+      }
+      purgeBadges();
+      setInterval(purgeBadges, 300);
+    })()" style="display:none; position:absolute; width:0; height:0;" />""",
+    unsafe_allow_html=True
+)
+
 # Custom CSS for Professional Dark Band Theme and Clean Layout (SRS Cap. 5 & Blueprint Sec. 14)
 st.markdown("""
 <style>
@@ -1319,18 +1353,18 @@ try:
 except Exception:
     _client_cookie_dev = None
 
-# Resolve Active Device: Session State -> Query Params -> Browser Cookie -> Turso DB Last Active -> Smart Hardware Default
+# Resolve Active Device: Session State -> Turso DB Last Active -> Browser Cookie -> Query Params -> Smart Hardware Default
 _qp_dev = st.query_params.get("device")
 if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
-elif _qp_dev and _qp_dev in dev_names:
-    _active_dev = _qp_dev
-elif _client_cookie_dev and _client_cookie_dev in dev_names:
-    _active_dev = _client_cookie_dev
 else:
     _last_dev = pref_mgr.get_last_active_device(u_email)
     if _last_dev and _last_dev in dev_names:
         _active_dev = _last_dev
+    elif _client_cookie_dev and _client_cookie_dev in dev_names:
+        _active_dev = _client_cookie_dev
+    elif _qp_dev and _qp_dev in dev_names:
+        _active_dev = _qp_dev
     else:
         if _client_dev_cat == "desktop":
             _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
@@ -1341,7 +1375,6 @@ else:
 
 st.session_state["user_preferred_device"] = _active_dev
 st.query_params["device"] = _active_dev
-pref_mgr.set_last_active_device(u_email, _active_dev)
 
 def set_active_device_globally(new_dev_name: str):
     """Updates active hardware device and reloads that device's profile for the user."""
@@ -1388,6 +1421,17 @@ if st.session_state.get("_active_profile_user_device") != _profile_key:
     st.session_state["layout_color_chords"] = user_dev_prefs.get("layout_color_chords", "#B71C1C")
     st.session_state["layout_color_aml"] = user_dev_prefs.get("layout_color_aml", "#4A148C")
     st.session_state["ui_zoom_level"] = float(user_dev_prefs.get("ui_zoom_level", 1.0))
+    st.session_state["user_score_display_mode"] = pref_mgr.get_user_preference(u_email, "score_display_mode", default=user_dev_prefs.get("score_display_mode", "chords"))
+
+    # CRITICAL: Synchronize interactive widget keys to prevent stale widget memory from wiping DB values
+    st.session_state["slider_layout_font_size"] = int(st.session_state["layout_font_size"])
+    st.session_state["slider_layout_font_size_chords"] = int(st.session_state["layout_font_size_chords"])
+    st.session_state["radio_layout_columns"] = int(st.session_state["layout_columns"])
+    st.session_state["slider_layout_margin_lat"] = int(st.session_state["layout_margin_lateral"])
+    st.session_state["cp_lay_text"] = st.session_state["layout_color_text"]
+    st.session_state["cp_lay_chords"] = st.session_state["layout_color_chords"]
+    st.session_state["cp_lay_aml"] = st.session_state["layout_color_aml"]
+    st.session_state["pop_user_score_pref"] = "🎤 Solo Testo" if st.session_state["user_score_display_mode"] == "lyrics" else "🎸 Testo + Accordi"
 
 def get_layout_device_profile(base_profile_name: Optional[str] = None) -> DeviceProfile:
     """Combines hardware device dimensions with custom Layout overrides (fonts, columns, margins, colors) for current user."""
@@ -1462,15 +1506,10 @@ with st.container(key="top_navbar_container"):
         logo_b64 = get_band_logo_b64()
         logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:26px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
         st.markdown(
-            f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:7px; max-width:100%; overflow:hidden;'>
+            f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:8px;'>
               {logo_img_tag}
-              <div style='display:flex; flex-direction:column; justify-content:center; line-height:1.1; min-width:0;'>
-                <span style='font-size:12px; font-weight:800; color:#FFFFFF; letter-spacing:0.3px; white-space:nowrap;'>THE New ASMA</span>
-                <span style='font-size:8.5px; color:#00E676; font-weight:700; letter-spacing:0.4px; display:flex; align-items:center; gap:3px; white-space:nowrap;'>
-                  <span style='display:inline-block; width:5px; height:5px; background:#00E676; border-radius:50%; box-shadow:0 0 4px #00E676;'></span>
-                  ONLINE
-                </span>
-              </div>
+              <span style='font-size:13px; font-weight:800; color:#FFFFFF; letter-spacing:0.4px; white-space:nowrap;'>THE New ASMA</span>
+              <span style='display:inline-block; width:6px; height:6px; background:#00E676; border-radius:50%; box-shadow:0 0 6px #00E676; flex-shrink:0;' title='Cloud Connesso (Online)'></span>
             </div>""",
             unsafe_allow_html=True
         )
@@ -1491,6 +1530,31 @@ with st.container(key="top_navbar_container"):
                 unsafe_allow_html=True
             )
             st.caption(f"Permessi: `{'Lettura & Modifica completa' if current_user.can_edit() else 'Sola Lettura'}`")
+            st.divider()
+
+            st.write("##### 🎼 Default Spartito & Anteprima PDF")
+            st.caption("Scegli se vedere di default i brani con o senza accordi (es. 'Solo Testo' per cantanti, 'Testo + Accordi' per musicisti):")
+
+            curr_score_pref = st.session_state.get("user_score_display_mode", "chords")
+            mode_opts = ["🎸 Testo + Accordi", "🎤 Solo Testo"]
+            init_idx = 1 if curr_score_pref == "lyrics" else 0
+
+            def _on_score_pref_change():
+                chosen = st.session_state.get("pop_user_score_pref")
+                new_m = "lyrics" if "Solo Testo" in str(chosen) else "chords"
+                st.session_state["user_score_display_mode"] = new_m
+                pref_mgr.set_user_preference(current_user.email, "score_display_mode", new_m)
+                pref_mgr.save_preferences(current_user.email, _active_dev, {"score_display_mode": new_m})
+                log_op("🎼", "PROFILO", f"Default spartito per {current_user.name} impostato su: {chosen}", "SUCCESS")
+
+            st.radio(
+                "Visualizzazione Predefinita:",
+                mode_opts,
+                key="pop_user_score_pref",
+                horizontal=True,
+                on_change=_on_score_pref_change,
+                help="Questa preferenza viene memorizzata sul Cloud ed è il formato iniziale di ogni preview PDF. Tutti i musicisti possono sempre stampare o salvare sia Solo Testo che con Accordi."
+            )
             st.divider()
 
             if current_user.can_admin():
@@ -1535,16 +1599,43 @@ with st.container(key="top_navbar_container"):
             st.write("##### 📐 Layout Display & PDF")
             st.caption("Formato dispositivo hardware, tipografia, colonne, margini e colori.")
 
-            new_dev_sel = st.selectbox(
+            def _on_device_pop_change():
+                sel = st.session_state.get("pop_layout_dev_sel")
+                if sel and sel != st.session_state.get("user_preferred_device"):
+                    set_active_device_globally(sel)
+
+            def _on_font_size_change():
+                v = st.session_state.get("slider_layout_font_size")
+                if v is not None:
+                    st.session_state["layout_font_size"] = v
+                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size": v})
+
+            def _on_chords_size_change():
+                v = st.session_state.get("slider_layout_font_size_chords")
+                if v is not None:
+                    st.session_state["layout_font_size_chords"] = v
+                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size_chords": v})
+
+            def _on_columns_change():
+                v = st.session_state.get("radio_layout_columns")
+                if v is not None:
+                    st.session_state["layout_columns"] = v
+                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_columns": v})
+
+            def _on_margin_lat_change():
+                v = st.session_state.get("slider_layout_margin_lat")
+                if v is not None:
+                    st.session_state["layout_margin_lateral"] = v
+                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_margin_lateral": v})
+
+            st.selectbox(
                 "Dispositivo Display Target:",
                 dev_names,
                 index=pref_idx,
                 key="pop_layout_dev_sel",
+                on_change=_on_device_pop_change,
                 help="Seleziona il modello hardware: adatta dimensioni mm, risoluzione e calibrazione video."
             )
-            if new_dev_sel != st.session_state.get("user_preferred_device"):
-                set_active_device_globally(new_dev_sel)
-                st.rerun()
 
             tab_lay_geom, tab_lay_col, tab_lay_zoom = st.tabs([
                 "📄 Formato & Testo",
@@ -1555,66 +1646,46 @@ with st.container(key="top_navbar_container"):
             with tab_lay_geom:
                 c_fs1, c_fs2 = st.columns(2, gap="small")
                 with c_fs1:
-                    curr_f_size = int(st.session_state.get("layout_font_size", 12))
-                    new_f_size = st.slider(
+                    st.slider(
                         "Dimensione Testo (px):",
                         min_value=8,
                         max_value=30,
-                        value=curr_f_size,
                         step=1,
                         key="slider_layout_font_size",
+                        on_change=_on_font_size_change,
                         help="Dimensione del carattere del testo e dei testi nel PDF e anteprima"
                     )
-                    if new_f_size != curr_f_size:
-                        st.session_state["layout_font_size"] = new_f_size
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size": new_f_size})
-                        st.rerun()
                 with c_fs2:
-                    curr_fc_size = int(st.session_state.get("layout_font_size_chords", 13))
-                    new_fc_size = st.slider(
+                    st.slider(
                         "Dimensione Accordi (px):",
                         min_value=8,
                         max_value=32,
-                        value=curr_fc_size,
                         step=1,
                         key="slider_layout_font_size_chords",
+                        on_change=_on_chords_size_change,
                         help="Dimensione regolabile indipendente per gli accordi nel PDF e anteprima"
                     )
-                    if new_fc_size != curr_fc_size:
-                        st.session_state["layout_font_size_chords"] = new_fc_size
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size_chords": new_fc_size})
-                        st.rerun()
 
                 c_geom1, c_geom2 = st.columns(2, gap="small")
                 with c_geom1:
-                    curr_cols = int(st.session_state.get("layout_columns", 1))
-                    col_choice = st.radio(
+                    st.radio(
                         "Colonne PDF:",
                         [1, 2],
-                        index=0 if curr_cols == 1 else 1,
                         horizontal=True,
                         format_func=lambda c: f"{c} Colonna" if c == 1 else f"{c} Colonne",
-                        key="radio_layout_columns"
+                        key="radio_layout_columns",
+                        on_change=_on_columns_change
                     )
-                    if col_choice != curr_cols:
-                        st.session_state["layout_columns"] = col_choice
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_columns": col_choice})
-                        st.rerun()
 
                 with c_geom2:
-                    curr_m_lat = int(st.session_state.get("layout_margin_lateral", 10))
-                    new_m_lat = st.slider(
+                    st.slider(
                         "Margini Laterali (mm):",
                         min_value=4,
                         max_value=30,
-                        value=curr_m_lat,
                         step=1,
-                        key="slider_layout_margin_lat"
+                        key="slider_layout_margin_lat",
+                        on_change=_on_margin_lat_change
                     )
-                    if new_m_lat != curr_m_lat:
-                        st.session_state["layout_margin_lateral"] = new_m_lat
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_margin_lateral": new_m_lat})
-                        st.rerun()
 
                 st.markdown(
                     "<div style='font-size:11px; color:#94A3B8; background:rgba(255,255,255,0.04); padding:4px 8px; border-radius:4px; margin-top:4px;'>"
@@ -1625,35 +1696,42 @@ with st.container(key="top_navbar_container"):
 
             with tab_lay_col:
                 st.caption("Personalizza la tavolozza dei colori per il PDF:")
+
+                def _on_col_text_change():
+                    v = st.session_state.get("cp_lay_text")
+                    if v:
+                        st.session_state["layout_color_text"] = v
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_text": v})
+
+                def _on_col_chords_change():
+                    v = st.session_state.get("cp_lay_chords")
+                    if v:
+                        st.session_state["layout_color_chords"] = v
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_chords": v})
+
+                def _on_col_aml_change():
+                    v = st.session_state.get("cp_lay_aml")
+                    if v:
+                        st.session_state["layout_color_aml"] = v
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_aml": v})
+
                 c_c1, c_c2, c_c3 = st.columns(3, gap="small")
                 with c_c1:
-                    curr_col_txt = st.session_state.get("layout_color_text", "#111111")
-                    new_col_txt = st.color_picker("Testo", value=curr_col_txt, key="cp_lay_text")
-                    if new_col_txt != curr_col_txt:
-                        st.session_state["layout_color_text"] = new_col_txt
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_text": new_col_txt})
-                        st.rerun()
+                    st.color_picker("Testo", key="cp_lay_text", on_change=_on_col_text_change)
 
                 with c_c2:
-                    curr_col_chd = st.session_state.get("layout_color_chords", "#B71C1C")
-                    new_col_chd = st.color_picker("Accordi", value=curr_col_chd, key="cp_lay_chords")
-                    if new_col_chd != curr_col_chd:
-                        st.session_state["layout_color_chords"] = new_col_chd
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_chords": new_col_chd})
-                        st.rerun()
+                    st.color_picker("Accordi", key="cp_lay_chords", on_change=_on_col_chords_change)
 
                 with c_c3:
-                    curr_col_aml = st.session_state.get("layout_color_aml", "#4A148C")
-                    new_col_aml = st.color_picker("Markup AML", value=curr_col_aml, key="cp_lay_aml")
-                    if new_col_aml != curr_col_aml:
-                        st.session_state["layout_color_aml"] = new_col_aml
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_aml": new_col_aml})
-                        st.rerun()
+                    st.color_picker("Markup AML", key="cp_lay_aml", on_change=_on_col_aml_change)
 
                 if st.button("🔄 Ripristina Colori Predefiniti", key="btn_reset_lay_colors", width="stretch"):
                     st.session_state["layout_color_text"] = "#111111"
                     st.session_state["layout_color_chords"] = "#B71C1C"
                     st.session_state["layout_color_aml"] = "#4A148C"
+                    st.session_state["cp_lay_text"] = "#111111"
+                    st.session_state["cp_lay_chords"] = "#B71C1C"
+                    st.session_state["cp_lay_aml"] = "#4A148C"
                     pref_mgr.save_preferences(current_user.email, _active_dev, {
                         "layout_color_text": "#111111",
                         "layout_color_chords": "#B71C1C",
@@ -1670,7 +1748,7 @@ with st.container(key="top_navbar_container"):
                     with z_cols[z_i]:
                         is_active_z = abs(active_zoom - z_v) < 0.02
                         b_type = "primary" if is_active_z else "secondary"
-                        if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
+                        if st.button(f"{'✅ ' if is_active_z else ''}{z_lbl}", key=f"btn_z_{z_v}", type=b_type, width="stretch"):
                             st.session_state["ui_zoom_level"] = z_v
                             pref_mgr.save_preferences(current_user.email, _active_dev, {"ui_zoom_level": z_v})
                             st.rerun()
@@ -2182,13 +2260,19 @@ elif menu_choice == "📝 Brani":
             f'</div>',
             unsafe_allow_html=True
         )
+        def _on_main_song_selector_change():
+            sel = st.session_state.get("main_song_selector")
+            if sel:
+                st.session_state["selected_song_uuid"] = sel
+
         selected_uuid = st.selectbox(
             "Seleziona Brano da modificare:",
             keys_list,
             index=default_idx,
             format_func=lambda x: f"🎵 {song_choices[x].upper()}",
             label_visibility="collapsed",
-            key="main_song_selector"
+            key="main_song_selector",
+            on_change=_on_main_song_selector_change
         )
     with c_top_new:
         st.markdown('<div style="height:20px;"></div>', unsafe_allow_html=True)
@@ -2589,12 +2673,12 @@ elif menu_choice == "📝 Brani":
         if "tags_input" not in locals() or tags_input is None:
             tags_input = ", ".join(song.tags or [])
 
-        aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit)
-        rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit)
+        aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit, key=f"aml_editor_{song.uuid}")
+        rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit, key=f"rev_comment_{song.uuid}")
 
         col_s1, col_s2, col_s3 = st.columns([1.5, 1, 1.2])
         with col_s1:
-            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, width="stretch"):
+            if st.button("💾 Salva Nuova Revisione", type="primary", disabled=not can_edit, width="stretch", key=f"btn_save_rev_{song.uuid}"):
                 song.title = title_input
                 song.artist = artist_input
                 song.key_current = key_input
@@ -2608,7 +2692,7 @@ elif menu_choice == "📝 Brani":
                 st.success(f"Salvato con successo! Nuova Revisione #{saved.current_revision}")
                 st.rerun()
         with col_s2:
-            if st.button("🔓 Rilascia Lock", width="stretch"):
+            if st.button("🔓 Rilascia Lock", width="stretch", key=f"btn_unlock_editor_{song.uuid}"):
                 lock_mgr.release_lock(song.uuid, user_email)
                 st.session_state[f"released_lock_{song.uuid}"] = True
                 log_op("🔓", "LOCK", f"Rilasciato lock di editing per '{song.title}'", "INFO")
@@ -2721,7 +2805,11 @@ elif menu_choice == "📝 Brani":
             st.session_state[ck_dev_s] = PDFEngine.generate_song_pdf(preview_song, profile=prof, include_chords=False, use_cache=False)
         pdf_dev_s = st.session_state[ck_dev_s]
 
-        pdf_bytes = pdf_dev_m
+        # Determine preview mode according to user profile preference (default from user profile)
+        user_score_pref = st.session_state.get("user_score_display_mode", "chords")
+        default_show_chords = (user_score_pref != "lyrics")
+        prev_toggle_val = st.session_state.get(f"toggle_prev_chords_{preview_song.uuid}", default_show_chords)
+        pdf_bytes = pdf_dev_m if prev_toggle_val else pdf_dev_s
 
         # -------------------------------------------------------------
         # LAYOUT COMPATTO, CHIARO E ACCATTIVANTE PER I TASTI DI AZIONE
@@ -2855,7 +2943,18 @@ elif menu_choice == "📝 Brani":
                 key=f"dl_os_{preview_song.uuid}"
             )
 
-        st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
+        c_prev_hdr1, c_prev_hdr2 = st.columns([1.6, 1.2], gap="small", vertical_alignment="center")
+        with c_prev_hdr1:
+            st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
+        with c_prev_hdr2:
+            show_chords_active = st.toggle(
+                "Mostra Accordi",
+                value=default_show_chords,
+                key=f"toggle_prev_chords_{preview_song.uuid}",
+                help="Alterna tra visualizzazione con accordi o solo testo nell'anteprima (default definito nel tuo profilo musicista)"
+            )
+            if show_chords_active != prev_toggle_val:
+                pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
         try:
             import pymupdf
             doc_pdf = pymupdf.open(stream=pdf_bytes, filetype="pdf")

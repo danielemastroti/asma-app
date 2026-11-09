@@ -68,7 +68,9 @@ Le trasposizioni coprono l'intero spettro cromatico da <b>-12 a +12 semitoni</b>
     {
         "title": "8. Profilo Utente, Dispositivi & Cloud Database (Turso)",
         "content": """Personalizzazione indipendente per ogni musicista e hardware:
-<br/>&bull; <b>Persistenza Utente/Dispositivo:</b> Le impostazioni sono salvate nel database cloud Turso e associate alla coppia <code>(email_musicista, tipo_dispositivo)</code>.
+<br/>&bull; <b>Default Spartito (Solo Testo vs Testo+Accordi):</b> Ogni musicista (ad es. cantanti, coristi o musicisti) può selezionare nel proprio profilo popover la modalità predefinita di spartito ('Solo Testo' o 'Testo + Accordi'). La scelta viene salvata a database su Turso Cloud e imposta automaticamente il formato iniziale dell'anteprima PDF.
+<br/>&bull; <b>Stampa e Download Sempre Completi:</b> A prescindere dalla preferenza di default, tutti i componenti della band mantengono sempre la possibilità di stampare su carta A4 o scaricare il PDF sia con accordi che in versione solo testo.
+<br/>&bull; <b>Persistenza Utente/Dispositivo:</b> Le preferenze grafiche sono salvate nel database cloud Turso e associate alla coppia <code>(email_musicista, tipo_dispositivo)</code>.
 <br/>&bull; <b>Parametri Personalizzabili:</b> Dimensione testo (8-30px), dimensione accordi (8-32px), colonne PDF (1 o 2 colonne), margini laterali (4-30mm), palette colori (testo, accordi, markup AML) e zoom dell'interfaccia (75%-110%).
 <br/>&bull; <b>Resistenza a Riavvii e Deploy:</b> Al riavvio dell'applicazione o al login successivo da qualsiasi tablet, smartphone o PC, le impostazioni personalizzate vengono ripristinate automaticamente all'istante."""
     }

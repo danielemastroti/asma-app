@@ -363,17 +363,15 @@ class PreferencesManager:
             self._save_cache()
 
         if self.turso.is_configured and target_dev and dev_prefs:
-            def _push_user_pref():
-                try:
-                    self.turso.push_user_device_preference(
-                        email=email_clean,
-                        device_name=target_dev,
-                        prefs=dev_prefs,
-                        is_last_active=True
-                    )
-                except Exception:
-                    pass
-            threading.Thread(target=_push_user_pref, daemon=True).start()
+            try:
+                self.turso.push_user_device_preference(
+                    email=email_clean,
+                    device_name=target_dev,
+                    prefs=dev_prefs,
+                    is_last_active=True
+                )
+            except Exception:
+                pass
 
     def list_user_device_profiles(self, user_email: str) -> List[str]:
         """Returns list of device names configured for this user."""

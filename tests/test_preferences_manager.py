@@ -127,6 +127,24 @@ class TestPreferencesManager(unittest.TestCase):
         persisted = new_manager.get_user_preference(user, "smistamento_columns")
         self.assertEqual(persisted, custom_cols)
 
+    def test_user_score_display_mode_preference(self):
+        """Verifies musician preference for lyrics-only vs chords+text persists and reloads across instances."""
+        singer_email = "cicchelli65@gmail.com"
+        guitarist_email = "danyposta@gmail.com"
+
+        # Default is chords
+        self.assertEqual(self.manager.get_user_preference(singer_email, "score_display_mode", default="chords"), "chords")
+
+        # Singer chooses lyrics only
+        self.manager.set_user_preference(singer_email, "score_display_mode", "lyrics")
+        # Guitarist explicitly confirms chords
+        self.manager.set_user_preference(guitarist_email, "score_display_mode", "chords")
+
+        # Verify on fresh instance reload
+        fresh = PreferencesManager(filepath=self.pref_file, turso_client=None, force_new=True)
+        self.assertEqual(fresh.get_user_preference(singer_email, "score_display_mode"), "lyrics")
+        self.assertEqual(fresh.get_user_preference(guitarist_email, "score_display_mode"), "chords")
+
 
 if __name__ == '__main__':
     unittest.main()

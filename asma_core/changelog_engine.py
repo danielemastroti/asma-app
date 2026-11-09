@@ -14,13 +14,14 @@ CHANGELOG_ENTRIES = [
         "date": "09/11/2026",
         "title": "Persistenza Totale Preferenze Utente su Turso Cloud, Palco Start On-Demand, Header Compatto e Clean UI",
         "new_features": [
+            "Preferenza Spartito Personale (Solo Testo vs Testo+Accordi): ogni musicista può configurare nel proprio profilo il formato predefinito di visualizzazione spartito. La preferenza viene memorizzata permanentemente su Turso Cloud DB, caricata ad ogni login e applicata automaticamente come default nell'anteprima PDF. Rimane sempre garantita per tutti i componenti della band la possibilità di stampare o salvare in qualsiasi momento sia la versione con accordi che la versione solo testo.",
             "Persistenza Cloud Turso DB per Preferenze Utente & Dispositivo: memorizzazione sincrona e permanente a database per ogni singola coppia (utente, dispositivo). Vengono salvate le dimensioni dei font (testo e accordi), colonne PDF, margini laterali, colori personalizzati (testo, accordi, AML) e zoom dell'interfaccia, garantendo la disponibilità immediata a ogni nuovo login o riavvio dell'applicazione.",
             "Autoscroll Palco On-Demand: in Modalità Palco (Live Stage), lo scorrimento automatico non si avvia più da solo all'apertura del brano, ma parte unicamente quando il musicista tocca il pulsante 'AVVIO' o attiva il pedale Bluetooth.",
             "Feedback Visivo Inserimento Brani in Scaletta: notifica immediata (toast a scomparsa) e aggiornamento dinamico del conteggio brani quando si preme il grande tasto 'Inserisci' in scaletta."
         ],
         "improvements": [
             "Sorgente AML Compatta nei Brani: ristrutturazione completa dei metadati in una griglia orizzontale su 6 colonne (Titolo, Tonalità, Artista, BPM, Genere, Capotasto), eliminando lo spreco di spazio verticale e migliorando la leggibilità immediata.",
-            "Layout Brand Header e Stato Connessione: riposizionato il badge '● ONLINE' al di sotto del titolo 'THE New ASMA' con colonne a larghezza fissa per evitare qualsiasi sovrapposizione con il pulsante profilo utente ('👤 Cico').",
+            "Brand Header Pulito con LED Online Inline: sostituito il badge esteso 'ONLINE' con un discreto punto LED verde a 6px inline accanto al titolo 'THE New ASMA', eliminando alla radice qualsiasi rischio di sovrapposizione con il pulsante profilo utente ('👤 Cico') su ogni schermo tablet e smartphone.",
             "Sincronizzazione Navigazione a Doppia Riga: sincronizzati i menu a pills di primo e secondo livello con callback reattivi, eliminando il loop di refresh e lo sfarfallio della pagina.",
             "Ottimizzazione Zoom Tablet (Huawei): zoom dell'interfaccia applicato esclusivamente al contenitore primario ([data-testid='stAppViewContainer']), eliminando la riduzione cubica a cascata e preservando la larghezza intera del display."
         ],
@@ -29,6 +30,8 @@ CHANGELOG_ENTRIES = [
             "Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live (compresa la 'Scaletta Live Band 2026' con 46 brani), al sicuro da reset del container effimero di Streamlit Cloud."
         ],
         "bug_fixes": [
+            "Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback o widget non inizializzati di azzerare i valori salvati a database.",
+            "Correzione sparizione editor e anteprima nei Brani: aggiunta sincronizzazione esplicita delle chiavi univoche (UUID) per l'area di testo AML, i commenti di revisione e i pulsanti di sblocco/salvataggio, garantendo rendering stabile su ogni cambio brano.",
             "Correzione errore critico di avvio su Streamlit Cloud: rimosso parametro incompatibile 'toolbarMode' in .streamlit/config.toml che causava il blocco del container e la schermata 'Oh no. Error running app.'.",
             "Correzione AttributeError su MusicEngine.detect_notation_system: aggiunto il metodo di rilevamento notazione italiana/internazionale durante la modifica degli attributi di tonalità e capotasto.",
             "Eliminazione continua e forzata dei badge fluttuanti di Streamlit Cloud e GitHub (identicon e tasto 'Manage app' con corona rossa): iniettato watchdog JavaScript continuo (300ms) e fogli di stile anti-badge applicati a livello di root, parent e top DOM.",
