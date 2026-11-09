@@ -1420,7 +1420,7 @@ if st.session_state.get("_active_profile_user_device") != _profile_key:
     st.session_state["layout_color_chords"] = user_dev_prefs.get("layout_color_chords", "#B71C1C")
     st.session_state["layout_color_aml"] = user_dev_prefs.get("layout_color_aml", "#4A148C")
     st.session_state["ui_zoom_level"] = float(user_dev_prefs.get("ui_zoom_level", 1.0))
-    st.session_state["user_score_display_mode"] = pref_mgr.get_user_preference(u_email, "score_display_mode", default=user_dev_prefs.get("score_display_mode", "chords"))
+    st.session_state["user_score_display_mode"] = user_dev_prefs.get("score_display_mode") or pref_mgr.get_user_preference(u_email, "score_display_mode", default="chords")
 
     # CRITICAL: Synchronize interactive widget keys to prevent stale widget memory from wiping DB values
     st.session_state["slider_layout_font_size"] = int(st.session_state["layout_font_size"])
@@ -2331,8 +2331,9 @@ elif menu_choice == "📝 Brani":
 
         user_score_pref = st.session_state.get("user_score_display_mode", "chords")
         default_show_chords = (user_score_pref != "lyrics")
-        prev_toggle_val = st.session_state.get(f"toggle_prev_chords_{song.uuid}", default_show_chords)
-        pdf_bytes = pdf_dev_m if prev_toggle_val else pdf_dev_s
+        toggle_key = f"toggle_prev_chords_{song.uuid}_{user_score_pref}"
+        show_chords_active = st.session_state.get(toggle_key, default_show_chords)
+        pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
 
         # 1. Stampa su Stampante (A4)
         st.markdown(
@@ -2438,15 +2439,18 @@ elif menu_choice == "📝 Brani":
         c_prev_hdr1, c_prev_hdr2 = st.columns([1.6, 1.2], gap="small", vertical_alignment="center")
         with c_prev_hdr1:
             st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
+            if not default_show_chords:
+                st.caption("ℹ️ Default profilo: **Solo Testo** (senza accordi)")
+            else:
+                st.caption("ℹ️ Default profilo: **Testo + Accordi**")
         with c_prev_hdr2:
             show_chords_active = st.toggle(
                 "Mostra Accordi",
                 value=default_show_chords,
-                key=f"toggle_prev_chords_{song.uuid}",
+                key=toggle_key,
                 help="Alterna tra visualizzazione con accordi o solo testo nell'anteprima (default definito nel tuo profilo musicista)"
             )
-            if show_chords_active != prev_toggle_val:
-                pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
+            pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
 
         try:
             pages_imgs = get_cached_pdf_pages_images(pdf_bytes, dpi=130)
@@ -3129,8 +3133,9 @@ elif menu_choice == "📝 Brani":
             # Determine preview mode according to user profile preference (default from user profile)
             user_score_pref = st.session_state.get("user_score_display_mode", "chords")
             default_show_chords = (user_score_pref != "lyrics")
-            prev_toggle_val = st.session_state.get(f"toggle_prev_chords_{preview_song.uuid}", default_show_chords)
-            pdf_bytes = pdf_dev_m if prev_toggle_val else pdf_dev_s
+            toggle_key_edit = f"toggle_prev_chords_{preview_song.uuid}_{user_score_pref}"
+            show_chords_active_edit = st.session_state.get(toggle_key_edit, default_show_chords)
+            pdf_bytes = pdf_dev_m if show_chords_active_edit else pdf_dev_s
 
             # -------------------------------------------------------------
             # LAYOUT COMPATTO, CHIARO E ACCATTIVANTE PER I TASTI DI AZIONE
@@ -3265,15 +3270,18 @@ elif menu_choice == "📝 Brani":
             c_prev_hdr1, c_prev_hdr2 = st.columns([1.6, 1.2], gap="small", vertical_alignment="center")
             with c_prev_hdr1:
                 st.markdown("##### 📄 Anteprima Reale Pagine PDF Formattate:")
+                if not default_show_chords:
+                    st.caption("ℹ️ Default profilo: **Solo Testo** (senza accordi)")
+                else:
+                    st.caption("ℹ️ Default profilo: **Testo + Accordi**")
             with c_prev_hdr2:
-                show_chords_active = st.toggle(
+                show_chords_active_edit = st.toggle(
                     "Mostra Accordi",
                     value=default_show_chords,
-                    key=f"toggle_prev_chords_{preview_song.uuid}",
+                    key=toggle_key_edit,
                     help="Alterna tra visualizzazione con accordi o solo testo nell'anteprima (default definito nel tuo profilo musicista)"
                 )
-                if show_chords_active != prev_toggle_val:
-                    pdf_bytes = pdf_dev_m if show_chords_active else pdf_dev_s
+                pdf_bytes = pdf_dev_m if show_chords_active_edit else pdf_dev_s
             try:
                 pages_imgs_edit = get_cached_pdf_pages_images(pdf_bytes, dpi=130)
                 num_pages = len(pages_imgs_edit)
