@@ -563,6 +563,59 @@ function renderSongViewer() {
   `;
 }
 
+// Musical chords recognition for Web viewer & Stage Prompter
+const ROOT_NOTES_REGEX = /^(SOL|DO|RE|MI|FA|LA|SI|[A-G])(#|b|♯|♭)?/i;
+const CHORD_SUFFIX_REGEX = /^(m|min|minor|-|maj|major|M|\+|7\+|aug|dim|dim7|°|o|sus|sus2|sus4|2|4|5|6|7|8|9|11|13|add9|add2|m7|maj7|m9|m11|m13|m7b5|7b5|7#5|7b9|7#9|7sus4|6\/9|7\/4|7\/9|\/[0-9]|\/[A-G]|\/(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?)*$/i;
+const ITALIAN_COMMON_WORDS = new Set([
+  'da', 'di', 'ha', 'ho', 'ma', 'se', 'un', 'il', 'lo', 'la', 'i', 'gli', 'le',
+  'a', 'e', 'o', 'fa', 'si', 'su', 'in', 'con', 'per', 'tra', 'fra', 'che', 'non',
+  'ci', 'vi', 'ti', 'mi', 'me', 'te', 'lui', 'lei', 'noi', 'voi', 'loro', 'ed', 'od',
+  'ad', 'del', 'della', 'dei', 'delle', 'al', 'alla', 'ai', 'alle', 'dal', 'dalla',
+  'dai', 'dalle', 'nel', 'nella', 'nei', 'nelle', 'sul', 'sulla', 'sui', 'sulle',
+  'piu', 'più', 'gia', 'già', 'poi', 'qui', 'qua', 'va', 'vai', 'sto', 'sta'
+]);
+
+function isMusicalChord(token) {
+  if (!token) return false;
+  const clean = token.trim().replace(/[(),]/g, '');
+  if (!clean) return false;
+  if (['/', '%', '-', '--', '|', 'NC', 'N.C.'].includes(clean)) return true;
+  if (clean.length <= 2 && ITALIAN_COMMON_WORDS.has(clean.toLowerCase()) && clean === clean.toLowerCase()) return false;
+  const match = clean.match(ROOT_NOTES_REGEX);
+  if (!match) return false;
+  const rest = clean.slice(match[0].length);
+  return CHORD_SUFFIX_REGEX.test(rest);
+}
+
+function isChordGridOrTabLine(trimmedLine) {
+  if (!trimmedLine) return false;
+  // Guitar tab lines (e.g. e|---0---| or lines with many dashes)
+  if (/^[eEaAdDgGbB]\|/.test(trimmedLine)) return true;
+  if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|') && (trimmedLine.match(/-/g) || []).length >= 4) return true;
+  if ((trimmedLine.match(/-/g) || []).length >= 8 && !/[a-zA-Z]{4,}/.test(trimmedLine)) return true;
+
+  // Chord grid lines with measures (e.g. | SOL | DO | MIm | RE |)
+  if (trimmedLine.includes('|')) {
+    const rawTokens = trimmedLine.split('|').map(x => x.trim()).filter(Boolean);
+    const tokens = rawTokens.flatMap(x => x.split(/\s+/)).filter(Boolean);
+    if (tokens.length > 0) {
+      const chordCount = tokens.filter(isMusicalChord).length;
+      if ((chordCount / tokens.length) >= 0.5) return true;
+    }
+  }
+
+  // Pure chords lines without brackets or pipes (e.g. SOL DO MIm RE)
+  if (!trimmedLine.includes('[') && !trimmedLine.includes(']')) {
+    const words = trimmedLine.split(/\s+/).filter(Boolean);
+    if (words.length >= 2 && words.length <= 16) {
+      const chordCount = words.filter(isMusicalChord).length;
+      if ((chordCount / words.length) >= 0.75) return true;
+    }
+  }
+
+  return false;
+}
+
 function parseAmlForWeb(aml, showChords) {
   if (!aml) return '<i>Nessun testo inserito.</i>';
 
@@ -597,7 +650,8 @@ function parseAmlForWeb(aml, showChords) {
       if (inSection) html += '</div>';
       html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
       inSection = true;
-      lastWasInstrumental = false;
+      // If the section title itself is instrumental/solo, avoid duplicate ♪ (Strumentale) marker
+      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO');
       continue;
     }
 
@@ -606,7 +660,21 @@ function parseAmlForWeb(aml, showChords) {
       inSection = true;
     }
 
-    // 2. Render Line
+    // 2. Chord Grids, Guitar Tabs, or Pure Unbracketed Chords
+    if (isChordGridOrTabLine(trimmed)) {
+      if (!showChords) {
+        if (!lastWasInstrumental) {
+          html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+          lastWasInstrumental = true;
+        }
+      } else {
+        html += `<div class="aml-chord-line aml-grid-line"><span class="chord-token">${escapeHtml(trimmed)}</span></div>`;
+        lastWasInstrumental = false;
+      }
+      continue;
+    }
+
+    // 3. Render Line (interleaved chords and lyrics)
     const lyricsOnly = line.replace(/\[[^\]]+\]/g, '').trim();
     const hasChordTokens = /\[[^\]]+\]/.test(line);
 

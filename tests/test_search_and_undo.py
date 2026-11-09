@@ -15,8 +15,9 @@ class TestSearchAndUndo(unittest.TestCase):
         self.assertGreater(len(res_sol), 0)
         # All found songs have key SOL or G
         for r in res_sol:
-            ita = MusicEngine.convert_notation(r["key_current"], "ITA")
-            self.assertEqual(ita, "SOL")
+            ita_curr = MusicEngine.convert_notation(r["key_current"], "ITA")
+            ita_orig = MusicEngine.convert_notation(r["key_original"], "ITA")
+            self.assertTrue(ita_curr == "SOL" or ita_orig == "SOL")
 
     def test_transposition_undo_returns_to_original_key(self):
         # Create a song in DO

@@ -411,6 +411,20 @@ body {
   line-height: 1.6;
 }
 
+.aml-grid-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.aml-tab-line {
+  font-family: monospace;
+  line-height: 1.2;
+  overflow-x: auto;
+  white-space: pre;
+}
+
 /* SETTINGS FORM TOUCH GRID */
 .settings-grid {
   display: grid;
