@@ -35,18 +35,21 @@ Tutte le funzionalità operano secondo il principio vincolante: <b>La musica vie
 Le trasposizioni coprono l'intero spettro cromatico da <b>-12 a +12 semitoni</b> con gestione automatica delle armature di chiave (# e b) sul circolo delle quinte o forzatura manuale della preferenza utente."""
     },
     {
-        "title": "4. Gestione Repertori & Scalette Live",
+        "title": "4. Gestione Repertori, Brani & Scalette Live",
         "content": """I repertori raggruppano logicamente i brani (es. Working In Progress, Definitivo, Acustico).
-Le scalette definiscono la sequenza di esecuzione live. È possibile combinare brani singoli e <b>Medley continui</b>. Il sistema calcola automaticamente la compatibilità armonica (distanza sul circolo delle quinte) e ritmica (delta BPM) tra brani contigui."""
+<br/>&bull; <b>Editor Brani & Sorgente AML Compatta:</b> I metadati del brano sono organizzati in una barra compatta a 6 colonne (Titolo, Tonalità, Artista, BPM, Genere e Capotasto) che azzera lo spreco di spazio verticale e lascia massima visibilità al testo e agli accordi.
+<br/>&bull; <b>Composizione Scalette & Feedback Visivo:</b> Quando aggiungi un brano con il pulsante 'Inserisci', l'interfaccia mostra immediatamente una notifica visiva verde (toast) di conferma e aggiorna all'istante il contatore dei brani in scaletta.
+<br/>&bull; <b>Compatibilità Armonica & Ritmica:</b> Per ogni coppia di brani consecutivi viene calcolata la transizione armonica (distanza sul circolo delle quinte) e la variazione di BPM. Tutte le scalette sono sincronizzate in modo permanente sul database cloud Turso."""
     },
     {
         "title": "5. Modalità Palco (Live Stage Mode)",
-        "content": """Progettata per smartphone Android, tablet e iPad:
-<br/>&bull; <b>Scorrimento Fluido a 60 fps:</b> Regolabile da 10 a 120 px/secondo.
-<br/>&bull; <b>Pedaliere Bluetooth HID:</b> Supporto integrato per AirTurn, PageFlip e BlueTurn (tasti PageUp/Down, frecce, tasti 1 e 2).
-<br/>&bull; <b>Keep Screen Awake:</b> Impedisce lo spegnimento o il blocco dello schermo del tablet durante il concerto.
-<br/>&bull; <b>Metronomo Web Audio API:</b> Click acustico a latenza zero ($< 1$ ms) con flash visivo del quarto.
-<br/>&bull; <b>Resilienza Offline:</b> Salvataggio automatico in cache locale per funzionare anche se cade il Wi-Fi del locale."""
+        "content": """Progettata per l'esecuzione live su smartphone Android, tablet (es. Huawei MatePad) e iPad:
+<br/>&bull; <b>Avvio On-Demand dell'Autoscroll:</b> All'apertura di un brano o scaletta, lo scorrimento automatico NON parte mai da solo. Il musicista ha tutto il tempo di posizionarsi e avviare lo scorrimento toccando il grande pulsante 'AVVIO' o premendo il pedale Bluetooth.
+<br/>&bull; <b>Scorrimento Fluido a 60 fps & Tap-to-Pause:</b> Regolabile da 10 a 120 px/secondo. Toccando lo spartito in qualsiasi punto lo scorrimento si mette istantaneamente in pausa per consentire modifiche o annotazioni al volo.
+<br/>&bull; <b>Pedaliere Bluetooth HID:</b> Supporto nativo per AirTurn, PageFlip e BlueTurn (PageUp/Down, frecce su/giù, tasti 1 e 2).
+<br/>&bull; <b>Interfaccia Clean Palco:</b> Tutti i loghi fluttuanti esterni e barre di servizio (Streamlit/GitHub) vengono soppressi per garantire una schermata pulita a pieno schermo.
+<br/>&bull; <b>Keep Screen Awake:</b> Impedisce lo spegnimento o il blocco dello schermo del dispositivo durante l'esibizione.
+<br/>&bull; <b>Metronomo Web Audio API:</b> Click audio ad alta precisione e latenza zero (< 1 ms) con lampeggio visivo del quarto."""
     },
     {
         "title": "6. Importazione & Esportazione Interoperabile",
@@ -58,9 +61,16 @@ Le scalette definiscono la sequenza di esecuzione live. È possibile combinare b
         "title": "7. Amministrazione, Sicurezza & Cestino",
         "content": """Riservato al ruolo ADMIN:
 <br/>&bull; <b>Lock Editing:</b> Prevenzione dei conflitti concorrenti quando un musicista modifica un brano.
-<br/>&bull; <b>Cestino con Retention 30gg:</b> Nessuna cancellazione accidentale è definitiva.
+<br/>&bull; <b>Cestino con Retention 30gg:</b> Nessuna cancellazione accidentale è definitiva. Brani, scalette e repertori eliminati restano protetti nel Cestino.
 <br/>&bull; <b>Audit Trail:</b> Tracciamento immutabile di ogni login, salvataggio e ripristino.
 <br/>&bull; <b>Health Endpoint:</b> Monitoraggio `/health` compatibile con UptimeRobot per prevenire lo sleep mode del cloud."""
+    },
+    {
+        "title": "8. Profilo Utente, Dispositivi & Cloud Database (Turso)",
+        "content": """Personalizzazione indipendente per ogni musicista e hardware:
+<br/>&bull; <b>Persistenza Utente/Dispositivo:</b> Le impostazioni sono salvate nel database cloud Turso e associate alla coppia <code>(email_musicista, tipo_dispositivo)</code>.
+<br/>&bull; <b>Parametri Personalizzabili:</b> Dimensione testo (8-30px), dimensione accordi (8-32px), colonne PDF (1 o 2 colonne), margini laterali (4-30mm), palette colori (testo, accordi, markup AML) e zoom dell'interfaccia (75%-110%).
+<br/>&bull; <b>Resistenza a Riavvii e Deploy:</b> Al riavvio dell'applicazione o al login successivo da qualsiasi tablet, smartphone o PC, le impostazioni personalizzate vengono ripristinate automaticamente all'istante."""
     }
 ]
 

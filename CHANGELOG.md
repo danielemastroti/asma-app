@@ -1,5 +1,28 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.09 (09/11/2026) — Persistenza Totale Preferenze Utente su Turso Cloud, Palco Start On-Demand, Header Compatto e Clean UI
+
+### 🚀 Nuove Funzionalità (New Features)
+- Persistenza Cloud Turso DB per Preferenze Utente & Dispositivo: memorizzazione sincrona e permanente a database per ogni singola coppia (utente, dispositivo). Vengono salvate le dimensioni dei font (testo e accordi), colonne PDF, margini laterali, colori personalizzati (testo, accordi, AML) e zoom dell'interfaccia, garantendo la disponibilità immediata a ogni nuovo login o riavvio dell'applicazione.
+- Autoscroll Palco On-Demand: in Modalità Palco (Live Stage), lo scorrimento automatico non si avvia più da solo all'apertura del brano, ma parte unicamente quando il musicista tocca il pulsante 'AVVIO' o attiva il pedale Bluetooth.
+- Feedback Visivo Inserimento Brani in Scaletta: notifica immediata (toast a scomparsa) e aggiornamento dinamico del conteggio brani quando si preme il grande tasto 'Inserisci' in scaletta.
+
+### ⚡ Miglioramenti (Improvements)
+- Sorgente AML Compatta nei Brani: ristrutturazione completa dei metadati in una griglia orizzontale su 6 colonne (Titolo, Tonalità, Artista, BPM, Genere, Capotasto), eliminando lo spreco di spazio verticale e migliorando la leggibilità immediata.
+- Layout Brand Header e Stato Connessione: riposizionato il badge '● ONLINE' al di sotto del titolo 'THE New ASMA' con colonne a larghezza fissa per evitare qualsiasi sovrapposizione con il pulsante profilo utente ('👤 Cico').
+- Sincronizzazione Navigazione a Doppia Riga: sincronizzati i menu a pills di primo e secondo livello con callback reattivi, eliminando il loop di refresh e lo sfarfallio della pagina.
+- Ottimizzazione Zoom Tablet (Huawei): zoom dell'interfaccia applicato esclusivamente al contenitore primario ([data-testid='stAppViewContainer']), eliminando la riduzione cubica a cascata e preservando la larghezza intera del display.
+
+### 🛡️ Sicurezza (Security)
+- Pulizia definitiva credenziali e account dummy predefiniti (daniele@band.org, marco.chitarra@band.org, ospite@band.org) dal registro utenti e dal database cloud.
+- Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live (compresa la 'Scaletta Live Band 2026' con 46 brani), al sicuro da reset del container effimero di Streamlit Cloud.
+
+### 🐛 Correzioni di Bug (Bug Fixes)
+- Correzione errore critico di avvio su Streamlit Cloud: rimosso parametro incompatibile 'toolbarMode' in .streamlit/config.toml che causava il blocco del container e la schermata 'Oh no. Error running app.'.
+- Correzione AttributeError su MusicEngine.detect_notation_system: aggiunto il metodo di rilevamento notazione italiana/internazionale durante la modifica degli attributi di tonalità e capotasto.
+- Eliminazione continua e forzata dei badge fluttuanti di Streamlit Cloud e GitHub (identicon e tasto 'Manage app' con corona rossa): iniettato watchdog JavaScript continuo (300ms) e fogli di stile anti-badge applicati a livello di root, parent e top DOM.
+- Risolto disallineamento durante il ripristino di scalette live con tombstone pruning.
+
 ## Versione 2026.11.08 (08/11/2026) — Sincronizzazione Cloud Persistente, Spaziatura Accordi, Controlli Palco e Unicità Repertori
 
 ### 🚀 Nuove Funzionalità (New Features)
