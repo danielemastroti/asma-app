@@ -282,7 +282,7 @@ class StorageManager:
                 details={"title": song.title, "revision": next_rev_num, "key": song.key_current}
             )
 
-            self._trigger_background_gist_sync("ALL")
+            self._trigger_background_gist_sync("SINGLE_SONG", song=song)
             return song
 
     def can_add_song_to_repertoire(
@@ -396,7 +396,7 @@ class StorageManager:
                 user_name=user_name,
                 details={"title": song.title}
             )
-            self._trigger_background_gist_sync("ALL")
+            self._trigger_background_gist_sync("DELETE_SONG", song_uuid=song_uuid)
             return True
 
     def restore_song(
@@ -1581,7 +1581,7 @@ class StorageManager:
         content = json.dumps(rep_list, indent=2, ensure_ascii=False)
         return self.gist_client.push_files({"repertory.json": content})
 
-    def _trigger_background_gist_sync(self, target: str = "SETLISTS") -> None:
+    def _trigger_background_gist_sync(self, target: str = "SETLISTS", song: Optional[Song] = None, song_uuid: Optional[str] = None) -> None:
         """Launches a non-blocking daemon thread to sync changes with Turso Cloud and GitHub Gist."""
         default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
         if os.path.abspath(self._base_dir) != default_base:
@@ -1591,7 +1591,13 @@ class StorageManager:
             # 1. Turso Cloud Sync (High Priority)
             if hasattr(self, "turso_client") and self.turso_client.is_configured:
                 try:
-                    if target in ("SONGS", "ALL"):
+                    if target == "SINGLE_SONG" and song:
+                        self.turso_client.push_song(song.to_dict())
+                    elif target == "DELETE_SONG" and song_uuid:
+                        self.turso_client.soft_delete_song(song_uuid)
+                        reps = [r.to_dict() for r in self.list_repertoires()]
+                        self.turso_client.push_repertoires(reps)
+                    elif target in ("SONGS", "ALL"):
                         for s_meta in self.list_songs(include_deleted=True):
                             s = self.get_song(s_meta["uuid"])
                             if s:

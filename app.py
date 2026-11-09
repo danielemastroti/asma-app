@@ -937,6 +937,7 @@ from asma_core.gist_client import GistClient
 from asma_core.auth_manager import AuthManager, UserRole, User
 from asma_core.backup_engine import BackupEngine
 from asma_core.device_manager import DeviceManager
+from asma_core.preferences_manager import PreferencesManager
 from asma_core.aml_tag_manager import AMLTagManager, AMLTagDefinition
 
 from asma_core.storage_manager import StorageManager
@@ -959,6 +960,7 @@ def log_op(icon: str, category: str, message: str, level: str = "SUCCESS"):
         user_str = "System"
     op_logger.log(icon, category, message, level=level, user=user_str)
 device_mgr = DeviceManager()
+pref_mgr = PreferencesManager()
 aml_tag_mgr = AMLTagManager()
 gist_client = GistClient()
 auth_mgr = AuthManager()
@@ -1242,8 +1244,8 @@ def get_client_device_category() -> str:
     return "desktop"
 
 _client_dev_cat = get_client_device_category()
-_user_dev_key = f"device::{current_user.email}::{_client_dev_cat}"
-_clean_email_cookie = re.sub(r'[^a-zA-Z0-9]', '_', current_user.email.lower())
+u_email = current_user.email.lower().strip()
+_clean_email_cookie = re.sub(r'[^a-zA-Z0-9]', '_', u_email)
 _cookie_key = f"asma_dev_{_clean_email_cookie}"
 
 # Read client device cookie if sent by browser
@@ -1254,40 +1256,37 @@ try:
 except Exception:
     _client_cookie_dev = None
 
-# Resolve Active Device: Session State -> Browser Cookie -> Query Params -> User+DeviceCategory Pref -> Smart Hardware Default
+# Resolve Active Device: Session State -> Query Params -> Browser Cookie -> Turso DB Last Active -> Smart Hardware Default
 _qp_dev = st.query_params.get("device")
 if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
-elif _client_cookie_dev and _client_cookie_dev in dev_names:
-    _active_dev = _client_cookie_dev
 elif _qp_dev and _qp_dev in dev_names:
     _active_dev = _qp_dev
-elif _client_prefs.get(_user_dev_key) and _client_prefs.get(_user_dev_key) in dev_names:
-    _active_dev = _client_prefs.get(_user_dev_key)
+elif _client_cookie_dev and _client_cookie_dev in dev_names:
+    _active_dev = _client_cookie_dev
 else:
-    # Strictly isolated per hardware category (PC -> A4 Desktop, Tablet -> Huawei, Smartphone -> Pixel 8)
-    if _client_dev_cat == "desktop":
-        _active_dev = "A4: Stampabile (Desktop)" if "A4: Stampabile (Desktop)" in dev_names else (dev_names[0] if dev_names else "A4: Stampabile (Desktop)")
-    elif _client_dev_cat == "tablet":
-        _active_dev = "Huawei MatePad 11.5" if "Huawei MatePad 11.5" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+    _last_dev = pref_mgr.get_last_active_device(u_email)
+    if _last_dev and _last_dev in dev_names:
+        _active_dev = _last_dev
     else:
-        _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+        if _client_dev_cat == "desktop":
+            _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
+        elif _client_dev_cat == "tablet":
+            _active_dev = "Huawei MatePad / Tablet (10.4\"/11\")" if "Huawei MatePad / Tablet (10.4\"/11\")" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+        else:
+            _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
 
 st.session_state["user_preferred_device"] = _active_dev
 st.query_params["device"] = _active_dev
-if _client_prefs.get(_user_dev_key) != _active_dev:
-    _client_prefs[_user_dev_key] = _active_dev
-    save_client_preferences(_client_prefs)
+pref_mgr.set_last_active_device(u_email, _active_dev)
 
 def set_active_device_globally(new_dev_name: str):
-    """Updates active hardware device persistently for the current (user, device_category) pair."""
+    """Updates active hardware device and reloads that device's profile for the user."""
     if new_dev_name and new_dev_name in dev_names:
         st.session_state["user_preferred_device"] = new_dev_name
         st.query_params["device"] = new_dev_name
-        _cp = load_client_preferences()
-        _dcat = get_client_device_category()
-        _cp[f"device::{current_user.email}::{_dcat}"] = new_dev_name
-        save_client_preferences(_cp)
+        st.session_state.pop("_active_profile_user_device", None)
+        pref_mgr.set_last_active_device(current_user.email, new_dev_name)
 
 # Persist device cookie and localStorage directly on client browser
 st.components.v1.html(
@@ -1309,40 +1308,49 @@ st.components.v1.html(
 curr_pref = _active_dev
 pref_idx = dev_names.index(curr_pref) if curr_pref in dev_names else 0
 
-# UI Zoom Scaling with persistence
-if "ui_zoom_level" not in st.session_state:
-    if "ui_zoom_level" in _client_prefs:
-        st.session_state["ui_zoom_level"] = _client_prefs["ui_zoom_level"]
-    else:
-        st.session_state["ui_zoom_level"] = 0.82 if "huawei" in curr_pref.lower() else 1.0
+# Load full typography and layout preferences for THIS (user, device) pair from Turso Cloud / Cache
+user_dev_prefs = pref_mgr.get_preferences(u_email, _active_dev)
 
-# Layout & Typography Preferences (SRS Cap. 13 & Cap. 17)
-if "layout_font_size" not in st.session_state:
-    st.session_state["layout_font_size"] = _client_prefs.get("layout_font_size", 12)
-if "layout_font_size_chords" not in st.session_state:
-    st.session_state["layout_font_size_chords"] = _client_prefs.get("layout_font_size_chords", 13)
-if "layout_margin_lateral" not in st.session_state:
-    st.session_state["layout_margin_lateral"] = _client_prefs.get("layout_margin_lateral", 10)
-if "layout_columns" not in st.session_state:
-    st.session_state["layout_columns"] = _client_prefs.get("layout_columns", 1)
-if "layout_color_text" not in st.session_state:
-    st.session_state["layout_color_text"] = _client_prefs.get("layout_color_text", "#111111")
-if "layout_color_chords" not in st.session_state:
-    st.session_state["layout_color_chords"] = _client_prefs.get("layout_color_chords", "#B71C1C")
-if "layout_color_aml" not in st.session_state:
-    st.session_state["layout_color_aml"] = _client_prefs.get("layout_color_aml", "#4A148C")
+# Re-hydrate session state whenever user or active device changes
+_profile_key = f"{u_email}::{_active_dev}"
+if st.session_state.get("_active_profile_user_device") != _profile_key:
+    st.session_state["_active_profile_user_device"] = _profile_key
+    st.session_state["layout_font_size"] = float(user_dev_prefs.get("layout_font_size", 12.0))
+    st.session_state["layout_font_size_chords"] = float(user_dev_prefs.get("layout_font_size_chords", 13.0))
+    st.session_state["layout_columns"] = int(user_dev_prefs.get("layout_columns", 1))
+    st.session_state["layout_margin_lateral"] = float(user_dev_prefs.get("layout_margin_lateral", 10.0))
+    st.session_state["layout_margin_top"] = float(user_dev_prefs.get("layout_margin_top", 8.0))
+    st.session_state["layout_margin_bottom"] = float(user_dev_prefs.get("layout_margin_bottom", 8.0))
+    st.session_state["layout_color_text"] = user_dev_prefs.get("layout_color_text", "#111111")
+    st.session_state["layout_color_chords"] = user_dev_prefs.get("layout_color_chords", "#B71C1C")
+    st.session_state["layout_color_aml"] = user_dev_prefs.get("layout_color_aml", "#4A148C")
+    st.session_state["ui_zoom_level"] = float(user_dev_prefs.get("ui_zoom_level", 1.0))
 
 def get_layout_device_profile(base_profile_name: Optional[str] = None) -> DeviceProfile:
-    """Combines hardware device dimensions with custom Layout overrides (fonts, columns, margins, colors)."""
+    """Combines hardware device dimensions with custom Layout overrides (fonts, columns, margins, colors) for current user."""
     dev_name = base_profile_name or st.session_state.get("user_preferred_device", "Pixel 8 pro")
     base = device_mgr.get_device_by_name(dev_name) or DeviceProfile()
-    f_size = float(st.session_state.get("layout_font_size", 12))
-    fc_size = float(st.session_state.get("layout_font_size_chords", round(f_size * 1.08, 1)))
-    m_lat = float(st.session_state.get("layout_margin_lateral", 10))
-    cols = int(st.session_state.get("layout_columns", 1))
-    c_txt = st.session_state.get("layout_color_text", "#111111")
-    c_chd = st.session_state.get("layout_color_chords", "#B71C1C")
-    c_aml = st.session_state.get("layout_color_aml", "#4A148C")
+    
+    if not base_profile_name or base_profile_name == st.session_state.get("user_preferred_device"):
+        f_size = float(st.session_state.get("layout_font_size", base.font_size_lyrics))
+        fc_size = float(st.session_state.get("layout_font_size_chords", base.font_size_chords))
+        m_lat = float(st.session_state.get("layout_margin_lateral", base.margin_left_mm))
+        cols = int(st.session_state.get("layout_columns", base.columns))
+        c_txt = st.session_state.get("layout_color_text", "#111111")
+        c_chd = st.session_state.get("layout_color_chords", "#B71C1C")
+        c_aml = st.session_state.get("layout_color_aml", "#4A148C")
+        zoom = float(st.session_state.get("ui_zoom_level", base.zoom))
+    else:
+        u_prefs = pref_mgr.get_preferences(current_user.email, dev_name)
+        f_size = float(u_prefs.get("layout_font_size", base.font_size_lyrics))
+        fc_size = float(u_prefs.get("layout_font_size_chords", base.font_size_chords))
+        m_lat = float(u_prefs.get("layout_margin_lateral", base.margin_left_mm))
+        cols = int(u_prefs.get("layout_columns", base.columns))
+        c_txt = u_prefs.get("layout_color_text", "#111111")
+        c_chd = u_prefs.get("layout_color_chords", "#B71C1C")
+        c_aml = u_prefs.get("layout_color_aml", "#4A148C")
+        zoom = float(u_prefs.get("ui_zoom_level", base.zoom))
+
     return DeviceProfile(
         uuid=base.uuid,
         name=base.name,
@@ -1358,8 +1366,8 @@ def get_layout_device_profile(base_profile_name: Optional[str] = None) -> Device
         margin_bottom_mm=base.margin_bottom_mm,
         margin_left_mm=m_lat,
         margin_right_mm=m_lat,
-        zoom=st.session_state.get("ui_zoom_level", base.zoom),
-        orientation="portrait",  # Strettamente verticale come richiesto
+        zoom=zoom,
+        orientation="portrait",
         columns=cols,
         is_custom=True,
         color_lyrics=c_txt,
@@ -1506,9 +1514,7 @@ with st.container(key="top_navbar_container"):
                     )
                     if new_f_size != curr_f_size:
                         st.session_state["layout_font_size"] = new_f_size
-                        _cp = load_client_preferences()
-                        _cp["layout_font_size"] = new_f_size
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size": new_f_size})
                         st.rerun()
                 with c_fs2:
                     curr_fc_size = int(st.session_state.get("layout_font_size_chords", 13))
@@ -1523,9 +1529,7 @@ with st.container(key="top_navbar_container"):
                     )
                     if new_fc_size != curr_fc_size:
                         st.session_state["layout_font_size_chords"] = new_fc_size
-                        _cp = load_client_preferences()
-                        _cp["layout_font_size_chords"] = new_fc_size
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size_chords": new_fc_size})
                         st.rerun()
 
                 c_geom1, c_geom2 = st.columns(2, gap="small")
@@ -1541,9 +1545,7 @@ with st.container(key="top_navbar_container"):
                     )
                     if col_choice != curr_cols:
                         st.session_state["layout_columns"] = col_choice
-                        _cp = load_client_preferences()
-                        _cp["layout_columns"] = col_choice
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_columns": col_choice})
                         st.rerun()
 
                 with c_geom2:
@@ -1558,9 +1560,7 @@ with st.container(key="top_navbar_container"):
                     )
                     if new_m_lat != curr_m_lat:
                         st.session_state["layout_margin_lateral"] = new_m_lat
-                        _cp = load_client_preferences()
-                        _cp["layout_margin_lateral"] = new_m_lat
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_margin_lateral": new_m_lat})
                         st.rerun()
 
                 st.markdown(
@@ -1578,9 +1578,7 @@ with st.container(key="top_navbar_container"):
                     new_col_txt = st.color_picker("Testo", value=curr_col_txt, key="cp_lay_text")
                     if new_col_txt != curr_col_txt:
                         st.session_state["layout_color_text"] = new_col_txt
-                        _cp = load_client_preferences()
-                        _cp["layout_color_text"] = new_col_txt
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_text": new_col_txt})
                         st.rerun()
 
                 with c_c2:
@@ -1588,9 +1586,7 @@ with st.container(key="top_navbar_container"):
                     new_col_chd = st.color_picker("Accordi", value=curr_col_chd, key="cp_lay_chords")
                     if new_col_chd != curr_col_chd:
                         st.session_state["layout_color_chords"] = new_col_chd
-                        _cp = load_client_preferences()
-                        _cp["layout_color_chords"] = new_col_chd
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_chords": new_col_chd})
                         st.rerun()
 
                 with c_c3:
@@ -1598,20 +1594,18 @@ with st.container(key="top_navbar_container"):
                     new_col_aml = st.color_picker("Markup AML", value=curr_col_aml, key="cp_lay_aml")
                     if new_col_aml != curr_col_aml:
                         st.session_state["layout_color_aml"] = new_col_aml
-                        _cp = load_client_preferences()
-                        _cp["layout_color_aml"] = new_col_aml
-                        save_client_preferences(_cp)
+                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_aml": new_col_aml})
                         st.rerun()
 
                 if st.button("🔄 Ripristina Colori Predefiniti", key="btn_reset_lay_colors", width="stretch"):
                     st.session_state["layout_color_text"] = "#111111"
                     st.session_state["layout_color_chords"] = "#B71C1C"
                     st.session_state["layout_color_aml"] = "#4A148C"
-                    _cp = load_client_preferences()
-                    _cp["layout_color_text"] = "#111111"
-                    _cp["layout_color_chords"] = "#B71C1C"
-                    _cp["layout_color_aml"] = "#4A148C"
-                    save_client_preferences(_cp)
+                    pref_mgr.save_preferences(current_user.email, _active_dev, {
+                        "layout_color_text": "#111111",
+                        "layout_color_chords": "#B71C1C",
+                        "layout_color_aml": "#4A148C"
+                    })
                     st.rerun()
 
             with tab_lay_zoom:
@@ -1625,9 +1619,7 @@ with st.container(key="top_navbar_container"):
                         b_type = "primary" if is_active_z else "secondary"
                         if st.button(z_lbl, key=f"btn_z_{z_v}", type=b_type, width="stretch"):
                             st.session_state["ui_zoom_level"] = z_v
-                            _cp = load_client_preferences()
-                            _cp["ui_zoom_level"] = z_v
-                            save_client_preferences(_cp)
+                            pref_mgr.save_preferences(current_user.email, _active_dev, {"ui_zoom_level": z_v})
                             st.rerun()
 
                 curr_prof = device_mgr.get_device_by_name(curr_pref)
@@ -1677,7 +1669,7 @@ with st.container(key="top_navbar_container"):
         default=d1,
         selection_mode="single",
         wrap=False,
-        key=f"top_nav_pills_r1_{active_item}",
+        key="top_nav_pills_r1",
         label_visibility="collapsed"
     )
 
@@ -1690,7 +1682,7 @@ with st.container(key="top_navbar_container"):
         default=d2,
         selection_mode="single",
         wrap=False,
-        key=f"top_nav_pills_r2_{active_item}",
+        key="top_nav_pills_r2",
         label_visibility="collapsed"
     )
 
@@ -2358,14 +2350,24 @@ elif menu_choice == "📝 Brani":
             st.rerun()
 
     with t_btn_del:
-        with st.popover("🗑️ Elimina Brano", width="stretch", help="Elimina brano con protezione cestino 30 giorni"):
-            st.warning(f"Vuoi spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
-            if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_top_bar_{song.uuid}", width="stretch"):
+        if st.button("🗑️ Elimina", type="secondary", disabled=not current_user.can_delete(), key="top_bar_btn_del_trig", width="stretch", help="Elimina brano con protezione cestino 30 giorni"):
+            st.session_state[f"show_top_del_confirm_{song.uuid}"] = not st.session_state.get(f"show_top_del_confirm_{song.uuid}", False)
+
+    if st.session_state.get(f"show_top_del_confirm_{song.uuid}"):
+        st.warning(f"⚠️ Sei sicuro di voler spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni dal Cestino.*")
+        col_c_del1, col_c_del2 = st.columns(2)
+        with col_c_del1:
+            if st.button("🔴 Sì, Sposta nel Cestino", type="primary", key=f"del_top_bar_{song.uuid}", width="stretch"):
+                st.session_state.pop(f"show_top_del_confirm_{song.uuid}", None)
                 lock_mgr.release_lock(song.uuid, user_email, force=True)
                 storage.delete_song(song.uuid, user_email, user_name)
                 log_op("🗑️", "CESTINO", f"Brano '{song.title}' spostato nel cestino (soft-delete 30gg)", "WARNING")
                 st.session_state["selected_song_uuid"] = None
                 st.success(f"Brano '{song.title}' spostato nel cestino.")
+                st.rerun()
+        with col_c_del2:
+            if st.button("Annulla", key=f"cancel_del_top_bar_{song.uuid}", width="stretch"):
+                st.session_state.pop(f"show_top_del_confirm_{song.uuid}", None)
                 st.rerun()
 
     col_edit, col_prev = st.columns([1, 1])
@@ -2550,14 +2552,24 @@ elif menu_choice == "📝 Brani":
                 st.info("Lock rilasciato.")
                 st.rerun()
         with col_s3:
-            with st.popover("🗑️ Elimina Brano", width="stretch"):
-                st.warning(f"Vuoi spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
-                if st.button("Conferma Eliminazione", type="secondary", disabled=not current_user.can_delete(), key=f"del_editor_{song.uuid}"):
+            if st.button("🗑️ Elimina", type="secondary", disabled=not current_user.can_delete(), key=f"del_editor_trig_{song.uuid}", width="stretch"):
+                st.session_state[f"show_editor_del_confirm_{song.uuid}"] = not st.session_state.get(f"show_editor_del_confirm_{song.uuid}", False)
+
+        if st.session_state.get(f"show_editor_del_confirm_{song.uuid}"):
+            st.warning(f"⚠️ Sei sicuro di voler spostare **'{song.title}'** nel cestino?\n\n*Potrai ripristinarlo entro 30 giorni.*")
+            col_ced1, col_ced2 = st.columns(2)
+            with col_ced1:
+                if st.button("🔴 Conferma Eliminazione", type="primary", key=f"del_editor_{song.uuid}", width="stretch"):
+                    st.session_state.pop(f"show_editor_del_confirm_{song.uuid}", None)
                     lock_mgr.release_lock(song.uuid, user_email, force=True)
                     storage.delete_song(song.uuid, user_email, user_name)
                     log_op("🗑️", "CESTINO", f"Brano '{song.title}' spostato nel cestino (soft-delete 30gg)", "WARNING")
                     st.session_state["selected_song_uuid"] = None
                     st.success(f"Brano '{song.title}' spostato nel cestino.")
+                    st.rerun()
+            with col_ced2:
+                if st.button("Annulla", key=f"cancel_del_editor_{song.uuid}", width="stretch"):
+                    st.session_state.pop(f"show_editor_del_confirm_{song.uuid}", None)
                     st.rerun()
 
     with col_prev:
@@ -3095,7 +3107,28 @@ elif menu_choice == "📚 Repertori":
                 "Revisione": f"Rev #{s.current_revision}",
                 "Lock": lock_display
             })
-        st.dataframe(rows, width="stretch")
+        # Preferenze Campi Tabella Visibili per questo Utente
+        _all_rep_possible_cols = ["Titolo", "Artista", "Tonalità (ITA)", "BPM", "Revisione", "Lock", "UUID"]
+        _def_rep_cols = ["Titolo", "Artista", "Tonalità (ITA)", "BPM", "Revisione", "Lock"]
+        user_rep_cols = pref_mgr.get_user_preference(current_user.email, "repertori_columns", default=_def_rep_cols)
+        
+        with st.popover("⚙️ Campi Visualizzati Tabella", help="Personalizza le colonne mostrate (es. togli flag UUID)"):
+            st.caption("Personalizza i campi visibili: la configurazione rimane memorizzata per il tuo utente anche al prossimo accesso.")
+            sel_rep_cols = st.multiselect(
+                "Colonne da visualizzare:",
+                options=_all_rep_possible_cols,
+                default=[c for c in user_rep_cols if c in _all_rep_possible_cols],
+                key="ms_rep_cols"
+            )
+            if set(sel_rep_cols) != set(user_rep_cols):
+                pref_mgr.set_user_preference(current_user.email, "repertori_columns", sel_rep_cols)
+                st.rerun()
+
+        display_rep_rows = []
+        for r in rows:
+            filtered_r = {k: v for k, v in r.items() if k in user_rep_cols}
+            display_rep_rows.append(filtered_r if filtered_r else r)
+        st.dataframe(display_rep_rows, width="stretch")
 
         selected_song_candidates = [r["UUID"] for r in rows]
         def_s_idx = 0
@@ -3192,9 +3225,13 @@ elif menu_choice == "🗂️ Smistamento Rapido":
             rep_map.setdefault(suid, []).append(r.name)
 
     # -------------------------------------------------------------
-    # FILTRI DI VISUALIZZAZIONE & RICERCA RAPIDA
+    # FILTRI DI VISUALIZZAZIONE, RICERCA RAPIDA & PREFERENZE CAMPI
     # -------------------------------------------------------------
-    f_col1, f_col2, f_col3 = st.columns([1.6, 1.6, 0.8], gap="small")
+    _all_smist_possible_cols = ["Titolo", "Artista", "Tonalità", "BPM", "Repertori", "UUID"]
+    _def_smist_cols = ["Titolo", "Artista", "Tonalità", "BPM", "Repertori"]
+    user_smist_cols = pref_mgr.get_user_preference(current_user.email, "smistamento_columns", default=_def_smist_cols)
+
+    f_col1, f_col2, f_col3, f_col4 = st.columns([1.4, 1.4, 1.2, 0.7], gap="small")
     with f_col1:
         txt_filter = st.text_input("🔍 Cerca Brano / Artista:", placeholder="Es. Vasco, Zucchero, Rock...", key="batch_txt_filter").strip().lower()
     with f_col2:
@@ -3210,6 +3247,19 @@ elif menu_choice == "🗂️ Smistamento Rapido":
             key="batch_rep_filter"
         )
     with f_col3:
+        st.write("")
+        with st.popover("👁️ Campi Visibili", help="Seleziona i campi da mostrare nella tabella (es. togli flag UUID). Rimane salvato nelle tue preferenze personali."):
+            st.caption("Personalizza le colonne della tabella (es. togli flag UUID): la configurazione viene memorizzata nel tuo profilo anche dopo il logout.")
+            sel_smist_cols = st.multiselect(
+                "Campi visualizzati:",
+                options=_all_smist_possible_cols,
+                default=[c for c in user_smist_cols if c in _all_smist_possible_cols],
+                key="ms_smist_cols"
+            )
+            if set(sel_smist_cols) != set(user_smist_cols):
+                pref_mgr.set_user_preference(current_user.email, "smistamento_columns", sel_smist_cols)
+                st.rerun()
+    with f_col4:
         st.write("")
         st.write("")
         col_s_all, col_d_all = st.columns(2, gap="small")
@@ -3280,22 +3330,25 @@ elif menu_choice == "🗂️ Smistamento Rapido":
         st.info("Nessun brano corrisponde ai filtri impostati.")
         selected_uuids = []
     else:
+        # Dynamic column config based on user preferences (hides UUID if unchecked by user)
+        dynamic_smist_cfg = {
+            "Seleziona": st.column_config.CheckboxColumn(
+                "✓ Flag",
+                help="Spunta i brani da spostare, clonare o eliminare",
+                default=False
+            ),
+            "Titolo": st.column_config.TextColumn("Titolo Brano", width="medium") if "Titolo" in user_smist_cols else None,
+            "Artista": st.column_config.TextColumn("Artista", width="medium") if "Artista" in user_smist_cols else None,
+            "Tonalità": st.column_config.TextColumn("Tonalità", width="small") if "Tonalità" in user_smist_cols else None,
+            "BPM": st.column_config.NumberColumn("BPM", width="small") if "BPM" in user_smist_cols else None,
+            "Repertori": st.column_config.TextColumn("Repertori Attuali", width="large") if "Repertori" in user_smist_cols else None,
+            "UUID": st.column_config.TextColumn("UUID", width="medium") if "UUID" in user_smist_cols else None
+        }
+
         edited_df = st.data_editor(
             df_batch,
-            column_config={
-                "Seleziona": st.column_config.CheckboxColumn(
-                    "✓ Flag",
-                    help="Spunta i brani da spostare, clonare o eliminare",
-                    default=False
-                ),
-                "Titolo": st.column_config.TextColumn("Titolo Brano", width="medium"),
-                "Artista": st.column_config.TextColumn("Artista", width="medium"),
-                "Tonalità": st.column_config.TextColumn("Tonalità", width="small"),
-                "BPM": st.column_config.NumberColumn("BPM", width="small"),
-                "Repertori": st.column_config.TextColumn("Repertori Attuali", width="large"),
-                "UUID": None
-            },
-            disabled=["Titolo", "Artista", "Tonalità", "BPM", "Repertori"],
+            column_config=dynamic_smist_cfg,
+            disabled=["Titolo", "Artista", "Tonalità", "BPM", "Repertori", "UUID"],
             hide_index=True,
             width="stretch",
             height=min(480, 50 + len(table_data) * 36),
@@ -3324,7 +3377,52 @@ elif menu_choice == "🗂️ Smistamento Rapido":
     )
 
     rep_dict = {r.uuid: r for r in all_reps}
-    col_target, col_btn_move, col_btn_clone, col_btn_add, col_btn_del = st.columns([1.8, 1.2, 1.2, 1.2, 1.2], gap="small")
+    
+    # -------------------------------------------------------------
+    # TOOL ELIMINAZIONE DIRETTA SINGOLO BRANO DA SMISTAMENTO
+    # -------------------------------------------------------------
+    with st.expander("🗑️ Elimina o Rimuovi un Singolo Brano dall'Archivio / Repertorio", expanded=False):
+        st.markdown("##### 🗑️ Gestione Rapida Singolo Brano")
+        st.caption("Seleziona direttamente un brano per eliminarlo nel cestino o rimuoverlo dal repertorio corrente.")
+        c_ds1, c_ds2 = st.columns([3, 2], gap="small")
+        with c_ds1:
+            all_choice_songs = filtered_songs if filtered_songs else [storage.get_song(s["uuid"]) for s in all_songs if storage.get_song(s["uuid"])]
+            song_opts = [s.uuid for s in all_choice_songs]
+            del_single_uuid = st.selectbox(
+                "Seleziona brano da eliminare o rimuovere:",
+                options=song_opts,
+                format_func=lambda uid: next(f"{s.title.upper()} - {s.artist or 'Autore sconosciuto'} ({s.key_current})" for s in all_choice_songs if s.uuid == uid),
+                key="sb_smist_single_del"
+            )
+            del_single_song = next((s for s in all_choice_songs if s.uuid == del_single_uuid), None)
+        with c_ds2:
+            st.write("")
+            c_dact1, c_dact2 = st.columns(2, gap="small")
+            with c_dact1:
+                btn_del_single_trash = st.button("🗑️ Sposta nel Cestino", type="secondary", disabled=(not current_user.can_delete() or not del_single_song), width="stretch", key="btn_del_single_to_trash")
+            with c_dact2:
+                can_unlink_single = (sel_rep_filter not in ("__ALL__", "__UNASSIGNED__") and current_user.can_edit() and del_single_song)
+                btn_unlink_single = st.button("❌ Rimuovi da Rep.", disabled=not can_unlink_single, width="stretch", key="btn_unlink_single_from_rep", help="Rimuove il brano solo dal repertorio attualmente filtrato")
+
+        if btn_del_single_trash and del_single_song:
+            storage.delete_song(del_single_song.uuid, current_user.email, current_user.name)
+            log_op("🗑️", "SMISTAMENTO", f"Brano '{del_single_song.title}' spostato nel cestino", "WARNING")
+            st.success(f"🗑️ Brano '{del_single_song.title}' spostato nel cestino (30 giorni di recupero)!")
+            st.session_state.pop("batch_songs_data_editor", None)
+            st.rerun()
+
+        if btn_unlink_single and del_single_song and sel_rep_filter not in ("__ALL__", "__UNASSIGNED__"):
+            storage.remove_song_from_repertoire(del_single_song.uuid, sel_rep_filter, current_user.email, current_user.name)
+            rep_name = next((r.name for r in all_reps if r.uuid == sel_rep_filter), "repertorio")
+            log_op("❌", "SMISTAMENTO", f"Brano '{del_single_song.title}' rimosso dal repertorio '{rep_name}'", "INFO")
+            st.success(f"Brano '{del_single_song.title}' rimosso dal repertorio '{rep_name}'!")
+            st.session_state.pop("batch_songs_data_editor", None)
+            st.rerun()
+
+    # -------------------------------------------------------------
+    # BARRA AZIONI MULTIPLE CON SINGOLO CLICK (NO POPOVER)
+    # -------------------------------------------------------------
+    col_target, col_btn_move, col_btn_clone, col_btn_add, col_btn_unlink, col_btn_del = st.columns([1.6, 1.1, 1.1, 1.1, 1.1, 1.1], gap="small")
     with col_target:
         target_dest_uuid = st.selectbox(
             "🎯 Repertorio di Destinazione:",
@@ -3362,10 +3460,47 @@ elif menu_choice == "🗂️ Smistamento Rapido":
             key="btn_batch_add_action"
         )
 
+    with col_btn_unlink:
+        can_unlink_batch = (num_sel > 0 and sel_rep_filter not in ("__ALL__", "__UNASSIGNED__") and current_user.can_edit())
+        btn_batch_unlink = st.button(
+            f"❌ Scollega ({num_sel})",
+            disabled=not can_unlink_batch,
+            help="Rimuove i brani selezionati solo dal repertorio filtrato, senza eliminarli dall'archivio",
+            width="stretch",
+            key="btn_batch_unlink_action"
+        )
+
     with col_btn_del:
-        with st.popover(f"🗑️ Cestino ({num_sel})", width="stretch", disabled=(num_sel == 0 or not current_user.can_delete())):
-            st.warning(f"Vuoi spostare **{num_sel}** brani selezionati nel cestino?\n\n*Potrai ripristinarli entro 30 giorni dal Cestino.*")
-            btn_batch_del_confirm = st.button("Conferma Eliminazione", type="secondary", width="stretch", key="btn_confirm_batch_del")
+        if st.button(
+            f"🗑️ Cestino ({num_sel})",
+            type="secondary",
+            disabled=(num_sel == 0 or not current_user.can_delete()),
+            help="Sposta nel cestino i brani selezionati con 30 giorni di recupero",
+            width="stretch",
+            key="btn_batch_del_trigger"
+        ):
+            st.session_state["show_confirm_batch_del"] = True
+
+    if st.session_state.get("show_confirm_batch_del") and selected_uuids:
+        st.warning(f"⚠️ Vuoi spostare **{len(selected_uuids)}** brani selezionati nel Cestino?\n\n*Potrai ripristinarli entro 30 giorni dal Cestino.*")
+        col_cdel1, col_cdel2 = st.columns(2)
+        with col_cdel1:
+            if st.button("🔴 Sì, Sposta nel Cestino", type="primary", width="stretch", key="btn_confirm_batch_del_now"):
+                st.session_state.pop("show_confirm_batch_del", None)
+                deleted_count = storage.batch_delete_songs(
+                    selected_uuids,
+                    user_email=current_user.email,
+                    user_name=current_user.name
+                )
+                if deleted_count > 0:
+                    log_op("🗑️", "BATCH", f"Spostati con 1 click {deleted_count} brani nel cestino", "WARNING")
+                    st.success(f"🗑️ Spostati con 1 click **{deleted_count}** brani nel cestino (recuperabili per 30 giorni)!")
+                    st.session_state.pop("batch_songs_data_editor", None)
+                    st.rerun()
+        with col_cdel2:
+            if st.button("Annulla", width="stretch", key="btn_cancel_batch_del_now"):
+                st.session_state.pop("show_confirm_batch_del", None)
+                st.rerun()
 
     col_u_info, col_u_sync = st.columns([3, 2], gap="small")
     with col_u_info:
@@ -3433,6 +3568,21 @@ elif menu_choice == "🗂️ Smistamento Rapido":
             st.rerun()
         else:
             st.warning("Nessun brano collegato: i brani selezionati sono già presenti in questo repertorio.")
+
+    # -------------------------------------------------------------
+    # ESECUZIONE 1-CLICK: SCOLLEGA DAL REPERTORIO CORRENTE
+    # -------------------------------------------------------------
+    elif btn_batch_unlink and selected_uuids and sel_rep_filter not in ("__ALL__", "__UNASSIGNED__"):
+        unlinked_count = 0
+        for suid in selected_uuids:
+            if storage.remove_song_from_repertoire(suid, sel_rep_filter, current_user.email, current_user.name):
+                unlinked_count += 1
+        if unlinked_count > 0:
+            rep_name = next((r.name for r in all_reps if r.uuid == sel_rep_filter), "repertorio")
+            log_op("❌", "BATCH", f"Rimossi con 1 click {unlinked_count} brani dal repertorio '{rep_name}'", "INFO")
+            st.success(f"✅ Rimossi con 1 click **{unlinked_count}** brani dal repertorio **'{rep_name}'**!")
+            st.session_state.pop("batch_songs_data_editor", None)
+            st.rerun()
 
     # -------------------------------------------------------------
     # ESECUZIONE 1-CLICK: ELIMINA (SPOSTA NEL CESTINO)
@@ -4063,8 +4213,8 @@ elif menu_choice == "🎤 Modalità Palco (Live Stage)":
         songs_to_stage,
         dark_theme=True,
         initial_speed=35,
-        auto_start=True,
-        auto_start_delay=2
+        auto_start=False,
+        auto_start_delay=0
     )
     st.components.v1.html(html_bundle, height=800, scrolling=False)
 

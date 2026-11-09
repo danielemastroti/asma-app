@@ -1,0 +1,33 @@
+{
+  "danyposta@gmail.com": {
+    "last_active_device": "Huawei MatePad",
+    "devices": {
+      "Huawei MatePad": {
+        "layout_font_size": 18.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 2,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 8.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "updated_at": "2026-11-09 07:53:08"
+      },
+      "Pixel 8 pro": {
+        "layout_font_size": 10.5,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
+        "layout_margin_lateral": 4.0,
+        "layout_margin_top": 8.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "updated_at": "2026-11-09 07:53:08"
+      }
+    }
+  }
+}

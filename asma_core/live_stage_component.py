@@ -22,8 +22,8 @@ class LiveStageComponent:
         initial_index: int = 0,
         dark_theme: bool = True,
         initial_speed: int = 35,  # px/second
-        auto_start: bool = True,
-        auto_start_delay: int = 2  # seconds
+        auto_start: bool = False,
+        auto_start_delay: int = 0  # seconds
     ) -> str:
         """
         Builds a self-contained HTML/CSS/JS application that runs client-side inside the browser.
@@ -360,7 +360,7 @@ class LiveStageComponent:
   <div class="hud-nav-bar">
     <button class="btn btn-accent" onclick="pageUp()" title="Salta indietro di mezza pagina (Page Up)">📄 ⬆️ Pag Su</button>
     
-    <button id="btn-scroll" class="btn btn-warning" onclick="toggleScroll()" style="min-width: 135px; font-weight:800; padding:6px 14px;">⏳ AVVIO IN {auto_start_delay}s</button>
+    <button id="btn-scroll" class="btn btn-primary" onclick="toggleScroll()" style="min-width: 135px; font-weight:800; padding:6px 14px;">▶️ AVVIO</button>
     
     <button class="btn btn-accent" onclick="pageDown()" title="Salta avanti di mezza pagina (Page Down)">📄 ⬇️ Pag Giù</button>
     
@@ -554,8 +554,8 @@ class LiveStageComponent:
     if (viewport) viewport.scrollTop = 0;
     const btn = document.getElementById("btn-scroll");
     if (btn) {{
-      btn.innerText = "▶ AVVIA SCROLL";
-      btn.className = "btn btn-warning";
+      btn.innerText = "▶️ AVVIO";
+      btn.className = "btn btn-primary";
     }}
   }}
 

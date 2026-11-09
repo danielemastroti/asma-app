@@ -181,6 +181,26 @@ class TursoClient:
                     created_at TEXT,
                     updated_at TEXT
                 );
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS user_device_preferences (
+                    email TEXT NOT NULL,
+                    device_name TEXT NOT NULL,
+                    font_size_lyrics REAL,
+                    font_size_chords REAL,
+                    columns INTEGER,
+                    margin_lateral_mm REAL,
+                    margin_top_mm REAL,
+                    margin_bottom_mm REAL,
+                    color_text TEXT,
+                    color_chords TEXT,
+                    color_aml TEXT,
+                    zoom_level REAL,
+                    is_last_active INTEGER DEFAULT 0,
+                    extra_json TEXT,
+                    updated_at TEXT,
+                    PRIMARY KEY (email, device_name)
+                );
                 """
             ])
             client.close()
@@ -312,6 +332,17 @@ class TursoClient:
             return True, f"Brano '{song_dict.get('title')}' salvato su Turso."
         except Exception as e:
             return False, f"Errore push brano Turso: {e}"
+
+    def soft_delete_song(self, song_uuid: str) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "Turso non configurato."
+        try:
+            client = self._get_connection()
+            client.execute("UPDATE songs SET is_deleted = 1, updated_at = datetime('now') WHERE uuid = ?;", [song_uuid])
+            client.close()
+            return True, f"Brano {song_uuid} soft-deleted su Turso."
+        except Exception as e:
+            return False, f"Errore soft delete Turso: {e}"
 
     def fetch_all_songs(self) -> List[Dict[str, Any]]:
         if not self.is_configured:
@@ -579,3 +610,171 @@ class TursoClient:
             client.close()
 
         return results
+
+    # ---------------- USER & MULTI-DEVICE PREFERENCES ----------------
+    def push_user_device_preference(
+        self,
+        email: str,
+        device_name: str,
+        prefs: Dict[str, Any],
+        is_last_active: bool = False
+    ) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "Turso non configurato."
+        try:
+            client = self._get_connection()
+            email_clean = email.lower().strip()
+
+            if is_last_active:
+                client.execute(
+                    "UPDATE user_device_preferences SET is_last_active = 0 WHERE email = ?;",
+                    [email_clean]
+                )
+
+            sql = """
+            INSERT INTO user_device_preferences (
+                email, device_name, font_size_lyrics, font_size_chords,
+                columns, margin_lateral_mm, margin_top_mm, margin_bottom_mm,
+                color_text, color_chords, color_aml, zoom_level,
+                is_last_active, extra_json, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(email, device_name) DO UPDATE SET
+                font_size_lyrics=excluded.font_size_lyrics,
+                font_size_chords=excluded.font_size_chords,
+                columns=excluded.columns,
+                margin_lateral_mm=excluded.margin_lateral_mm,
+                margin_top_mm=excluded.margin_top_mm,
+                margin_bottom_mm=excluded.margin_bottom_mm,
+                color_text=excluded.color_text,
+                color_chords=excluded.color_chords,
+                color_aml=excluded.color_aml,
+                zoom_level=excluded.zoom_level,
+                is_last_active=excluded.is_last_active,
+                extra_json=excluded.extra_json,
+                updated_at=datetime('now');
+            """
+            extra = {k: v for k, v in prefs.items() if k not in [
+                "layout_font_size", "layout_font_size_chords", "layout_columns",
+                "layout_margin_lateral", "layout_margin_top", "layout_margin_bottom",
+                "layout_color_text", "layout_color_chords", "layout_color_aml",
+                "ui_zoom_level"
+            ]}
+            client.execute(sql, [
+                email_clean,
+                device_name,
+                float(prefs.get("layout_font_size", 12.0)),
+                float(prefs.get("layout_font_size_chords", 13.0)),
+                int(prefs.get("layout_columns", 1)),
+                float(prefs.get("layout_margin_lateral", 10.0)),
+                float(prefs.get("layout_margin_top", 8.0)),
+                float(prefs.get("layout_margin_bottom", 8.0)),
+                str(prefs.get("layout_color_text", "#111111")),
+                str(prefs.get("layout_color_chords", "#B71C1C")),
+                str(prefs.get("layout_color_aml", "#4A148C")),
+                float(prefs.get("ui_zoom_level", 1.0)),
+                1 if is_last_active else 0,
+                json.dumps(extra)
+            ])
+            client.close()
+            return True, f"Preferenze salvate per {email_clean} su {device_name}."
+        except Exception as e:
+            return False, f"Errore salvataggio preferenze Turso: {e}"
+
+    def fetch_user_device_preference(self, email: str, device_name: str) -> Optional[Dict[str, Any]]:
+        if not self.is_configured:
+            return None
+        try:
+            client = self._get_connection()
+            sql = """
+            SELECT font_size_lyrics, font_size_chords, columns, margin_lateral_mm,
+                   margin_top_mm, margin_bottom_mm, color_text, color_chords, color_aml,
+                   zoom_level, is_last_active, extra_json, updated_at
+            FROM user_device_preferences
+            WHERE email = ? AND device_name = ?;
+            """
+            res = client.execute(sql, [email.lower().strip(), device_name])
+            client.close()
+            if not res.rows:
+                return None
+            r = res.rows[0]
+            extra = json.loads(r[11]) if r[11] else {}
+            data = {
+                "layout_font_size": r[0],
+                "layout_font_size_chords": r[1],
+                "layout_columns": r[2],
+                "layout_margin_lateral": r[3],
+                "layout_margin_top": r[4],
+                "layout_margin_bottom": r[5],
+                "layout_color_text": r[6],
+                "layout_color_chords": r[7],
+                "layout_color_aml": r[8],
+                "ui_zoom_level": r[9],
+                "is_last_active": bool(r[10]),
+                "updated_at": r[12]
+            }
+            data.update(extra)
+            return data
+        except Exception:
+            return None
+
+    def fetch_all_user_preferences(self, email: Optional[str] = None) -> List[Dict[str, Any]]:
+        if not self.is_configured:
+            return []
+        try:
+            client = self._get_connection()
+            if email:
+                sql = """
+                SELECT email, device_name, font_size_lyrics, font_size_chords, columns,
+                       margin_lateral_mm, margin_top_mm, margin_bottom_mm, color_text,
+                       color_chords, color_aml, zoom_level, is_last_active, extra_json, updated_at
+                FROM user_device_preferences
+                WHERE email = ?;
+                """
+                res = client.execute(sql, [email.lower().strip()])
+            else:
+                sql = """
+                SELECT email, device_name, font_size_lyrics, font_size_chords, columns,
+                       margin_lateral_mm, margin_top_mm, margin_bottom_mm, color_text,
+                       color_chords, color_aml, zoom_level, is_last_active, extra_json, updated_at
+                FROM user_device_preferences;
+                """
+                res = client.execute(sql)
+            client.close()
+            records = []
+            for r in res.rows:
+                extra = json.loads(r[13]) if r[13] else {}
+                item = {
+                    "email": r[0],
+                    "device_name": r[1],
+                    "font_size_lyrics": r[2],
+                    "font_size_chords": r[3],
+                    "columns": r[4],
+                    "margin_lateral_mm": r[5],
+                    "margin_top_mm": r[6],
+                    "margin_bottom_mm": r[7],
+                    "color_text": r[8],
+                    "color_chords": r[9],
+                    "color_aml": r[10],
+                    "zoom_level": r[11],
+                    "is_last_active": bool(r[12]),
+                    "updated_at": r[14]
+                }
+                item.update(extra)
+                records.append(item)
+            return records
+        except Exception:
+            return []
+
+    def set_last_active_device(self, email: str, device_name: str) -> bool:
+        if not self.is_configured:
+            return False
+        try:
+            client = self._get_connection()
+            email_clean = email.lower().strip()
+            client.execute("UPDATE user_device_preferences SET is_last_active = 0 WHERE email = ?;", [email_clean])
+            client.execute("UPDATE user_device_preferences SET is_last_active = 1 WHERE email = ? AND device_name = ?;", [email_clean, device_name])
+            client.close()
+            return True
+        except Exception:
+            return False
+
