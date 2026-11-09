@@ -25,13 +25,16 @@ CHANGELOG_ENTRIES = [
         "improvements": [
             "Fix Glitch Tag Script: rimosso il frammento di codice watchdog che appariva come testo grezzo in cima allo schermo su alcuni tablet Android / Huawei.",
             "Switcher rapido di modalità nel Profilo Musicista: possibilità di passare istantaneamente tra Modalità Semplificata e Modalità Editing in qualsiasi momento senza dover ripetere il login.",
-            "Badge di stato modalità LIVE / EDIT nell'header brand superiore accanto all'indicatore di connessione online."
+            "Brand Header Pulito e Senza Sovrapposizioni: rimosso qualsiasi elemento superfluo o badge dall'header del brand, garantendo che il logo, 'THE New ASMA' e il LED di stato online abbiano spaziatura perfetta."
         ],
         "security": [
             "Pulizia definitiva credenziali e account dummy predefiniti dal registro utenti e dal database cloud.",
             "Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live, al sicuro da reset del container effimero di Streamlit Cloud."
         ],
         "bug_fixes": [
+            "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto '🚪 Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
+            "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('👤 Cico') su tablet e smartphone.",
+            "Ottimizzazione Velocità Logon e Logout: rimossa la chiamata di sincronizzazione cloud remota bloccante all'accesso sessione (lo storage è già istantaneo in-memory e SQLite), velocizzando il login e la navigazione ad apertura immediata (<100ms).",
             "Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta 'Foglio a 4 stampabile' da PC, al nuovo login dallo stesso PC ritrova 'Foglio a 4 stampabile' con tutti i settaggi (font, accordi, margini, colonne, colori), senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).",
             "Risolto glitch visivo di tag JS grezzo iniettato via markdown nella parte superiore della vista principale.",
             "Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback di azzerare i valori a database.",

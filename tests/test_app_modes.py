@@ -32,5 +32,19 @@ class TestAppModes(unittest.TestCase):
         fresh.set_user_preference(email, "app_mode", "simplified")
         self.assertEqual(fresh.get_user_preference(email, "app_mode"), "simplified")
 
+    def test_simplified_menu_items_has_no_duplicate_logout(self):
+        """Verifies simplified menu contains only the 5 core sections without duplicate logout."""
+        with open("app.py", "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('"📖 Manuale & Changelog"', content)
+        # Verify that SIMPLIFIED_MENU_ITEMS does not have "🚪 Logout"
+        simp_def = content.split("SIMPLIFIED_MENU_ITEMS = [")[1].split("]")[0]
+        self.assertNotIn("Logout", simp_def)
+        # Should have 5 items
+        items = [line.strip() for line in simp_def.splitlines() if line.strip() and not line.strip().startswith("#")]
+        self.assertEqual(len(items), 5)
+
+
+
 if __name__ == '__main__':
     unittest.main()

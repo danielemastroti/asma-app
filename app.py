@@ -191,7 +191,6 @@ st.markdown("""
   div[class*="st-key-top_navbar_container"] div[data-testid="stColumn"]:first-child {
     flex: 0 0 auto !important;
     min-width: 140px !important;
-    max-width: 180px !important;
   }
 
   /* Compact popovers in top navbar - side-by-side on the top right */
@@ -1103,26 +1102,20 @@ def _has_oidc_configuration() -> bool:
         return False
 
 # Verifica se l'utente risulta autenticato tramite Google
-_auth_google_email = get_authenticated_google_email()
+if st.session_state.get("user_logged_out", False):
+    _auth_google_email = None
+else:
+    _auth_google_email = get_authenticated_google_email()
 
 if _auth_google_email:
     if auth_mgr.is_email_allowed(_auth_google_email):
         st.session_state["authenticated"] = True
         st.session_state["current_user_email"] = _auth_google_email
-        _cp = load_client_preferences()
-        _cp["active_user_email"] = _auth_google_email
-        save_client_preferences(_cp)
     else:
         st.error(f"❌ Accesso negato: l'account Google '{_auth_google_email}' non appartiene alla lista musicisti autorizzati della band ASMA.")
         if hasattr(st, "logout"):
             st.button("Esci dall'account Google", key="btn_logout_unauth", on_click=st.logout)
         st.stop()
-elif not st.session_state.get("authenticated", False):
-    # Ripristino da sessione salvata sul client se valida
-    _saved_email = _client_prefs.get("active_user_email")
-    if _saved_email and auth_mgr.is_email_allowed(_saved_email):
-        st.session_state["authenticated"] = True
-        st.session_state["current_user_email"] = _saved_email
 
 # Se non autenticato, mostra la schermata di login originale
 if not st.session_state.get("authenticated", False):
@@ -1162,6 +1155,7 @@ if not st.session_state.get("authenticated", False):
         )
 
         def _on_login_click():
+            st.session_state.pop("user_logged_out", None)
             chosen_m = "simplified" if "Semplificata" in st.session_state.get("login_app_mode_choice", "Modalità Semplificata") else "editing"
             st.session_state["app_mode"] = chosen_m
             _cp = load_client_preferences()
@@ -1218,12 +1212,6 @@ role_col = role_colors.get(current_user.role.value, "#FFFFFF")
 
 if "session_boot_logged" not in st.session_state:
     st.session_state["session_boot_logged"] = True
-    try:
-        storage.reload_from_disk()
-        if storage.gist_client.is_configured:
-            storage.sync_from_cloud()
-    except Exception:
-        pass
     log_op("🟢", "SISTEMA", f"Accesso sessione effettuato da {current_user.name} ({current_user.email}) - Ruolo: {current_user.role.value}", "SUCCESS")
 
 def render_status_console(logger_inst: OperationLogger, key_prefix: str = "main", compact: bool = False):
@@ -1283,8 +1271,7 @@ SIMPLIFIED_MENU_ITEMS = [
     "📝 Brani",
     "📑 Scalette Live",
     "🎤 Modalità Palco (Live Stage)",
-    "📖 Manuale & Changelog",
-    "🚪 Logout"
+    "📖 Manuale & Changelog"
 ]
 
 MENU_COMPACT_LABELS = {
@@ -1299,8 +1286,7 @@ MENU_COMPACT_LABELS = {
     "🎤 Modalità Palco (Live Stage)": "🎤 Palco",
     "📅 Eventi Live": "📅 Eventi",
     "📖 Manuale & Changelog": "📖 Guida",
-    "⚙️ Amministrazione & Log": "⚙️ Admin",
-    "🚪 Logout": "🚪 Logout",
+    "⚙️ Amministrazione & Log": "⚙️ Admin"
 }
 
 if "main_menu_choice" not in st.session_state:
@@ -1513,18 +1499,11 @@ with st.container(key="top_navbar_container"):
     with col_head_brand:
         logo_b64 = get_band_logo_b64()
         logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:26px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
-        is_simp_mode = (st.session_state.get("app_mode", "simplified") == "simplified")
-        mode_badge = (
-            "<span style='display:inline-block; font-size:10px; background:rgba(56,189,248,0.18); border:1px solid #38BDF8; color:#38BDF8; padding:1px 5px; border-radius:4px; font-weight:700; vertical-align:middle; margin-left:4px;'>⚡ LIVE</span>"
-            if is_simp_mode else
-            "<span style='display:inline-block; font-size:10px; background:rgba(234,179,8,0.18); border:1px solid #EAB308; color:#EAB308; padding:1px 5px; border-radius:4px; font-weight:700; vertical-align:middle; margin-left:4px;'>🎹 EDIT</span>"
-        )
         st.markdown(
             f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:8px;'>
               {logo_img_tag}
               <span style='font-size:13px; font-weight:800; color:#FFFFFF; letter-spacing:0.4px; white-space:nowrap;'>THE New ASMA</span>
               <span style='display:inline-block; width:6px; height:6px; background:#00E676; border-radius:50%; box-shadow:0 0 6px #00E676; flex-shrink:0;' title='Cloud Connesso (Online)'></span>
-              {mode_badge}
             </div>""",
             unsafe_allow_html=True
         )
@@ -1625,15 +1604,7 @@ with st.container(key="top_navbar_container"):
             else:
                 st.info("ℹ️ Questa sessione è collegata al tuo account personale Google. Solo l'amministratore può commutare profili di test.")
 
-            st.divider()
-            if st.button("🚪 Disconnetti (Logout)", type="secondary", key="pop_btn_logout", width="stretch"):
-                st.session_state["authenticated"] = False
-                st.session_state.pop("current_user_email", None)
-                _cp = load_client_preferences()
-                _cp.pop("active_user_email", None)
-                save_client_preferences(_cp)
-                st.query_params.clear()
-                st.rerun()
+
 
 
 
@@ -1818,26 +1789,25 @@ with st.container(key="top_navbar_container"):
         with st.popover(f"📟 {op_logger.count()}", width="stretch", help="Apri la console delle operazioni"):
             render_status_console(op_logger, key_prefix="top_pop_console", compact=False)
 
+    def _perform_logout():
+        st.session_state["authenticated"] = False
+        st.session_state["user_logged_out"] = True
+        st.session_state.pop("current_user_email", None)
+        st.query_params.clear()
+        if hasattr(st, "logout"):
+            try:
+                st.logout()
+            except Exception:
+                pass
+
     with col_btn_logout:
-        if st.button("🚪 Logout", key="top_bar_btn_logout", help="Disconnetti account ed esci", width="stretch"):
-            st.session_state["authenticated"] = False
-            st.session_state.pop("current_user_email", None)
-            _cp = load_client_preferences()
-            _cp.pop("active_user_email", None)
-            save_client_preferences(_cp)
-            st.query_params.clear()
-            if hasattr(st, "logout"):
-                try:
-                    st.logout()
-                except Exception:
-                    pass
-            st.rerun()
+        st.button("🚪 Logout", key="top_bar_btn_logout", help="Disconnetti account ed esci", on_click=_perform_logout, type="secondary", width="stretch")
 
     # Row 2: Navigation Pills
     is_simplified = (st.session_state.get("app_mode", "simplified") == "simplified")
 
     if is_simplified:
-        # NUOVO MENU CON FUNZIONI BASE: Home, Brani, Scalette, Palco, Guida, Logout
+        # Funzioni Base: Home, Brani, Scalette, Palco, Guida
         active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
         if active_item not in SIMPLIFIED_MENU_ITEMS:
             active_item = "🏠 Home Dashboard"
@@ -1845,20 +1815,7 @@ with st.container(key="top_navbar_container"):
 
         def _on_nav_simp_change():
             chosen = st.session_state.get("top_nav_pills_simp")
-            if chosen == "🚪 Logout":
-                st.session_state["authenticated"] = False
-                st.session_state.pop("current_user_email", None)
-                _cp = load_client_preferences()
-                _cp.pop("active_user_email", None)
-                save_client_preferences(_cp)
-                st.query_params.clear()
-                if hasattr(st, "logout"):
-                    try:
-                        st.logout()
-                    except Exception:
-                        pass
-                st.rerun()
-            elif chosen:
+            if chosen:
                 st.session_state["main_menu_choice"] = chosen
             else:
                 st.session_state["top_nav_pills_simp"] = st.session_state["main_menu_choice"]
