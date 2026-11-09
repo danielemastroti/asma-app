@@ -56,7 +56,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      reg.update();
+    }).catch(err => {
       console.log('SW registration note:', err);
     });
   }
@@ -885,7 +887,7 @@ function renderSetlists() {
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">✏️ Modifica</button>
-        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px; color:#ef4444;" onclick="event.stopPropagation(); deleteSetlist('${s.uuid}')">🗑️ Elimina</button>
+        <button class="btn btn-danger" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); deleteSetlist('${s.uuid}')">🗑️ Elimina</button>
       </div>
     </div>
   `).join('');
@@ -976,7 +978,7 @@ function renderSetlistEditor() {
           <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
           <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
           <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
-          <button class="btn btn-secondary" style="color:#ef4444;" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>
+          <button class="btn btn-danger" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>
           <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
         </div>
       </div>
