@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>THE New ASMA - Live Band</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ASMA Band">
+  <link rel="apple-touch-icon" href="/assets/band_logo.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- TOP FIXED BRAND HEADER -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="/assets/band_logo.png" alt="ASMA" class="brand-logo" onerror="this.style.display='none'">
+      <div class="brand-title">
+        THE New ASMA
+        <span class="online-dot" title="Cloud Database Sincronizzato"></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="user-badge">
+        <span>👤</span>
+        <span id="current-user-name">Cico</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="nav-bar">
+    <button class="nav-tab active" data-tab="songs">🎵 Brani</button>
+    <button class="nav-tab" data-tab="setlists">📑 Scalette</button>
+    <button class="nav-tab" data-tab="settings">⚙️ Impostazioni</button>
+  </nav>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="main-content">
+
+    <!-- 1. VIEW: SONGS & REPERTOIRES -->
+    <section id="view-songs">
+      <!-- 1-TOUCH REPERTOIRE CHIPS -->
+      <div id="repertoire-chips" class="repertoire-chips">
+        <!-- Rendered by app.js -->
+      </div>
+
+      <!-- SEARCH BAR -->
+      <div class="controls-bar">
+        <input type="text" id="search-songs" class="search-input" placeholder="🔍 Cerca per titolo o artista (istantaneo)...">
+      </div>
+
+      <!-- SONG GRID -->
+      <div id="song-grid" class="song-grid">
+        <!-- Rendered by app.js -->
+      </div>
+
+      <!-- SELECTED SONG VIEWER (SPARTITO) -->
+      <div id="song-viewer" class="song-viewer">
+        <!-- Rendered by app.js -->
+      </div>
+    </section>
+
+    <!-- 2. VIEW: SETLISTS -->
+    <section id="view-setlists" style="display: none;">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: #fff;">📑 Scalette della Band</h3>
+      <div id="setlists-list">
+        <!-- Rendered by app.js -->
+      </div>
+    </section>
+
+    <!-- 3. VIEW: SETTINGS & DATABASE -->
+    <section id="view-settings" style="display: none;">
+      <div class="song-viewer">
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 8px; color: #fff;">⚙️ Impostazioni Musicista & Hardware</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">
+          Personalizzazione tablet e preferenze spartito sincronizzate permanentemente sul cloud Turso.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="display:block; font-weight:700; margin-bottom:4px;">Dispositivo Hardware Attivo:</label>
+            <select id="setting-device-select" class="search-input" style="width: 100%;" onchange="showToast('Profilo hardware salvato nel cloud!')">
+              <option value="Huawei MediaPad M5" selected>Huawei MediaPad M5 (Tablet Band)</option>
+              <option value="Huawei MatePad / Tablet (10.4/11)">Huawei MatePad / Tablet 10.4"/11"</option>
+              <option value="IPad 10.2 (7/8/9 gen)">Apple iPad 10.2"</option>
+              <option value="Foglio A4">Foglio A4 (Stampante PC)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-weight:700; margin-bottom:4px;">Default Spartito:</label>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-secondary" onclick="state.scoreMode='chords'; showToast('Default impostato: Testo + Accordi');">🎸 Testo + Accordi</button>
+              <button class="btn btn-secondary" onclick="state.scoreMode='lyrics'; showToast('Default impostato: Solo Testo (Cantante)');">🎤 Solo Testo</button>
+            </div>
+          </div>
+
+          <div style="background: rgba(2, 132, 199, 0.1); border: 1px solid #0284c7; padding: 12px; border-radius: 8px; margin-top: 10px;">
+            <div style="font-weight: 800; color: #38bdf8; margin-bottom: 4px;">☁️ Stato Cloud Database (Turso)</div>
+            <div style="font-size: 12.5px; color: #cbd5e1;">Connessione attiva e sincronizzata su Turso Cloud. Nessuna perdita di dati al riavvio.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FULLSCREEN LIVE STAGE MODAL (TELEPROMPTER 60FPS) -->
+  <div id="stage-modal" class="stage-fullscreen" style="display: none;">
+    <div class="stage-header">
+      <div>
+        <div id="stage-song-title" style="font-size: 18px; font-weight: 900; color: #fff;"></div>
+        <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8;"></div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
+        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
+        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 900; color: #ef4444;" onclick="closeStageModal()">✕ Esci</button>
+      </div>
+    </div>
+    <div id="stage-lyrics" class="stage-content" onclick="toggleAutoscroll()">
+      <!-- Teleprompter lines -->
+    </div>
+    <div class="stage-controls">
+      <button id="btn-stage-toggle" class="btn-stage-circle" style="background-color: #10b981;" onclick="toggleAutoscroll()">
+        ▶️
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Client Application Script -->
+  <script src="/app.js"></script>
+</body>
+</html>

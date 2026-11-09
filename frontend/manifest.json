@@ -1,0 +1,17 @@
+{
+  "name": "THE New ASMA - Live Band",
+  "short_name": "ASMA Band",
+  "description": "App da palco e sala prove per consultazione brani, scalette live, spartiti e teleprompter",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090d16",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/assets/band_logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}
