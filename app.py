@@ -1390,35 +1390,22 @@ with st.container(key="top_navbar_container"):
     # Glowing Laser Accent Line
     st.markdown('<div class="asma-laser-line"></div>', unsafe_allow_html=True)
 
-    # Row 1: Brand (Left) | Soundwave Status (Center) | Profile, Device, Log & Logout (Right - Compacted)
-    col_head_left, col_head_center, col_btn_user, col_btn_dev, col_btn_log, col_btn_logout = st.columns(
-        [1.35, 0.75, 0.95, 0.95, 0.45, 0.65], gap="small", vertical_alignment="center"
+    # Row 1: Brand (Left) | Profile, Device, Log & Logout (Right - No overlap)
+    col_head_brand, col_btn_user, col_btn_dev, col_btn_log, col_btn_logout = st.columns(
+        [2.0, 1.15, 1.15, 0.45, 0.65], gap="small", vertical_alignment="center"
     )
 
-    with col_head_left:
+    with col_head_brand:
         logo_b64 = get_band_logo_b64()
-        logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:24px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
+        logo_img_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height:26px; vertical-align:middle; border-radius:3px; flex-shrink:0;" />' if logo_b64 else '⚡'
         st.markdown(
-            f"<div class='asma-brand-header' style='display:flex; align-items:center; gap:7px; white-space:nowrap;'>"
-            f"{logo_img_tag} "
-            f"<b style='font-size:12.5px; color:#FFFFFF; letter-spacing:0.3px;'>THE New ASMA</b> "
-            f"<span style='font-size:9px; color:#00E676; font-weight:bold; background:rgba(0,230,118,0.12); padding:1px 5px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);'>• ONLINE</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-    with col_head_center:
-        st.markdown(
-            f'''<div class="asma-bar-center-eq" style="display:flex; align-items:center; justify-content:center; gap:6px;">
-              <div class="asma-eq-container" style="height:12px;" title="Attività Live Motore ASMA">
-                <span class="asma-eq-bar eq-1" style="height:4px;"></span>
-                <span class="asma-eq-bar eq-2" style="height:8px;"></span>
-                <span class="asma-eq-bar eq-3" style="height:12px;"></span>
-                <span class="asma-eq-bar eq-4" style="height:6px;"></span>
-                <span class="asma-eq-bar eq-5" style="height:10px;"></span>
+            f"""<div class='asma-brand-header' style='display:flex; align-items:center; gap:8px;'>
+              {logo_img_tag}
+              <div style='line-height:1.15;'>
+                <span style='font-size:12.5px; font-weight:800; color:#FFFFFF; letter-spacing:0.3px; display:block;'>THE New ASMA</span>
+                <span style='font-size:8.5px; color:#00E676; font-weight:700; letter-spacing:0.5px;'>● ONLINE</span>
               </div>
-              <span class="asma-eq-label" style="font-size:10px; color:#94A3B8; font-weight:500; white-space:nowrap;">LIVE STAGE</span>
-            </div>''',
+            </div>""",
             unsafe_allow_html=True
         )
 
@@ -2373,17 +2360,28 @@ elif menu_choice == "📝 Brani":
     col_edit, col_prev = st.columns([1, 1])
 
     with col_edit:
-        st.write("#### 🎼 Sorgente AML")
-        meta_c1, meta_c2, meta_c3 = st.columns(3)
-        with meta_c1:
-            title_input = st.text_input("Titolo:", value=song.title, disabled=not can_edit)
-            c_key_val, c_key_btn = st.columns([1, 1])
-            with c_key_val:
-                key_input = st.text_input("Tonalità:", value=song.key_current, disabled=not can_edit)
-            with c_key_btn:
-                st.write("")
-                st.write("")
-                if st.button("🎯 Analizza Key", help="Rileva la tonalità più probabile (es. MIm vs SOL) con analisi armonica deterministica e IA", disabled=not can_edit, key=f"btn_detect_key_{song.uuid}"):
+        st.markdown(
+            """<div style="font-size:13px; font-weight:800; color:#38BDF8; letter-spacing:0.5px; margin: 2px 0 4px 0;">
+            🎼 Sorgente & Editor AML
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        # Riga 1 Compatta: Titolo (58%) & Artista (42%)
+        r1_c1, r1_c2 = st.columns([1.4, 1.0], gap="small")
+        with r1_c1:
+            title_input = st.text_input("Titolo:", value=song.title, disabled=not can_edit, key=f"inp_t_{song.uuid}")
+        with r1_c2:
+            artist_input = st.text_input("Artista:", value=song.artist or "", disabled=not can_edit, key=f"inp_a_{song.uuid}")
+
+        # Riga 2 Compatta: Tonalità (con 🎯 AI) | BPM (con 🌐 Web) | Genere | Capo
+        r2_c1, r2_c2, r2_c3, r2_c4 = st.columns([1.1, 1.1, 1.1, 0.7], gap="small")
+        with r2_c1:
+            sub_k1, sub_k2 = st.columns([1.3, 0.8], vertical_alignment="bottom", gap="small")
+            with sub_k1:
+                key_input = st.text_input("Tonalità:", value=song.key_current, disabled=not can_edit, key=f"inp_k_{song.uuid}")
+            with sub_k2:
+                if st.button("🎯 AI", help="Rileva tonalità probabile (es. MIm vs SOL) con analisi armonica e IA", disabled=not can_edit, key=f"btn_detect_key_{song.uuid}", width="stretch"):
                     tokens = re.findall(r"\[([^\]]+)\]", song.aml_content or "")
                     valid_chords = [t for t in tokens if MusicEngine.parse_chord(t)]
                     res = BandAIService.analyze_probable_key_with_ai_fallback(song.title, song.artist, valid_chords, song.key_current)
@@ -2397,15 +2395,13 @@ elif menu_choice == "📝 Brani":
                     log_op("🎯", "KEY", f"Tonalità per '{song.title}': {new_key} ({res.get('relationship', '')})", "SUCCESS")
                     st.success(f"🎯 Tonalità rilevata: **{new_key}** ({res.get('mode', '')}). {res.get('relationship', '')}")
                     st.rerun()
-        with meta_c2:
-            artist_input = st.text_input("Artista:", value=song.artist, disabled=not can_edit)
-            c_bpm_val, c_bpm_btn = st.columns([1, 1])
-            with c_bpm_val:
-                bpm_input = st.number_input("BPM:", value=song.bpm, disabled=not can_edit)
-            with c_bpm_btn:
-                st.write("")
-                st.write("")
-                if st.button("🌐 SongBPM", help="Interroga SongBPM.com per il BPM ufficiale da internet (default 120 se non trovato)", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}"):
+
+        with r2_c2:
+            sub_b1, sub_b2 = st.columns([1.3, 0.8], vertical_alignment="bottom", gap="small")
+            with sub_b1:
+                bpm_input = st.number_input("BPM:", value=song.bpm, disabled=not can_edit, key=f"inp_b_{song.uuid}")
+            with sub_b2:
+                if st.button("🌐 Web", help="Interroga SongBPM.com per il BPM ufficiale da internet", disabled=not can_edit, key=f"btn_est_bpm_{song.uuid}", width="stretch"):
                     sb_info = BandAIService.fetch_songbpm_info(song.title, song.artist)
                     if sb_info and sb_info.get("bpm"):
                         new_bpm = int(sb_info["bpm"])
@@ -2425,62 +2421,43 @@ elif menu_choice == "📝 Brani":
                     storage.save_song(song, user_email, user_name, f"Aggiornamento BPM ({src_msg})")
                     log_op("🎯", "BPM", f"BPM per '{song.title}': {new_bpm} BPM ({src_msg})", "SUCCESS")
                     st.rerun()
-        with meta_c3:
-            genre_input = st.text_input("Genere:", value=song.genre, disabled=not can_edit)
-            capo_input = st.number_input("Capo tasto:", value=song.capo, disabled=not can_edit)
 
-        # Visualizzazione e Associazione Repertori
-        all_reps = storage.list_repertoires()
-        assigned_reps = [r for r in all_reps if song.uuid in r.song_uuids]
-        rep_labels = ", ".join([r.name for r in assigned_reps]) if assigned_reps else "Nessun repertorio (Non assegnato)"
-        st.caption(f"📚 **Repertori associati:** `{rep_labels}`")
-        unassigned_reps = [r for r in all_reps if song.uuid not in r.song_uuids]
-        if unassigned_reps:
-            with st.expander("➕ Associa questo brano a un altro Repertorio"):
-                col_r_sel, col_r_btn = st.columns([3, 1])
-                with col_r_sel:
-                    target_r_obj = st.selectbox("Seleziona repertorio:", unassigned_reps, format_func=lambda r: r.name, key=f"add_r_edit_{song.uuid}")
-                with col_r_btn:
-                    st.write("")
-                    if st.button("Collega", disabled=not can_edit):
-                        storage.move_song_to_repertoire(song.uuid, target_r_obj.uuid, user_email, user_name)
-                        log_op("📚", "REPERTORIO", f"Brano '{song.title}' associato a '{target_r_obj.name}'", "INFO")
-                        st.success(f"Brano associato a '{target_r_obj.name}'!")
-                        st.rerun()
+        with r2_c3:
+            genre_input = st.text_input("Genere:", value=song.genre or "", disabled=not can_edit, key=f"inp_g_{song.uuid}")
+        with r2_c4:
+            capo_input = st.number_input("Capo:", value=song.capo or 0, min_value=0, max_value=12, disabled=not can_edit, key=f"inp_c_{song.uuid}")
 
-        # Transposition & Notation (Riga 1: Mezzi Toni + Undo Originale, Riga 2: Notazione)
+        # Riga 3 Compatta: Toolbar Trasposizione, Notazione, Tag, Repertori & Guida
         orig_ita = MusicEngine.convert_notation(song.key_original, "ITA")
         curr_ita = MusicEngine.convert_notation(song.key_current, "ITA")
         is_transposed = (song.key_current.upper() != song.key_original.upper())
 
-        st.markdown(
-            f"""<div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px 0;">
-              <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🎵 Trasposizione Tonalità (Mezzi Toni):</span>
-              <span style="font-size:10px; color:#38BDF8; font-weight:700;">Tonalità Originale: {orig_ita} &bull; Attuale: {curr_ita}</span>
-            </div>""",
-            unsafe_allow_html=True
-        )
-        tr_r1_c1, tr_r1_c2, tr_r1_c3 = st.columns([1, 1, 1.2], gap="small")
-        with tr_r1_c1:
-            if st.button("⬇️ -½ Tono", help="Abbassa di 1 semitono (mezzo tono sotto)", disabled=not can_edit, width="stretch", key=f"tr_down_{song.uuid}"):
+        all_reps = storage.list_repertoires()
+        assigned_reps = [r for r in all_reps if song.uuid in r.song_uuids]
+        rep_labels = ", ".join([r.name for r in assigned_reps]) if assigned_reps else "Nessuno (Non assegnato)"
+        unassigned_reps = [r for r in all_reps if song.uuid not in r.song_uuids]
+
+        c_tb1, c_tb2, c_tb3, c_tb4, c_tb5 = st.columns([1.0, 1.0, 1.3, 1.2, 1.3], gap="small", vertical_alignment="center")
+        with c_tb1:
+            if st.button("⬇️ -½", help="Abbassa di 1 semitono (-½ tono)", disabled=not can_edit, width="stretch", key=f"tr_down_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=-1)
                 song.aml_content = new_doc.to_aml()
                 song.key_current = MusicEngine.transpose_chord(song.key_current, semitones=-1)
                 storage.save_song(song, user_email, user_name, "Trasposizione -1 semitono (-½ tono)")
-                log_op("⬇️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto -½ tono (-1 semitono) in {song.key_current}", "SUCCESS")
+                log_op("⬇️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto -½ tono in {song.key_current}", "SUCCESS")
                 st.rerun()
-        with tr_r1_c2:
-            if st.button("⬆️ +½ Tono", help="Alza di 1 semitono (mezzo tono sopra)", disabled=not can_edit, width="stretch", key=f"tr_up_{song.uuid}"):
+        with c_tb2:
+            if st.button("⬆️ +½", help="Alza di 1 semitono (+½ tono)", disabled=not can_edit, width="stretch", key=f"tr_up_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
                 new_doc = AMLParser.transpose_document(doc, semitones=1)
                 song.aml_content = new_doc.to_aml()
                 song.key_current = MusicEngine.transpose_chord(song.key_current, semitones=1)
                 storage.save_song(song, user_email, user_name, "Trasposizione +1 semitono (+½ tono)")
-                log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +½ tono (+1 semitono) in {song.key_current}", "SUCCESS")
+                log_op("⬆️", "TRASPOSIZIONE", f"Brano '{song.title}' trasposto +½ tono in {song.key_current}", "SUCCESS")
                 st.rerun()
-        with tr_r1_c3:
-            btn_undo_label = f"↺ Undo ({orig_ita})"
+        with c_tb3:
+            btn_undo_label = f"↺ {orig_ita}"
             if st.button(btn_undo_label, help=f"Annulla trasposizioni e ripristina la tonalità originale ({orig_ita})", disabled=(not can_edit or not is_transposed), width="stretch", key=f"tr_undo_{song.uuid}"):
                 delta = MusicEngine.calculate_semitone_delta(song.key_current, song.key_original)
                 if delta != 0:
@@ -2492,39 +2469,42 @@ elif menu_choice == "📝 Brani":
                     log_op("↺", "TRASPOSIZIONE", f"Brano '{song.title}' ripristinato alla tonalità originale {orig_ita}", "SUCCESS")
                     st.success(f"Brano ripristinato alla tonalità originale ({orig_ita})!")
                     st.rerun()
-
-        st.markdown(
-            """<div style="margin:4px 0 2px 0;">
-              <span style="font-size:11px; font-weight:700; color:#CBD5E1;">🌐 Notazione Accordi:</span>
-            </div>""",
-            unsafe_allow_html=True
-        )
-        tr_r2_c1, tr_r2_c2 = st.columns(2, gap="small")
-        with tr_r2_c1:
-            if st.button("🇮🇹 Notazione ITA (DO, RE, MI)", help="Converti in notazione italiana (DO, RE, MI)", disabled=not can_edit, width="stretch", key=f"tr_ita_{song.uuid}"):
+        with c_tb4:
+            is_ita_note = (MusicEngine.detect_notation_system(song.key_current) == "ITA")
+            not_label = "🌐 → INT" if is_ita_note else "🇮🇹 → ITA"
+            if st.button(not_label, help=f"Converti notazione accordi in {'Internazionale (C, D, E)' if is_ita_note else 'Italiana (DO, RE, MI)'}", disabled=not can_edit, width="stretch", key=f"tr_toggle_not_{song.uuid}"):
                 doc = AMLParser.parse(song.aml_content)
-                song.aml_content = AMLParser.convert_notation(doc, "ITA").to_aml()
-                storage.save_song(song, user_email, user_name, "Conversione notazione italiana")
-                log_op("🇮🇹", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Italiana", "INFO")
+                target_sys = "INT" if is_ita_note else "ITA"
+                song.aml_content = AMLParser.convert_notation(doc, target_sys).to_aml()
+                storage.save_song(song, user_email, user_name, f"Conversione notazione in {target_sys}")
+                log_op("🌐", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione {target_sys}", "INFO")
                 st.rerun()
-        with tr_r2_c2:
-            if st.button("🌐 Notazione INT (C, D, E)", help="Converti in notazione internazionale (C, D, E)", disabled=not can_edit, width="stretch", key=f"tr_int_{song.uuid}"):
-                doc = AMLParser.parse(song.aml_content)
-                song.aml_content = AMLParser.convert_notation(doc, "INT").to_aml()
-                storage.save_song(song, user_email, user_name, "Conversione notazione internazionale")
-                log_op("🌐", "NOTAZIONE", f"Brano '{song.title}' convertito in notazione Internazionale", "INFO")
-                st.rerun()
+        with c_tb5:
+            with st.popover("🏷️ Tag & Rep.", width="stretch", help="Gestisci Tag del brano, repertori collegati e guida sintassi AML"):
+                st.markdown("##### 🏷️ Tag, Repertori & Guida AML")
+                tags_input = st.text_input("Tag del Brano (separati da virgola):", value=", ".join(song.tags or []), disabled=not can_edit, key=f"tags_pop_{song.uuid}")
+                st.markdown(f"📚 **Repertori associati:** `{rep_labels}`")
+                if unassigned_reps:
+                    col_r_sel, col_r_btn = st.columns([2.5, 1])
+                    with col_r_sel:
+                        target_r_obj = st.selectbox("Collega ad altro repertorio:", unassigned_reps, format_func=lambda r: r.name, key=f"add_r_edit_{song.uuid}")
+                    with col_r_btn:
+                        st.write("")
+                        if st.button("Collega", disabled=not can_edit, key=f"btn_collega_rep_{song.uuid}"):
+                            storage.move_song_to_repertoire(song.uuid, target_r_obj.uuid, user_email, user_name)
+                            log_op("📚", "REPERTORIO", f"Brano '{song.title}' associato a '{target_r_obj.name}'", "INFO")
+                            st.success(f"Brano associato a '{target_r_obj.name}'!")
+                            st.rerun()
+                st.divider()
+                st.markdown("""
+                **Guida Rapida AML:**
+                * `{title: Titolo}`, `{artist: Artista}`, `{key: Tonalità}`, `{tempo: BPM}`, `{time: 4/4}`
+                * `{intro}`, `{verse}`, `{chorus}`, `{bridge}`, `{solo}`, `{outro}`
+                * Inline: `[DO]Testo accordo`, Griglia: `| DO | LAm | FA | SOL |`
+                """)
 
-        tags_input = st.text_input("🏷️ Tag del Brano (separati da virgola):", value=", ".join(song.tags or []), disabled=not can_edit, help="Es: ballad, rock, acustico, bis")
-
-        with st.expander("📖 Guida Sintassi & Tag AML (Direttive, Sezioni, Accordi Inline, Griglie, Strumenti)"):
-            st.markdown("""
-            * **• Direttive:** `{title: Titolo}`, `{artist: Artista}`, `{key: Tonalità}`, `{tempo: BPM}`, `{time: 4/4}`
-            * **• Sezioni:** `{intro}`, `{verse}`, `{chorus}`, `{bridge}`, `{solo}`, `{outro}`
-            * **• Accordi Inline:** `[Am]On a dark desert highway, [F#7]cool wind in my hair`
-            * **• Griglia Armonica a Battute:** `| DO | LAm | FA | SOL |`
-            * **• Tag Strumentali:** `{guitar: Solo Don Felder}`, `{voice: Armonizzazione a 3}`, `{bass: Slap}`, `{drums: 4/4 Groove}`
-            """)
+        if "tags_input" not in locals() or tags_input is None:
+            tags_input = ", ".join(song.tags or [])
 
         aml_editor_text = st.text_area("Testo AML:", value=song.aml_content, height=360, disabled=not can_edit)
         rev_comment = st.text_input("Commento della modifica (per storico revisioni):", value="Modifica accordi e sezioni", disabled=not can_edit)

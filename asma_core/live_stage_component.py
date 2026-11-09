@@ -389,7 +389,7 @@ class LiveStageComponent:
   let lastFrameTime = null;
   let scrollAnimId = null;
   let wakeLock = null;
-  const autoStartEnabled = {'true' if auto_start else 'false'};
+  const autoStartEnabled = false;
   const autoStartDelaySec = {auto_start_delay};
   let countdownTimer = null;
 
@@ -446,9 +446,6 @@ class LiveStageComponent:
 
     document.getElementById("song-container").innerHTML = html;
     resetScroll();
-    if (autoStartEnabled) {{
-      startAutoScrollCountdown();
-    }}
     if (metronomeActive) {{
       restartMetronome();
     }}
@@ -560,28 +557,8 @@ class LiveStageComponent:
   }}
 
   function startAutoScrollCountdown() {{
-    if (countdownTimer) clearInterval(countdownTimer);
-    if (!autoStartEnabled) return;
-
-    let remaining = autoStartDelaySec;
-    const btn = document.getElementById("btn-scroll");
-    if (btn) {{
-      btn.innerText = `⏳ AVVIO IN ${{remaining}}s`;
-      btn.className = "btn btn-accent";
-    }}
-
-    countdownTimer = setInterval(() => {{
-      remaining--;
-      if (remaining <= 0) {{
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-        if (!isScrolling) {{
-          startScroll();
-        }}
-      }} else {{
-        if (btn) btn.innerText = `⏳ AVVIO IN ${{remaining}}s`;
-      }}
-    }}, 1000);
+    // Autoscroll mai automatico: si avvia ESCLUSIVAMENTE quando il musicista clicca su AVVIO
+    return;
   }}
 
   function updateSpeed(val) {{
@@ -726,11 +703,7 @@ class LiveStageComponent:
       }}
     }}, {{ passive: true }});
 
-    _vp.addEventListener("click", (e) => {{
-      if (!e.target.closest("button") && !e.target.closest("input")) {{
-        toggleScroll();
-      }}
-    }});
+
   }}
 </script>
 </body>
