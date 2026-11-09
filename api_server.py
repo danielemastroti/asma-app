@@ -590,6 +590,82 @@ def delete_setlist(uuid: str, user_email: str = "cico@band.org", user_name: str 
         raise HTTPException(status_code=404, detail="Scaletta non trovata")
     return {"status": "success", "deleted_uuid": uuid}
 
+@app.get("/api/setlists/{uuid}/pdf")
+def get_setlist_pdf(
+    uuid: str,
+    device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
+    chords: bool = Query(True, description="True per spartiti con accordi, False per solo testi cantante"),
+    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB")
+):
+    """Generates consolidated setlist PDF (cover + index + songs) for tablet display or print."""
+    s = storage.get_setlist(uuid)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scaletta non trovata")
+
+    resolved_songs = []
+    for item in s.items:
+        song = storage.get_song(item.song_uuid)
+        if song:
+            resolved_songs.append(song)
+
+    base_prof = resolve_device_profile(device)
+    prof = DeviceProfile(
+        name=base_prof.name,
+        target_device=base_prof.target_device,
+        device_type=base_prof.device_type,
+        width_mm=base_prof.width_mm,
+        height_mm=base_prof.height_mm,
+        orientation=base_prof.orientation,
+        columns=base_prof.columns,
+        font_size_lyrics=base_prof.font_size_lyrics,
+        font_size_chords=base_prof.font_size_chords,
+        margin_top_mm=base_prof.margin_top_mm,
+        margin_bottom_mm=base_prof.margin_bottom_mm,
+        margin_left_mm=base_prof.margin_left_mm,
+        margin_right_mm=base_prof.margin_right_mm,
+        color_lyrics=getattr(base_prof, "color_lyrics", "#111111"),
+        color_chords=getattr(base_prof, "color_chords", "#B71C1C"),
+        color_aml_markup=getattr(base_prof, "color_aml_markup", "#4A148C")
+    )
+
+    if email:
+        user_prefs = pref_mgr.get_preferences(email, prof.name)
+        if user_prefs:
+            if "layout_font_size" in user_prefs:
+                prof.font_size_lyrics = float(user_prefs["layout_font_size"])
+            if "layout_font_size_chords" in user_prefs:
+                prof.font_size_chords = float(user_prefs["layout_font_size_chords"])
+            if "layout_columns" in user_prefs:
+                prof.columns = int(user_prefs["layout_columns"])
+            if "layout_margin_lateral" in user_prefs:
+                lat = float(user_prefs["layout_margin_lateral"])
+                prof.margin_left_mm = lat
+                prof.margin_right_mm = lat
+            if "color_lyrics" in user_prefs:
+                prof.color_lyrics = user_prefs["color_lyrics"]
+            elif "layout_color_text" in user_prefs:
+                prof.color_lyrics = user_prefs["layout_color_text"]
+            if "color_chords" in user_prefs:
+                prof.color_chords = user_prefs["color_chords"]
+            elif "layout_color_chords" in user_prefs:
+                prof.color_chords = user_prefs["layout_color_chords"]
+            if "color_aml_markup" in user_prefs:
+                prof.color_aml_markup = user_prefs["color_aml_markup"]
+            elif "layout_color_aml" in user_prefs:
+                prof.color_aml_markup = user_prefs["layout_color_aml"]
+
+    pdf_bytes = PDFEngine.generate_setlist_pdf(s, resolved_songs, profile=prof, include_chords=chords)
+    filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', s.title).strip('_') or "scaletta"
+    mode_suffix = "accordi" if chords else "testo"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}_{mode_suffix}.pdf"'
+        }
+    )
+
 
 # -----------------------------------------------------------------------------
 # 6. HARDWARE DEVICES & USER PREFERENCES
@@ -724,4 +800,5 @@ if os.path.exists("frontend"):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("api_server:app", host="0.0.0.0", port=port, reload=False)

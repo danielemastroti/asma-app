@@ -83,6 +83,12 @@ class TestApiServer(unittest.TestCase):
             self.assertIn("items", data)
             self.assertIn("total_songs", data)
 
+            # Consolidated setlist PDF test
+            pdf_set = self.client.get(f"/api/setlists/{set_uuid}/pdf?chords=true")
+            self.assertEqual(pdf_set.status_code, 200)
+            self.assertEqual(pdf_set.headers["content-type"], "application/pdf")
+            self.assertTrue(pdf_set.content.startswith(b"%PDF"))
+
     def test_06_devices_and_preferences(self):
         # Devices
         dev_resp = self.client.get("/api/devices")

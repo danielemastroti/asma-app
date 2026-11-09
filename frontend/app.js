@@ -671,13 +671,73 @@ function openStageModal() {
   container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
   container.scrollTop = 0;
 
+  const speedDisp = document.getElementById('stage-speed-display');
+  if (speedDisp) speedDisp.textContent = `${Math.round(state.scrollSpeed)} px/s`;
+
+  if (isMetronomeActive) {
+    startMetronomePulse(currentSong.bpm || 120);
+  }
+
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(console.warn);
   }
 }
 
+let metronomeTimer = null;
+let isMetronomeActive = false;
+
+function toggleMetronome() {
+  isMetronomeActive = !isMetronomeActive;
+  const dot = document.getElementById('stage-metronome-dot');
+  if (!isMetronomeActive) {
+    if (metronomeTimer) clearInterval(metronomeTimer);
+    metronomeTimer = null;
+    if (dot) dot.classList.remove('pulse');
+    showToast('Metronomo visivo: Spento');
+    return;
+  }
+  const currentSong = state.stageSongs[state.stageIndex];
+  const bpm = (currentSong && currentSong.bpm) ? currentSong.bpm : 120;
+  startMetronomePulse(bpm);
+  showToast(`Metronomo visivo: ${bpm} BPM`);
+}
+
+function startMetronomePulse(bpm) {
+  if (metronomeTimer) clearInterval(metronomeTimer);
+  const dot = document.getElementById('stage-metronome-dot');
+  const intervalMs = (60 / (bpm || 120)) * 1000;
+  metronomeTimer = setInterval(() => {
+    if (dot) {
+      dot.classList.add('pulse');
+      setTimeout(() => dot.classList.remove('pulse'), 90);
+    }
+  }, intervalMs);
+}
+
+function adjustStageScrollSpeed(delta) {
+  state.scrollSpeed = Math.max(10, Math.min(120, state.scrollSpeed + delta));
+  const disp = document.getElementById('stage-speed-display');
+  if (disp) disp.textContent = `${Math.round(state.scrollSpeed)} px/s`;
+  showToast(`Velocità palco: ${Math.round(state.scrollSpeed)} px/s`);
+}
+
+function adjustStageFontSize(delta) {
+  const container = document.getElementById('stage-lyrics');
+  if (container) {
+    const currentSize = parseFloat(window.getComputedStyle(container).fontSize) || 22;
+    const newSize = Math.max(14, Math.min(38, currentSize + delta));
+    container.style.fontSize = `${newSize}px`;
+    showToast(`Font Palco: ${newSize}px`);
+  }
+}
+
 function closeStageModal() {
   stopAutoscroll();
+  if (metronomeTimer) {
+    clearInterval(metronomeTimer);
+    metronomeTimer = null;
+  }
+  isMetronomeActive = false;
   state.isStageActive = false;
   const stageModal = document.getElementById('stage-modal');
   if (stageModal) stageModal.style.display = 'none';
@@ -795,6 +855,7 @@ async function loadSetlists() {
     const res = await fetch(`${API_BASE}/api/setlists`);
     if (res.ok) {
       state.setlists = await res.json();
+      renderSetlists();
     }
   } catch (err) {
     console.warn('Setlists error:', err);
@@ -806,20 +867,256 @@ function renderSetlists() {
   if (!container) return;
 
   if (state.setlists.length === 0) {
-    container.innerHTML = '<div style="padding: 20px; color:#94a3b8;">Nessuna scaletta presente.</div>';
+    container.innerHTML = '<div style="padding: 20px; color:#94a3b8;">Nessuna scaletta presente. Creane una con il tasto "+ Nuova Scaletta".</div>';
     return;
   }
 
   container.innerHTML = state.setlists.map(s => `
-    <div class="song-card" style="margin-bottom: 10px;" onclick="loadAndPlaySetlist('${s.uuid}')">
-      <div class="song-card-title">📑 ${escapeHtml(s.title)}</div>
-      <div class="song-card-artist">${escapeHtml(s.date || '')} &bull; ${escapeHtml(s.description || 'Scaletta Live')}</div>
-      <div class="song-card-meta">
-        <span class="badge">${s.item_count} Brani</span>
-        <button class="btn btn-primary" style="margin-left:auto; min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
+    <div class="song-card" style="margin-bottom: 12px; cursor: pointer;" onclick="openSetlistDetail('${s.uuid}')">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="song-card-title">📑 ${escapeHtml(s.title)}</div>
+          <div class="song-card-artist">${escapeHtml(s.date || 'Data da definire')} &bull; ${escapeHtml(s.description || 'Scaletta Concerto')}</div>
+        </div>
+        <span class="badge" style="background:#0284c7; color:#fff;">${s.item_count} Brani</span>
+      </div>
+      <div class="song-card-meta" style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-primary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); loadAndPlaySetlist('${s.uuid}')">🎤 Palco Live</button>
+        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
+        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
+        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">✏️ Modifica</button>
       </div>
     </div>
   `).join('');
+}
+
+function downloadSetlistPdf(uuid) {
+  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}`;
+  window.open(url, '_blank');
+}
+
+function printSetlistA4(uuid) {
+  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=Foglio%20A4&email=${encodeURIComponent(state.currentUser.email)}`;
+  const win = window.open(url, '_blank');
+  if (win) win.focus();
+}
+
+async function openSetlistDetail(uuid) {
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists/${uuid}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    state.selectedSetlist = data;
+
+    const detailContainer = document.getElementById('setlist-detail-view');
+    const listContainer = document.getElementById('setlists-list');
+    if (!detailContainer) return;
+
+    if (listContainer) listContainer.style.display = 'none';
+    detailContainer.style.display = 'block';
+
+    renderSetlistEditor();
+  } catch (err) {
+    console.error('Error opening setlist:', err);
+  }
+}
+
+function closeSetlistDetail() {
+  const detailContainer = document.getElementById('setlist-detail-view');
+  const listContainer = document.getElementById('setlists-list');
+  if (detailContainer) detailContainer.style.display = 'none';
+  if (listContainer) listContainer.style.display = 'block';
+  loadSetlists();
+}
+
+function renderSetlistEditor() {
+  const container = document.getElementById('setlist-detail-view');
+  if (!container || !state.selectedSetlist) return;
+
+  const s = state.selectedSetlist;
+  const minutes = Math.floor((s.total_duration_seconds || 0) / 60);
+
+  const itemsHtml = (s.items || []).map((item, idx) => `
+    <div class="setlist-item-row">
+      <div style="font-weight:900; color:#38bdf8; min-width:24px;">${idx + 1}.</div>
+      <div style="flex:1;">
+        <div style="font-weight:700; color:#fff;">${escapeHtml(item.title)}</div>
+        <div style="font-size:12px; color:#94a3b8;">
+          ${escapeHtml(item.artist || '')} &bull; Tonalità: <b style="color:#ffd600;">${item.key}</b>
+          &bull; Tempo: <b>${item.bpm} BPM</b> ${item.is_medley ? '<span class="badge" style="background:#7c3aed; color:#fff; font-size:10px; margin-left:6px;">🔗 MEDLEY</span>' : ''}
+        </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta su" onclick="moveSetlistItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta giù" onclick="moveSetlistItem(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''}>▼</button>
+        <button class="btn btn-secondary" style="min-height:34px; padding:0 8px; font-size:11px;" title="Attiva/disattiva Medley" onclick="toggleSetlistMedley(${idx})">🔗</button>
+        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0; color:#ef4444;" title="Rimuovi" onclick="removeSetlistItem(${idx})">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Song options for "+ Aggiungi Brano"
+  const songOptions = (state.songs || []).map(song => 
+    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || '')})</option>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="song-viewer" style="margin-bottom:14px;">
+      <div class="viewer-header">
+        <div>
+          <h2 style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
+          <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+            <b>${escapeHtml(s.date || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)
+          </div>
+        </div>
+        <div class="viewer-tools">
+          <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
+          <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
+          <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
+          <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
+        </div>
+      </div>
+
+      <!-- ADD SONG CONTROLS -->
+      <div style="display:flex; gap:10px; margin: 16px 0; align-items:center; background:var(--bg-surface-elevated); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
+        <label style="font-size:13px; font-weight:700; color:#38bdf8;">+ Aggiungi Brano:</label>
+        <select id="select-add-song-setlist" class="search-input" style="flex:1;">
+          <option value="">-- Seleziona un brano dal repertorio --</option>
+          ${songOptions}
+        </select>
+        <button class="btn btn-primary" onclick="addSelectedSongToSetlist()">Aggiungi</button>
+      </div>
+
+      <!-- ITEMS LIST -->
+      <div style="margin-top:14px;">
+        ${itemsHtml || '<div style="color:#94a3b8; padding:16px;">Nessun brano in questa scaletta. Aggiungine uno sopra!</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function moveSetlistItem(index, delta) {
+  if (!state.selectedSetlist || !state.selectedSetlist.items) return;
+  const items = state.selectedSetlist.items;
+  const target = index + delta;
+  if (target < 0 || target >= items.length) return;
+
+  const temp = items[index];
+  items[index] = items[target];
+  items[target] = temp;
+
+  renderSetlistEditor();
+  saveCurrentSetlist();
+}
+
+function toggleSetlistMedley(index) {
+  if (!state.selectedSetlist || !state.selectedSetlist.items) return;
+  const item = state.selectedSetlist.items[index];
+  item.is_medley = !item.is_medley;
+  renderSetlistEditor();
+  saveCurrentSetlist();
+}
+
+function removeSetlistItem(index) {
+  if (!state.selectedSetlist || !state.selectedSetlist.items) return;
+  state.selectedSetlist.items.splice(index, 1);
+  renderSetlistEditor();
+  saveCurrentSetlist();
+}
+
+function addSelectedSongToSetlist() {
+  const sel = document.getElementById('select-add-song-setlist');
+  if (!sel || !sel.value || !state.selectedSetlist) return;
+  const songUuid = sel.value;
+  const song = (state.songs || []).find(s => s.uuid === songUuid);
+  if (!song) return;
+
+  if (!state.selectedSetlist.items) state.selectedSetlist.items = [];
+  state.selectedSetlist.items.push({
+    index: state.selectedSetlist.items.length + 1,
+    song_uuid: song.uuid,
+    title: song.title,
+    artist: song.artist,
+    key: song.key_current,
+    bpm: song.bpm,
+    duration_seconds: song.duration_seconds || 0,
+    is_medley: false,
+    medley_group_id: null,
+    notes: ""
+  });
+
+  renderSetlistEditor();
+  saveCurrentSetlist();
+  showToast(`Aggiunto: ${song.title} ✓`);
+}
+
+async function saveCurrentSetlist() {
+  if (!state.selectedSetlist) return;
+  const s = state.selectedSetlist;
+  const payload = {
+    uuid: s.uuid,
+    title: s.title,
+    date: s.date,
+    description: s.description,
+    items: (s.items || []).map(it => ({
+      song_uuid: it.song_uuid,
+      is_medley: it.is_medley || false,
+      medley_group_id: it.medley_group_id || null,
+      custom_key: it.custom_key || null,
+      custom_bpm: it.custom_bpm || null,
+      notes: it.notes || ""
+    })),
+    user_email: state.currentUser.email,
+    user_name: state.currentUser.name
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast('Scaletta salvata su Turso Cloud DB ✓');
+    }
+  } catch (err) {
+    console.warn('Setlist save error:', err);
+  }
+}
+
+async function openNewSetlistDialog() {
+  const title = prompt('Inserisci il nome della nuova scaletta (es. Concerto Estivo):');
+  if (!title || !title.trim()) return;
+
+  const date = prompt('Data del concerto (es. 2026-07-15) - facoltativo:', new Date().toISOString().split('T')[0]) || '';
+  const payload = {
+    title: title.trim(),
+    date: date.trim(),
+    description: 'Nuova Scaletta Live',
+    items: [],
+    user_email: state.currentUser.email,
+    user_name: state.currentUser.name
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Scaletta "${title}" creata ✓`);
+      await loadSetlists();
+      if (data.setlist && data.setlist.uuid) {
+        openSetlistDetail(data.setlist.uuid);
+      }
+    }
+  } catch (err) {
+    console.error('Error creating setlist:', err);
+  }
 }
 
 async function loadAndPlaySetlist(uuid) {
@@ -840,6 +1137,8 @@ async function loadAndPlaySetlist(uuid) {
         state.stageIndex = 0;
         openStageModal();
         showToast(`Scaletta caricata: ${data.title} (${state.stageSongs.length} brani)`);
+      } else {
+        showToast('Questa scaletta non contiene brani');
       }
     }
   } catch (err) {

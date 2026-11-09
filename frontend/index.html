@@ -71,9 +71,15 @@
 
     <!-- 2. VIEW: SETLISTS -->
     <section id="view-setlists" style="display: none;">
-      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: #fff;">📑 Scalette della Band</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: #fff;">📑 Scalette della Band</h3>
+        <button class="btn btn-primary" onclick="openNewSetlistDialog()">+ Nuova Scaletta</button>
+      </div>
       <div id="setlists-list">
         <!-- Rendered by app.js -->
+      </div>
+      <div id="setlist-detail-view" style="display: none; margin-top: 14px;">
+        <!-- Detailed editor rendered by app.js -->
       </div>
     </section>
 
@@ -218,6 +224,14 @@
         <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8;"></div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
+        <div id="stage-metronome-dot" class="stage-metronome-dot" title="Metronomo visivo (tocca per attivare/disattivare)" onclick="toggleMetronome()"></div>
+        <div class="stepper" style="background: rgba(15,23,42,0.8); border: 1px solid #334155; border-radius: 8px; padding: 2px 6px;">
+          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0;" onclick="adjustStageScrollSpeed(-4)">🐢</button>
+          <span id="stage-speed-display" style="color:#ffd600; font-weight:800; font-size:12px; min-width:44px; text-align:center;">28 px/s</span>
+          <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0;" onclick="adjustStageScrollSpeed(4)">🐇</button>
+        </div>
+        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px;" onclick="adjustStageFontSize(-2)">A−</button>
+        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px;" onclick="adjustStageFontSize(2)">A+</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 900; color: #ef4444;" onclick="closeStageModal()">✕ Esci</button>

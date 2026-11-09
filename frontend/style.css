@@ -503,6 +503,36 @@ body {
   border-bottom: 1px solid #334155;
 }
 
+.stage-metronome-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #334155;
+  border: 2px solid #64748b;
+  cursor: pointer;
+  transition: all 0.08s ease-in-out;
+}
+.stage-metronome-dot.pulse {
+  background: #ef4444 !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 14px #ef4444;
+  transform: scale(1.25);
+}
+
+.setlist-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.setlist-item-row:hover {
+  border-color: var(--accent-cyan);
+}
+
 .stage-content {
   flex: 1;
   overflow-y: auto;
