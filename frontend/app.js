@@ -6,6 +6,16 @@
 
 const API_BASE = window.location.origin;
 
+const savedScoreMode = (() => {
+  try { return localStorage.getItem('asma_score_mode'); } catch (e) { return null; }
+})();
+const savedUserEmail = (() => {
+  try { return localStorage.getItem('asma_user_email'); } catch (e) { return null; }
+})();
+const savedDevice = (() => {
+  try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; }
+})();
+
 // Application State
 const state = {
   currentTab: 'songs',
@@ -15,9 +25,9 @@ const state = {
   selectedSong: null,
   setlists: [],
   selectedSetlist: null,
-  scoreMode: 'chords', // 'chords' or 'lyrics'
-  currentUser: { email: 'acicchelli65@gmail.com', name: 'Cico', role: 'BAND_MEMBER' },
-  activeDevice: 'Huawei MediaPad M5',
+  scoreMode: savedScoreMode || 'lyrics', // Default to 'lyrics' for Cico/singer
+  currentUser: { email: savedUserEmail || 'acicchelli65@gmail.com', name: 'Cico', role: 'BAND_MEMBER' },
+  activeDevice: savedDevice || 'Huawei MediaPad M5',
   usersList: [],
   devicesList: [],
   userPrefs: {
@@ -28,7 +38,7 @@ const state = {
     color_lyrics: '#111111',
     color_chords: '#B71C1C',
     color_aml_markup: '#4A148C',
-    score_display_mode: 'chords',
+    score_display_mode: savedScoreMode || 'lyrics',
     app_mode: 'simplified'
   },
   // Live Stage State
@@ -160,13 +170,19 @@ async function loadUserPreferences() {
     if (res.ok) {
       const prefs = await res.json();
       state.userPrefs = Object.assign(state.userPrefs, prefs);
-      state.scoreMode = state.userPrefs.score_display_mode || 'chords';
+      // Prioritize local setting on device if explicitly chosen
+      const localMode = (() => {
+        try { return localStorage.getItem('asma_score_mode'); } catch (e) { return null; }
+      })();
+      state.scoreMode = localMode || state.userPrefs.score_display_mode || 'lyrics';
       applyPreferencesToDom();
       updateSettingsFormValues();
+      updateStageScoreModeButton();
     }
   } catch (err) {
     console.warn('Preferences load error:', err);
     applyPreferencesToDom();
+    updateStageScoreModeButton();
   }
 }
 
@@ -265,6 +281,7 @@ async function autosaveUserPreferences() {
 
 function onMusicianChange(email) {
   state.currentUser.email = email;
+  try { localStorage.setItem('asma_user_email', email); } catch (e) {}
   const user = (state.usersList || []).find(u => u.email === email);
   state.currentUser.name = user ? user.name : (email.split('@')[0]);
   const nameSpan = document.getElementById('current-user-name');
@@ -275,6 +292,7 @@ function onMusicianChange(email) {
 
 function onDeviceChange(deviceName) {
   state.activeDevice = deviceName;
+  try { localStorage.setItem('asma_active_device', deviceName); } catch (e) {}
   loadUserPreferences();
   showToast(`Hardware selezionato: ${deviceName}`);
 }
@@ -282,6 +300,8 @@ function onDeviceChange(deviceName) {
 function setPrefScoreMode(mode) {
   state.scoreMode = mode;
   state.userPrefs.score_display_mode = mode;
+  try { localStorage.setItem('asma_score_mode', mode); } catch (e) {}
+  updateStageScoreModeButton();
   autosaveUserPreferences();
   if (state.selectedSong) renderSongViewer();
 }
@@ -520,8 +540,11 @@ function transposeSong(semitones) {
 function toggleScoreMode() {
   state.scoreMode = state.scoreMode === 'chords' ? 'lyrics' : 'chords';
   state.userPrefs.score_display_mode = state.scoreMode;
+  try { localStorage.setItem('asma_score_mode', state.scoreMode); } catch (e) {}
   renderSongViewer();
-  showToast(`Modalità: ${state.scoreMode === 'chords' ? 'Testo + Accordi' : 'Solo Testo (Cantante)'}`);
+  updateStageScoreModeButton();
+  updateSettingsFormValues();
+  showToast(`Modalità: ${state.scoreMode === 'chords' ? '🎸 Testo + Accordi' : '🎤 Solo Testo (Cantante)'}`);
   autosaveUserPreferences();
 }
 
@@ -756,8 +779,47 @@ function openStageModal() {
     startMetronomePulse(currentSong.bpm || 120);
   }
 
+  updateStageScoreModeButton();
+
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(console.warn);
+  }
+}
+
+function toggleStageScoreMode() {
+  state.scoreMode = state.scoreMode === 'chords' ? 'lyrics' : 'chords';
+  state.userPrefs.score_display_mode = state.scoreMode;
+  try { localStorage.setItem('asma_score_mode', state.scoreMode); } catch (e) {}
+  updateStageScoreModeButton();
+  updateSettingsFormValues();
+
+  // Re-render current stage song preserving exact scroll position
+  const currentSong = state.stageSongs[state.stageIndex];
+  if (currentSong) {
+    const container = document.getElementById('stage-lyrics');
+    if (container) {
+      const prevScroll = container.scrollTop;
+      container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+      container.scrollTop = prevScroll;
+      scrollAccumulator = prevScroll;
+    }
+  }
+  showToast(`Modalità: ${state.scoreMode === 'chords' ? '🎸 Testo + Accordi' : '🎤 Solo Testo (Cantante)'}`);
+  autosaveUserPreferences();
+}
+
+function updateStageScoreModeButton() {
+  const btn = document.getElementById('stage-mode-btn');
+  if (btn) {
+    if (state.scoreMode === 'chords') {
+      btn.textContent = '🎸 Accordi: ON';
+      btn.style.color = '#ffd600';
+      btn.style.borderColor = '#ffd600';
+    } else {
+      btn.textContent = '🎤 Solo Testo';
+      btn.style.color = '#38bdf8';
+      btn.style.borderColor = '#38bdf8';
+    }
   }
 }
 
