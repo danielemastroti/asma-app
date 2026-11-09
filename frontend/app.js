@@ -1,6 +1,7 @@
 /**
  * THE New ASMA - Live Band PWA Client Core
  * Pure Vanilla Touch-First SPA (0ms latency, zero popovers, 1-touch actions)
+ * Full User & Device Preferences synced to Turso Cloud DB.
  */
 
 const API_BASE = window.location.origin;
@@ -15,13 +16,26 @@ const state = {
   setlists: [],
   selectedSetlist: null,
   scoreMode: 'chords', // 'chords' or 'lyrics'
-  currentUser: { email: 'cico@band.org', name: 'Cico', role: 'ADMIN' },
+  currentUser: { email: 'acicchelli65@gmail.com', name: 'Cico', role: 'BAND_MEMBER' },
+  activeDevice: 'Huawei MediaPad M5',
+  usersList: [],
+  devicesList: [],
+  userPrefs: {
+    layout_font_size: 12.0,
+    layout_font_size_chords: 13.0,
+    layout_columns: 1,
+    layout_margin_lateral: 10.0,
+    color_lyrics: '#111111',
+    color_chords: '#B71C1C',
+    color_aml_markup: '#4A148C',
+    score_display_mode: 'chords',
+    app_mode: 'simplified'
+  },
   // Live Stage State
   isStageActive: false,
   isAutoscrolling: false,
   scrollSpeed: 28, // px per second
   scrollIntervalId: null,
-  // Stage Setlist tracking
   stageSongs: [],
   stageIndex: 0
 };
@@ -29,10 +43,12 @@ const state = {
 // ----------------------------------------------------------------------------
 // INITIALIZATION
 // ----------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initServiceWorker();
   initNav();
   initKeyboardAndPedals();
+  await loadUsersAndDevices();
+  await loadUserPreferences();
   loadRepertoires();
   loadSongs();
   loadSetlists();
@@ -66,6 +82,9 @@ function initNav() {
 
 function switchTab(tabName) {
   state.currentTab = tabName;
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tabName);
+  });
   document.getElementById('view-songs').style.display = tabName === 'songs' ? 'block' : 'none';
   document.getElementById('view-setlists').style.display = tabName === 'setlists' ? 'block' : 'none';
   document.getElementById('view-settings').style.display = tabName === 'settings' ? 'block' : 'none';
@@ -87,7 +106,219 @@ function showToast(message) {
   container.appendChild(toast);
   setTimeout(() => {
     if (toast.parentNode) toast.parentNode.removeChild(toast);
-  }, 2600);
+  }, 2400);
+}
+
+// ----------------------------------------------------------------------------
+// USER & HARDWARE PREFERENCES (TURSO CLOUD DB)
+// ----------------------------------------------------------------------------
+async function loadUsersAndDevices() {
+  try {
+    const [uRes, dRes] = await Promise.all([
+      fetch(`${API_BASE}/api/users`),
+      fetch(`${API_BASE}/api/devices`)
+    ]);
+    if (uRes.ok) {
+      const users = await uRes.json();
+      state.usersList = users;
+      const musSelect = document.getElementById('setting-musician-select');
+      if (musSelect && users.length) {
+        musSelect.innerHTML = users.map(u => 
+          `<option value="${escapeHtml(u.email)}" ${u.email === state.currentUser.email ? 'selected' : ''}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`
+        ).join('');
+      }
+      const matched = users.find(u => u.email === state.currentUser.email);
+      if (matched) {
+        state.currentUser.name = matched.name;
+      } else if (users.length) {
+        state.currentUser.email = users[0].email;
+        state.currentUser.name = users[0].name;
+      }
+      const nameSpan = document.getElementById('current-user-name');
+      if (nameSpan) nameSpan.textContent = state.currentUser.name;
+    }
+    if (dRes.ok) {
+      const devices = await dRes.json();
+      state.devicesList = devices;
+      const devSelect = document.getElementById('setting-device-select');
+      if (devSelect && devices.length) {
+        devSelect.innerHTML = devices.map(d => 
+          `<option value="${escapeHtml(d.name)}" ${d.name === state.activeDevice ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
+        ).join('');
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load users or devices dynamically:', err);
+  }
+}
+
+async function loadUserPreferences() {
+  try {
+    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}?device=${encodeURIComponent(state.activeDevice)}`);
+    if (res.ok) {
+      const prefs = await res.json();
+      state.userPrefs = Object.assign(state.userPrefs, prefs);
+      state.scoreMode = state.userPrefs.score_display_mode || 'chords';
+      applyPreferencesToDom();
+      updateSettingsFormValues();
+    }
+  } catch (err) {
+    console.warn('Preferences load error:', err);
+    applyPreferencesToDom();
+  }
+}
+
+function applyPreferencesToDom() {
+  const root = document.documentElement;
+  const p = state.userPrefs;
+
+  root.style.setProperty('--pref-lyrics-color', p.color_lyrics || '#111111');
+  root.style.setProperty('--pref-chords-color', p.color_chords || '#B71C1C');
+  root.style.setProperty('--pref-aml-color', p.color_aml_markup || '#4A148C');
+  root.style.setProperty('--pref-lyrics-size', `${p.layout_font_size || 12}px`);
+  root.style.setProperty('--pref-chords-size', `${p.layout_font_size_chords || 13}px`);
+  root.style.setProperty('--pref-columns', p.layout_columns || 1);
+  root.style.setProperty('--pref-lateral-margin', `${p.layout_margin_lateral || 10}px`);
+
+  // Update live preview in settings if visible
+  const prevBox = document.getElementById('settings-live-preview');
+  if (prevBox) {
+    prevBox.style.color = p.color_lyrics;
+    prevBox.style.fontSize = `${p.layout_font_size}px`;
+    prevBox.style.columnCount = p.layout_columns;
+  }
+}
+
+function updateSettingsFormValues() {
+  const p = state.userPrefs;
+  const nameSpan = document.getElementById('current-user-name');
+  if (nameSpan) nameSpan.textContent = state.currentUser.name;
+
+  const musSelect = document.getElementById('setting-musician-select');
+  if (musSelect) musSelect.value = state.currentUser.email;
+
+  const devSelect = document.getElementById('setting-device-select');
+  if (devSelect) devSelect.value = state.activeDevice;
+
+  // Buttons state
+  const btnChords = document.getElementById('btn-score-chords');
+  const btnLyrics = document.getElementById('btn-score-lyrics');
+  if (btnChords && btnLyrics) {
+    btnChords.classList.toggle('active', state.scoreMode === 'chords');
+    btnLyrics.classList.toggle('active', state.scoreMode === 'lyrics');
+  }
+
+  const btnCol1 = document.getElementById('btn-col-1');
+  const btnCol2 = document.getElementById('btn-col-2');
+  if (btnCol1 && btnCol2) {
+    btnCol1.classList.toggle('active', p.layout_columns === 1);
+    btnCol2.classList.toggle('active', p.layout_columns === 2);
+  }
+
+  // Steppers text
+  const valLyrics = document.getElementById('val-font-lyrics');
+  if (valLyrics) valLyrics.textContent = p.layout_font_size;
+  const valChords = document.getElementById('val-font-chords');
+  if (valChords) valChords.textContent = p.layout_font_size_chords;
+  const valMargin = document.getElementById('val-margin-lat');
+  if (valMargin) valMargin.textContent = p.layout_margin_lateral;
+
+  // Color inputs
+  const cLyrics = document.getElementById('pick-color-lyrics');
+  if (cLyrics) cLyrics.value = p.color_lyrics;
+  const cChords = document.getElementById('pick-color-chords');
+  if (cChords) cChords.value = p.color_chords;
+  const cAml = document.getElementById('pick-color-aml');
+  if (cAml) cAml.value = p.color_aml_markup;
+
+  const tLyrics = document.getElementById('val-color-lyrics');
+  if (tLyrics) tLyrics.textContent = p.color_lyrics;
+  const tChords = document.getElementById('val-color-chords');
+  if (tChords) tChords.textContent = p.color_chords;
+  const tAml = document.getElementById('val-color-aml');
+  if (tAml) tAml.textContent = p.color_aml_markup;
+}
+
+async function autosaveUserPreferences() {
+  applyPreferencesToDom();
+  updateSettingsFormValues();
+
+  try {
+    const payload = Object.assign({}, state.userPrefs, {
+      device_name: state.activeDevice,
+      score_display_mode: state.scoreMode
+    });
+    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast(`Preferenze salvate nel cloud Turso ✓`);
+    }
+  } catch (err) {
+    console.warn('Autosave offline:', err);
+  }
+}
+
+function onMusicianChange(email) {
+  state.currentUser.email = email;
+  const user = (state.usersList || []).find(u => u.email === email);
+  state.currentUser.name = user ? user.name : (email.split('@')[0]);
+  const nameSpan = document.getElementById('current-user-name');
+  if (nameSpan) nameSpan.textContent = state.currentUser.name;
+  loadUserPreferences();
+  showToast(`Profilo attivo: ${state.currentUser.name}`);
+}
+
+function onDeviceChange(deviceName) {
+  state.activeDevice = deviceName;
+  loadUserPreferences();
+  showToast(`Hardware selezionato: ${deviceName}`);
+}
+
+function setPrefScoreMode(mode) {
+  state.scoreMode = mode;
+  state.userPrefs.score_display_mode = mode;
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function setPrefColumns(cols) {
+  state.userPrefs.layout_columns = cols;
+  applyPreferencesToDom();
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function toggleColumns() {
+  const newCols = (state.userPrefs.layout_columns === 2) ? 1 : 2;
+  setPrefColumns(newCols);
+  showToast(`Layout: ${newCols} ${newCols === 1 ? 'Colonna' : 'Colonne'}`);
+}
+
+function adjustFontSize(type, delta) {
+  if (type === 'lyrics') {
+    state.userPrefs.layout_font_size = Math.max(8, Math.min(26, (state.userPrefs.layout_font_size || 12) + delta));
+  } else {
+    state.userPrefs.layout_font_size_chords = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size_chords || 13) + delta));
+  }
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function adjustMargin(delta) {
+  state.userPrefs.layout_margin_lateral = Math.max(4, Math.min(30, (state.userPrefs.layout_margin_lateral || 10) + delta));
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function onColorChange(type, hexColor) {
+  if (type === 'lyrics') state.userPrefs.color_lyrics = hexColor;
+  else if (type === 'chords') state.userPrefs.color_chords = hexColor;
+  else if (type === 'aml') state.userPrefs.color_aml_markup = hexColor;
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
 }
 
 // ----------------------------------------------------------------------------
@@ -101,7 +332,7 @@ async function loadRepertoires() {
       renderRepertoireChips();
     }
   } catch (err) {
-    console.warn('Repertoires offline/cache:', err);
+    console.warn('Repertoires offline:', err);
   }
 }
 
@@ -114,7 +345,7 @@ function renderRepertoireChips() {
 
   state.repertoires.forEach(r => {
     const isActive = state.activeRepertoire === r.uuid ? 'active' : '';
-    html += `<button class="chip ${isActive}" onclick="selectRepertoire('${r.uuid}')">📁 ${r.name} (${r.song_count})</button>`;
+    html += `<button class="chip ${isActive}" onclick="selectRepertoire('${r.uuid}')">📁 ${escapeHtml(r.name)} (${r.song_count})</button>`;
   });
 
   container.innerHTML = html;
@@ -124,7 +355,6 @@ function selectRepertoire(repUuid) {
   state.activeRepertoire = repUuid;
   renderRepertoireChips();
   renderSongCards();
-  showToast(`Filtro repertorio aggiornato`);
 }
 
 async function loadSongs() {
@@ -134,13 +364,12 @@ async function loadSongs() {
       state.songs = await res.json();
       renderRepertoireChips();
       renderSongCards();
-      // Select first song by default if none selected
       if (state.songs.length > 0 && !state.selectedSong) {
         selectSong(state.songs[0].uuid);
       }
     }
   } catch (err) {
-    console.warn('Songs offline/cache:', err);
+    console.warn('Songs offline:', err);
   }
 }
 
@@ -179,7 +408,7 @@ function renderSongCards(searchKw = '') {
     return `
       <div class="song-card ${isSel}" onclick="selectSong('${s.uuid}')">
         <div class="song-card-title">${escapeHtml(s.title)}</div>
-        <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${s.author || ''}</div>
+        <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
         <div class="song-card-meta">
           <span class="badge">Key: ${s.key_current || '-'}</span>
           <span class="badge">${s.bpm || 120} BPM</span>
@@ -197,7 +426,6 @@ async function selectSong(uuid) {
       state.selectedSong = await res.json();
       renderSongCards();
       renderSongViewer();
-      // Auto-scroll on mobile to viewer if tapped
       if (window.innerWidth < 768) {
         document.getElementById('song-viewer')?.scrollIntoView({ behavior: 'smooth' });
       }
@@ -208,33 +436,91 @@ async function selectSong(uuid) {
 }
 
 // ----------------------------------------------------------------------------
-// SONG VIEWER & AML RENDERING (1-Touch Mode Toggle)
+// ZERO-LATENCY CLIENT-SIDE CHORD TRANSPOSITION
 // ----------------------------------------------------------------------------
-function toggleScoreMode() {
-  state.scoreMode = state.scoreMode === 'chords' ? 'lyrics' : 'chords';
-  renderSongViewer();
-  showToast(`Modalità: ${state.scoreMode === 'chords' ? 'Testo + Accordi' : 'Solo Testo (Cantante)'}`);
+const ITA_SCALE = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"];
+const INT_SCALE = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const FLAT_MAP = {
+  "DB": "C#", "EB": "D#", "GB": "F#", "AB": "G#", "BB": "A#",
+  "REB": "DO#", "MIB": "RE#", "SOLB": "FA#", "LAB": "SOL#", "SIB": "LA#"
+};
+
+function transposeSingleChord(chordStr, semitones) {
+  if (!chordStr || semitones === 0) return chordStr;
+  let s = chordStr.trim();
+
+  // Root note regex matching ITA or INT
+  const m = s.match(/^(DO#|RE#|FA#|SOL#|LA#|REB|MIB|SOLB|LAB|SIB|DO|RE|MI|FA|SOL|LA|SI|C#|D#|F#|G#|A#|DB|EB|GB|AB|BB|[CDEFGAB])(.*)$/i);
+  if (!m) return chordStr;
+
+  let root = m[1].toUpperCase();
+  const rest = m[2];
+
+  if (FLAT_MAP[root]) root = FLAT_MAP[root];
+
+  let scale = INT_SCALE;
+  let idx = scale.indexOf(root);
+  if (idx === -1) {
+    scale = ITA_SCALE;
+    idx = scale.indexOf(root);
+  }
+  if (idx === -1) return chordStr;
+
+  const newIdx = (idx + semitones + 120) % 12;
+  const newRoot = scale[newIdx];
+
+  // Also handle bass chord if slash: e.g. DO/MI
+  if (rest.includes('/')) {
+    const parts = rest.split('/');
+    const mainSuffix = parts[0];
+    const bass = transposeSingleChord(parts[1], semitones);
+    return `${newRoot}${mainSuffix}/${bass}`;
+  }
+
+  return `${newRoot}${rest}`;
+}
+
+function transposeAmlText(aml, semitones) {
+  if (!aml || semitones === 0) return aml;
+  return aml.replace(/\[([^\]]+)\]/g, (match, chord) => {
+    return `[${transposeSingleChord(chord, semitones)}]`;
+  });
 }
 
 function transposeSong(semitones) {
   if (!state.selectedSong) return;
+
+  // 1. Instant Client-Side Transposition (0ms!)
+  state.selectedSong.aml_content = transposeAmlText(state.selectedSong.aml_content, semitones);
+  state.selectedSong.key_current = transposeSingleChord(state.selectedSong.key_current, semitones);
+
+  // Update memory list
+  const idx = state.songs.findIndex(s => s.uuid === state.selectedSong.uuid);
+  if (idx !== -1) {
+    state.songs[idx].key_current = state.selectedSong.key_current;
+  }
+
+  renderSongCards();
+  renderSongViewer();
+  showToast(`Tonalità: ${state.selectedSong.key_current} (${semitones > 0 ? '+' : ''}${semitones})`);
+
+  // 2. Background Cloud Persistence (Turso)
   fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}/transpose`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ semitones: semitones, user_email: state.currentUser.email })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === 'success') {
-      state.selectedSong = data.song;
-      // Update in songs array
-      const idx = state.songs.findIndex(s => s.uuid === state.selectedSong.uuid);
-      if (idx !== -1) state.songs[idx] = data.song;
-      renderSongCards();
-      renderSongViewer();
-      showToast(`Tonalità aggiornata a: ${state.selectedSong.key_current}`);
-    }
-  });
+  }).catch(console.warn);
+}
+
+// ----------------------------------------------------------------------------
+// SONG VIEWER & AML RENDERING (1-Touch Mode Toggle)
+// ----------------------------------------------------------------------------
+function toggleScoreMode() {
+  state.scoreMode = state.scoreMode === 'chords' ? 'lyrics' : 'chords';
+  state.userPrefs.score_display_mode = state.scoreMode;
+  renderSongViewer();
+  showToast(`Modalità: ${state.scoreMode === 'chords' ? 'Testo + Accordi' : 'Solo Testo (Cantante)'}`);
+  autosaveUserPreferences();
 }
 
 function renderSongViewer() {
@@ -243,9 +529,9 @@ function renderSongViewer() {
 
   const s = state.selectedSong;
   const hasChords = state.scoreMode === 'chords';
-  const modeLabel = hasChords ? '🎸 Testo + Accordi' : '🎤 Solo Testo';
+  const modeLabel = hasChords ? '🎸 Accordi: ON' : '🎤 Solo Testo';
+  const colsLabel = state.userPrefs.layout_columns === 2 ? '2 Colonne' : '1 Colonna';
 
-  // Format AML into readable lyrics + chord tokens
   const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
 
   container.innerHTML = `
@@ -258,10 +544,13 @@ function renderSongViewer() {
         </div>
       </div>
       <div class="viewer-tools">
-        <button class="btn btn-secondary" onclick="transposeSong(-1)">♭ -1 Semitono</button>
-        <button class="btn btn-secondary" onclick="transposeSong(1)">♯ +1 Semitono</button>
+        <button class="btn btn-secondary" onclick="transposeSong(-1)" title="Abbassa di 1 semitono">♭ -1</button>
+        <button class="btn btn-secondary" onclick="transposeSong(1)" title="Alza di 1 semitono">♯ +1</button>
+        <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', -1)" title="Riduci dimensione caratteri">A−</button>
+        <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', 1)" title="Ingrandisci dimensione caratteri">A+</button>
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
-        <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Avvia Palco</button>
+        <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
+        <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
       </div>
@@ -277,50 +566,83 @@ function parseAmlForWeb(aml, showChords) {
 
   let html = '';
   const lines = aml.split('\n');
+  let inSection = false;
+  let lastWasInstrumental = false;
 
-  for (let line of lines) {
-    line = line.trimEnd();
+  for (let rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
 
-    // Section header: {verse}, {chorus}, etc.
-    if (line.startsWith('{') && line.endsWith('}')) {
-      const tag = line.slice(1, -1).toUpperCase();
-      html += `<div style="font-weight: 800; color: #0284c7; margin: 16px 0 6px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">[${escapeHtml(tag)}]</div>`;
+    if (!trimmed) {
       continue;
     }
 
+    // 1. Detect Section Header ([INTRO], {verse}, Intro:, etc.)
+    let sectionTitle = null;
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      sectionTitle = trimmed.slice(1, -1).replace(/^[c|comment]:\s*/i, '').toUpperCase();
+    } else if (trimmed.startsWith('[') && trimmed.endsWith(']') && !trimmed.slice(1, -1).includes(' ')) {
+      const candidate = trimmed.slice(1, -1).toUpperCase();
+      const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO'];
+      if (standardSections.some(s => candidate.includes(s))) {
+        sectionTitle = candidate;
+      }
+    } else if (trimmed.endsWith(':') && trimmed.length < 35 && !trimmed.includes('[')) {
+      sectionTitle = trimmed.slice(0, -1).toUpperCase();
+    }
+
+    if (sectionTitle) {
+      if (inSection) html += '</div>';
+      html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
+      inSection = true;
+      lastWasInstrumental = false;
+      continue;
+    }
+
+    if (!inSection) {
+      html += '<div class="aml-section">';
+      inSection = true;
+    }
+
+    // 2. Render Line
+    const lyricsOnly = line.replace(/\[[^\]]+\]/g, '').trim();
+    const hasChordTokens = /\[[^\]]+\]/.test(line);
+
     if (!showChords) {
-      // Remove chords completely: [DO] -> ""
-      const cleanLine = line.replace(/\[[^\]]+\]/g, '');
-      if (cleanLine.trim()) {
-        html += `<div>${escapeHtml(cleanLine)}</div>`;
-      } else {
-        html += `<div style="height: 10px;"></div>`;
+      if (hasChordTokens && !lyricsOnly) {
+        // Pure chords line without lyrics -> Instrumental line for singer
+        if (!lastWasInstrumental) {
+          html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+          lastWasInstrumental = true;
+        }
+      } else if (lyricsOnly) {
+        html += `<div class="aml-lyric-line">${escapeHtml(line.replace(/\[[^\]]+\]/g, ''))}</div>`;
+        lastWasInstrumental = false;
       }
     } else {
-      // Render chord token highlighted
       const lineWithChords = line.replace(/\[([^\]]+)\]/g, '<span class="chord-token">[$1]</span>');
-      html += `<div>${lineWithChords || '&nbsp;'}</div>`;
+      html += `<div class="aml-chord-line">${lineWithChords || '&nbsp;'}</div>`;
+      lastWasInstrumental = false;
     }
   }
 
+  if (inSection) html += '</div>';
   return html;
 }
 
 function downloadPdf() {
   if (!state.selectedSong) return;
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=Huawei MediaPad M5`;
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}`;
   window.open(url, '_blank');
 }
 
 function printA4() {
   if (!state.selectedSong) return;
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=Foglio A4`;
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=Foglio%20A4&email=${encodeURIComponent(state.currentUser.email)}`;
   const printWindow = window.open(url, '_blank');
-  if (printWindow) {
-    printWindow.focus();
-  }
+  if (printWindow) printWindow.focus();
 }
 
 // ----------------------------------------------------------------------------
@@ -343,13 +665,12 @@ function openStageModal() {
 
   stageModal.style.display = 'flex';
   document.getElementById('stage-song-title').textContent = currentSong.title;
-  document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Key: ${currentSong.key_current} • ${currentSong.bpm || 120} BPM`;
+  document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Key: ${currentSong.key_current} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
 
   const container = document.getElementById('stage-lyrics');
   container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
   container.scrollTop = 0;
 
-  // Wake lock API (keep screen awake on mobile)
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(console.warn);
   }
@@ -381,7 +702,6 @@ function startAutoscroll() {
   const container = document.getElementById('stage-lyrics');
   if (state.scrollIntervalId) clearInterval(state.scrollIntervalId);
 
-  // 60fps smooth scroll step
   state.scrollIntervalId = setInterval(() => {
     if (container) {
       container.scrollTop += (state.scrollSpeed / 60);
@@ -424,30 +744,25 @@ function initKeyboardAndPedals() {
   window.addEventListener('keydown', (e) => {
     if (!state.isStageActive) return;
 
-    // Pedals / PageDown / Down: Page down or start autoscroll
     if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === '3') {
       const container = document.getElementById('stage-lyrics');
       if (container) container.scrollTop += 320;
       e.preventDefault();
     }
-    // Pedals / PageUp / Up: Page up
     else if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === '1') {
       const container = document.getElementById('stage-lyrics');
       if (container) container.scrollTop -= 320;
       e.preventDefault();
     }
-    // Space or Enter: Toggle Autoscroll
     else if (e.key === ' ' || e.key === 'Enter') {
       toggleAutoscroll();
       e.preventDefault();
     }
-    // Escape: Close stage mode
     else if (e.key === 'Escape') {
       closeStageModal();
     }
   });
 
-  // Swipe gesture detection on stage screen
   let touchStartY = 0;
   let touchStartX = 0;
   window.addEventListener('touchstart', (e) => {
@@ -462,7 +777,6 @@ function initKeyboardAndPedals() {
     const diffX = e.changedTouches[0].clientX - touchStartX;
     const diffY = e.changedTouches[0].clientY - touchStartY;
 
-    // Horizontal swipe: change song in stage setlist
     if (Math.abs(diffX) > 80 && Math.abs(diffY) < 50) {
       if (diffX < 0) {
         stageNextSong();
@@ -499,7 +813,7 @@ function renderSetlists() {
   container.innerHTML = state.setlists.map(s => `
     <div class="song-card" style="margin-bottom: 10px;" onclick="loadAndPlaySetlist('${s.uuid}')">
       <div class="song-card-title">📑 ${escapeHtml(s.title)}</div>
-      <div class="song-card-artist">${s.date || ''} &bull; ${s.description || 'Scaletta Live'}</div>
+      <div class="song-card-artist">${escapeHtml(s.date || '')} &bull; ${escapeHtml(s.description || 'Scaletta Live')}</div>
       <div class="song-card-meta">
         <span class="badge">${s.item_count} Brani</span>
         <button class="btn btn-primary" style="margin-left:auto; min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
@@ -514,7 +828,6 @@ async function loadAndPlaySetlist(uuid) {
     if (res.ok) {
       const data = await res.json();
       state.selectedSetlist = data;
-      // Fetch full song objects for the setlist
       state.stageSongs = [];
       for (let item of data.items) {
         const sRes = await fetch(`${API_BASE}/api/songs/${item.song_uuid}`);

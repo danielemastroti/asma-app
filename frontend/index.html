@@ -28,9 +28,10 @@
       </div>
     </div>
     <div class="header-actions">
-      <div class="user-badge">
+      <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
         <span>👤</span>
         <span id="current-user-name">Cico</span>
+        <span style="font-size:10px; color:#38bdf8;">⚙️</span>
       </div>
     </div>
   </header>
@@ -54,7 +55,7 @@
 
       <!-- SEARCH BAR -->
       <div class="controls-bar">
-        <input type="text" id="search-songs" class="search-input" placeholder="🔍 Cerca per titolo o artista (istantaneo)...">
+        <input type="text" id="search-songs" class="search-input" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
       </div>
 
       <!-- SONG GRID -->
@@ -76,36 +77,132 @@
       </div>
     </section>
 
-    <!-- 3. VIEW: SETTINGS & DATABASE -->
+    <!-- 3. VIEW: SETTINGS & PROFILO MUSICISTA -->
     <section id="view-settings" style="display: none;">
       <div class="song-viewer">
-        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 8px; color: #fff;">⚙️ Impostazioni Musicista & Hardware</h3>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">
-          Personalizzazione tablet e preferenze spartito sincronizzate permanentemente sul cloud Turso.
+        <h3 style="font-size: 18px; font-weight: 900; color: #fff;">⚙️ Profilo Musicista & Preferenze Spartito</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">
+          Configura il tuo hardware, formato spartito, dimensioni font, colonne e colori. Salvataggio automatico permanente su Turso Cloud DB per ogni dispositivo.
         </p>
 
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          <div>
-            <label style="display:block; font-weight:700; margin-bottom:4px;">Dispositivo Hardware Attivo:</label>
-            <select id="setting-device-select" class="search-input" style="width: 100%;" onchange="showToast('Profilo hardware salvato nel cloud!')">
-              <option value="Huawei MediaPad M5" selected>Huawei MediaPad M5 (Tablet Band)</option>
-              <option value="Huawei MatePad / Tablet (10.4/11)">Huawei MatePad / Tablet 10.4"/11"</option>
-              <option value="IPad 10.2 (7/8/9 gen)">Apple iPad 10.2"</option>
-              <option value="Foglio A4">Foglio A4 (Stampante PC)</option>
-            </select>
-          </div>
+        <div class="settings-grid">
+          <!-- CARD 1: MUSICISTA & HARDWARE -->
+          <div class="settings-card">
+            <div class="settings-card-title">👤 Musicista & Dispositivo</div>
+            
+            <div class="control-row">
+              <label class="control-label">Musicista:</label>
+              <select id="setting-musician-select" class="search-input" style="flex:1; max-width:200px;" onchange="onMusicianChange(this.value)">
+                <option value="acicchelli65@gmail.com" selected>Cico (Cantante)</option>
+                <option value="danyposta@gmail.com">Sentimental (Admin)</option>
+                <option value="maurobovolenta4@gmail.com">Maurino</option>
+                <option value="gv.drummer69@gmail.com">Mingo</option>
+                <option value="titholola@gmail.com">Puma</option>
+                <option value="marcoerario2@gmail.com">Red</option>
+              </select>
+            </div>
 
-          <div>
-            <label style="display:block; font-weight:700; margin-bottom:4px;">Default Spartito:</label>
-            <div style="display: flex; gap: 10px;">
-              <button class="btn btn-secondary" onclick="state.scoreMode='chords'; showToast('Default impostato: Testo + Accordi');">🎸 Testo + Accordi</button>
-              <button class="btn btn-secondary" onclick="state.scoreMode='lyrics'; showToast('Default impostato: Solo Testo (Cantante)');">🎤 Solo Testo</button>
+            <div class="control-row">
+              <label class="control-label">Hardware Attivo:</label>
+              <select id="setting-device-select" class="search-input" style="flex:1; max-width:200px;" onchange="onDeviceChange(this.value)">
+                <option value="Huawei MediaPad M5" selected>Huawei MediaPad M5 (Tablet)</option>
+                <option value="Huawei MatePad / Tablet (10.4&quot;/11&quot;)">Huawei MatePad 10.4"/11"</option>
+                <option value="IPad 10.2&quot; (7/8/9 gen) &amp; pro 2019">Apple iPad 10.2"</option>
+                <option value="Samsung Galaxy tab s7,s8,s9 &amp; A9+">Samsung Galaxy Tab</option>
+                <option value="Pixel 8 pro">Pixel 8 pro (Smartphone)</option>
+                <option value="Foglio A4">Foglio A4 (Stampante PC)</option>
+              </select>
+            </div>
+
+            <div class="control-row" style="margin-top:10px;">
+              <label class="control-label">Default Spartito:</label>
+              <div class="btn-group">
+                <button id="btn-score-chords" class="btn btn-secondary active" onclick="setPrefScoreMode('chords')">🎸 Accordi</button>
+                <button id="btn-score-lyrics" class="btn btn-secondary" onclick="setPrefScoreMode('lyrics')">🎤 Solo Testo</button>
+              </div>
             </div>
           </div>
 
-          <div style="background: rgba(2, 132, 199, 0.1); border: 1px solid #0284c7; padding: 12px; border-radius: 8px; margin-top: 10px;">
-            <div style="font-weight: 800; color: #38bdf8; margin-bottom: 4px;">☁️ Stato Cloud Database (Turso)</div>
-            <div style="font-size: 12.5px; color: #cbd5e1;">Connessione attiva e sincronizzata su Turso Cloud. Nessuna perdita di dati al riavvio.</div>
+          <!-- CARD 2: LAYOUT & FONT SIZE -->
+          <div class="settings-card">
+            <div class="settings-card-title">📐 Layout & Impaginazione PDF</div>
+
+            <div class="control-row">
+              <label class="control-label">Numero Colonne:</label>
+              <div class="btn-group">
+                <button id="btn-col-1" class="btn btn-secondary active" onclick="setPrefColumns(1)">1 Colonna</button>
+                <button id="btn-col-2" class="btn btn-secondary" onclick="setPrefColumns(2)">2 Colonne</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Font Testo (pt):</label>
+              <div class="stepper">
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustFontSize('lyrics', -1)">−</button>
+                <span id="val-font-lyrics" class="stepper-val">12</span>
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustFontSize('lyrics', 1)">+</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Font Accordi (pt):</label>
+              <div class="stepper">
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustFontSize('chords', -1)">−</button>
+                <span id="val-font-chords" class="stepper-val">13</span>
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustFontSize('chords', 1)">+</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Margini Laterali (mm):</label>
+              <div class="stepper">
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMargin(-2)">−</button>
+                <span id="val-margin-lat" class="stepper-val">10</span>
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMargin(2)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 3: PALETTE COLORI -->
+          <div class="settings-card">
+            <div class="settings-card-title">🎨 Colori Spartito & PDF</div>
+
+            <div class="control-row">
+              <label class="control-label">Colore Testo Canzone:</label>
+              <div class="color-input-badge">
+                <input type="color" id="pick-color-lyrics" class="color-picker" value="#111111" onchange="onColorChange('lyrics', this.value)">
+                <code id="val-color-lyrics">#111111</code>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Colore Accordi:</label>
+              <div class="color-input-badge">
+                <input type="color" id="pick-color-chords" class="color-picker" value="#B71C1C" onchange="onColorChange('chords', this.value)">
+                <code id="val-color-chords">#B71C1C</code>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Colore Sezioni & Intestazioni:</label>
+              <div class="color-input-badge">
+                <input type="color" id="pick-color-aml" class="color-picker" value="#4A148C" onchange="onColorChange('aml', this.value)">
+                <code id="val-color-aml">#4A148C</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 4: ANTEPRIMA DAL VIVO -->
+          <div class="settings-card" style="grid-column: 1 / -1;">
+            <div class="settings-card-title">📄 Anteprima dal Vivo (con le tue preferenze)</div>
+            <div class="preview-box" id="settings-live-preview">
+              <div class="aml-tag-header">[STROFA 1]</div>
+              <div><span class="chord-token">[DO]</span>Vespe truccate <span class="chord-token">[SOL]</span>anni sessanta</div>
+              <div><span class="chord-token">[LAm]</span>girano in centro <span class="chord-token">[FA]</span>sfiorando i novanta</div>
+            </div>
+            <div style="margin-top:10px; font-size:12px; color:#10b981; font-weight:700;">
+              ✓ Tutte le modifiche sono sincronizzate all'istante su Turso Cloud DB e verranno applicate alla generazione PDF e alla stampa.
+            </div>
           </div>
         </div>
       </div>
@@ -120,7 +217,7 @@
         <div id="stage-song-title" style="font-size: 18px; font-weight: 900; color: #fff;"></div>
         <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8;"></div>
       </div>
-      <div style="display: flex; gap: 10px; align-items: center;">
+      <div style="display: flex; gap: 8px; align-items: center;">
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 900; color: #ef4444;" onclick="closeStageModal()">✕ Esci</button>

@@ -1,12 +1,12 @@
 [
   {
-    "uuid": "a236a036-da55-4f0e-abb1-b070669cc40b",
+    "uuid": "31e17c1d-95f1-4ff9-ba36-5e1ae52bda3f",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "44eccfab-1da9-4aac-9d9e-49db5c6cfe98",
+        "song_uuid": "ad5e7353-81f0-40e1-b3f8-25d5d49c5e8d",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -14,17 +14,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T09:12:44.734422+00:00",
-    "updated_at": "2026-11-09T09:12:44.804375+00:00"
+    "created_at": "2026-11-09T12:57:57.929327+00:00",
+    "updated_at": "2026-11-09T12:57:58.005358+00:00"
   },
   {
-    "uuid": "f7b71a47-5218-4192-9184-b79265859701",
+    "uuid": "4236ebb4-3ee5-453b-87a9-ce2dba625da7",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "f548f738-1dcc-4a84-a3f3-b026bf2b9028",
+        "song_uuid": "5e7fb032-2c65-40f2-a0db-7c4ded7dc69a",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -32,17 +32,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T09:27:59.443145+00:00",
-    "updated_at": "2026-11-09T09:27:59.514342+00:00"
+    "created_at": "2026-11-09T13:22:04.476160+00:00",
+    "updated_at": "2026-11-09T13:22:04.553340+00:00"
   },
   {
-    "uuid": "141e8f4c-f701-4e97-976e-acd39d67e46e",
+    "uuid": "6bcb1e31-2149-4bde-abe2-b1ca34d62dd5",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "02f0936b-f2bf-4581-89bb-86e611752de5",
+        "song_uuid": "77e92282-d49e-45b5-a99a-9e0f3a79ec67",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -50,17 +50,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T09:47:19.572680+00:00",
-    "updated_at": "2026-11-09T09:47:19.640324+00:00"
+    "created_at": "2026-11-09T13:26:26.084708+00:00",
+    "updated_at": "2026-11-09T13:26:26.152334+00:00"
   },
   {
-    "uuid": "2c4415fb-3880-48d3-a656-0d7bbc669637",
+    "uuid": "25343982-44b0-4a83-9011-c1c9ae783674",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "fe137ffd-924d-4e03-8852-bca3b0ca5eb4",
+        "song_uuid": "28332b00-a4d5-438a-a49b-93d4a14749ee",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -68,17 +68,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T10:16:43.740979+00:00",
-    "updated_at": "2026-11-09T10:16:43.808260+00:00"
+    "created_at": "2026-11-09T14:00:10.051775+00:00",
+    "updated_at": "2026-11-09T14:00:10.118870+00:00"
   },
   {
-    "uuid": "34d0d649-c725-4ae2-8424-8bf220644f5b",
+    "uuid": "83ba1f79-f9b8-4abf-845a-b562b64ca40b",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "9adac6a6-719e-465a-ab03-595b83161ebb",
+        "song_uuid": "10e67a2f-317a-4f5e-bfb0-f2f6c96d3df1",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -86,17 +86,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T10:17:34.057164+00:00",
-    "updated_at": "2026-11-09T10:17:34.126831+00:00"
+    "created_at": "2026-11-09T14:22:40.970038+00:00",
+    "updated_at": "2026-11-09T14:22:41.047005+00:00"
   },
   {
-    "uuid": "09aec1c3-fea7-4399-8d8b-bf04436d9426",
+    "uuid": "34037bdc-37f7-452d-bff4-0627a6ce9b28",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "1831f55a-a1ec-4f11-80e6-b9867fd27ad0",
+        "song_uuid": "5659994f-80f2-45d2-84da-b5b7897f106d",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -104,17 +104,17 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T10:51:19.917894+00:00",
-    "updated_at": "2026-11-09T10:51:19.982433+00:00"
+    "created_at": "2026-11-09T14:23:54.556306+00:00",
+    "updated_at": "2026-11-09T14:23:54.634520+00:00"
   },
   {
-    "uuid": "35309b2f-3851-4835-98a9-787e59fef576",
+    "uuid": "e4dd1c92-eb81-4d20-871e-b6e0d348efc4",
     "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "4e25c57a-4442-494d-9674-77e09083d155",
+        "song_uuid": "0fed2ef1-6464-4195-9eea-450582c4d036",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -122,115 +122,7 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-09T10:54:39.800775+00:00",
-    "updated_at": "2026-11-09T10:54:39.864882+00:00"
-  },
-  {
-    "uuid": "452585ed-1c75-43ee-8013-26c400ba3d49",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "b5bc9b7e-0441-41a1-a5a2-24eae5b1f2de",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:02:37.533130+00:00",
-    "updated_at": "2026-11-09T11:02:37.602741+00:00"
-  },
-  {
-    "uuid": "8913fa5f-8ce0-4576-9937-69a78bdfef15",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "41e8a906-e95c-4f51-9c6a-57e3cab27817",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:12:03.445979+00:00",
-    "updated_at": "2026-11-09T11:12:03.520406+00:00"
-  },
-  {
-    "uuid": "69ca54c8-b578-4519-a9be-acb40ca4aca8",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "026a13ef-05d4-4106-b535-cb0ea7740361",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:13:03.917938+00:00",
-    "updated_at": "2026-11-09T11:13:04.151388+00:00"
-  },
-  {
-    "uuid": "1f28500e-d432-4ced-b160-67b9266ee3ac",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "8a3f6dde-feca-4751-93f2-bfabaf1bbce9",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:15:40.349977+00:00",
-    "updated_at": "2026-11-09T11:15:40.421390+00:00"
-  },
-  {
-    "uuid": "2351cd4c-1000-4764-8cfe-bb7a78d64bc0",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "abe692cc-65c2-4a29-838c-f263a60a179d",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:32:32.234543+00:00",
-    "updated_at": "2026-11-09T11:32:32.302562+00:00"
-  },
-  {
-    "uuid": "a3d84b28-88a2-49e4-a723-267672e220a2",
-    "title": "Setlist To Delete",
-    "date": "",
-    "description": "",
-    "items": [
-      {
-        "song_uuid": "0d9108c1-1d3d-46db-854c-4a77721408e4",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      }
-    ],
-    "created_at": "2026-11-09T11:48:24.734120+00:00",
-    "updated_at": "2026-11-09T11:48:24.809131+00:00"
+    "created_at": "2026-11-09T17:00:12.705128+00:00",
+    "updated_at": "2026-11-09T17:00:12.770094+00:00"
   }
 ]

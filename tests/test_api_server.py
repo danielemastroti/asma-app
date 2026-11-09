@@ -138,6 +138,42 @@ class TestApiServer(unittest.TestCase):
         self.assertEqual(js_resp.status_code, 200)
         self.assertIn("selectRepertoire", js_resp.text)
 
+    def test_09_personalized_pdf_and_transpose(self):
+        test_song = Song(
+            title="Temp Transpose Song",
+            artist="Band",
+            key_original="SOL",
+            key_current="SOL",
+            aml_content="{title: Temp Transpose Song}\n{key: SOL}\n\n[SOL]Vespe [DO]special"
+        )
+        saved_song = storage.save_song(test_song, "cico@band.org", "Cico")
+        song_uuid = saved_song.uuid
+        email = "cico@band.org"
+
+        try:
+            # Transpose
+            tr_resp = self.client.post(f"/api/songs/{song_uuid}/transpose", json={
+                "semitones": 1,
+                "user_email": email
+            })
+            self.assertEqual(tr_resp.status_code, 200)
+            self.assertIn(tr_resp.json()["song"]["key_current"], ["SOL#", "LAb", "Ab", "G#"])
+
+            # Personalized PDF streaming using user email and Huawei profile
+            pdf_resp = self.client.get(f"/api/songs/{song_uuid}/pdf?email={email}&device=Huawei+MediaPad+M5&chords=true")
+            self.assertEqual(pdf_resp.status_code, 200)
+            self.assertEqual(pdf_resp.headers["content-type"], "application/pdf")
+            self.assertTrue(pdf_resp.content.startswith(b"%PDF"))
+        finally:
+            storage.delete_song(song_uuid, email, "Cico")
+
+    def test_10_users_endpoint(self):
+        resp = self.client.get("/api/users")
+        self.assertEqual(resp.status_code, 200)
+        users = resp.json()
+        self.assertIsInstance(users, list)
+        self.assertTrue(any(u["name"] == "Cico" for u in users))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -123,7 +123,7 @@ class UserPreferencesRequest(BaseModel):
     layout_font_size: Optional[float] = 12.0
     layout_font_size_chords: Optional[float] = 13.0
     layout_columns: Optional[int] = 1
-    layout_margin_left: Optional[float] = 10.0
+    layout_margin_lateral: Optional[float] = 10.0
     color_lyrics: Optional[str] = "#111111"
     color_chords: Optional[str] = "#B71C1C"
     color_aml_markup: Optional[str] = "#4A148C"
@@ -355,12 +355,15 @@ def transpose_song(uuid: str, req: TransposeRequest):
     if req.semitones == 0:
         return {"status": "noop", "song": song.to_dict()}
 
-    new_aml = MusicEngine.transpose_aml(song.aml_content, req.semitones)
-    curr_sys = getattr(song, "notation_system", "INT")
-    new_curr_key = MusicEngine.transpose_key(song.key_current, req.semitones, notation_system=curr_sys)
+    doc = AMLParser.parse(song.aml_content)
+    new_doc = AMLParser.transpose_document(doc, semitones=req.semitones)
+    song.aml_content = new_doc.to_aml()
+    if song.key_current and song.key_current != "-":
+        try:
+            song.key_current = MusicEngine.transpose_chord(song.key_current, req.semitones)
+        except Exception:
+            pass
 
-    song.aml_content = new_aml
-    song.key_current = new_curr_key
     saved = storage.save_song(song, req.user_email, req.user_name, f"Trasposizione ({req.semitones:+d} semitoni)")
     return {"status": "success", "song": saved.to_dict()}
 
@@ -369,21 +372,85 @@ def transpose_song(uuid: str, req: TransposeRequest):
 # 4. PDF GENERATION & PRINT ENDPOINTS
 # -----------------------------------------------------------------------------
 
+def resolve_device_profile(device_name: Optional[str]) -> DeviceProfile:
+    """Finds exact or fuzzy matched device profile, supporting common aliases."""
+    if not device_name:
+        return device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name="Huawei MediaPad M5")
+    prof = device_mgr.get_device_by_name(device_name)
+    if prof:
+        return prof
+    d_clean = device_name.strip().lower()
+    if "a4" in d_clean:
+        prof = device_mgr.get_device_by_name("Foglio a 4 stampabile")
+        if prof:
+            return prof
+    for d in device_mgr.list_devices():
+        if d_clean in d.name.lower() or d.name.lower() in d_clean:
+            return d
+    return device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name=device_name)
+
+
 @app.get("/api/songs/{uuid}/pdf")
 def get_song_pdf(
     uuid: str,
     device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
     chords: bool = Query(True, description="True per spartito con accordi, False per solo testo cantante"),
-    columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne")
+    columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
+    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB")
 ):
     """Generates and streams formatted device-aware PDF for display or download."""
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
-    prof = device_mgr.get_device_by_name(device)
-    if not prof:
-        prof = device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name=device)
+    base_prof = resolve_device_profile(device)
+
+    # Clona il profilo per non mutare l'istanza globale
+    prof = DeviceProfile(
+        name=base_prof.name,
+        target_device=base_prof.target_device,
+        device_type=base_prof.device_type,
+        width_mm=base_prof.width_mm,
+        height_mm=base_prof.height_mm,
+        orientation=base_prof.orientation,
+        columns=base_prof.columns,
+        font_size_lyrics=base_prof.font_size_lyrics,
+        font_size_chords=base_prof.font_size_chords,
+        margin_top_mm=base_prof.margin_top_mm,
+        margin_bottom_mm=base_prof.margin_bottom_mm,
+        margin_left_mm=base_prof.margin_left_mm,
+        margin_right_mm=base_prof.margin_right_mm,
+        color_lyrics=getattr(base_prof, "color_lyrics", "#111111"),
+        color_chords=getattr(base_prof, "color_chords", "#B71C1C"),
+        color_aml_markup=getattr(base_prof, "color_aml_markup", "#4A148C")
+    )
+
+    # Se passata l'email del musicista, applica le preferenze personali caricate da Turso DB
+    if email:
+        user_prefs = pref_mgr.get_preferences(email, prof.name)
+        if user_prefs:
+            if "layout_font_size" in user_prefs:
+                prof.font_size_lyrics = float(user_prefs["layout_font_size"])
+            if "layout_font_size_chords" in user_prefs:
+                prof.font_size_chords = float(user_prefs["layout_font_size_chords"])
+            if "layout_columns" in user_prefs:
+                prof.columns = int(user_prefs["layout_columns"])
+            if "layout_margin_lateral" in user_prefs:
+                lat = float(user_prefs["layout_margin_lateral"])
+                prof.margin_left_mm = lat
+                prof.margin_right_mm = lat
+            if "color_lyrics" in user_prefs:
+                prof.color_lyrics = user_prefs["color_lyrics"]
+            elif "layout_color_text" in user_prefs:
+                prof.color_lyrics = user_prefs["layout_color_text"]
+            if "color_chords" in user_prefs:
+                prof.color_chords = user_prefs["color_chords"]
+            elif "layout_color_chords" in user_prefs:
+                prof.color_chords = user_prefs["layout_color_chords"]
+            if "color_aml_markup" in user_prefs:
+                prof.color_aml_markup = user_prefs["color_aml_markup"]
+            elif "layout_color_aml" in user_prefs:
+                prof.color_aml_markup = user_prefs["layout_color_aml"]
 
     if columns is not None:
         prof.columns = columns
@@ -528,6 +595,20 @@ def delete_setlist(uuid: str, user_email: str = "cico@band.org", user_name: str 
 # 6. HARDWARE DEVICES & USER PREFERENCES
 # -----------------------------------------------------------------------------
 
+@app.get("/api/users")
+def list_users():
+    """Lists registered band members and their roles."""
+    users = auth_mgr.list_users()
+    return [
+        {
+            "name": u.name,
+            "email": u.email,
+            "role": u.role.value if hasattr(u.role, 'value') else str(u.role),
+            "picture_url": getattr(u, "picture_url", "")
+        }
+        for u in users
+    ]
+
 @app.get("/api/devices")
 def list_devices():
     """Lists all pre-configured hardware profiles (Huawei, iPad, A4, etc.)."""
@@ -548,27 +629,43 @@ def list_devices():
 @app.get("/api/preferences/{email}")
 def get_user_preferences(email: str, device: Optional[str] = "Huawei MediaPad M5"):
     """Retrieves synced preferences for user and device category."""
-    prefs = pref_mgr.get_preferences(email, device)
+    prof = resolve_device_profile(device)
+    dev_name = prof.name if prof else (device or "Huawei MediaPad M5")
+    prefs = pref_mgr.get_preferences(email, dev_name)
     app_mode = pref_mgr.get_user_preference(email, "app_mode", default="simplified")
     score_mode = pref_mgr.get_user_preference(email, "score_display_mode", default="chords")
     prefs["app_mode"] = app_mode
     prefs["score_display_mode"] = score_mode
+    # Normalizza i campi colore per compatibilità incrociata Streamlit & PWA
+    if "layout_color_text" in prefs and "color_lyrics" not in prefs:
+        prefs["color_lyrics"] = prefs["layout_color_text"]
+    if "layout_color_chords" in prefs and "color_chords" not in prefs:
+        prefs["color_chords"] = prefs["layout_color_chords"]
+    if "layout_color_aml" in prefs and "color_aml_markup" not in prefs:
+        prefs["color_aml_markup"] = prefs["layout_color_aml"]
     return prefs
 
 @app.post("/api/preferences/{email}")
 def save_user_preferences(email: str, req: UserPreferencesRequest):
     """Persists user & device preferences to Turso Cloud DB."""
-    dev_name = req.device_name or "Huawei MediaPad M5"
+    prof = resolve_device_profile(req.device_name)
+    dev_name = prof.name if prof else (req.device_name or "Huawei MediaPad M5")
+    c_lyric = req.color_lyrics or "#111111"
+    c_chord = req.color_chords or "#B71C1C"
+    c_aml = req.color_aml_markup or "#4A148C"
     payload = {
         "app_mode": req.app_mode or "simplified",
         "score_display_mode": req.score_display_mode or "chords",
         "layout_font_size": req.layout_font_size or 12.0,
         "layout_font_size_chords": req.layout_font_size_chords or 13.0,
         "layout_columns": req.layout_columns or 1,
-        "layout_margin_left": req.layout_margin_left or 10.0,
-        "color_lyrics": req.color_lyrics or "#111111",
-        "color_chords": req.color_chords or "#B71C1C",
-        "color_aml_markup": req.color_aml_markup or "#4A148C"
+        "layout_margin_lateral": req.layout_margin_lateral if req.layout_margin_lateral is not None else 10.0,
+        "color_lyrics": c_lyric,
+        "layout_color_text": c_lyric,
+        "color_chords": c_chord,
+        "layout_color_chords": c_chord,
+        "color_aml_markup": c_aml,
+        "layout_color_aml": c_aml
     }
     pref_mgr.set_user_preference(email, "app_mode", payload["app_mode"])
     pref_mgr.set_user_preference(email, "score_display_mode", payload["score_display_mode"])
