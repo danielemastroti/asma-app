@@ -1678,6 +1678,7 @@ with st.container(key="top_navbar_container"):
     active_item = st.session_state.get("main_menu_choice", "🏠 Home Dashboard")
     if active_item not in MENU_ITEMS:
         active_item = MENU_ITEMS[0]
+        st.session_state["main_menu_choice"] = active_item
 
     MENU_ITEMS_ROW1 = MENU_ITEMS[:6]
     MENU_ITEMS_ROW2 = MENU_ITEMS[6:]
@@ -1685,38 +1686,54 @@ with st.container(key="top_navbar_container"):
     def _fmt_label(x):
         return MENU_COMPACT_LABELS.get(x, x)
 
+    # Callbacks to cleanly synchronize two rows without event clash or ping-pong
+    def _on_nav_r1_change():
+        chosen = st.session_state.get("top_nav_pills_r1")
+        if chosen:
+            st.session_state["main_menu_choice"] = chosen
+            st.session_state["top_nav_pills_r2"] = None
+        else:
+            st.session_state["top_nav_pills_r1"] = st.session_state["main_menu_choice"]
+
+    def _on_nav_r2_change():
+        chosen = st.session_state.get("top_nav_pills_r2")
+        if chosen:
+            st.session_state["main_menu_choice"] = chosen
+            st.session_state["top_nav_pills_r1"] = None
+        else:
+            st.session_state["top_nav_pills_r2"] = st.session_state["main_menu_choice"]
+
+    # Keep widget state perfectly in sync with active item before render
+    if active_item in MENU_ITEMS_ROW1:
+        st.session_state["top_nav_pills_r1"] = active_item
+        st.session_state["top_nav_pills_r2"] = None
+    else:
+        st.session_state["top_nav_pills_r2"] = active_item
+        st.session_state["top_nav_pills_r1"] = None
+
     # Row 1 of Navigation Pills (6 items: Home, Import/Export, Brani, AI, Cerca, Repertori)
-    d1 = active_item if active_item in MENU_ITEMS_ROW1 else None
-    sel_r1 = st.pills(
+    st.pills(
         "Nav Row 1",
         options=MENU_ITEMS_ROW1,
         format_func=_fmt_label,
-        default=d1,
         selection_mode="single",
         wrap=False,
         key="top_nav_pills_r1",
+        on_change=_on_nav_r1_change,
         label_visibility="collapsed"
     )
 
-    # Row 2 of Navigation Pills (5 items: Scalette, Palco, Eventi, Guida, Admin)
-    d2 = active_item if active_item in MENU_ITEMS_ROW2 else None
-    sel_r2 = st.pills(
+    # Row 2 of Navigation Pills (6 items: Smistamento, Scalette, Palco, Eventi, Guida, Admin)
+    st.pills(
         "Nav Row 2",
         options=MENU_ITEMS_ROW2,
         format_func=_fmt_label,
-        default=d2,
         selection_mode="single",
         wrap=False,
         key="top_nav_pills_r2",
+        on_change=_on_nav_r2_change,
         label_visibility="collapsed"
     )
-
-    if sel_r1 and sel_r1 != st.session_state["main_menu_choice"]:
-        st.session_state["main_menu_choice"] = sel_r1
-        st.rerun()
-    elif sel_r2 and sel_r2 != st.session_state["main_menu_choice"]:
-        st.session_state["main_menu_choice"] = sel_r2
-        st.rerun()
 
     menu_choice = st.session_state["main_menu_choice"]
 
