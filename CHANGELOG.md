@@ -24,6 +24,8 @@
 - Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live (compresa la 'Scaletta Live Band 2026' con 46 brani), al sicuro da reset del container effimero di Streamlit Cloud.
 
 ### 🐛 Correzioni di Bug (Bug Fixes)
+- Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta "Foglio a 4 stampabile" da PC, al nuovo login dallo stesso PC ritrova fedelmente "Foglio a 4 stampabile" con tutti i settaggi di testo, accordi, margini, colonne e colori, senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).
+- Eliminazione residuo script visualizzato su tablet Huawei: rimossa chiamata deprecata a st.markdown contenente codice di polyfill, garantendo schermate perfettamente pulite senza testi grezzi sotto la barra di navigazione.
 - Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback o widget non inizializzati di azzerare i valori salvati a database.
 - Correzione sparizione editor e anteprima nei Brani: aggiunta sincronizzazione esplicita delle chiavi univoche (UUID) per l'area di testo AML, i commenti di revisione e i pulsanti di sblocco/salvataggio, garantendo rendering stabile su ogni cambio brano.
 - Correzione errore critico di avvio su Streamlit Cloud: rimosso parametro incompatibile 'toolbarMode' in .streamlit/config.toml che causava il blocco del container e la schermata 'Oh no. Error running app.'.

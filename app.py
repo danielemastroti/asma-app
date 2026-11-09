@@ -39,7 +39,6 @@ st.set_page_config(
 )
 
 # Inject Browser Compatibility Polyfills & Mobile Dropdown Guard (ES2023 + suppress virtual keyboard on selectboxes)
-st.markdown(asma_core.browser_polyfill.POLYFILL_SCRIPT, unsafe_allow_html=True)
 st.components.v1.html(
     f"""<script>
     try {{
@@ -1357,18 +1356,19 @@ try:
 except Exception:
     _client_cookie_dev = None
 
-# Resolve Active Device: Session State -> Turso DB Last Active -> Browser Cookie -> Query Params -> Smart Hardware Default
+# Resolve Active Device: Query Params -> Session State -> Turso DB Last Active for Category -> Browser Cookie -> Smart Hardware Default
 _qp_dev = st.query_params.get("device")
-if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
+if _qp_dev and _qp_dev in dev_names:
+    _active_dev = _qp_dev
+elif "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
 else:
-    _last_dev = pref_mgr.get_last_active_device(u_email)
-    if _last_dev and _last_dev in dev_names:
-        _active_dev = _last_dev
+    # Look up last active device SPECIFIC to this hardware category (desktop vs tablet vs mobile)
+    _cat_last_dev = pref_mgr.get_last_active_device_for_category(u_email, _client_dev_cat)
+    if _cat_last_dev and _cat_last_dev in dev_names:
+        _active_dev = _cat_last_dev
     elif _client_cookie_dev and _client_cookie_dev in dev_names:
         _active_dev = _client_cookie_dev
-    elif _qp_dev and _qp_dev in dev_names:
-        _active_dev = _qp_dev
     else:
         if _client_dev_cat == "desktop":
             _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
@@ -1386,6 +1386,10 @@ def set_active_device_globally(new_dev_name: str):
         st.session_state["user_preferred_device"] = new_dev_name
         st.query_params["device"] = new_dev_name
         st.session_state.pop("_active_profile_user_device", None)
+        dev_cat = pref_mgr.classify_device_category(new_dev_name)
+        pref_mgr.set_user_preference(current_user.email, f"last_device_{dev_cat}", new_dev_name)
+        dev_prefs = pref_mgr.get_preferences(current_user.email, new_dev_name)
+        pref_mgr.save_preferences(current_user.email, new_dev_name, dev_prefs)
         pref_mgr.set_last_active_device(current_user.email, new_dev_name)
 
 # Persist device cookie and localStorage directly on client browser
@@ -1642,30 +1646,35 @@ with st.container(key="top_navbar_container"):
                 sel = st.session_state.get("pop_layout_dev_sel")
                 if sel and sel != st.session_state.get("user_preferred_device"):
                     set_active_device_globally(sel)
+                    st.rerun()
 
             def _on_font_size_change():
                 v = st.session_state.get("slider_layout_font_size")
                 if v is not None:
                     st.session_state["layout_font_size"] = v
-                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size": v})
+                    cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                    pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_font_size": v})
 
             def _on_chords_size_change():
                 v = st.session_state.get("slider_layout_font_size_chords")
                 if v is not None:
                     st.session_state["layout_font_size_chords"] = v
-                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_font_size_chords": v})
+                    cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                    pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_font_size_chords": v})
 
             def _on_columns_change():
                 v = st.session_state.get("radio_layout_columns")
                 if v is not None:
                     st.session_state["layout_columns"] = v
-                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_columns": v})
+                    cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                    pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_columns": v})
 
             def _on_margin_lat_change():
                 v = st.session_state.get("slider_layout_margin_lat")
                 if v is not None:
                     st.session_state["layout_margin_lateral"] = v
-                    pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_margin_lateral": v})
+                    cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                    pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_margin_lateral": v})
 
             st.selectbox(
                 "Dispositivo Display Target:",
@@ -1740,19 +1749,22 @@ with st.container(key="top_navbar_container"):
                     v = st.session_state.get("cp_lay_text")
                     if v:
                         st.session_state["layout_color_text"] = v
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_text": v})
+                        cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                        pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_text": v})
 
                 def _on_col_chords_change():
                     v = st.session_state.get("cp_lay_chords")
                     if v:
                         st.session_state["layout_color_chords"] = v
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_chords": v})
+                        cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                        pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_chords": v})
 
                 def _on_col_aml_change():
                     v = st.session_state.get("cp_lay_aml")
                     if v:
                         st.session_state["layout_color_aml"] = v
-                        pref_mgr.save_preferences(current_user.email, _active_dev, {"layout_color_aml": v})
+                        cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                        pref_mgr.save_preferences(current_user.email, cur_dev, {"layout_color_aml": v})
 
                 c_c1, c_c2, c_c3 = st.columns(3, gap="small")
                 with c_c1:
@@ -1771,7 +1783,8 @@ with st.container(key="top_navbar_container"):
                     st.session_state["cp_lay_text"] = "#111111"
                     st.session_state["cp_lay_chords"] = "#B71C1C"
                     st.session_state["cp_lay_aml"] = "#4A148C"
-                    pref_mgr.save_preferences(current_user.email, _active_dev, {
+                    cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                    pref_mgr.save_preferences(current_user.email, cur_dev, {
                         "layout_color_text": "#111111",
                         "layout_color_chords": "#B71C1C",
                         "layout_color_aml": "#4A148C"
@@ -1789,7 +1802,8 @@ with st.container(key="top_navbar_container"):
                         b_type = "primary" if is_active_z else "secondary"
                         if st.button(f"{'✅ ' if is_active_z else ''}{z_lbl}", key=f"btn_z_{z_v}", type=b_type, width="stretch"):
                             st.session_state["ui_zoom_level"] = z_v
-                            pref_mgr.save_preferences(current_user.email, _active_dev, {"ui_zoom_level": z_v})
+                            cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                            pref_mgr.save_preferences(current_user.email, cur_dev, {"ui_zoom_level": z_v})
                             st.rerun()
 
                 curr_prof = device_mgr.get_device_by_name(curr_pref)

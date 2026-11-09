@@ -145,6 +145,31 @@ class TestPreferencesManager(unittest.TestCase):
         self.assertEqual(fresh.get_user_preference(singer_email, "score_display_mode"), "lyrics")
         self.assertEqual(fresh.get_user_preference(guitarist_email, "score_display_mode"), "chords")
 
+    def test_category_specific_device_tracking(self):
+        """Verifies that last active device is tracked independently per hardware category (desktop vs tablet vs mobile)."""
+        user = "acicchelli65@gmail.com"
+        # Classify checks
+        self.assertEqual(PreferencesManager.classify_device_category("Foglio a 4 stampabile"), "desktop")
+        self.assertEqual(PreferencesManager.classify_device_category('Huawei MatePad / Tablet (10.4"/11")'), "tablet")
+        self.assertEqual(PreferencesManager.classify_device_category("Pixel 8 pro"), "mobile_phone")
+
+        # Set PC/desktop device
+        self.manager.set_last_active_device(user, "Foglio a 4 stampabile")
+        self.assertEqual(self.manager.get_last_active_device_for_category(user, "desktop"), "Foglio a 4 stampabile")
+
+        # Later, user logs in from tablet
+        self.manager.set_last_active_device(user, 'Huawei MatePad / Tablet (10.4"/11")')
+        self.assertEqual(self.manager.get_last_active_device_for_category(user, "tablet"), 'Huawei MatePad / Tablet (10.4"/11")')
+
+        # Returning to desktop must still retrieve desktop device!
+        self.assertEqual(self.manager.get_last_active_device_for_category(user, "desktop"), "Foglio a 4 stampabile")
+
+        # Fresh instance reloads both correctly
+        fresh = PreferencesManager(filepath=self.pref_file, turso_client=None, force_new=True)
+        self.assertEqual(fresh.get_last_active_device_for_category(user, "desktop"), "Foglio a 4 stampabile")
+        self.assertEqual(fresh.get_last_active_device_for_category(user, "tablet"), 'Huawei MatePad / Tablet (10.4"/11")')
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,6 @@
 {
   "danyposta@gmail.com": {
-    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+    "last_active_device": "Foglio a 4 stampabile",
     "devices": {
       "Huawei MatePad": {
         "layout_font_size": 18.0,
@@ -41,6 +41,19 @@
         "ui_zoom_level": 1.0,
         "updated_at": "2026-11-09 09:27:57",
         "score_display_mode": "chords"
+      },
+      "Foglio a 4 stampabile": {
+        "layout_font_size": 12.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 2,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 8.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "updated_at": "2026-11-09 11:33:49"
       }
     },
     "user_prefs": {}
@@ -65,7 +78,7 @@
     "user_prefs": {}
   },
   "acicchelli65@gmail.com": {
-    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+    "last_active_device": "Foglio a 4 stampabile",
     "devices": {
       "Huawei MatePad / Tablet (10.4\"/11\")": {
         "layout_font_size": 20.0,
@@ -79,6 +92,19 @@
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "updated_at": "2026-11-09 09:46:45"
+      },
+      "Foglio a 4 stampabile": {
+        "layout_font_size": 12.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 8.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "updated_at": "2026-11-09 11:31:14"
       }
     },
     "user_prefs": {}

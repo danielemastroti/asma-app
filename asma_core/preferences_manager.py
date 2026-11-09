@@ -142,6 +142,41 @@ class PreferencesManager:
         except Exception:
             pass
 
+    @staticmethod
+    def classify_device_category(device_name: str) -> str:
+        """Categorizes a device name into 'desktop', 'tablet', or 'mobile_phone'."""
+        d_lower = (device_name or "").lower()
+        if "foglio" in d_lower or "a 4" in d_lower or "a4" in d_lower or "pc" in d_lower or "desktop" in d_lower:
+            return "desktop"
+        elif "tablet" in d_lower or "tab" in d_lower or "pad" in d_lower or "ipad" in d_lower or "matepad" in d_lower or "mediapad" in d_lower:
+            return "tablet"
+        elif "phone" in d_lower or "pixel" in d_lower or "oppo" in d_lower or "smartphone" in d_lower or "mobile" in d_lower:
+            return "mobile_phone"
+        return "desktop"
+
+    def get_last_active_device_for_category(self, user_email: str, category: str) -> Optional[str]:
+        """Returns the last active device used by the specified user for a specific hardware category (desktop, tablet, mobile_phone)."""
+        email_clean = user_email.lower().strip()
+        pref_key = f"last_device_{category}"
+        val = self.get_user_preference(email_clean, pref_key, default=None)
+        if val:
+            return val
+
+        if self.turso.is_configured:
+            try:
+                records = self.turso.fetch_all_user_preferences(email_clean)
+                for r in records:
+                    d_name = r.get("device_name", "")
+                    if self.classify_device_category(d_name) == category and r.get("is_last_active"):
+                        return d_name
+                for r in records:
+                    d_name = r.get("device_name", "")
+                    if self.classify_device_category(d_name) == category:
+                        return d_name
+            except Exception:
+                pass
+        return None
+
     def get_last_active_device(self, user_email: str) -> Optional[str]:
         """Returns the last active device used by the specified user from cache or Turso Cloud."""
         email_clean = user_email.lower().strip()
@@ -178,19 +213,33 @@ class PreferencesManager:
     def set_last_active_device(self, user_email: str, device_name: str) -> None:
         """Marks the specified device as active for this user in cache and Turso."""
         email_clean = user_email.lower().strip()
+        cat = self.classify_device_category(device_name)
         with self._mutex:
             if email_clean not in self._cache:
                 self._cache[email_clean] = {
                     "last_active_device": device_name,
                     "devices": {},
-                    "user_prefs": {}
+                    "user_prefs": {f"last_device_{cat}": device_name}
                 }
             else:
                 self._cache[email_clean]["last_active_device"] = device_name
+                if "user_prefs" not in self._cache[email_clean]:
+                    self._cache[email_clean]["user_prefs"] = {}
+                self._cache[email_clean]["user_prefs"][f"last_device_{cat}"] = device_name
+
+            if device_name not in self._cache[email_clean]["devices"]:
+                self._cache[email_clean]["devices"][device_name] = {}
+            dev_prefs = dict(self._cache[email_clean]["devices"][device_name])
             self._save_cache()
 
         if self.turso.is_configured:
             try:
+                self.turso.push_user_device_preference(
+                    email=email_clean,
+                    device_name=device_name,
+                    prefs=dev_prefs,
+                    is_last_active=True
+                )
                 self.turso.set_last_active_device(email_clean, device_name)
             except Exception:
                 pass
