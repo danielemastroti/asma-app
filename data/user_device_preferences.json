@@ -29,5 +29,23 @@
         "updated_at": "2026-11-09 07:53:08"
       }
     }
+  },
+  "daniele@band.org": {
+    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+    "devices": {
+      "Huawei MatePad / Tablet (10.4\"/11\")": {
+        "layout_font_size": 11.5,
+        "layout_font_size_chords": 12.5,
+        "layout_columns": 2,
+        "layout_margin_lateral": 8.0,
+        "layout_margin_top": 8.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 0.82
+      }
+    },
+    "user_prefs": {}
   }
 }

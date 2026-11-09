@@ -1137,8 +1137,6 @@ class StorageManager:
     # --- SETLISTS CRUD ---
 
     def list_setlists(self) -> List[Setlist]:
-        if not os.path.exists(self._setlists_file):
-            return []
         # Tombstones: identify setlists currently in trash
         deleted_setlist_uuids = set()
         if os.path.exists(self._trash_dir):
@@ -1146,23 +1144,42 @@ class StorageManager:
                 if f.startswith("setlist_") and f.endswith(".json"):
                     deleted_setlist_uuids.add(f[8:-5])
 
-        try:
-            with open(self._setlists_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                active_setlists = [
-                    Setlist.from_dict(d) for d in data
-                    if d.get("uuid") not in deleted_setlist_uuids
-                ]
-                # Prune deleted setlists from file if any were found
-                if len(active_setlists) != len(data):
+        active_setlists = []
+        if os.path.exists(self._setlists_file):
+            try:
+                with open(self._setlists_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    active_setlists = [
+                        Setlist.from_dict(d) for d in data
+                        if d.get("uuid") not in deleted_setlist_uuids
+                    ]
+                    if len(active_setlists) != len(data):
+                        try:
+                            with open(self._setlists_file, "w", encoding="utf-8") as wf:
+                                json.dump([s.to_dict() for s in active_setlists], wf, indent=2, ensure_ascii=False)
+                        except Exception:
+                            pass
+            except Exception:
+                active_setlists = []
+
+        # If local file is empty or missing, hydrate automatically from Turso Cloud DB
+        if not active_setlists and hasattr(self, "turso_client") and self.turso_client.is_configured:
+            try:
+                turso_sets = self.turso_client.fetch_setlists()
+                if turso_sets:
+                    active_setlists = [
+                        Setlist.from_dict(d) for d in turso_sets
+                        if d.get("uuid") not in deleted_setlist_uuids
+                    ]
                     try:
                         with open(self._setlists_file, "w", encoding="utf-8") as wf:
                             json.dump([s.to_dict() for s in active_setlists], wf, indent=2, ensure_ascii=False)
                     except Exception:
                         pass
-                return active_setlists
-        except Exception:
-            return []
+            except Exception:
+                pass
+
+        return active_setlists
 
     def get_setlist(self, setlist_uuid: str) -> Optional[Setlist]:
         for s in self.list_setlists():
@@ -1177,6 +1194,11 @@ class StorageManager:
         setlists.append(setlist)
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
+        if hasattr(self, "turso_client") and self.turso_client.is_configured:
+            try:
+                self.turso_client.push_setlists([setlist.to_dict()])
+            except Exception:
+                pass
         self.audit.log("UPDATE", "SETLIST", setlist.uuid, user_email, user_name, {"title": setlist.title, "songs_count": len(setlist.items)})
         self._trigger_background_gist_sync("SETLISTS")
         return setlist
@@ -1216,8 +1238,8 @@ class StorageManager:
             setlist_data = trash_meta["data"]
             restored = Setlist.from_dict(setlist_data)
             restored.updated_at = current_iso_timestamp()
-            self.save_setlist(restored, user_email, user_name)
             os.remove(trash_path)
+            self.save_setlist(restored, user_email, user_name)
             self.audit.log("RESTORE", "SETLIST", setlist_uuid, user_email, user_name, {"title": restored.title})
             self._trigger_background_gist_sync("ALL")
             return restored

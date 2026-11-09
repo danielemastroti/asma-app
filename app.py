@@ -1410,13 +1410,13 @@ def get_layout_device_profile(base_profile_name: Optional[str] = None) -> Device
         color_aml_markup=c_aml
     )
 
-active_zoom = st.session_state["ui_zoom_level"]
-st.markdown(f"""
+active_zoom = float(st.session_state.get("ui_zoom_level", 1.0))
+if abs(active_zoom - 1.0) > 0.01:
+    st.markdown(f"""
 <style>
-  html, body, [data-testid="stAppViewContainer"] {{
+  [data-testid="stAppViewContainer"] {{
     zoom: {active_zoom} !important;
-    -webkit-text-size-adjust: 100% !important;
-    text-size-adjust: 100% !important;
+    width: {100.0 / active_zoom:.1f}% !important;
   }}
 </style>
 """, unsafe_allow_html=True)

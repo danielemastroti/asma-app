@@ -47,9 +47,27 @@ MOBILE_DROPDOWN_GUARD_JS = """
 
       function removeBottomBadgesAndLogos() {
         try {
-          var badEls = targetDoc.querySelectorAll('footer, [data-testid="stFooter"], div[class*="viewerBadge"], a[href*="github.com"], a[href*="streamlit.io"], [data-testid="manage-app-button"]');
+          var sel = [
+            'footer',
+            '[data-testid="stFooter"]',
+            'div[class*="viewerBadge"]',
+            'div[class*="styles_viewerBadge"]',
+            '.viewerBadge_container__1QSob',
+            '.styles_viewerBadge__1yB5_',
+            'a[href*="github.com"]',
+            'a[href*="streamlit.io"]',
+            '[data-testid="manage-app-button"]',
+            '#manage-app-button',
+            '[aria-label*="Manage app"]',
+            'button[aria-label*="Manage app"]',
+            'img[src*="githubusercontent.com"]',
+            '#GithubIcon'
+          ].join(',');
+          var badEls = targetDoc.querySelectorAll(sel);
           for (var j = 0; j < badEls.length; j++) {
-            badEls[j].remove();
+            badEls[j].style.setProperty('display', 'none', 'important');
+            badEls[j].style.setProperty('visibility', 'hidden', 'important');
+            try { badEls[j].remove(); } catch(e) {}
           }
         } catch(err) {}
       }

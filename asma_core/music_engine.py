@@ -152,6 +152,13 @@ class MusicEngine:
     """Core Mathematical Music Theory Engine."""
 
     @staticmethod
+    def detect_notation_system(note_str: str) -> str:
+        """Determines whether a note or chord uses Italian solfège (ITA) or International (INT) notation."""
+        if not note_str:
+            return "INT"
+        return "ITA" if MusicEngine.is_italian_note(note_str) else "INT"
+
+    @staticmethod
     def is_italian_note(note_str: str) -> bool:
         """Determines whether a note or chord begins with Italian solfège nomenclature."""
         upper = note_str.strip().upper()
