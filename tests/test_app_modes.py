@@ -44,6 +44,15 @@ class TestAppModes(unittest.TestCase):
         items = [line.strip() for line in simp_def.splitlines() if line.strip() and not line.strip().startswith("#")]
         self.assertEqual(len(items), 5)
 
+    def test_simplified_mode_repertoire_selector_present(self):
+        """Verifies simplified mode includes repertoire filtering and selection."""
+        with open("app.py", "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('simp_repertoire_filter', content)
+        self.assertIn('📁 Seleziona Repertorio:', content)
+        self.assertIn('🌐 Tutti i Repertori', content)
+        self.assertIn('st.session_state["selected_repertoire_uuid"] = selected_rep_uuid', content)
+
 
 
 if __name__ == '__main__':

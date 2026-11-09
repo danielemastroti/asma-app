@@ -2260,30 +2260,86 @@ elif menu_choice == "📝 Brani":
         st.subheader("🎵 Brani a Repertorio")
         st.caption("Visualizza l'anteprima PDF formattata per il tuo display, salva sul tuo dispositivo, invia a stampa o avvia la modalità palco.")
 
-        all_songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
-        if not all_songs:
+        all_reps = storage.list_repertoires()
+        all_songs_global = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
+        if not all_songs_global:
             st.info("Nessun brano presente nell'archivio della band.")
             st.stop()
 
-        song_choices = {s["uuid"]: s["title"] for s in all_songs}
-        curr_uuid = st.session_state.get("selected_song_uuid")
-        keys_list = list(song_choices.keys())
-        default_idx = keys_list.index(curr_uuid) if (curr_uuid and curr_uuid in keys_list) else 0
+        rep_options = [("__ALL__", f"🌐 Tutti i Repertori ({len(all_songs_global)} brani)")]
+        for r in all_reps:
+            count_r = len([s for s in all_songs_global if s["uuid"] in r.song_uuids])
+            rep_options.append((r.uuid, f"📁 {r.name} ({count_r} brani)"))
 
-        def _on_simp_song_change():
-            sel = st.session_state.get("simp_main_song_selector")
-            if sel:
-                st.session_state["selected_song_uuid"] = sel
+        rep_ids = [opt[0] for opt in rep_options]
+        curr_rep_id = st.session_state.get("selected_repertoire_uuid", "__ALL__")
+        if curr_rep_id not in rep_ids:
+            curr_rep_id = "__ALL__"
 
-        selected_uuid = st.selectbox(
-            "🎵 Seleziona Brano da consultare:",
-            keys_list,
-            index=default_idx,
-            format_func=lambda x: f"🎵 {song_choices[x].upper()} — {next((s.get('artist', 'Band') for s in all_songs if s['uuid'] == x), 'Band')}",
-            key="simp_main_song_selector",
-            on_change=_on_simp_song_change
-        )
-        st.session_state["selected_song_uuid"] = selected_uuid
+        col_r_sel, col_s_sel = st.columns([1.2, 2.2], gap="small")
+        with col_r_sel:
+            def _on_simp_rep_change():
+                sel_r = st.session_state.get("simp_repertoire_filter")
+                if sel_r:
+                    st.session_state["selected_repertoire_uuid"] = sel_r
+                    if sel_r != "__ALL__":
+                        target_r = next((r for r in all_reps if r.uuid == sel_r), None)
+                        curr_s = st.session_state.get("selected_song_uuid")
+                        if target_r and curr_s not in target_r.song_uuids:
+                            rep_s = [s for s in all_songs_global if s["uuid"] in target_r.song_uuids]
+                            st.session_state["selected_song_uuid"] = rep_s[0]["uuid"] if rep_s else None
+                            st.session_state.pop("simp_main_song_selector", None)
+
+            selected_rep_uuid = st.selectbox(
+                "📁 Seleziona Repertorio:",
+                options=rep_ids,
+                format_func=lambda rid: next((opt[1] for opt in rep_options if opt[0] == rid), rid),
+                index=rep_ids.index(curr_rep_id),
+                key="simp_repertoire_filter",
+                on_change=_on_simp_rep_change
+            )
+            st.session_state["selected_repertoire_uuid"] = selected_rep_uuid
+
+        # Filtra i brani in base al repertorio selezionato
+        if selected_rep_uuid == "__ALL__":
+            all_songs = all_songs_global
+        else:
+            target_rep = next((r for r in all_reps if r.uuid == selected_rep_uuid), None)
+            if target_rep:
+                all_songs = [s for s in all_songs_global if s["uuid"] in target_rep.song_uuids]
+            else:
+                all_songs = all_songs_global
+
+        with col_s_sel:
+            if not all_songs:
+                st.warning("Nessun brano presente nel repertorio selezionato.")
+                st.stop()
+
+            song_choices = {s["uuid"]: s["title"] for s in all_songs}
+            keys_list = list(song_choices.keys())
+
+            # Se il widget in session_state punta a un brano non presente in questo repertorio, rimuovilo per sicurezza
+            if "simp_main_song_selector" in st.session_state and st.session_state["simp_main_song_selector"] not in keys_list:
+                st.session_state.pop("simp_main_song_selector", None)
+
+            curr_uuid = st.session_state.get("selected_song_uuid")
+            default_idx = keys_list.index(curr_uuid) if (curr_uuid and curr_uuid in keys_list) else 0
+
+            def _on_simp_song_change():
+                sel = st.session_state.get("simp_main_song_selector")
+                if sel:
+                    st.session_state["selected_song_uuid"] = sel
+
+            selected_uuid = st.selectbox(
+                "🎵 Seleziona Brano da consultare:",
+                keys_list,
+                index=default_idx,
+                format_func=lambda x: f"🎵 {song_choices[x].upper()} — {next((s.get('artist', 'Band') for s in all_songs if s['uuid'] == x), 'Band')}",
+                key="simp_main_song_selector",
+                on_change=_on_simp_song_change
+            )
+            st.session_state["selected_song_uuid"] = selected_uuid
+
         song = storage.get_song(selected_uuid)
         if not song:
             st.error("Brano non trovato.")
@@ -2291,6 +2347,9 @@ elif menu_choice == "📝 Brani":
 
         ita_key = MusicEngine.convert_notation(song.key_current, "ITA") if song.key_current else "-"
         orig_ita = MusicEngine.convert_notation(song.key_original, "ITA") if song.key_original else "-"
+
+        assigned_reps = [r for r in all_reps if song.uuid in r.song_uuids]
+        rep_badges = ", ".join([r.name for r in assigned_reps]) if assigned_reps else "Archivio Globale"
 
         # Banner Informativo Brano (Sola Lettura)
         st.markdown(
@@ -2300,7 +2359,7 @@ elif menu_choice == "📝 Brani":
                   <span style="font-size:18px; font-weight:900; color:#FFFFFF; letter-spacing:0.5px;">🎵 {song.title.upper()}</span>
                   <span style="font-size:13px; color:#94A3B8; margin-left:6px;">&bull; {song.artist or 'Autore band'}</span>
                   <div style="font-size:12px; color:#38BDF8; font-weight:600; margin-top:3px;">
-                    Tonalità: <code style="color:#FFD600;">{ita_key} ({song.key_current})</code> &bull; Orig: <code>{orig_ita}</code> &bull; Tempo: <code style="color:#00E676;">{song.bpm or 120} BPM</code> &bull; Versione: <b>Rev #{song.current_revision}</b>
+                    Tonalità: <code style="color:#FFD600;">{ita_key} ({song.key_current})</code> &bull; Orig: <code>{orig_ita}</code> &bull; Tempo: <code style="color:#00E676;">{song.bpm or 120} BPM</code> &bull; Versione: <b>Rev #{song.current_revision}</b> &bull; Repertorio: <b style="color:#F1F5F9;">{rep_badges}</b>
                   </div>
                 </div>
               </div>
@@ -2412,6 +2471,7 @@ elif menu_choice == "📝 Brani":
         )
         if st.button("🎤 Avvia Modalità Palco con questo Brano", type="primary", width="stretch", key=f"btn_simp_stage_{song.uuid}"):
             st.session_state["stage_source_type"] = "🎵 Singolo Brano"
+            st.session_state["selected_repertoire_uuid"] = selected_rep_uuid
             st.session_state["selected_song_uuid"] = song.uuid
             st.session_state["main_menu_choice"] = "🎤 Modalità Palco (Live Stage)"
             log_op("🎤", "PALCO", f"Avviata modalità palco per il singolo brano '{song.title}'", "SUCCESS")

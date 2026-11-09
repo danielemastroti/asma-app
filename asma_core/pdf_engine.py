@@ -503,15 +503,26 @@ class PDFEngine:
         """Constructs an elegant header box containing metadata (Key, BPM, Time Signature, Capo)."""
         title_p = Paragraph(f"<b>{song.title}</b>", styles["DocTitle"])
         pos_str = f" [{setlist_pos}]" if setlist_pos else ""
-        artist_p = Paragraph(f"<b>{song.artist}</b>{pos_str} &bull; <i>{song.author}</i>", styles["DocSubtitle"])
+
+        parts = []
+        if song.artist and song.artist.strip():
+            parts.append(f"<b>{song.artist.strip()}</b>{pos_str}")
+        elif pos_str:
+            parts.append(f"<b>{pos_str.strip()}</b>")
+
+        if song.author and song.author.strip() and song.author.strip().lower() != (song.artist or "").strip().lower():
+            parts.append(f"<i>{song.author.strip()}</i>")
 
         if include_chords:
-            meta_str = f"<b>Key:</b> {song.key_current}"
+            meta_info = f"<b>Key:</b> {song.key_current}"
             if song.capo > 0:
-                meta_str += f" | <b>Capo:</b> {song.capo}° tasto"
+                meta_info += f" | <b>Capo:</b> {song.capo}° tasto"
+            parts.append(meta_info)
         else:
-            meta_str = "🎤 <b>Solo Testo (Cantante)</b>"
-        meta_p = Paragraph(meta_str, styles["SectionText"])
+            parts.append("<b>Solo Testo (Cantante)</b>")
+
+        sub_text = " &bull; ".join(parts)
+        subtitle_p = Paragraph(sub_text, styles["DocSubtitle"])
 
         logo_flowable = None
         logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "band_logo.png")
@@ -520,23 +531,25 @@ class PDFEngine:
         if os.path.exists(logo_path):
             try:
                 from reportlab.platypus import Image as RLImage
-                # Logo rimpicciolito (18mm x 7mm) per non coprire mai il titolo del brano
-                logo_flowable = RLImage(logo_path, width=18 * mm, height=7 * mm)
+                # Logo in proporzione nativa 2.79:1 (30mm x 10.7mm), elegante e ben visibile
+                logo_flowable = RLImage(logo_path, width=30 * mm, height=10.7 * mm)
             except Exception:
                 pass
 
         if logo_flowable:
+            col2_w = min(34 * mm, usable_width * 0.25)
+            col1_w = usable_width - col2_w
+
             table_data = [
                 [title_p, logo_flowable],
-                [artist_p, meta_p]
+                [subtitle_p, ""]
             ]
-            col1_w = usable_width * 0.78
-            col2_w = usable_width * 0.22
             t = Table(table_data, colWidths=[col1_w, col2_w])
             t.setStyle(TableStyle([
-                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                ('ALIGN', (1, 1), (1, 1), 'RIGHT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('SPAN', (1, 0), (1, 1)),
+                ('ALIGN', (1, 0), (1, 1), 'RIGHT'),
+                ('VALIGN', (1, 0), (1, 1), 'MIDDLE'),
+                ('VALIGN', (0, 0), (0, 1), 'MIDDLE'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                 ('TOPPADDING', (0, 0), (-1, -1), 2),
                 ('LINEBELOW', (0, 1), (-1, 1), 1.0, colors.HexColor("#333333"))
@@ -544,17 +557,11 @@ class PDFEngine:
             return t
 
         table_data = [
-            [title_p, meta_p],
-            [artist_p, ""]
+            [title_p],
+            [subtitle_p]
         ]
-
-        col1_w = usable_width * 0.55
-        col2_w = usable_width * 0.45
-
-        t = Table(table_data, colWidths=[col1_w, col2_w])
+        t = Table(table_data, colWidths=[usable_width])
         t.setStyle(TableStyle([
-            ('SPAN', (1, 0), (1, 1)),
-            ('ALIGN', (1, 0), (1, 1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
