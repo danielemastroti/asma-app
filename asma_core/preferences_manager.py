@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import json
 import threading
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from asma_core.turso_client import TursoClient
 from asma_core.device_manager import DeviceManager
 
@@ -119,8 +119,13 @@ class PreferencesManager:
                         "layout_color_chords": rec.get("color_chords", "#B71C1C"),
                         "layout_color_aml": rec.get("color_aml", "#4A148C"),
                         "ui_zoom_level": rec.get("zoom_level", 1.0),
+                        "app_mode": rec.get("app_mode", "simplified") or "simplified",
+                        "score_display_mode": rec.get("score_display_mode", "chords") or "chords",
                         "updated_at": rec.get("updated_at", "")
                     }
+                    if rec.get("is_last_active"):
+                        self._cache[email]["user_prefs"]["app_mode"] = dev_prefs["app_mode"]
+                        self._cache[email]["user_prefs"]["score_display_mode"] = dev_prefs["score_display_mode"]
 
                     # Also retain any extra custom keys in dev_prefs and user_prefs
                     for k, v in rec.items():
@@ -295,7 +300,9 @@ class PreferencesManager:
             "layout_color_text": "#111111",
             "layout_color_chords": "#B71C1C",
             "layout_color_aml": "#4A148C",
-            "ui_zoom_level": zoom
+            "ui_zoom_level": zoom,
+            "app_mode": "simplified",
+            "score_display_mode": "chords"
         }
 
         # Save seeded defaults to cache and push to Turso
@@ -421,6 +428,63 @@ class PreferencesManager:
                 )
             except Exception:
                 pass
+
+    def get_login_preferences(self, user_email: str) -> Tuple[str, Dict[str, Any]]:
+        """
+        Ad ogni login legge le preferenze utente direttamente dal DB Turso Cloud (o cache locale).
+        In caso di dispositivi multipli configurati per l'utente, la priorità viene data rigorosamente al tablet.
+        Restituisce (selected_device_name, preferences_dict).
+        """
+        email_clean = user_email.lower().strip()
+        records: List[Dict[str, Any]] = []
+        if self.turso.is_configured:
+            try:
+                records = self.turso.fetch_all_user_preferences(email_clean)
+            except Exception:
+                records = []
+
+        if not records:
+            with self._mutex:
+                u_cache = self._cache.get(email_clean, {})
+                for d_name, d_val in u_cache.get("devices", {}).items():
+                    item = dict(d_val)
+                    item["device_name"] = d_name
+                    item["is_last_active"] = (d_name == u_cache.get("last_active_device"))
+                    records.append(item)
+
+        selected_dev = None
+
+        if len(records) > 1:
+            # Multipli dispositivi: PRIORITA RIGOROSA AL TABLET
+            tablet_records = [r for r in records if self.classify_device_category(r.get("device_name", "")) == "tablet"]
+            if tablet_records:
+                active_tab = next((r for r in tablet_records if r.get("is_last_active")), None)
+                if active_tab:
+                    selected_dev = active_tab.get("device_name")
+                else:
+                    tablet_records_sorted = sorted(tablet_records, key=lambda r: str(r.get("updated_at") or ""), reverse=True)
+                    selected_dev = tablet_records_sorted[0].get("device_name")
+            else:
+                active_any = next((r for r in records if r.get("is_last_active")), None)
+                if active_any:
+                    selected_dev = active_any.get("device_name")
+                else:
+                    records_sorted = sorted(records, key=lambda r: str(r.get("updated_at") or ""), reverse=True)
+                    selected_dev = records_sorted[0].get("device_name")
+        elif len(records) == 1:
+            selected_dev = records[0].get("device_name")
+
+        if not selected_dev:
+            # Default tablet hardware fallback
+            selected_dev = "Huawei MatePad / Tablet (10.4\"/11\")"
+
+        prefs = self.get_preferences(email_clean, selected_dev)
+        if not prefs.get("app_mode"):
+            prefs["app_mode"] = self.get_user_preference(email_clean, "app_mode", default="simplified")
+        if not prefs.get("score_display_mode"):
+            prefs["score_display_mode"] = self.get_user_preference(email_clean, "score_display_mode", default="chords")
+
+        return selected_dev, prefs
 
     def list_user_device_profiles(self, user_email: str) -> List[str]:
         """Returns list of device names configured for this user."""

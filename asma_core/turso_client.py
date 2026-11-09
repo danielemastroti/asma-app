@@ -163,13 +163,6 @@ class TursoClient:
                 );
                 """,
                 """
-                CREATE TABLE IF NOT EXISTS client_preferences (
-                    email TEXT PRIMARY KEY,
-                    preferences_json TEXT,
-                    updated_at TEXT
-                );
-                """,
-                """
                 CREATE TABLE IF NOT EXISTS live_events (
                     uuid TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -197,6 +190,8 @@ class TursoClient:
                     color_aml TEXT,
                     zoom_level REAL,
                     is_last_active INTEGER DEFAULT 0,
+                    app_mode TEXT DEFAULT 'simplified',
+                    score_display_mode TEXT DEFAULT 'chords',
                     extra_json TEXT,
                     updated_at TEXT,
                     PRIMARY KEY (email, device_name)
@@ -636,8 +631,8 @@ class TursoClient:
                 email, device_name, font_size_lyrics, font_size_chords,
                 columns, margin_lateral_mm, margin_top_mm, margin_bottom_mm,
                 color_text, color_chords, color_aml, zoom_level,
-                is_last_active, extra_json, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                is_last_active, app_mode, score_display_mode, extra_json, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(email, device_name) DO UPDATE SET
                 font_size_lyrics=excluded.font_size_lyrics,
                 font_size_chords=excluded.font_size_chords,
@@ -650,6 +645,8 @@ class TursoClient:
                 color_aml=excluded.color_aml,
                 zoom_level=excluded.zoom_level,
                 is_last_active=excluded.is_last_active,
+                app_mode=excluded.app_mode,
+                score_display_mode=excluded.score_display_mode,
                 extra_json=excluded.extra_json,
                 updated_at=datetime('now');
             """
@@ -657,7 +654,7 @@ class TursoClient:
                 "layout_font_size", "layout_font_size_chords", "layout_columns",
                 "layout_margin_lateral", "layout_margin_top", "layout_margin_bottom",
                 "layout_color_text", "layout_color_chords", "layout_color_aml",
-                "ui_zoom_level"
+                "ui_zoom_level", "app_mode", "score_display_mode"
             ]}
             client.execute(sql, [
                 email_clean,
@@ -673,6 +670,8 @@ class TursoClient:
                 str(prefs.get("layout_color_aml", "#4A148C")),
                 float(prefs.get("ui_zoom_level", 1.0)),
                 1 if is_last_active else 0,
+                str(prefs.get("app_mode", "simplified")),
+                str(prefs.get("score_display_mode", "chords")),
                 json.dumps(extra)
             ])
             client.close()
@@ -688,7 +687,7 @@ class TursoClient:
             sql = """
             SELECT font_size_lyrics, font_size_chords, columns, margin_lateral_mm,
                    margin_top_mm, margin_bottom_mm, color_text, color_chords, color_aml,
-                   zoom_level, is_last_active, extra_json, updated_at
+                   zoom_level, is_last_active, app_mode, score_display_mode, extra_json, updated_at
             FROM user_device_preferences
             WHERE email = ? AND device_name = ?;
             """
@@ -697,7 +696,7 @@ class TursoClient:
             if not res.rows:
                 return None
             r = res.rows[0]
-            extra = json.loads(r[11]) if r[11] else {}
+            extra = json.loads(r[13]) if r[13] else {}
             data = {
                 "layout_font_size": r[0],
                 "layout_font_size_chords": r[1],
@@ -710,7 +709,9 @@ class TursoClient:
                 "layout_color_aml": r[8],
                 "ui_zoom_level": r[9],
                 "is_last_active": bool(r[10]),
-                "updated_at": r[12]
+                "app_mode": r[11] or "simplified",
+                "score_display_mode": r[12] or "chords",
+                "updated_at": r[14]
             }
             data.update(extra)
             return data
@@ -726,7 +727,8 @@ class TursoClient:
                 sql = """
                 SELECT email, device_name, font_size_lyrics, font_size_chords, columns,
                        margin_lateral_mm, margin_top_mm, margin_bottom_mm, color_text,
-                       color_chords, color_aml, zoom_level, is_last_active, extra_json, updated_at
+                       color_chords, color_aml, zoom_level, is_last_active,
+                       app_mode, score_display_mode, extra_json, updated_at
                 FROM user_device_preferences
                 WHERE email = ?;
                 """
@@ -735,14 +737,15 @@ class TursoClient:
                 sql = """
                 SELECT email, device_name, font_size_lyrics, font_size_chords, columns,
                        margin_lateral_mm, margin_top_mm, margin_bottom_mm, color_text,
-                       color_chords, color_aml, zoom_level, is_last_active, extra_json, updated_at
+                       color_chords, color_aml, zoom_level, is_last_active,
+                       app_mode, score_display_mode, extra_json, updated_at
                 FROM user_device_preferences;
                 """
                 res = client.execute(sql)
             client.close()
             records = []
             for r in res.rows:
-                extra = json.loads(r[13]) if r[13] else {}
+                extra = json.loads(r[15]) if r[15] else {}
                 item = {
                     "email": r[0],
                     "device_name": r[1],
@@ -757,7 +760,9 @@ class TursoClient:
                     "color_aml": r[10],
                     "zoom_level": r[11],
                     "is_last_active": bool(r[12]),
-                    "updated_at": r[14]
+                    "app_mode": r[13] or "simplified",
+                    "score_display_mode": r[14] or "chords",
+                    "updated_at": r[16]
                 }
                 item.update(extra)
                 records.append(item)

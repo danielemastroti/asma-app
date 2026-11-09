@@ -32,6 +32,8 @@ CHANGELOG_ENTRIES = [
             "Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live, al sicuro da reset del container effimero di Streamlit Cloud."
         ],
         "bug_fixes": [
+            "Blindatura Anti-Crash React 18 su Tablet Huawei ('Node.removeChild'): integrato scudo di riconciliazione DOM per Node.prototype.removeChild e insertBefore unito al tag notranslate, eliminando alla radice l'errore 'The node to be removed is not a child of this node' durante il passaggio alla Modalità Palco o cambio vista.",
+            "Priorità Tablet al Login e Unificazione Preferenze Utente nel DB: eliminata definitivamente la tabella client_preferences. Tutte le 9 preferenze utente (Modalità, Visualizzazione Predefinita, Dispositivo, Testo, Accordi, Colonne 1/2, Margini, Colori, Zoom) sono ora sincronizzate in user_device_preferences. Ad ogni login viene data priorità rigorosa al tablet del musicista.",
             "Risolto difetto click triplo sui tasti di navigazione: eliminata la sovrascrittura automatica delle chiavi di sessione dei widget di navigazione ad ogni ciclo di render. Ora ogni tocco su tablet e click su PC risponde all'istante al primo click senza richiedere pressioni ripetute.",
             "Risolto bug generazione PDF a 2 colonne quando impostata 1 colonna: integrata l'invalidazione istantanea della cache dei PDF e chiavi univoche versionate per i pulsanti di download, garantendo la rigenerazione immediata con il numero corretto di colonne.",
             "Ottimizzazione CPU mobile ed eliminazione polling JS continuo: rimosso il setInterval a 300ms che rallentava i tablet Android/Huawei e protetta la patch di index.html contro vecchi residui di manipolazione DOM.",

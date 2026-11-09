@@ -1,372 +1,12 @@
 [
   {
-    "uuid": "scaletta_principale",
-    "title": "🎤 Scaletta Live Band 2026",
+    "uuid": "a236a036-da55-4f0e-abb1-b070669cc40b",
+    "title": "Setlist To Delete",
     "date": "",
     "description": "",
     "items": [
       {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "gimme_some_lovin_d520de",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "hot_stuff_57536f",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "knock_on_wood_ec4f5e",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "sweet_home_chicago_e7cb2a",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "giovedi_93e6d3",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "i_feel_good_1f8573",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "baila_morena_703f25",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "proud_mary_003ac4",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "lo_spettacolo_b5b0b5",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "venus_f314bd",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "im_a_believer_880443",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "mustang_sally_75af7c",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "con_le_mani_4d3ea3",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "have_you_ever_seen_the_rain_a94398",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "spirito_d8d7d3",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "rotolando_verso_sud_b5b019",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "pippo_0805ea",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "la_mia_signorina_f4108a",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "diavolo_in_me_4e5dcf",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "locomotive_breath_a57007",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "mama_mae_42ef85",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "gioca_con_me_4e56fb",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "madre_dolcissima_db45b6",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "balliamo_sul_mondo_8c101e",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "in_ogni_atomo_139a71",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "per_colpa_di_chi_93e256",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "burning_love_3f6762",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "jumpin_jack_flash_f5afc6",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "wicked_game_94f057",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "love_me_two_times_4a8e33",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "black_night_17fcd0",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "born_to_be_wild_2b194b",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "vieni_qui_33563a",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "urlando_contro_il_cielo_54cbee",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "what_a_wonderful_world_dd380b",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "fortunate_son_d4946a",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "50_special_bebdbb",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "hanno_ucciso_luomo_ragno_c5d664",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "50_special_e6f726",
-        "is_medley": false,
-        "medley_group_id": null,
-        "custom_key": null,
-        "custom_bpm": null,
-        "notes": ""
-      },
-      {
-        "song_uuid": "la_mia_banda_suona_il_rock_02b61a",
+        "song_uuid": "44eccfab-1da9-4aac-9d9e-49db5c6cfe98",
         "is_medley": false,
         "medley_group_id": null,
         "custom_key": null,
@@ -374,7 +14,223 @@
         "notes": ""
       }
     ],
-    "created_at": "2026-11-08T10:06:32.179754+00:00",
-    "updated_at": "2026-11-09T09:10:56.825182+00:00"
+    "created_at": "2026-11-09T09:12:44.734422+00:00",
+    "updated_at": "2026-11-09T09:12:44.804375+00:00"
+  },
+  {
+    "uuid": "f7b71a47-5218-4192-9184-b79265859701",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "f548f738-1dcc-4a84-a3f3-b026bf2b9028",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T09:27:59.443145+00:00",
+    "updated_at": "2026-11-09T09:27:59.514342+00:00"
+  },
+  {
+    "uuid": "141e8f4c-f701-4e97-976e-acd39d67e46e",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "02f0936b-f2bf-4581-89bb-86e611752de5",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T09:47:19.572680+00:00",
+    "updated_at": "2026-11-09T09:47:19.640324+00:00"
+  },
+  {
+    "uuid": "2c4415fb-3880-48d3-a656-0d7bbc669637",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "fe137ffd-924d-4e03-8852-bca3b0ca5eb4",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T10:16:43.740979+00:00",
+    "updated_at": "2026-11-09T10:16:43.808260+00:00"
+  },
+  {
+    "uuid": "34d0d649-c725-4ae2-8424-8bf220644f5b",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "9adac6a6-719e-465a-ab03-595b83161ebb",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T10:17:34.057164+00:00",
+    "updated_at": "2026-11-09T10:17:34.126831+00:00"
+  },
+  {
+    "uuid": "09aec1c3-fea7-4399-8d8b-bf04436d9426",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "1831f55a-a1ec-4f11-80e6-b9867fd27ad0",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T10:51:19.917894+00:00",
+    "updated_at": "2026-11-09T10:51:19.982433+00:00"
+  },
+  {
+    "uuid": "35309b2f-3851-4835-98a9-787e59fef576",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "4e25c57a-4442-494d-9674-77e09083d155",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T10:54:39.800775+00:00",
+    "updated_at": "2026-11-09T10:54:39.864882+00:00"
+  },
+  {
+    "uuid": "452585ed-1c75-43ee-8013-26c400ba3d49",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "b5bc9b7e-0441-41a1-a5a2-24eae5b1f2de",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:02:37.533130+00:00",
+    "updated_at": "2026-11-09T11:02:37.602741+00:00"
+  },
+  {
+    "uuid": "8913fa5f-8ce0-4576-9937-69a78bdfef15",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "41e8a906-e95c-4f51-9c6a-57e3cab27817",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:12:03.445979+00:00",
+    "updated_at": "2026-11-09T11:12:03.520406+00:00"
+  },
+  {
+    "uuid": "69ca54c8-b578-4519-a9be-acb40ca4aca8",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "026a13ef-05d4-4106-b535-cb0ea7740361",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:13:03.917938+00:00",
+    "updated_at": "2026-11-09T11:13:04.151388+00:00"
+  },
+  {
+    "uuid": "1f28500e-d432-4ced-b160-67b9266ee3ac",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "8a3f6dde-feca-4751-93f2-bfabaf1bbce9",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:15:40.349977+00:00",
+    "updated_at": "2026-11-09T11:15:40.421390+00:00"
+  },
+  {
+    "uuid": "2351cd4c-1000-4764-8cfe-bb7a78d64bc0",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "abe692cc-65c2-4a29-838c-f263a60a179d",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:32:32.234543+00:00",
+    "updated_at": "2026-11-09T11:32:32.302562+00:00"
+  },
+  {
+    "uuid": "a3d84b28-88a2-49e4-a723-267672e220a2",
+    "title": "Setlist To Delete",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "0d9108c1-1d3d-46db-854c-4a77721408e4",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-09T11:48:24.734120+00:00",
+    "updated_at": "2026-11-09T11:48:24.809131+00:00"
   }
 ]

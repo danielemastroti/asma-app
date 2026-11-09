@@ -38,10 +38,27 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Inject Browser Compatibility Polyfills & Mobile Dropdown Guard (ES2023 + suppress virtual keyboard on selectboxes)
+# Inject Browser Compatibility Polyfills & Mobile Dropdown Guard + Safe DOM Reconciliation Guard
 st.components.v1.html(
-    f"""<script>
+    f"""<meta name="google" content="notranslate">
+    <script>
     try {{
+      [window, window.parent, window.top].forEach(function(w) {{
+        try {{
+          if (!w || !w.Node || !w.Node.prototype || w.__asma_node_safe_installed) return;
+          w.__asma_node_safe_installed = true;
+          var _rc = w.Node.prototype.removeChild;
+          w.Node.prototype.removeChild = function(c) {{
+            if (c && c.parentNode !== this) return c;
+            return _rc.apply(this, arguments);
+          }};
+          var _ib = w.Node.prototype.insertBefore;
+          w.Node.prototype.insertBefore = function(n, r) {{
+            if (r && r.parentNode !== this) return this.appendChild(n);
+            return _ib.apply(this, arguments);
+          }};
+        }} catch(err) {{}}
+      }});
       var frame = window.frameElement;
       if (frame) {{
         frame.style.width = '0px';
@@ -1027,26 +1044,8 @@ gist_client = GistClient()
 auth_mgr = AuthManager()
 
 # Client Preference Persistence Across Page Reloads (SRS Cap. 3 & 10)
-PREF_FILE = os.path.join(os.path.dirname(__file__), "data", "client_preferences.json")
-
-def load_client_preferences() -> dict:
-    if os.path.exists(PREF_FILE):
-        try:
-            with open(PREF_FILE, "r", encoding="utf-8") as _pf:
-                return json.load(_pf)
-        except Exception:
-            return {}
-    return {}
-
-def save_client_preferences(prefs: dict):
-    try:
-        os.makedirs(os.path.dirname(PREF_FILE), exist_ok=True)
-        with open(PREF_FILE, "w", encoding="utf-8") as _pf:
-            json.dump(prefs, _pf, indent=2)
-    except Exception:
-        pass
-
-_client_prefs = load_client_preferences()
+# Obsolete client_preferences table removed; user preferences now stored exclusively in user_device_preferences
+_client_prefs = {}
 
 # -----------------------------------------------------------------------------
 # GOOGLE OAUTH CALLBACK & LIGHTWEIGHT LOGIN SCREEN (Logo Band & Login Google)
@@ -1149,7 +1148,7 @@ if not st.session_state.get("authenticated", False):
         login_mode = st.radio(
             "Seleziona Modalità di Accesso:",
             ["Modalità Semplificata", "Modalità Editing"],
-            index=0 if _client_prefs.get("app_mode", "simplified") == "simplified" else 1,
+            index=0 if st.session_state.get("app_mode", "simplified") == "simplified" else 1,
             key="login_app_mode_choice",
             help="• Modalità Semplificata: accesso diretto a repertorio, consultazione brani, preview PDF, salvataggio e stampa, scalette e modalità palco.\n• Modalità Editing: accesso completo a tutte le funzioni e strumenti di modifica/amministrazione."
         )
@@ -1158,9 +1157,6 @@ if not st.session_state.get("authenticated", False):
             st.session_state.pop("user_logged_out", None)
             chosen_m = "simplified" if "Semplificata" in st.session_state.get("login_app_mode_choice", "Modalità Semplificata") else "editing"
             st.session_state["app_mode"] = chosen_m
-            _cp = load_client_preferences()
-            _cp["app_mode"] = chosen_m
-            save_client_preferences(_cp)
             if hasattr(st, "login"):
                 st.login()
 
@@ -1180,15 +1176,21 @@ current_user = auth_mgr.get_user_by_email(st.session_state["current_user_email"]
 if not current_user:
     current_user = auth_mgr.authenticate_or_register_google(st.session_state["current_user_email"])
 
-# Hydrate and persist app_mode
-if "app_mode" not in st.session_state:
+u_email_login = current_user.email.lower().strip()
+
+# Hydrate user preferences on fresh login / user change directly from Turso DB (Tablet priority if multiple devices)
+if st.session_state.get("_last_logged_in_email") != u_email_login or "user_preferred_device" not in st.session_state:
+    _login_dev, _login_prefs = pref_mgr.get_login_preferences(u_email_login)
+    st.session_state["_last_logged_in_email"] = u_email_login
+    st.session_state["user_preferred_device"] = _login_dev
     if "login_app_mode_choice" in st.session_state:
         st.session_state["app_mode"] = "simplified" if "Semplificata" in st.session_state["login_app_mode_choice"] else "editing"
     else:
-        saved_m = _client_prefs.get("app_mode")
-        if not saved_m:
-            saved_m = pref_mgr.get_user_preference(current_user.email, "app_mode", default="simplified")
-        st.session_state["app_mode"] = saved_m
+        st.session_state["app_mode"] = _login_prefs.get("app_mode", "simplified")
+    st.session_state["user_score_display_mode"] = _login_prefs.get("score_display_mode", "chords")
+else:
+    if "app_mode" not in st.session_state:
+        st.session_state["app_mode"] = "simplified"
 pref_mgr.set_user_preference(current_user.email, "app_mode", st.session_state["app_mode"])
 
 st.session_state["current_user_name"] = current_user.name
@@ -1360,38 +1362,12 @@ try:
 except Exception:
     _client_cookie_dev = None
 
-# Resolve Active Device: Session State -> Turso DB Category -> Turso DB Active -> Turso DB Configured -> Hardware Default
+# Resolve Active Device: Session State -> Turso DB (with tablet priority on multiple devices)
 if "user_preferred_device" in st.session_state and st.session_state["user_preferred_device"] in dev_names:
     _active_dev = st.session_state["user_preferred_device"]
 else:
-    # 1. Look up last active device SPECIFIC to this hardware category (desktop vs tablet vs mobile)
-    _cat_last_dev = pref_mgr.get_last_active_device_for_category(u_email, _client_dev_cat)
-    if _cat_last_dev and _cat_last_dev in dev_names:
-        _active_dev = _cat_last_dev
-    else:
-        # 2. Check user's overall last active device in Turso Cloud
-        _u_last = pref_mgr.get_last_active_device(u_email)
-        if _u_last and _u_last in dev_names:
-            _active_dev = _u_last
-        else:
-            # 3. Check any configured device for this user in Turso (never force a generic default if user has devices)
-            u_configured_records = pref_mgr.turso.fetch_all_user_preferences(u_email) if pref_mgr.turso.is_configured else []
-            u_configured_names = [r["device_name"] for r in u_configured_records if r.get("device_name") in dev_names]
-            tablet_matches = [d for d in u_configured_names if pref_mgr.classify_device_category(d) == "tablet"]
-            desktop_matches = [d for d in u_configured_names if pref_mgr.classify_device_category(d) == "desktop"]
-            if _client_dev_cat == "desktop" and desktop_matches:
-                _active_dev = desktop_matches[0]
-            elif _client_dev_cat in ("tablet", "mobile_phone") and tablet_matches:
-                _active_dev = tablet_matches[0]
-            elif u_configured_names:
-                _active_dev = u_configured_names[0]
-            else:
-                if _client_dev_cat == "desktop":
-                    _active_dev = "Foglio a 4 stampabile" if "Foglio a 4 stampabile" in dev_names else (dev_names[0] if dev_names else "Foglio a 4 stampabile")
-                elif _client_dev_cat == "tablet":
-                    _active_dev = "Huawei MatePad / Tablet (10.4\"/11\")" if "Huawei MatePad / Tablet (10.4\"/11\")" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
-                else:
-                    _active_dev = "Pixel 8 pro" if "Pixel 8 pro" in dev_names else (dev_names[0] if dev_names else "Pixel 8 pro")
+    _active_dev, _login_p = pref_mgr.get_login_preferences(u_email)
+    st.session_state["user_preferred_device"] = _active_dev
 
 st.session_state["user_preferred_device"] = _active_dev
 
@@ -1565,12 +1541,13 @@ with st.container(key="top_navbar_container"):
                 new_m = "simplified" if "Semplificata" in str(sel) else "editing"
                 st.session_state["app_mode"] = new_m
                 pref_mgr.set_user_preference(current_user.email, "app_mode", new_m)
-                _cp = load_client_preferences()
-                _cp["app_mode"] = new_m
-                save_client_preferences(_cp)
+                cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                pref_mgr.save_preferences(current_user.email, cur_dev, {"app_mode": new_m})
+                _invalidate_pdf_buffers()
                 if new_m == "simplified" and st.session_state.get("main_menu_choice") not in SIMPLIFIED_MENU_ITEMS:
                     st.session_state["main_menu_choice"] = "🏠 Home Dashboard"
                 log_op("⚡", "MODALITA", f"Modalità operativa impostata su: {new_m.upper()} per {current_user.name}", "INFO")
+                st.rerun()
 
             st.radio(
                 "Seleziona Modalità:",
@@ -1595,8 +1572,11 @@ with st.container(key="top_navbar_container"):
                 new_m = "lyrics" if "Solo Testo" in str(chosen) else "chords"
                 st.session_state["user_score_display_mode"] = new_m
                 pref_mgr.set_user_preference(current_user.email, "score_display_mode", new_m)
-                pref_mgr.save_preferences(current_user.email, _active_dev, {"score_display_mode": new_m})
+                cur_dev = st.session_state.get("user_preferred_device", _active_dev)
+                pref_mgr.save_preferences(current_user.email, cur_dev, {"score_display_mode": new_m})
+                _invalidate_pdf_buffers()
                 log_op("🎼", "PROFILO", f"Default spartito per {current_user.name} impostato su: {chosen}", "SUCCESS")
+                st.rerun()
 
             st.radio(
                 "Visualizzazione Predefinita:",
@@ -1644,7 +1624,7 @@ with st.container(key="top_navbar_container"):
 
             def _invalidate_pdf_buffers():
                 PDFEngine._cache.clear()
-                keys_to_del = [k for k in list(st.session_state.keys()) if k.startswith("buf_") or k.startswith("print_")]
+                keys_to_del = [k for k in list(st.session_state.keys()) if k.startswith("buf_") or k.startswith("print_") or k.startswith("pdf_preview_")]
                 for k in keys_to_del:
                     st.session_state.pop(k, None)
 

@@ -174,8 +174,36 @@ MOBILE_DROPDOWN_GUARD_JS = """
 })();
 """
 
-POLYFILL_SCRIPT = f"""<!-- ASMA Polyfill v3.0 No-Remove Safe Mode -->
+POLYFILL_SCRIPT = f"""<!-- ASMA Polyfill v3.1 No-Remove & Safe DOM Reconciliation Guard -->
+<meta name="google" content="notranslate">
 <script>
+// Prevent React 18 / DOM reconciliation crash 'Node.removeChild: The node to be removed is not a child of this node'
+(function() {{
+  if (typeof Node !== 'undefined' && Node.prototype) {{
+    var origRemoveChild = Node.prototype.removeChild;
+    Node.prototype.removeChild = function(child) {{
+      if (child && child.parentNode !== this) {{
+        if (console && console.warn) {{
+          console.warn("Prevented Node.removeChild crash: child is not a child of this node", child);
+        }}
+        return child;
+      }}
+      return origRemoveChild.apply(this, arguments);
+    }};
+
+    var origInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function(newNode, referenceNode) {{
+      if (referenceNode && referenceNode.parentNode !== this) {{
+        if (console && console.warn) {{
+          console.warn("Prevented Node.insertBefore crash: referenceNode is not a child of this node", referenceNode);
+        }}
+        return this.appendChild(newNode);
+      }}
+      return origInsertBefore.apply(this, arguments);
+    }};
+  }}
+}})();
+
 (function() {{
   if (!Array.prototype.toSorted) {{
     Array.prototype.toSorted = function(compareFn) {{
@@ -220,7 +248,7 @@ def ensure_streamlit_index_patched() -> bool:
             return False
 
         content = index_path.read_text(encoding="utf-8")
-        if "ASMA Polyfill v3.0 No-Remove Safe Mode" in content:
+        if "ASMA Polyfill v3.1 No-Remove & Safe DOM Reconciliation Guard" in content:
             return True
 
         needle = "<head>"

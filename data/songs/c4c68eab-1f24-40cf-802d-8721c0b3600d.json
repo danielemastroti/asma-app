@@ -1,0 +1,30 @@
+{
+  "uuid": "c4c68eab-1f24-40cf-802d-8721c0b3600d",
+  "title": "PROUD MARY",
+  "artist": "Creedence Clearwater Revival",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 121,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "DO",
+  "key_current": "DO",
+  "notation_system": "INT",
+  "tags": [
+    "importato-web"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: PROUD MARY}\n{artist: Creedence Clearwater Revival}\n{key: DO}\n{source: https://www.accordiespartiti.it/accordi/internazionali/creedence-clearwater-revival/proud-mary-2/}\n\n\nIntro:\n[DO][RE]Left [LA]a good [DO]job in the [LA]city,   [DO]        [LA]       [SOL]         [FA]        [RE]\n\nWorkin' for the man ev'ry night and day,\n\nAnd I never lost one minute of sleepin',\n\nWorryin' 'bout the way things might have been\n[LA]Big wheel keep on turnin',\n[SIm]Proud Mary keep on burnin',\n\n[RE]Rollin', rollin', rollin' on the river\n\n[RE]Cleaned a lot of plates in Memphis,\n\nPumped a lot of 'pane down in New Orleans,\n\nBut I never saw the good side of the city,\n\n'Til I hitched a ride on a river boat queen\n[LA]Big wheel keep on turnin',\n[SIm]Proud Mary keep on burnin',\n\n[RE]Rollin', rollin', rollin' on the river\n\n| DO | LA | DO | LA | DO | LA | SOL | FA | RE |\n[RE][RE]Rollin', rolli[LA]n', rollin[SIm]' on the river\n\n[DO][RE]If [LA]you come [DO]down to [LA]the river, [DO]        [LA]       [SOL]         [FA]        [RE]\n\nBet you gonna find some people who live\n\nYou don't have to worry 'cause you have no money,\n\nPeople on the river are happy to give\n[LA]Big wheel keep on turnin',\n[SIm]Proud Mary keep on burnin',\n\n[RE]Rollin', rollin', rollin' on the river\n\nRollin', rollin', rollin' on the river\n\nRollin', rollin', rollin' on the river\n\nRollin', rollin', rollin' on the river...\n\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-09T12:42:32.829743+00:00",
+  "updated_at": "2026-11-09T12:42:32.829743+00:00"
+}

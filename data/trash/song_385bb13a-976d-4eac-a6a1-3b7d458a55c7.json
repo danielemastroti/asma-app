@@ -1,0 +1,36 @@
+{
+  "deleted_at": "2026-11-09T10:26:34.034584+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "385bb13a-976d-4eac-a6a1-3b7d458a55c7",
+  "reason": "Deduplicato GUID legacy a favore di 'mustang_sally_75af7c'",
+  "data": {
+    "uuid": "385bb13a-976d-4eac-a6a1-3b7d458a55c7",
+    "title": "MUSTANG SALLY",
+    "artist": "Wilson Pickett",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 115,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "DO",
+    "key_current": "DO",
+    "notation_system": "INT",
+    "tags": [
+      "importato-web"
+    ],
+    "shared_notes": "",
+    "aml_content": "{title: MUSTANG SALLY}\n{artist: Wilson Pickett}\n{key: DO}\n{source: https://www.accordiespartiti.it/accordi/internazionali/pickett-wilson/mustang-sally/}\n\n\nIntro:\n[DO7]\nMustang [DO7]Sally, huh, huh,\n\nguess you better slow your mustang down\n\nOh Lord, what I said now?\nMustang [FA7]Sally, now baby, oh Lord,\nguess you better slow your mustang [DO7]down\n\nHuh oh yeaah\nYou been [SOL7]running all over the town now\n [FA]Oh! I guess I'll have\nto put your flat feet on the [DO7]ground\n\nHuh, what I said now?\n\nListen\n[DO7]All you want to do is ride around Sally,\n\nride, Sally, ride\n\nAll you want to do is ride around Sally, \n\nride, Sally, ride\n[FA7]All you want to do is ride around Sally,\n\nride, Sally, ride... Huh\n[DO7]All you want to do is ride around Sally,\n\nride, Sally, ride\n[SOL7]One of these early mornings, baby,\n [FA]you gonna be wiping your weeping [DO7]eyes\n\nHuh, what I said now?\n\nLook it here\n\nI [DO7]bought you a brand\n\nnew mustang nineteen sixty five... Huh\n\nNow you come around signifying a woman, \n\nyou don't wanna let me ride\nMusta[FA7]ng Sally, now baby, oh Lord,\nguess you better slow that mustang [DO7]down\n\nHuh, oh Lord... Look here\nYou been [SOL7]running all over the town\n [FA]Oh! I got to put your flat feet on the [DO7]ground\n\nHuh, What I said now?\n\nLet me say it one more time ya'll\n\nAll you want to do is ride around Sally, \n\nride, Sally, ride\n\nAll you want to do is ride around Sally, \n\nride, Sally, ride...\n\n",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-09T10:26:03.607154+00:00",
+    "updated_at": "2026-11-09T10:26:03.608984+00:00"
+  }
+}
