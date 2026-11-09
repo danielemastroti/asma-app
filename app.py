@@ -1542,7 +1542,20 @@ with st.container(key="top_navbar_container"):
                 st.session_state["app_mode"] = new_m
                 pref_mgr.set_user_preference(current_user.email, "app_mode", new_m)
                 cur_dev = st.session_state.get("user_preferred_device", _active_dev)
-                pref_mgr.save_preferences(current_user.email, cur_dev, {"app_mode": new_m})
+                pref_mgr.save_preferences(current_user.email, cur_dev, {
+                    "app_mode": new_m,
+                    "layout_font_size": st.session_state.get("layout_font_size", 12.0),
+                    "layout_font_size_chords": st.session_state.get("layout_font_size_chords", 13.0),
+                    "layout_columns": st.session_state.get("layout_columns", 1),
+                    "layout_margin_lateral": st.session_state.get("layout_margin_lateral", 10.0),
+                    "layout_margin_top": st.session_state.get("layout_margin_top", 8.0),
+                    "layout_margin_bottom": st.session_state.get("layout_margin_bottom", 8.0),
+                    "layout_color_text": st.session_state.get("layout_color_text", "#111111"),
+                    "layout_color_chords": st.session_state.get("layout_color_chords", "#B71C1C"),
+                    "layout_color_aml": st.session_state.get("layout_color_aml", "#4A148C"),
+                    "ui_zoom_level": st.session_state.get("ui_zoom_level", 1.0),
+                    "score_display_mode": st.session_state.get("user_score_display_mode", "chords")
+                })
                 _invalidate_pdf_buffers()
                 if new_m == "simplified" and st.session_state.get("main_menu_choice") not in SIMPLIFIED_MENU_ITEMS:
                     st.session_state["main_menu_choice"] = "🏠 Home Dashboard"
@@ -1573,7 +1586,20 @@ with st.container(key="top_navbar_container"):
                 st.session_state["user_score_display_mode"] = new_m
                 pref_mgr.set_user_preference(current_user.email, "score_display_mode", new_m)
                 cur_dev = st.session_state.get("user_preferred_device", _active_dev)
-                pref_mgr.save_preferences(current_user.email, cur_dev, {"score_display_mode": new_m})
+                pref_mgr.save_preferences(current_user.email, cur_dev, {
+                    "score_display_mode": new_m,
+                    "layout_font_size": st.session_state.get("layout_font_size", 12.0),
+                    "layout_font_size_chords": st.session_state.get("layout_font_size_chords", 13.0),
+                    "layout_columns": st.session_state.get("layout_columns", 1),
+                    "layout_margin_lateral": st.session_state.get("layout_margin_lateral", 10.0),
+                    "layout_margin_top": st.session_state.get("layout_margin_top", 8.0),
+                    "layout_margin_bottom": st.session_state.get("layout_margin_bottom", 8.0),
+                    "layout_color_text": st.session_state.get("layout_color_text", "#111111"),
+                    "layout_color_chords": st.session_state.get("layout_color_chords", "#B71C1C"),
+                    "layout_color_aml": st.session_state.get("layout_color_aml", "#4A148C"),
+                    "ui_zoom_level": st.session_state.get("ui_zoom_level", 1.0),
+                    "app_mode": st.session_state.get("app_mode", "simplified")
+                })
                 _invalidate_pdf_buffers()
                 log_op("🎼", "PROFILO", f"Default spartito per {current_user.name} impostato su: {chosen}", "SUCCESS")
                 st.rerun()

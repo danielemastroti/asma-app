@@ -169,6 +169,46 @@ class TestPreferencesManager(unittest.TestCase):
         self.assertEqual(fresh.get_last_active_device_for_category(user, "desktop"), "Foglio a 4 stampabile")
         self.assertEqual(fresh.get_last_active_device_for_category(user, "tablet"), 'Huawei MatePad / Tablet (10.4"/11")')
 
+    def test_mode_switch_preserves_preferences(self):
+        """Verifies that switching between simplified and editing modes preserves 100% of user layout settings."""
+        user = "musicista@test.com"
+        device = 'Huawei MatePad / Tablet (10.4"/11")'
+
+        # User saves customized layout settings
+        self.manager.save_preferences(user, device, {
+            "layout_font_size": 22.0,
+            "layout_font_size_chords": 24.0,
+            "layout_columns": 2,
+            "layout_margin_lateral": 16.0,
+            "layout_color_text": "#222222",
+            "layout_color_chords": "#FF0000",
+            "app_mode": "simplified",
+            "score_display_mode": "lyrics"
+        })
+
+        # User switches mode to editing
+        self.manager.save_preferences(user, device, {"app_mode": "editing"})
+
+        # Verify all layout preferences are perfectly preserved
+        p_edit = self.manager.get_preferences(user, device)
+        self.assertEqual(p_edit["app_mode"], "editing")
+        self.assertEqual(p_edit["layout_font_size"], 22.0)
+        self.assertEqual(p_edit["layout_font_size_chords"], 24.0)
+        self.assertEqual(p_edit["layout_columns"], 2)
+        self.assertEqual(p_edit["layout_margin_lateral"], 16.0)
+        self.assertEqual(p_edit["layout_color_text"], "#222222")
+        self.assertEqual(p_edit["layout_color_chords"], "#FF0000")
+        self.assertEqual(p_edit["score_display_mode"], "lyrics")
+
+        # User switches back to simplified mode
+        self.manager.save_preferences(user, device, {"app_mode": "simplified"})
+        p_simp = self.manager.get_preferences(user, device)
+        self.assertEqual(p_simp["app_mode"], "simplified")
+        self.assertEqual(p_simp["layout_font_size"], 22.0)
+        self.assertEqual(p_simp["layout_font_size_chords"], 24.0)
+        self.assertEqual(p_simp["layout_columns"], 2)
+        self.assertEqual(p_simp["score_display_mode"], "lyrics")
+
 
 
 if __name__ == '__main__':

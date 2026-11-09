@@ -253,33 +253,24 @@ class PreferencesManager:
         """
         Retrieves all layout & typography preferences for a specific (user, device) pair.
         Checks local cache first, then Turso Cloud DB, and only defaults if neither has records.
+        Guarantees that all required layout keys are always fully populated.
         """
         email_clean = user_email.lower().strip()
+        required_layout_keys = {"layout_font_size", "layout_font_size_chords", "layout_columns", "layout_margin_lateral"}
         with self._mutex:
             user_data = self._cache.get(email_clean, {})
             dev_data = user_data.get("devices", {}).get(device_name)
-            if dev_data:
+            if dev_data and required_layout_keys.issubset(dev_data.keys()):
                 return dict(dev_data)
 
         # Direct Turso fallback before seeding hardware defaults
+        cloud_rec = None
         if self.turso.is_configured:
             try:
                 cloud_rec = self.turso.fetch_user_device_preference(email_clean, device_name)
-                if cloud_rec:
-                    with self._mutex:
-                        if email_clean not in self._cache:
-                            self._cache[email_clean] = {
-                                "last_active_device": device_name,
-                                "devices": {},
-                                "user_prefs": {}
-                            }
-                        self._cache[email_clean]["devices"][device_name] = dict(cloud_rec)
-                        self._save_cache()
-                    return dict(cloud_rec)
             except Exception:
-                pass
+                cloud_rec = None
 
-        # Generate base hardware defaults for this specific device
         dev_mgr = DeviceManager()
         base_dev = dev_mgr.get_device_by_name(device_name)
         f_size = base_dev.font_size_lyrics if base_dev else 12.0
@@ -290,7 +281,7 @@ class PreferencesManager:
         m_bot = base_dev.margin_bottom_mm if base_dev else 8.0
         zoom = 0.82 if base_dev and "huawei" in base_dev.name.lower() else 1.0
 
-        default_prefs = {
+        full_prefs = {
             "layout_font_size": f_size,
             "layout_font_size_chords": fc_size,
             "layout_columns": cols,
@@ -301,33 +292,28 @@ class PreferencesManager:
             "layout_color_chords": "#B71C1C",
             "layout_color_aml": "#4A148C",
             "ui_zoom_level": zoom,
-            "app_mode": "simplified",
-            "score_display_mode": "chords"
+            "app_mode": self.get_user_preference(email_clean, "app_mode", default="simplified"),
+            "score_display_mode": self.get_user_preference(email_clean, "score_display_mode", default="chords")
         }
 
-        # Save seeded defaults to cache and push to Turso
+        if cloud_rec:
+            full_prefs.update(cloud_rec)
+
         with self._mutex:
+            cached_dev = self._cache.get(email_clean, {}).get("devices", {}).get(device_name)
+            if cached_dev:
+                full_prefs.update(cached_dev)
+
             if email_clean not in self._cache:
                 self._cache[email_clean] = {
                     "last_active_device": device_name,
                     "devices": {},
                     "user_prefs": {}
                 }
-            self._cache[email_clean]["devices"][device_name] = dict(default_prefs)
+            self._cache[email_clean]["devices"][device_name] = dict(full_prefs)
             self._save_cache()
 
-        if self.turso.is_configured:
-            try:
-                self.turso.push_user_device_preference(
-                    email=email_clean,
-                    device_name=device_name,
-                    prefs=default_prefs,
-                    is_last_active=True
-                )
-            except Exception:
-                pass
-
-        return default_prefs
+        return full_prefs
 
     def save_preferences(
         self,
@@ -337,8 +323,13 @@ class PreferencesManager:
     ) -> None:
         """
         Saves layout preferences for (user, device) in local cache and pushes to Turso Cloud synchronously.
+        Guarantees that all existing preferences are preserved and merged, never overwritten by defaults.
         """
         email_clean = user_email.lower().strip()
+        # 1. Start with full existing preferences
+        full_prefs = self.get_preferences(email_clean, device_name)
+        full_prefs.update(updated_prefs)
+
         with self._mutex:
             if email_clean not in self._cache:
                 self._cache[email_clean] = {
@@ -346,15 +337,15 @@ class PreferencesManager:
                     "devices": {},
                     "user_prefs": {}
                 }
-            if device_name not in self._cache[email_clean]["devices"]:
-                self._cache[email_clean]["devices"][device_name] = {}
-
-            self._cache[email_clean]["devices"][device_name].update(updated_prefs)
+            self._cache[email_clean]["devices"][device_name] = dict(full_prefs)
             self._cache[email_clean]["last_active_device"] = device_name
-            full_prefs = dict(self._cache[email_clean]["devices"][device_name])
+            if "app_mode" in updated_prefs:
+                self._cache[email_clean]["user_prefs"]["app_mode"] = updated_prefs["app_mode"]
+            if "score_display_mode" in updated_prefs:
+                self._cache[email_clean]["user_prefs"]["score_display_mode"] = updated_prefs["score_display_mode"]
             self._save_cache()
 
-        # Push to Turso Cloud immediately so that subsequent reboots/logins have the new values
+        # 2. Push to Turso Cloud immediately with the full merged preferences
         if self.turso.is_configured:
             try:
                 self.turso.push_user_device_preference(
