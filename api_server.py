@@ -775,6 +775,7 @@ def get_song_pdf(
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
     email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
     user_name: Optional[str] = Query(None, description="Pseudonimo musicista (es. Cico, Sentimental)"),
+    download: bool = Query(False, description="True per forzare il download con header attachment"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
@@ -872,11 +873,12 @@ def get_song_pdf(
             pass
     filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', song.title).strip('_') or "brano"
 
+    disp = "attachment" if download else "inline"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{filename}.pdf"'
+            "Content-Disposition": f'{disp}; filename="{filename}.pdf"'
         }
     )
 
@@ -1176,6 +1178,7 @@ def get_setlist_pdf(
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
     email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
     user_name: Optional[str] = Query(None, description="Pseudonimo musicista"),
+    download: bool = Query(False, description="True per forzare il download con header attachment"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
@@ -1274,11 +1277,12 @@ def get_setlist_pdf(
             pdf_bytes = doc.tobytes(garbage=3)
         except Exception:
             pass
+    disp = "attachment" if download else "inline"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": 'inline; filename="SCALETTA_LIVE.pdf"'
+            "Content-Disposition": f'{disp}; filename="SCALETTA_LIVE.pdf"'
         }
     )
 

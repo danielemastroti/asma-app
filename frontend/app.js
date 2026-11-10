@@ -1464,18 +1464,34 @@ function parseAmlForWeb(aml, showChords) {
   return html;
 }
 
-function downloadPdf() {
+async function downloadPdf() {
   if (!state.selectedSong) return;
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}`;
   const cleanTitle = (state.selectedSong.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${cleanTitle}.pdf`;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const filename = `${cleanTitle}.pdf`;
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&download=true`;
+
+  showToast(`Scaricamento "${filename}" in corso...`);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 2000);
+    showToast(`PDF salvato: ${filename} ✓`);
+  } catch (err) {
+    console.warn('Blob download fallback:', err);
+    window.location.href = url;
+  }
 }
 
 async function printDirectA4(url) {
@@ -1918,16 +1934,32 @@ function renderSetlists() {
   `).join('');
 }
 
-function downloadSetlistPdf(uuid) {
+async function downloadSetlistPdf(uuid) {
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}`;
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'SCALETTA_LIVE.pdf';
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const filename = 'SCALETTA_LIVE.pdf';
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&download=true`;
+
+  showToast(`Scaricamento "${filename}" in corso...`);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 2000);
+    showToast(`PDF scaletta salvato: ${filename} ✓`);
+  } catch (err) {
+    console.warn('Blob setlist download fallback:', err);
+    window.location.href = url;
+  }
 }
 
 function printSetlistA4(uuid) {
