@@ -1594,7 +1594,7 @@ async function renderStageSong(currentSong) {
     try {
       const savedStageSize = localStorage.getItem('asma_stage_font_size');
       if (savedStageSize) {
-        container.style.fontSize = ${savedStageSize}px;
+        container.style.fontSize = `${savedStageSize}px`;
       }
     } catch (e) {}
     container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
@@ -1724,7 +1724,7 @@ async function adjustStageFontSize(delta) {
     updateSettingsFormValues();
     applyPreferences();
     autosaveUserPreferences();
-    showToast(Font Spartito PDF: Testo pt • Accordi pt);
+    showToast(`Font Spartito PDF: Testo ${state.userPrefs.layout_font_size}pt • Accordi ${state.userPrefs.layout_font_size_chords}pt`);
     const currentSong = state.stageSongs[state.stageIndex];
     if (currentSong) {
       await renderStageSong(currentSong);
@@ -1733,9 +1733,9 @@ async function adjustStageFontSize(delta) {
     if (container) {
       const currentSize = parseFloat(window.getComputedStyle(container).fontSize) || 22;
       const newSize = Math.max(14, Math.min(48, currentSize + delta));
-      container.style.fontSize = ${newSize}px;
+      container.style.fontSize = `${newSize}px`;
       try { localStorage.setItem('asma_stage_font_size', String(newSize)); } catch (e) {}
-      showToast(Teleprompter: Testo e Accordi px);
+      showToast(`Teleprompter: Testo e Accordi ${newSize}px`);
     }
   }
 }
