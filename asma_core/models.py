@@ -112,6 +112,8 @@ class Repertoire:
     name: str = ""
     description: str = ""
     song_uuids: List[str] = field(default_factory=list)
+    is_official: bool = False
+    owner_email: Optional[str] = None
     created_at: str = field(default_factory=current_iso_timestamp)
     updated_at: str = field(default_factory=current_iso_timestamp)
 

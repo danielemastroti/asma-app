@@ -103,9 +103,17 @@ class TransposeRequest(BaseModel):
     user_name: Optional[str] = "Cico"
 
 class RepertoireCreateRequest(BaseModel):
+    uuid: Optional[str] = None
     name: str
     description: Optional[str] = ""
     song_uuids: Optional[List[str]] = []
+    is_official: Optional[bool] = False
+    owner_email: Optional[str] = None
+    user_email: Optional[str] = "cico@band.org"
+    user_name: Optional[str] = "Cico"
+
+class PromoteSongRequest(BaseModel):
+    song_uuid: str
     user_email: Optional[str] = "cico@band.org"
     user_name: Optional[str] = "Cico"
 
@@ -184,23 +192,82 @@ def get_authorized_users():
 # -----------------------------------------------------------------------------
 
 @app.get("/api/repertoires")
-def list_repertoires():
-    """Lists all repertoires with accurate valid song counts."""
+def list_repertoires(user_email: Optional[str] = Query(None)):
+    """Lists all repertoires with accurate valid song counts, respecting access rules:
+       - Official repertoire: visible to all musicians.
+       - Personal repertoire: visible only to owner and admin.
+       - Admin: sees all repertoires.
+    """
     all_reps = storage.list_repertoires()
     all_songs = storage.list_songs()
     valid_song_uuids = {s["uuid"] for s in all_songs}
 
+    is_admin = False
+    if user_email:
+        u = auth_mgr.get_user_by_email(user_email)
+        if u and u.can_admin():
+            is_admin = True
+        elif user_email in ["danyposta@gmail.com", "danyposta@yahoo.it"]:
+            is_admin = True
+    else:
+        is_admin = True
+
     result = []
+    has_user_personal = False
     for r in all_reps:
+        is_off = getattr(r, "is_official", False)
+        owner = getattr(r, "owner_email", None)
+
+        if not is_admin and user_email:
+            if not is_off and owner != user_email:
+                continue
+
+        if owner == user_email:
+            has_user_personal = True
+
         valid_count = len([uid for uid in r.song_uuids if uid in valid_song_uuids])
         result.append({
             "uuid": r.uuid,
             "name": r.name,
             "description": r.description,
+            "is_official": is_off,
+            "owner_email": owner,
             "song_count": valid_count,
             "song_uuids": [uid for uid in r.song_uuids if uid in valid_song_uuids],
             "updated_at": r.updated_at
         })
+
+    # If user is a logged-in band member and doesn't have a personal repertoire yet, auto-create one
+    if user_email and not has_user_personal and not is_admin:
+        u = auth_mgr.get_user_by_email(user_email)
+        u_name = u.name if u else user_email.split("@")[0].capitalize()
+        new_personal = Repertoire(
+            name=f"{u_name}",
+            description=f"Repertorio personale di {u_name}",
+            is_official=False,
+            owner_email=user_email,
+            song_uuids=[]
+        )
+        saved = storage.save_repertoire(new_personal, user_email, u_name)
+        result.append({
+            "uuid": saved.uuid,
+            "name": saved.name,
+            "description": saved.description,
+            "is_official": False,
+            "owner_email": user_email,
+            "song_count": 0,
+            "song_uuids": [],
+            "updated_at": saved.updated_at
+        })
+
+    def _rep_sort_key(x):
+        if x["is_official"]:
+            return (0, x["name"])
+        if user_email and x.get("owner_email") == user_email:
+            return (1, x["name"])
+        return (2, x["name"])
+
+    result.sort(key=_rep_sort_key)
     return result
 
 @app.get("/api/repertoires/{uuid}")
@@ -227,6 +294,8 @@ def get_repertoire(uuid: str):
         "uuid": rep.uuid,
         "name": rep.name,
         "description": rep.description,
+        "is_official": getattr(rep, "is_official", False),
+        "owner_email": getattr(rep, "owner_email", None),
         "song_count": len(songs_in_rep),
         "songs": songs_in_rep,
         "updated_at": rep.updated_at
@@ -236,16 +305,49 @@ def get_repertoire(uuid: str):
 def save_repertoire(req: RepertoireCreateRequest):
     """Creates or updates a repertoire."""
     rep = Repertoire(
+        uuid=req.uuid or "",
         name=req.name.strip(),
         description=req.description.strip(),
-        song_uuids=req.song_uuids or []
+        song_uuids=req.song_uuids or [],
+        is_official=req.is_official or False,
+        owner_email=req.owner_email or (None if req.is_official else req.user_email)
     )
     saved = storage.save_repertoire(rep, req.user_email, req.user_name)
     return {"status": "success", "repertoire": saved.to_dict()}
 
+@app.post("/api/repertoires/promote-song")
+def promote_song_to_official(req: PromoteSongRequest):
+    """Adds a song from a personal repertoire into the Official Band Repertoire."""
+    all_reps = storage.list_repertoires()
+    official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+    if not official_rep:
+        official_rep = all_reps[0] if all_reps else None
+    if not official_rep:
+        raise HTTPException(status_code=404, detail="Repertorio Ufficiale non trovato")
+    song = storage.get_song(req.song_uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    if req.song_uuid not in official_rep.song_uuids:
+        official_rep.song_uuids.append(req.song_uuid)
+        storage.save_repertoire(official_rep, req.user_email, req.user_name)
+
+    return {
+        "status": "success",
+        "song_uuid": req.song_uuid,
+        "song_title": song.title,
+        "repertoire_uuid": official_rep.uuid,
+        "repertoire_name": official_rep.name
+    }
+
 @app.delete("/api/repertoires/{uuid}")
 def delete_repertoire(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
     """Deletes a repertoire safely."""
+    rep = storage.get_repertoire(uuid)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertorio non trovato")
+    if getattr(rep, "is_official", False):
+        raise HTTPException(status_code=400, detail="Il Repertorio Ufficiale della Band non può essere eliminato")
     success = storage.delete_repertoire(uuid, user_email, user_name)
     if not success:
         raise HTTPException(status_code=404, detail="Repertorio non trovato")
@@ -345,8 +447,15 @@ def create_song(req: SongCreateRequest):
         aml_content=req.aml_content or "{verse}\n[DO]Testo iniziale...\n"
     )
     saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Creazione brano")
-    if req.repertoire_uuid:
-        storage.move_song_to_repertoire(saved.uuid, req.repertoire_uuid, req.user_email, req.user_name)
+    target_rep_uuid = req.repertoire_uuid
+    if not target_rep_uuid or target_rep_uuid == "__ALL__":
+        all_reps = storage.list_repertoires()
+        if all_reps:
+            official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), all_reps[0])
+            target_rep_uuid = official_rep.uuid
+
+    if target_rep_uuid:
+        storage.move_song_to_repertoire(saved.uuid, target_rep_uuid, req.user_email, req.user_name)
     return {"status": "success", "song": saved.to_dict()}
 
 @app.put("/api/songs/{uuid}")
@@ -382,11 +491,19 @@ def update_song(uuid: str, req: SongUpdateRequest):
 
 @app.delete("/api/songs/{uuid}")
 def delete_song(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
-    """Soft deletes song into trash."""
+    """Soft deletes song into trash with protected undo/restore capability."""
     success = storage.delete_song(uuid, user_email, user_name)
     if not success:
         raise HTTPException(status_code=404, detail="Brano non trovato")
     return {"status": "success", "deleted_uuid": uuid}
+
+@app.post("/api/songs/{uuid}/restore")
+def restore_song(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
+    """Restores a soft-deleted song from trash (Immediate protected Undo)."""
+    restored = storage.restore_song(uuid, user_email, user_name)
+    if not restored:
+        raise HTTPException(status_code=404, detail="Brano non trovato nel cestino o già ripristinato")
+    return {"status": "success", "song": restored.to_dict()}
 
 @app.post("/api/songs/convert-text")
 def convert_raw_text(req: ConvertTextRequest):
@@ -667,6 +784,27 @@ def save_setlist(req: SetlistSaveRequest):
     saved = storage.save_setlist(setlist, req.user_email, req.user_name)
     return {"status": "success", "setlist": saved.to_dict()}
 
+@app.post("/api/setlists/{uuid}/songs/{song_uuid}")
+def add_song_to_setlist(uuid: str, song_uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
+    """Adds a single song to the end of a setlist in 1 click."""
+    s = storage.get_setlist(uuid)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scaletta non trovata")
+    song = storage.get_song(song_uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    s.items.append(SetlistItem(song_uuid=song_uuid))
+    saved = storage.save_setlist(s, user_email, user_name)
+    return {
+        "status": "success",
+        "setlist_uuid": s.uuid,
+        "setlist_title": s.title,
+        "song_uuid": song.uuid,
+        "song_title": song.title,
+        "total_items": len(s.items)
+    }
+
 @app.delete("/api/setlists/{uuid}")
 def delete_setlist(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
     """Deletes setlist into trash."""
@@ -793,8 +931,9 @@ def get_user_preferences(email: str, device: Optional[str] = "Huawei MediaPad M5
     prof = resolve_device_profile(device)
     dev_name = prof.name if prof else (device or "Huawei MediaPad M5")
     prefs = pref_mgr.get_preferences(email, dev_name)
-    app_mode = pref_mgr.get_user_preference(email, "app_mode", default="simplified")
-    score_mode = pref_mgr.get_user_preference(email, "score_display_mode", default="chords")
+    app_mode = prefs.get("app_mode") or pref_mgr.get_user_preference(email, "app_mode", default="simplified")
+    default_score_mode = "lyrics" if ("cico" in email.lower() or "acicchelli" in email.lower()) else "chords"
+    score_mode = prefs.get("score_display_mode") or pref_mgr.get_user_preference(email, "score_display_mode", default=default_score_mode)
     prefs["app_mode"] = app_mode
     prefs["score_display_mode"] = score_mode
     # Normalizza i campi colore per compatibilità incrociata Streamlit & PWA

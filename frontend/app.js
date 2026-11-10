@@ -348,9 +348,14 @@ function onColorChange(type, hexColor) {
 // ----------------------------------------------------------------------------
 async function loadRepertoires() {
   try {
-    const res = await fetch(`${API_BASE}/api/repertoires`);
+    const res = await fetch(`${API_BASE}/api/repertoires?user_email=${encodeURIComponent(state.currentUser.email)}`);
     if (res.ok) {
       state.repertoires = await res.json();
+      const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
+      if (state.activeRepertoire !== '__ALL__' && !currentExists) {
+        const official = state.repertoires.find(r => r.is_official);
+        state.activeRepertoire = official ? official.uuid : '__ALL__';
+      }
       renderRepertoireChips();
     }
   } catch (err) {
@@ -363,11 +368,22 @@ function renderRepertoireChips() {
   if (!container) return;
 
   const totalSongs = state.songs.length;
-  let html = `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti i Repertori (${totalSongs})</button>`;
+  let html = `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti (${totalSongs})</button>`;
 
   state.repertoires.forEach(r => {
     const isActive = state.activeRepertoire === r.uuid ? 'active' : '';
-    html += `<button class="chip ${isActive}" onclick="selectRepertoire('${r.uuid}')">📁 ${escapeHtml(r.name)} (${r.song_count})</button>`;
+    let icon = '📁';
+    let label = escapeHtml(r.name);
+    let extraStyle = '';
+    if (r.is_official) {
+      icon = '🌟';
+      label = `<b>${escapeHtml(r.name)}</b>`;
+      extraStyle = 'border-color: #ffd600; color: #ffd600; font-weight: 800;';
+    } else if (r.owner_email === state.currentUser.email) {
+      icon = '👤';
+      label = `Personale (${escapeHtml(r.name)})`;
+    }
+    html += `<button class="chip ${isActive}" style="${isActive ? '' : extraStyle}" onclick="selectRepertoire('${r.uuid}')">${icon} ${label} (${r.song_count})</button>`;
   });
 
   container.innerHTML = html;
@@ -429,7 +445,10 @@ function renderSongCards(searchKw = '') {
     const repsStr = (s.assigned_repertoires || []).join(', ') || 'Archivio';
     return `
       <div class="song-card ${isSel}" onclick="selectSong('${s.uuid}')">
-        <div class="song-card-title">${escapeHtml(s.title)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div class="song-card-title">${escapeHtml(s.title)}</div>
+          <button class="btn btn-secondary" style="min-height: 26px; padding: 2px 8px; font-size: 11px; color: #38bdf8; border-color: #38bdf8; font-weight: 800; white-space: nowrap;" onclick="event.stopPropagation(); openAddToSetlistModal('${s.uuid}')" title="Aggiungi a una scaletta">+ Scaletta</button>
+        </div>
         <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
         <div class="song-card-meta">
           <span class="badge">Key: ${s.key_current || '-'}</span>
@@ -627,6 +646,11 @@ function renderSongViewer() {
 
   const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
 
+  const officialRep = state.repertoires.find(r => r.is_official);
+  const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
+  const promoteBtn = (!isInOfficial && officialRep) ? 
+    `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Aggiungi questo brano al Repertorio Ufficiale della Band">⭐ Promuovi a Ufficiale</button>` : '';
+
   container.innerHTML = `
     <div class="viewer-header">
       <div>
@@ -644,9 +668,12 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
+        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
+        ${promoteBtn}
         <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
+        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>
       </div>
     </div>
     <div class="lyrics-container" id="printable-lyrics">
@@ -731,6 +758,13 @@ function insertChordAtCursor(textareaId, textToInsert) {
 function showNewSongForm() {
   const form = document.getElementById('new-song-form');
   if (form) {
+    const repSelect = document.getElementById('new-song-repertoire');
+    if (repSelect && state.repertoires && state.repertoires.length > 0) {
+      repSelect.innerHTML = state.repertoires.map(r => {
+        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && r.name.toLowerCase() === 'provvisorio');
+        return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
+      }).join('');
+    }
     form.style.display = 'block';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -966,6 +1000,9 @@ async function submitNewSong() {
   const capo = parseInt(document.getElementById('new-song-capo')?.value) || 0;
   const aml = document.getElementById('new-song-aml')?.value || '';
 
+  const repSelect = document.getElementById('new-song-repertoire');
+  const targetRepertoire = repSelect?.value || (state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null);
+
   const payload = {
     title: title.toUpperCase(),
     artist: artist,
@@ -973,7 +1010,7 @@ async function submitNewSong() {
     bpm: bpm,
     capo: capo,
     aml_content: aml,
-    repertoire_uuid: state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null,
+    repertoire_uuid: targetRepertoire,
     user_email: state.currentUser.email,
     user_name: state.currentUser.name
   };
@@ -986,13 +1023,17 @@ async function submitNewSong() {
     });
     if (res.ok) {
       const data = await res.json();
-      showToast(`Brano "${title}" creato con successo ✓`);
+      showToast(`Brano "${title}" salvato nel repertorio ✓`);
       hideNewSongForm();
+      if (targetRepertoire && state.activeRepertoire !== '__ALL__' && state.activeRepertoire !== targetRepertoire) {
+        state.activeRepertoire = targetRepertoire;
+        const selector = document.getElementById('repertoire-select');
+        if (selector) selector.value = targetRepertoire;
+      }
       // Reload repertoire and select created song
       await loadSongs();
-      const created = state.songs.find(s => s.uuid === data.song.uuid);
-      if (created) {
-        selectSong(created);
+      if (data.song && data.song.uuid) {
+        selectSong(data.song.uuid);
       }
     } else {
       const err = await res.json();
@@ -1775,6 +1816,195 @@ async function loadAndPlaySetlist(uuid) {
     }
   } catch (err) {
     console.error('Setlist play error:', err);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ADD TO SETLIST (1-Touch Modal)
+// ----------------------------------------------------------------------------
+let pendingSetlistSongUuid = null;
+
+async function openAddToSetlistModal(songUuid) {
+  pendingSetlistSongUuid = songUuid;
+  const song = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
+  const modal = document.getElementById('add-to-setlist-modal');
+  const info = document.getElementById('add-to-setlist-song-info');
+  const optionsContainer = document.getElementById('add-to-setlist-options');
+  if (!modal || !optionsContainer) return;
+
+  if (info && song) {
+    info.textContent = `Brano selezionato: ${song.title} (${song.artist || 'Band'})`;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists`);
+    if (res.ok) state.setlists = await res.json();
+  } catch (e) {}
+
+  if (!state.setlists || state.setlists.length === 0) {
+    optionsContainer.innerHTML = '<div style="color: #94a3b8; font-size: 13px; padding: 10px;">Nessuna scaletta esistente. Inserisci un titolo qui sotto per crearla subito!</div>';
+  } else {
+    optionsContainer.innerHTML = state.setlists.map(set => `
+      <button class="btn btn-secondary" style="text-align: left; justify-content: space-between; padding: 10px 14px; font-weight: 700; width: 100%;" onclick="addSongToSpecificSetlist('${set.uuid}', '${songUuid}')">
+        <span>📑 ${escapeHtml(set.title)}</span>
+        <span class="badge" style="background: #0284c7; color: #fff;">${set.item_count} brani</span>
+      </button>
+    `).join('');
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeAddToSetlistModal() {
+  const modal = document.getElementById('add-to-setlist-modal');
+  if (modal) modal.style.display = 'none';
+  pendingSetlistSongUuid = null;
+}
+
+async function addSongToSpecificSetlist(setlistUuid, songUuid) {
+  try {
+    const res = await fetch(`${API_BASE}/api/setlists/${setlistUuid}/songs/${songUuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+      method: 'POST'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`✓ "${data.song_title}" aggiunto a "${data.setlist_title}"!`);
+      closeAddToSetlistModal();
+      loadSetlists();
+    } else {
+      showToast('Errore durante l\'aggiunta alla scaletta');
+    }
+  } catch (err) {
+    console.error('Error adding to setlist:', err);
+    showToast('Errore di connessione');
+  }
+}
+
+async function createSetlistAndAddCurrentSong() {
+  const input = document.getElementById('quick-new-setlist-title');
+  const title = input ? input.value.trim() : '';
+  if (!title) {
+    showToast('Inserisci il titolo della nuova scaletta');
+    if (input) input.focus();
+    return;
+  }
+  if (!pendingSetlistSongUuid) return;
+
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const res = await fetch(`${API_BASE}/api/setlists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        date: todayStr,
+        items: [{ song_uuid: pendingSetlistSongUuid }],
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`✓ Scaletta "${title}" creata con il brano!`);
+      if (input) input.value = '';
+      closeAddToSetlistModal();
+      loadSetlists();
+    }
+  } catch (err) {
+    console.error('Error creating setlist with song:', err);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// PROMOTE SONG TO OFFICIAL BAND REPERTOIRE
+// ----------------------------------------------------------------------------
+async function promoteSongToOfficial(songUuid) {
+  try {
+    const res = await fetch(`${API_BASE}/api/repertoires/promote-song`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        song_uuid: songUuid,
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`⭐ "${data.song_title}" aggiunto al Repertorio Ufficiale Band!`);
+      await loadRepertoires();
+      if (state.selectedSong) {
+        selectSong(state.selectedSong.uuid);
+      }
+    } else {
+      showToast('Impossibile promuovere il brano');
+    }
+  } catch (err) {
+    console.error('Error promoting song:', err);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// PROTECTED DELETE WITH IMMEDIATE UNDO
+// ----------------------------------------------------------------------------
+let lastDeletedSong = null;
+
+async function deleteSongWithUndo(uuid) {
+  const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
+  if (!song) return;
+
+  if (!confirm(`Vuoi spostare "${song.title}" nel cestino protetto? Potrai ripristinarlo in qualsiasi momento.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+      method: 'DELETE'
+    });
+    if (res.ok) {
+      lastDeletedSong = { uuid: song.uuid, title: song.title };
+      showToast(`🗑️ "${song.title}" spostato nel cestino`);
+      showSongUndoBanner(song.title);
+      await loadSongs();
+      await loadRepertoires();
+    } else {
+      showToast('Errore durante l\'eliminazione');
+    }
+  } catch (err) {
+    console.error('Error deleting song:', err);
+  }
+}
+
+function showSongUndoBanner(title) {
+  const banner = document.getElementById('song-undo-banner');
+  const txt = document.getElementById('song-undo-text');
+  if (banner && txt) {
+    txt.innerHTML = `⚠️ Brano <b>"${escapeHtml(title)}"</b> eliminato.`;
+    banner.style.display = 'flex';
+  }
+}
+
+async function undoDeleteSong() {
+  if (!lastDeletedSong) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${lastDeletedSong.uuid}/restore?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+      method: 'POST'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`↩️ Brano "${data.song.title}" ripristinato con successo!`);
+      const banner = document.getElementById('song-undo-banner');
+      if (banner) banner.style.display = 'none';
+      const restoredUuid = lastDeletedSong.uuid;
+      lastDeletedSong = null;
+      await loadSongs();
+      await loadRepertoires();
+      selectSong(restoredUuid);
+    } else {
+      showToast('Impossibile ripristinare il brano');
+    }
+  } catch (err) {
+    console.error('Error restoring song:', err);
   }
 }
 
