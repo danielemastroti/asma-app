@@ -117,6 +117,10 @@ class PromoteSongRequest(BaseModel):
     user_email: Optional[str] = "cico@band.org"
     user_name: Optional[str] = "Cico"
 
+class ForkSongRequest(BaseModel):
+    user_email: Optional[str] = "cico@band.org"
+    user_name: Optional[str] = "Cico"
+
 class SetlistItemSchema(BaseModel):
     song_uuid: str
     is_medley: Optional[bool] = False
@@ -301,13 +305,40 @@ def get_repertoire(uuid: str):
         "updated_at": rep.updated_at
     }
 
+def is_admin_email(email: Optional[str]) -> bool:
+    if not email:
+        return False
+    u = auth_mgr.get_user_by_email(email)
+    if u and u.can_admin():
+        return True
+    return email.lower() in ["danyposta@gmail.com", "danyposta@yahoo.it"]
+
 @app.post("/api/repertoires")
 def save_repertoire(req: RepertoireCreateRequest):
-    """Creates or updates a repertoire."""
+    """Creates or updates a repertoire (Admin only for non-personal repertoires)."""
+    is_admin = is_admin_email(req.user_email)
+
+    if req.uuid:
+        existing = storage.get_repertoire(req.uuid)
+        if existing:
+            if getattr(existing, "is_official", False) and not is_admin:
+                raise HTTPException(status_code=403, detail="Solo l'amministratore può modificare il Repertorio Ufficiale")
+            if getattr(existing, "owner_email", None) and getattr(existing, "owner_email") != req.user_email and not is_admin:
+                raise HTTPException(status_code=403, detail="Permesso negato per questo repertorio")
+
+            existing.name = req.name.strip()
+            if req.description is not None:
+                existing.description = req.description.strip()
+            saved = storage.save_repertoire(existing, req.user_email, req.user_name)
+            return {"status": "success", "repertoire": saved.to_dict()}
+
+    if not is_admin and req.is_official:
+        raise HTTPException(status_code=403, detail="Solo l'amministratore può creare repertori ufficiali")
+
     rep = Repertoire(
         uuid=req.uuid or "",
         name=req.name.strip(),
-        description=req.description.strip(),
+        description=req.description.strip() if req.description else "",
         song_uuids=req.song_uuids or [],
         is_official=req.is_official or False,
         owner_email=req.owner_email or (None if req.is_official else req.user_email)
@@ -342,16 +373,65 @@ def promote_song_to_official(req: PromoteSongRequest):
 
 @app.delete("/api/repertoires/{uuid}")
 def delete_repertoire(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
-    """Deletes a repertoire safely."""
+    """Deletes a repertoire safely (Admin only or owner of personal repertoire)."""
     rep = storage.get_repertoire(uuid)
     if not rep:
         raise HTTPException(status_code=404, detail="Repertorio non trovato")
     if getattr(rep, "is_official", False):
         raise HTTPException(status_code=400, detail="Il Repertorio Ufficiale della Band non può essere eliminato")
+
+    is_admin = is_admin_email(user_email)
+    is_owner = getattr(rep, "owner_email", None) == user_email
+    if not (is_admin or is_owner):
+        raise HTTPException(status_code=403, detail="Solo l'amministratore può eliminare questo repertorio")
+
     success = storage.delete_repertoire(uuid, user_email, user_name)
     if not success:
         raise HTTPException(status_code=404, detail="Repertorio non trovato")
     return {"status": "success", "deleted_uuid": uuid}
+
+@app.post("/api/songs/{uuid}/fork-personal")
+def fork_song_personal(uuid: str, req: ForkSongRequest):
+    """Creates an independent personal copy of the song in the user's personal repertoire."""
+    source_song = storage.get_song(uuid)
+    if not source_song:
+        raise HTTPException(status_code=404, detail="Brano sorgente non trovato")
+
+    all_reps = storage.list_repertoires()
+    target_rep = next((r for r in all_reps if getattr(r, "owner_email", None) == req.user_email), None)
+    if not target_rep:
+        u = auth_mgr.get_user_by_email(req.user_email)
+        u_name = u.name if u else req.user_name
+        target_rep = Repertoire(
+            name=f"{u_name}",
+            description=f"Repertorio personale di {u_name}",
+            is_official=False,
+            owner_email=req.user_email,
+            song_uuids=[]
+        )
+        target_rep = storage.save_repertoire(target_rep, req.user_email, req.user_name)
+
+    cloned_song = Song(
+        title=source_song.title,
+        artist=source_song.artist,
+        author=source_song.author,
+        genre=source_song.genre,
+        bpm=source_song.bpm,
+        time_signature=source_song.time_signature,
+        capo=source_song.capo,
+        key_original=source_song.key_original,
+        key_current=source_song.key_current,
+        aml_content=source_song.aml_content,
+        notes=f"Versione personale di {req.user_name}"
+    )
+    saved = storage.save_song(cloned_song, req.user_email, req.user_name, f"Copia personale creata da {req.user_name}")
+    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, req.user_email, req.user_name)
+    return {
+        "status": "success",
+        "cloned_song": saved.to_dict(),
+        "target_repertoire_uuid": target_rep.uuid,
+        "target_repertoire_name": target_rep.name
+    }
 
 
 # -----------------------------------------------------------------------------

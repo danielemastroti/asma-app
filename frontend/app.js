@@ -387,6 +387,12 @@ function renderRepertoireChips() {
   });
 
   container.innerHTML = html;
+
+  const isAdmin = state.currentUser.role === 'ADMIN' || ['danyposta@gmail.com', 'danyposta@yahoo.it'].includes(state.currentUser.email);
+  const adminBtn = document.getElementById('btn-admin-manage-rep');
+  if (adminBtn) {
+    adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  }
 }
 
 function selectRepertoire(repUuid) {
@@ -670,6 +676,7 @@ function renderSongViewer() {
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
         ${promoteBtn}
+        <button class="btn btn-secondary" onclick="forkSongToPersonal('${s.uuid}')" title="Crea una copia indipendente nel tuo repertorio personale per personalizzarla liberamente">📋 Copia Personale</button>
         <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
@@ -2005,6 +2012,175 @@ async function undoDeleteSong() {
     }
   } catch (err) {
     console.error('Error restoring song:', err);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// FORK SONG TO PERSONAL REPERTOIRE (Independent Copy)
+// ----------------------------------------------------------------------------
+async function forkSongToPersonal(uuid) {
+  const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
+  if (!song) return;
+
+  if (!confirm(`Vuoi creare una copia personale indipendente di "${song.title}" nel tuo repertorio?\nPotrai modificarla liberamente senza alterare il brano comune della band.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}/fork-personal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`✓ Copia personale creata in "${data.target_repertoire_name}"!`);
+      await loadRepertoires();
+      await loadSongs();
+      if (data.cloned_song && data.cloned_song.uuid) {
+        selectSong(data.cloned_song.uuid);
+      }
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante la creazione della copia personale');
+    }
+  } catch (err) {
+    console.error('Error forking song:', err);
+    showToast('Errore di connessione');
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ADMIN REPERTOIRES MANAGEMENT (Add / Rename / Delete)
+// ----------------------------------------------------------------------------
+function openAdminRepertoiresModal() {
+  const modal = document.getElementById('admin-repertoires-modal');
+  if (!modal) return;
+  renderAdminRepertoiresList();
+  modal.style.display = 'flex';
+}
+
+function closeAdminRepertoiresModal() {
+  const modal = document.getElementById('admin-repertoires-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderAdminRepertoiresList() {
+  const container = document.getElementById('admin-repertoires-list');
+  if (!container) return;
+
+  container.innerHTML = state.repertoires.map(r => {
+    const isOff = r.is_official;
+    const badge = isOff ? '<span class="badge" style="background:#ffd600; color:#000; font-weight:800;">🌟 UFFICIALE BAND</span>' : (r.owner_email ? `<span class="badge" style="background:#0284c7; color:#fff;">👤 ${escapeHtml(r.owner_email)}</span>` : '<span class="badge">📁 Custom</span>');
+    const deleteBtn = isOff ? '<span style="font-size:11px; color:#94a3b8; font-style:italic;">Protetto</span>' : `<button class="btn btn-danger" style="min-height:30px; padding:2px 8px; font-size:11px;" onclick="adminDeleteRepertoire('${r.uuid}', '${escapeHtml(r.name)}')">🗑️</button>`;
+
+    return `
+      <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; gap:6px; align-items:center;">
+            <b style="color:#fff; font-size:14px;">${escapeHtml(r.name)}</b>
+            ${badge}
+          </div>
+          <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">${escapeHtml(r.description || 'Nessuna descrizione')} &bull; ${r.song_count} brani</div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="btn btn-secondary" style="min-height:30px; padding:2px 8px; font-size:11px;" onclick="adminRenameRepertoire('${r.uuid}', '${escapeHtml(r.name)}')">✏️</button>
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function adminCreateRepertoire() {
+  const nameInput = document.getElementById('admin-new-rep-name');
+  const descInput = document.getElementById('admin-new-rep-desc');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const desc = descInput ? descInput.value.trim() : '';
+
+  if (!name) {
+    showToast('Inserisci un nome per il repertorio');
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/repertoires`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        description: desc,
+        is_official: false,
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      showToast(`✓ Repertorio "${name}" creato!`);
+      if (nameInput) nameInput.value = '';
+      if (descInput) descInput.value = '';
+      await loadRepertoires();
+      renderAdminRepertoiresList();
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore creazione repertorio');
+    }
+  } catch (err) {
+    console.error('Error creating repertoire:', err);
+  }
+}
+
+async function adminRenameRepertoire(uuid, oldName) {
+  const newName = prompt(`Rinomina repertorio "${oldName}":`, oldName);
+  if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/repertoires`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uuid: uuid,
+        name: newName.trim(),
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      showToast(`✓ Repertorio rinominato in "${newName.trim()}"`);
+      await loadRepertoires();
+      renderAdminRepertoiresList();
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore rinomina');
+    }
+  } catch (err) {
+    console.error('Error renaming repertoire:', err);
+  }
+}
+
+async function adminDeleteRepertoire(uuid, name) {
+  if (!confirm(`Sei sicuro di voler eliminare il repertorio "${name}"?\nI brani contenuti NON verranno cancellati, rimarranno nell'archivio.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/repertoires/${uuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+      method: 'DELETE'
+    });
+    if (res.ok) {
+      showToast(`🗑️ Repertorio "${name}" eliminato`);
+      await loadRepertoires();
+      renderAdminRepertoiresList();
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Impossibile eliminare il repertorio');
+    }
+  } catch (err) {
+    console.error('Error deleting repertoire:', err);
   }
 }
 

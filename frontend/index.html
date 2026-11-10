@@ -48,9 +48,12 @@
 
     <!-- 1. VIEW: SONGS & REPERTOIRES -->
     <section id="view-songs">
-      <!-- 1-TOUCH REPERTOIRE CHIPS -->
-      <div id="repertoire-chips" class="repertoire-chips">
-        <!-- Rendered by app.js -->
+      <!-- 1-TOUCH REPERTOIRE CHIPS & ADMIN TOOL -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div id="repertoire-chips" class="repertoire-chips" style="flex: 1; margin-bottom: 0;">
+          <!-- Rendered by app.js -->
+        </div>
+        <button id="btn-admin-manage-rep" class="btn btn-secondary" style="display: none; min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #ffd600; border-color: #ffd600; white-space: nowrap; margin-left: 8px;" onclick="openAdminRepertoiresModal()" title="Gestione Repertori (Solo Amministratore)">⚙️ Gestisci</button>
       </div>
 
       <!-- SEARCH & NEW SONG BAR -->
@@ -416,6 +419,34 @@ girano in centro sfiorando i novanta"></textarea>
     </div>
   </div>
 
+  <!-- MODAL: GESTIONE REPERTORI (SOLO AMMINISTRATORE) -->
+  <div id="admin-repertoires-modal" class="stage-fullscreen" style="display: none; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center; padding: 16px;">
+    <div style="background: var(--bg-surface-elevated); border: 1px solid var(--accent-cyan); border-radius: 12px; max-width: 520px; width: 100%; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 17px; font-weight: 800; color: #fff; margin: 0;">⚙️ Gestione Repertori (Admin)</h3>
+        <button class="btn btn-secondary" style="min-height: 32px; width: 32px; padding: 0;" onclick="closeAdminRepertoiresModal()">✕</button>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
+        Aggiungi, rinomina o elimina repertori. Il <b>Repertorio Ufficiale Band</b> è protetto e comune a tutti i musicisti.
+      </div>
+
+      <!-- Elenco repertori esistenti -->
+      <div id="admin-repertoires-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin-bottom: 16px;">
+        <!-- Popolato dinamicamente da app.js -->
+      </div>
+
+      <!-- Form crea nuovo repertorio -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <div style="font-size: 12px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">➕ Crea Nuovo Repertorio:</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+          <input type="text" id="admin-new-rep-name" class="search-input" placeholder="Nome Repertorio (es. Live Acustico)..." style="flex: 1;">
+          <button class="btn btn-primary" style="white-space: nowrap; font-weight: 700;" onclick="adminCreateRepertoire()">+ Crea</button>
+        </div>
+        <input type="text" id="admin-new-rep-desc" class="search-input" placeholder="Descrizione facoltativa..." style="width: 100%;">
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: AGGIUNGI BRANO A SCALETTA (1-TOUCH) -->
   <div id="add-to-setlist-modal" class="stage-fullscreen" style="display: none; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center; padding: 16px;">
     <div style="background: var(--bg-surface-elevated); border: 1px solid var(--accent-cyan); border-radius: 12px; max-width: 480px; width: 100%; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
@@ -441,6 +472,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=5.0"></script>
+  <script src="/app.js?v=6.0"></script>
 </body>
 </html>
