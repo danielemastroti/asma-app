@@ -383,6 +383,7 @@ function toggleColumns() {
 function adjustFontSize(type, delta) {
   if (type === 'lyrics') {
     state.userPrefs.layout_font_size = Math.max(8, Math.min(26, (state.userPrefs.layout_font_size || 12) + delta));
+    state.userPrefs.layout_font_size_chords = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size_chords || 13) + delta));
   } else {
     state.userPrefs.layout_font_size_chords = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size_chords || 13) + delta));
   }
@@ -853,7 +854,7 @@ async function loadSongPdfPreview(songUuid) {
 
   try {
     const p = state.userPrefs;
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -1466,8 +1467,15 @@ function parseAmlForWeb(aml, showChords) {
 function downloadPdf() {
   if (!state.selectedSong) return;
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}`;
-  window.open(url, '_blank');
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}`;
+  const cleanTitle = (state.selectedSong.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cleanTitle}.pdf`;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 async function printDirectA4(url) {
@@ -1519,7 +1527,7 @@ function printA4() {
   if (!state.selectedSong) return;
   const p = state.userPrefs || {};
   const hasChords = state.scoreMode === 'chords';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
   printDirectA4(url);
 }
 
@@ -1562,7 +1570,7 @@ async function renderStageSong(currentSong) {
     try {
       const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
-      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -1583,6 +1591,12 @@ async function renderStageSong(currentSong) {
       container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
     }
   } else {
+    try {
+      const savedStageSize = localStorage.getItem('asma_stage_font_size');
+      if (savedStageSize) {
+        container.style.fontSize = ${savedStageSize}px;
+      }
+    } catch (e) {}
     container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
   }
 
@@ -1701,13 +1715,28 @@ function adjustStageScrollSpeed(delta) {
   showToast(`Velocità palco: ${Math.round(state.scrollSpeed)} px/s`);
 }
 
-function adjustStageFontSize(delta) {
+async function adjustStageFontSize(delta) {
   const container = document.getElementById('stage-lyrics');
-  if (container) {
-    const currentSize = parseFloat(window.getComputedStyle(container).fontSize) || 22;
-    const newSize = Math.max(14, Math.min(38, currentSize + delta));
-    container.style.fontSize = `${newSize}px`;
-    showToast(`Font Palco: ${newSize}px`);
+  if (state.stageViewType === 'pdf') {
+    const step = delta > 0 ? 1 : -1;
+    state.userPrefs.layout_font_size = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size || 12) + step));
+    state.userPrefs.layout_font_size_chords = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size_chords || 13) + step));
+    updateSettingsFormValues();
+    applyPreferences();
+    autosaveUserPreferences();
+    showToast(Font Spartito PDF: Testo pt • Accordi pt);
+    const currentSong = state.stageSongs[state.stageIndex];
+    if (currentSong) {
+      await renderStageSong(currentSong);
+    }
+  } else {
+    if (container) {
+      const currentSize = parseFloat(window.getComputedStyle(container).fontSize) || 22;
+      const newSize = Math.max(14, Math.min(48, currentSize + delta));
+      container.style.fontSize = ${newSize}px;
+      try { localStorage.setItem('asma_stage_font_size', String(newSize)); } catch (e) {}
+      showToast(Teleprompter: Testo e Accordi px);
+    }
   }
 }
 
@@ -1891,7 +1920,7 @@ function renderSetlists() {
 
 function downloadSetlistPdf(uuid) {
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}`;
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}`;
   const a = document.createElement('a');
   a.href = url;
   a.download = 'SCALETTA_LIVE.pdf';
@@ -1904,7 +1933,7 @@ function downloadSetlistPdf(uuid) {
 function printSetlistA4(uuid) {
   const p = state.userPrefs || {};
   const hasChords = state.scoreMode === 'chords';
-  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
   printDirectA4(url);
 }
 

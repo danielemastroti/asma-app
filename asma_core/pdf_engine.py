@@ -145,7 +145,8 @@ class PDFEngine:
         template_name: str = "standard",
         watermark: Optional[str] = None,
         use_cache: bool = True,
-        include_chords: bool = True
+        include_chords: bool = True,
+        user_name: Optional[str] = None
     ) -> bytes:
         """
         Generates a device-aware PDF for a single song.
@@ -158,7 +159,7 @@ class PDFEngine:
             f"{getattr(prof, 'font_size_chords', 13)}_"
             f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'margin_top_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
             f"{getattr(prof, 'color_chords', '')}_{getattr(prof, 'color_aml_markup', '')}_"
-            f"{template_name}_{watermark}_{include_chords}"
+            f"{template_name}_{watermark}_{include_chords}_{user_name}"
         )
 
         if use_cache and cache_key in cls._cache:
@@ -195,7 +196,7 @@ class PDFEngine:
         story: List[Flowable] = []
 
         # 1. Song Header Banner
-        header_table = cls._create_song_header_table(song, styles, prof, content_w, include_chords=include_chords)
+        header_table = cls._create_song_header_table(song, styles, prof, content_w, include_chords=include_chords, user_name=user_name)
         story.append(header_table)
         story.append(Spacer(1, 3 * mm))
 
@@ -211,6 +212,8 @@ class PDFEngine:
             c.watermark_text = watermark
             c.document_title = song.title
             c.version_str = f"| Rev #{song.current_revision}"
+            if user_name:
+                c.version_str += f" | {user_name}"
             return c
 
         doc.build(story, canvasmaker=canvas_maker)
@@ -230,7 +233,8 @@ class PDFEngine:
         profile: Optional[DeviceProfile] = None,
         template_name: str = "standard",
         watermark: Optional[str] = None,
-        include_chords: bool = True
+        include_chords: bool = True,
+        user_name: Optional[str] = None
     ) -> bytes:
         """
         Generates a consolidated multi-song PDF document for an entire setlist,
@@ -278,6 +282,8 @@ class PDFEngine:
             else:
                 date_display = date_raw
             story.append(Paragraph(f"Data Esecuzione: <b>{date_display}</b>", styles["SectionText"]))
+        if user_name:
+            story.append(Paragraph(f"Musicista: <b>{user_name}</b>", styles["SectionText"]))
         if setlist.description:
             story.append(Paragraph(f"<i>{setlist.description}</i>", styles["SectionText"]))
 
@@ -354,7 +360,8 @@ class PDFEngine:
                 usable_w,
                 setlist_pos=f"{i+1} di {len(setlist.items)}",
                 include_chords=include_chords,
-                custom_key=item.custom_key
+                custom_key=item.custom_key,
+                user_name=user_name
             )
             story.append(header_t)
             story.append(Spacer(1, 4 * mm))
@@ -516,7 +523,8 @@ class PDFEngine:
         usable_width: float,
         setlist_pos: Optional[str] = None,
         include_chords: bool = True,
-        custom_key: Optional[str] = None
+        custom_key: Optional[str] = None,
+        user_name: Optional[str] = None
     ) -> Table:
         """Constructs an elegant header box containing metadata (Tonalità latina, BPM, Time Signature, Capo)."""
         title_p = Paragraph(f"<b>{song.title}</b>", styles["DocTitle"])
@@ -535,13 +543,18 @@ class PDFEngine:
         raw_key = custom_key or song.key_current or "-"
         ita_key = MusicEngine.convert_notation(raw_key, "ITA") if raw_key and raw_key != "-" else "-"
 
+        if user_name and user_name.strip():
+            clean_pseudo = re.sub(r'\(.*?\)', '', user_name).strip()
+            if clean_pseudo:
+                parts.append(f"<b>{clean_pseudo}</b>")
+
         if include_chords:
             meta_info = f"<b>Tonalità:</b> {ita_key}"
             if song.capo > 0:
                 meta_info += f" | <b>Capo:</b> {song.capo}° tasto"
             parts.append(meta_info)
         else:
-            parts.append(f"<b>Solo Testo (Cantante)</b> &bull; <b>Tonalità:</b> {ita_key}")
+            parts.append(f"<b>Solo Testo</b> &bull; <b>Tonalità:</b> {ita_key}")
 
         sub_text = " &bull; ".join(parts)
         subtitle_p = Paragraph(sub_text, styles["DocSubtitle"])

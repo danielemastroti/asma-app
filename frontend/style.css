@@ -664,6 +664,7 @@ body {
 .stage-content .chord-token {
   color: var(--stage-chords-color, #ffd600);
   font-weight: 800;
+  font-size: inherit;
 }
 
 .stage-content .aml-chord-line {

@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import io
 import re
+import json
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -713,6 +714,41 @@ def transpose_song(uuid: str, req: TransposeRequest):
 # 4. PDF GENERATION & PRINT ENDPOINTS
 # -----------------------------------------------------------------------------
 
+def resolve_user_pseudonym(email: Optional[str] = None, fallback_name: Optional[str] = None) -> str:
+    """Resolves the musician's pseudonym (e.g. Cico, Sentimental, Maurino) based on email or name."""
+    if fallback_name and fallback_name.strip():
+        clean = re.sub(r'\(.*?\)', '', fallback_name).strip()
+        if clean:
+            return clean
+    if not email:
+        return ""
+    email_clean = email.strip().lower()
+    users_path = os.path.join(os.path.dirname(__file__), "data", "users.json")
+    if os.path.exists(users_path):
+        try:
+            with open(users_path, "r", encoding="utf-8") as f:
+                users = json.load(f)
+                for u in users:
+                    if u.get("email", "").strip().lower() == email_clean:
+                        n = u.get("name", "").strip()
+                        clean_n = re.sub(r'\(.*?\)', '', n).strip()
+                        if clean_n:
+                            return clean_n
+        except Exception:
+            pass
+    try:
+        all_reps = storage.list_repertoires()
+        for r in all_reps:
+            if getattr(r, "owner_email", None) == email_clean and not getattr(r, "is_official", False):
+                clean_r = re.sub(r'\(.*?\)', '', r.name).strip()
+                if clean_r:
+                    return clean_r
+    except Exception:
+        pass
+    local = email_clean.split("@")[0]
+    return local.capitalize()
+
+
 def resolve_device_profile(device_name: Optional[str]) -> DeviceProfile:
     """Finds exact or fuzzy matched device profile, supporting common aliases."""
     if not device_name:
@@ -738,6 +774,7 @@ def get_song_pdf(
     chords: bool = Query(True, description="True per spartito con accordi, False per solo testo cantante"),
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
     email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
+    user_name: Optional[str] = Query(None, description="Pseudonimo musicista (es. Cico, Sentimental)"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
@@ -820,7 +857,8 @@ def get_song_pdf(
         prof.target_device = "pc_a4"
         prof.device_type = "printable_a4"
 
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=not (a4 or autoprint))
+    pseudonym = resolve_user_pseudonym(email, user_name)
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=not (a4 or autoprint), user_name=pseudonym)
 
     if autoprint:
         try:
@@ -833,13 +871,12 @@ def get_song_pdf(
         except Exception:
             pass
     filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', song.title).strip('_') or "brano"
-    mode_suffix = "accordi" if chords else "testo"
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{filename}_{mode_suffix}.pdf"'
+            "Content-Disposition": f'inline; filename="{filename}.pdf"'
         }
     )
 
@@ -852,6 +889,7 @@ def get_song_pdf_preview(
     chords: bool = Query(True, description="True per spartito con accordi, False per solo testo"),
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
     email: Optional[str] = Query(None, description="Email musicista per preferenze"),
+    user_name: Optional[str] = Query(None, description="Pseudonimo musicista"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali"),
@@ -928,10 +966,11 @@ def get_song_pdf_preview(
     if margin_top is not None:
         prof.margin_top_mm = margin_top
 
+    pseudonym = resolve_user_pseudonym(email, user_name)
     cache_key = (
         f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
         f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
-        f"{prof.color_aml_markup}_{chords}"
+        f"{prof.color_aml_markup}_{chords}_{pseudonym}"
     )
 
     if cache_key in _pdf_pages_cache:
@@ -946,7 +985,7 @@ def get_song_pdf_preview(
             "pages": cached_pages
         }
 
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=True)
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=True, user_name=pseudonym)
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     pages_b64 = []
     for page in doc:
@@ -1136,6 +1175,7 @@ def get_setlist_pdf(
     chords: bool = Query(True, description="True per spartiti con accordi, False per solo testi cantante"),
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
     email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
+    user_name: Optional[str] = Query(None, description="Pseudonimo musicista"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
@@ -1221,7 +1261,8 @@ def get_setlist_pdf(
         prof.target_device = "pc_a4"
         prof.device_type = "printable_a4"
 
-    pdf_bytes = PDFEngine.generate_setlist_pdf(s, resolved_songs, profile=prof, include_chords=chords)
+    pseudonym = resolve_user_pseudonym(email, user_name)
+    pdf_bytes = PDFEngine.generate_setlist_pdf(s, resolved_songs, profile=prof, include_chords=chords, user_name=pseudonym)
 
     if autoprint:
         try:
