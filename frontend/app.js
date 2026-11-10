@@ -1351,12 +1351,57 @@ function downloadPdf() {
   window.open(url, '_blank');
 }
 
+async function printDirectA4(url) {
+  showToast('Invio alla coda di stampa in corso...');
+
+  let printFrame = document.getElementById('asma-direct-print-frame');
+  if (!printFrame) {
+    printFrame = document.createElement('iframe');
+    printFrame.id = 'asma-direct-print-frame';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+  }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    printFrame.src = blobUrl;
+    printFrame.onload = () => {
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+        } catch (e) {
+          const w = window.open(blobUrl, '_blank');
+          if (w) {
+            w.focus();
+            try { w.print(); } catch (err) {}
+          }
+        }
+      }, 350);
+    };
+  } catch (err) {
+    console.warn('Iframe print fallback:', err);
+    const win = window.open(url, '_blank');
+    if (win) win.focus();
+  }
+}
+
 function printA4() {
   if (!state.selectedSong) return;
-  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=Foglio%20A4&email=${encodeURIComponent(state.currentUser.email)}`;
-  const printWindow = window.open(url, '_blank');
-  if (printWindow) printWindow.focus();
+  const p = state.userPrefs || {};
+  const hasChords = state.scoreMode === 'chords';
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
+  printDirectA4(url);
 }
 
 // ----------------------------------------------------------------------------
@@ -1732,10 +1777,10 @@ function downloadSetlistPdf(uuid) {
 }
 
 function printSetlistA4(uuid) {
-  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
-  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=Foglio%20A4&email=${encodeURIComponent(state.currentUser.email)}`;
-  const win = window.open(url, '_blank');
-  if (win) win.focus();
+  const p = state.userPrefs || {};
+  const hasChords = state.scoreMode === 'chords';
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
+  printDirectA4(url);
 }
 
 async function openSetlistDetail(uuid) {

@@ -723,9 +723,16 @@ def get_song_pdf(
     device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
     chords: bool = Query(True, description="True per spartito con accordi, False per solo testo cantante"),
     columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
-    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB")
+    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
+    font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
+    font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
+    margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
+    margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)"),
+    a4: bool = Query(False, description="True per impaginare su foglio A4 mantenendo la formattazione del device"),
+    autoprint: bool = Query(False, description="True per iniettare comando di stampa automatica diretta")
 ):
     """Generates and streams formatted device-aware PDF for display or download."""
+    import pymupdf
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
@@ -783,8 +790,34 @@ def get_song_pdf(
 
     if columns is not None:
         prof.columns = columns
+    if font_size is not None:
+        prof.font_size_lyrics = font_size
+    if font_size_chords is not None:
+        prof.font_size_chords = font_size_chords
+    if margin_lateral is not None:
+        prof.margin_left_mm = margin_lateral
+        prof.margin_right_mm = margin_lateral
+    if margin_top is not None:
+        prof.margin_top_mm = margin_top
 
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=True)
+    if a4 or "foglio" in device.lower():
+        prof.width_mm = 210.0
+        prof.height_mm = 297.0
+        prof.target_device = "pc_a4"
+        prof.device_type = "printable_a4"
+
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=not (a4 or autoprint))
+
+    if autoprint:
+        try:
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            cat = doc.pdf_catalog()
+            action_xref = doc.get_new_xref()
+            doc.update_object(action_xref, "<< /S /JavaScript /JS (print\\(\\);) >>")
+            doc.xref_set_key(cat, "OpenAction", f"{action_xref} 0 R")
+            pdf_bytes = doc.tobytes(garbage=3)
+        except Exception:
+            pass
     filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', song.title).strip('_') or "brano"
     mode_suffix = "accordi" if chords else "testo"
 
@@ -1072,9 +1105,17 @@ def get_setlist_pdf(
     uuid: str,
     device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
     chords: bool = Query(True, description="True per spartiti con accordi, False per solo testi cantante"),
-    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB")
+    columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
+    email: Optional[str] = Query(None, description="Email musicista per caricare preferenze da Turso DB"),
+    font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
+    font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
+    margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
+    margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)"),
+    a4: bool = Query(False, description="True per impaginare su foglio A4 mantenendo la formattazione del device"),
+    autoprint: bool = Query(False, description="True per iniettare comando di stampa automatica diretta")
 ):
     """Generates consolidated setlist PDF (cover + index + songs) for tablet display or print."""
+    import pymupdf
     s = storage.get_setlist(uuid)
     if not s:
         raise HTTPException(status_code=404, detail="Scaletta non trovata")
@@ -1133,7 +1174,36 @@ def get_setlist_pdf(
             elif "layout_color_aml" in user_prefs:
                 prof.color_aml_markup = user_prefs["layout_color_aml"]
 
+    if columns is not None:
+        prof.columns = columns
+    if font_size is not None:
+        prof.font_size_lyrics = font_size
+    if font_size_chords is not None:
+        prof.font_size_chords = font_size_chords
+    if margin_lateral is not None:
+        prof.margin_left_mm = margin_lateral
+        prof.margin_right_mm = margin_lateral
+    if margin_top is not None:
+        prof.margin_top_mm = margin_top
+
+    if a4 or "foglio" in device.lower():
+        prof.width_mm = 210.0
+        prof.height_mm = 297.0
+        prof.target_device = "pc_a4"
+        prof.device_type = "printable_a4"
+
     pdf_bytes = PDFEngine.generate_setlist_pdf(s, resolved_songs, profile=prof, include_chords=chords)
+
+    if autoprint:
+        try:
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            cat = doc.pdf_catalog()
+            action_xref = doc.get_new_xref()
+            doc.update_object(action_xref, "<< /S /JavaScript /JS (print\\(\\);) >>")
+            doc.xref_set_key(cat, "OpenAction", f"{action_xref} 0 R")
+            pdf_bytes = doc.tobytes(garbage=3)
+        except Exception:
+            pass
     filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', s.title).strip('_') or "scaletta"
     mode_suffix = "accordi" if chords else "testo"
 

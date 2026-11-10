@@ -350,7 +350,7 @@ class PDFEngine:
                 delta = MusicEngine.calculate_semitone_delta(s.key_current, item.custom_key)
                 aml_doc = AMLParser.transpose_document(aml_doc, semitones=delta)
 
-            flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, usable_w, include_chords=include_chords)
+            flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, usable_w, include_chords=include_chords, profile=prof)
             story.extend(flowables)
 
             # Insert page break between songs
