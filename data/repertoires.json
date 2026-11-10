@@ -70,7 +70,9 @@
     "uuid": "cico-personal-rep-uuid",
     "name": "Cico",
     "description": "Repertorio personale di Cico (Voce)",
-    "song_uuids": [],
+    "song_uuids": [
+      "50_special_bebdbb"
+    ],
     "is_official": false,
     "owner_email": "acicchelli65@gmail.com",
     "created_at": "2026-11-10T17:15:54.399800+00:00",

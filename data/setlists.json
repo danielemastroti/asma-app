@@ -28,9 +28,33 @@
         "custom_key": null,
         "custom_bpm": null,
         "notes": ""
+      },
+      {
+        "song_uuid": "cf186424-04f9-4eb1-bf75-5e79a787007a",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      },
+      {
+        "song_uuid": "e43b94fb-3ff7-400b-b17c-1207de8ade0b",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      },
+      {
+        "song_uuid": "sweet_home_chicago_e7cb2a",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
       }
     ],
     "created_at": "2026-11-09T22:17:48.762534+00:00",
-    "updated_at": "2026-11-10T21:17:27.930517+00:00"
+    "updated_at": "2026-11-10T22:09:15.394036+00:00"
   }
 ]

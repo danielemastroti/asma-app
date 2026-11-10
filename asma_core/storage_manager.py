@@ -1361,14 +1361,53 @@ class StorageManager:
                         synced_from_turso += 1
 
                 turso_reps = self.turso_client.fetch_repertoires()
-                if turso_reps and not os.path.exists(self._repertoires_file):
-                    with open(self._repertoires_file, "w", encoding="utf-8") as rf:
-                        json.dump(turso_reps, rf, indent=2, ensure_ascii=False)
+                if turso_reps:
+                    current_reps = self.list_repertoires()
+                    rep_map = {r.uuid: r for r in current_reps}
+                    reps_changed = False
+                    for tr in turso_reps:
+                        r_uuid = tr.get("uuid")
+                        if not r_uuid:
+                            continue
+                        if r_uuid in rep_map:
+                            existing = rep_map[r_uuid]
+                            remote_songs = tr.get("song_uuids", [])
+                            # Union of songs, preserving order
+                            merged_songs = list(dict.fromkeys(existing.song_uuids + remote_songs))
+                            if set(merged_songs) != set(existing.song_uuids):
+                                existing.song_uuids = merged_songs
+                                reps_changed = True
+                        else:
+                            new_r = Repertoire.from_dict(tr)
+                            current_reps.append(new_r)
+                            rep_map[r_uuid] = new_r
+                            reps_changed = True
+                    if reps_changed or not os.path.exists(self._repertoires_file):
+                        self._save_repertoires_file(current_reps)
 
                 turso_sets = self.turso_client.fetch_setlists()
-                if turso_sets and not os.path.exists(self._setlists_file):
-                    with open(self._setlists_file, "w", encoding="utf-8") as sf:
-                        json.dump(turso_sets, sf, indent=2, ensure_ascii=False)
+                if turso_sets:
+                    current_sets = self.list_setlists()
+                    set_map = {s.uuid: s for s in current_sets}
+                    sets_changed = False
+                    for ts in turso_sets:
+                        s_uuid = ts.get("uuid")
+                        if not s_uuid:
+                            continue
+                        if s_uuid not in set_map:
+                            current_sets.append(Setlist.from_dict(ts))
+                            set_map[s_uuid] = current_sets[-1]
+                            sets_changed = True
+                        else:
+                            existing = set_map[s_uuid]
+                            remote_items = ts.get("items", [])
+                            if len(remote_items) > len(existing.items):
+                                set_map[s_uuid] = Setlist.from_dict(ts)
+                                current_sets = list(set_map.values())
+                                sets_changed = True
+                    if sets_changed or not os.path.exists(self._setlists_file):
+                        with open(self._setlists_file, "w", encoding="utf-8") as sf:
+                            json.dump([s.to_dict() for s in current_sets], sf, indent=2, ensure_ascii=False)
 
                 if synced_from_turso > 0:
                     return True, f"Sincronizzati {synced_from_turso} brani da Turso Cloud Database."

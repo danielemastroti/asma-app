@@ -147,6 +147,8 @@ class TursoClient:
                     name TEXT NOT NULL,
                     description TEXT,
                     song_uuids TEXT,
+                    owner_email TEXT,
+                    is_official BOOLEAN DEFAULT 0,
                     created_at TEXT,
                     updated_at TEXT
                 );
@@ -198,6 +200,14 @@ class TursoClient:
                 );
                 """
             ])
+            try:
+                client.execute("ALTER TABLE repertoires ADD COLUMN owner_email TEXT;")
+            except Exception:
+                pass
+            try:
+                client.execute("ALTER TABLE repertoires ADD COLUMN is_official BOOLEAN DEFAULT 0;")
+            except Exception:
+                pass
             client.close()
             return True, "Schema Turso inizializzato con successo."
         except Exception as e:
@@ -395,12 +405,14 @@ class TursoClient:
             for rep in repertoires:
                 s_uuids_json = json.dumps(rep.get("song_uuids", []))
                 sql = """
-                INSERT INTO repertoires (uuid, name, description, song_uuids, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO repertoires (uuid, name, description, song_uuids, owner_email, is_official, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(uuid) DO UPDATE SET
                     name=excluded.name,
                     description=excluded.description,
                     song_uuids=excluded.song_uuids,
+                    owner_email=excluded.owner_email,
+                    is_official=excluded.is_official,
                     updated_at=excluded.updated_at;
                 """
                 statements.append((sql, [
@@ -408,6 +420,8 @@ class TursoClient:
                     rep.get("name"),
                     rep.get("description", ""),
                     s_uuids_json,
+                    rep.get("owner_email"),
+                    1 if rep.get("is_official") else 0,
                     rep.get("created_at"),
                     rep.get("updated_at")
                 ]))
@@ -422,18 +436,34 @@ class TursoClient:
             return []
         try:
             client = self._get_connection()
-            res = client.execute("SELECT uuid, name, description, song_uuids, created_at, updated_at FROM repertoires;")
-            reps = []
-            for r in res.rows:
-                s_uuids = json.loads(r[3]) if r[3] else []
-                reps.append({
-                    "uuid": r[0],
-                    "name": r[1],
-                    "description": r[2],
-                    "song_uuids": s_uuids,
-                    "created_at": r[4],
-                    "updated_at": r[5]
-                })
+            try:
+                res = client.execute("SELECT uuid, name, description, song_uuids, created_at, updated_at, owner_email, is_official FROM repertoires;")
+                reps = []
+                for r in res.rows:
+                    s_uuids = json.loads(r[3]) if r[3] else []
+                    reps.append({
+                        "uuid": r[0],
+                        "name": r[1],
+                        "description": r[2],
+                        "song_uuids": s_uuids,
+                        "created_at": r[4],
+                        "updated_at": r[5],
+                        "owner_email": r[6] if len(r) > 6 else None,
+                        "is_official": bool(r[7]) if len(r) > 7 and r[7] is not None else False
+                    })
+            except Exception:
+                res = client.execute("SELECT uuid, name, description, song_uuids, created_at, updated_at FROM repertoires;")
+                reps = []
+                for r in res.rows:
+                    s_uuids = json.loads(r[3]) if r[3] else []
+                    reps.append({
+                        "uuid": r[0],
+                        "name": r[1],
+                        "description": r[2],
+                        "song_uuids": s_uuids,
+                        "created_at": r[4],
+                        "updated_at": r[5]
+                    })
             client.close()
             return reps
         except Exception:
