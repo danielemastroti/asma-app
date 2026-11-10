@@ -108,7 +108,15 @@ function switchTab(tabName) {
   document.getElementById('view-settings').style.display = tabName === 'settings' ? 'block' : 'none';
 
   if (tabName === 'setlists') {
-    renderSetlists();
+    if (state.selectedSetlist && state.selectedSetlist.uuid) {
+      openSetlistDetail(state.selectedSetlist.uuid);
+    } else {
+      const detailContainer = document.getElementById('setlist-detail-view');
+      const listContainer = document.getElementById('setlists-list');
+      if (detailContainer) detailContainer.style.display = 'none';
+      if (listContainer) listContainer.style.display = 'block';
+      loadSetlists();
+    }
   }
 }
 
@@ -1751,6 +1759,7 @@ async function openSetlistDetail(uuid) {
 }
 
 function closeSetlistDetail() {
+  state.selectedSetlist = null;
   const detailContainer = document.getElementById('setlist-detail-view');
   const listContainer = document.getElementById('setlists-list');
   if (detailContainer) detailContainer.style.display = 'none';
@@ -1937,6 +1946,12 @@ async function saveCurrentSetlist() {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
+      const idx = (state.setlists || []).findIndex(x => x.uuid === s.uuid);
+      if (idx !== -1) {
+        state.setlists[idx].item_count = (s.items || []).length;
+        state.setlists[idx].title = s.title;
+        state.setlists[idx].date = s.date;
+      }
       showToast('Scaletta salvata su Turso Cloud DB ✓');
     }
   } catch (err) {
@@ -2111,7 +2126,10 @@ async function addSongToSpecificSetlist(setlistUuid, songUuid) {
       const data = await res.json();
       showToast(`✓ "${data.song_title}" aggiunto a "${data.setlist_title}"!`);
       closeAddToSetlistModal();
-      loadSetlists();
+      await loadSetlists();
+      if (state.selectedSetlist && state.selectedSetlist.uuid === setlistUuid) {
+        await openSetlistDetail(setlistUuid);
+      }
     } else {
       showToast('Errore durante l\'aggiunta alla scaletta');
     }

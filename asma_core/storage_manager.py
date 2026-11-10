@@ -1144,33 +1144,46 @@ class StorageManager:
                 if f.startswith("setlist_") and f.endswith(".json"):
                     deleted_setlist_uuids.add(f[8:-5])
 
-        active_setlists = []
+        local_map: Dict[str, Setlist] = {}
         if os.path.exists(self._setlists_file):
             try:
                 with open(self._setlists_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    active_setlists = [
-                        Setlist.from_dict(d) for d in data
-                        if d.get("uuid") not in deleted_setlist_uuids
-                    ]
-                    if len(active_setlists) != len(data):
-                        try:
-                            with open(self._setlists_file, "w", encoding="utf-8") as wf:
-                                json.dump([s.to_dict() for s in active_setlists], wf, indent=2, ensure_ascii=False)
-                        except Exception:
-                            pass
+                    for d in data:
+                        u = d.get("uuid")
+                        if u and u not in deleted_setlist_uuids:
+                            local_map[u] = Setlist.from_dict(d)
             except Exception:
-                active_setlists = []
+                local_map = {}
 
-        # If local file is empty or missing, hydrate automatically from Turso Cloud DB
-        if not active_setlists and hasattr(self, "turso_client") and self.turso_client.is_configured:
+        # Bidirectional sync with Turso Cloud DB
+        if hasattr(self, "turso_client") and self.turso_client.is_configured:
             try:
                 turso_sets = self.turso_client.fetch_setlists()
-                if turso_sets:
-                    active_setlists = [
-                        Setlist.from_dict(d) for d in turso_sets
-                        if d.get("uuid") not in deleted_setlist_uuids
-                    ]
+                local_modified = False
+                for td in turso_sets:
+                    tuuid = td.get("uuid")
+                    if not tuuid:
+                        continue
+                    if tuuid in deleted_setlist_uuids:
+                        self.turso_client.delete_setlist(tuuid)
+                        continue
+                    t_setlist = Setlist.from_dict(td)
+                    if tuuid not in local_map:
+                        local_map[tuuid] = t_setlist
+                        local_modified = True
+                    else:
+                        loc = local_map[tuuid]
+                        t_up = td.get("updated_at") or ""
+                        l_up = loc.updated_at or ""
+                        if t_up > l_up:
+                            local_map[tuuid] = t_setlist
+                            local_modified = True
+                        elif l_up > t_up:
+                            self.turso_client.push_setlists([loc.to_dict()])
+
+                if local_modified or (len(local_map) != (len(data) if 'data' in locals() and isinstance(data, list) else len(local_map))):
+                    active_setlists = list(local_map.values())
                     try:
                         with open(self._setlists_file, "w", encoding="utf-8") as wf:
                             json.dump([s.to_dict() for s in active_setlists], wf, indent=2, ensure_ascii=False)
@@ -1179,7 +1192,7 @@ class StorageManager:
             except Exception:
                 pass
 
-        return active_setlists
+        return list(local_map.values())
 
     def get_setlist(self, setlist_uuid: str) -> Optional[Setlist]:
         for s in self.list_setlists():
@@ -1223,6 +1236,11 @@ class StorageManager:
         setlists = [s for s in setlists if s.uuid != setlist_uuid]
         with open(self._setlists_file, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in setlists], f, indent=2, ensure_ascii=False)
+        if hasattr(self, "turso_client") and self.turso_client.is_configured:
+            try:
+                self.turso_client.delete_setlist(setlist_uuid)
+            except Exception:
+                pass
         self.audit.log("DELETE", "SETLIST", setlist_uuid, user_email, user_name, {"title": target.title})
         self._trigger_background_gist_sync("ALL")
         return True

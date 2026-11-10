@@ -34,13 +34,11 @@ class TestRepertoireScoping(unittest.TestCase):
             for rep_name in s.get('assigned_repertoires', []):
                 self.assertNotIn('Daniele', rep_name)
 
-        # 3. Test Add Song to Setlist endpoint
-        setlists = self.client.get('/api/setlists').json()
-        if not setlists:
-            s_res = self.client.post('/api/setlists', json={'title': 'Scaletta Test', 'items': []})
-            setlists = [s_res.json()['setlist']]
+        # 3. Test Add Song to Setlist endpoint with isolated temporary setlist
+        s_res = self.client.post('/api/setlists', json={'title': '__TEMP_TEST_SETLIST__', 'items': []})
+        self.assertEqual(s_res.status_code, 200)
+        target_setlist = s_res.json()['setlist']
 
-        target_setlist = setlists[0]
         songs = self.client.get('/api/songs').json()
         self.assertGreater(len(songs), 0, 'No songs found')
         test_song = songs[0]
@@ -48,6 +46,9 @@ class TestRepertoireScoping(unittest.TestCase):
         add_res = self.client.post(f"/api/setlists/{target_setlist['uuid']}/songs/{test_song['uuid']}")
         self.assertEqual(add_res.status_code, 200, add_res.text)
         self.assertEqual(add_res.json()['song_title'], test_song['title'])
+
+        # Clean up temporary test setlist immediately
+        self.client.delete(f"/api/setlists/{target_setlist['uuid']}")
 
         # 4. Test Promote Song
         promote_res = self.client.post('/api/repertoires/promote-song', json={'song_uuid': test_song['uuid']})

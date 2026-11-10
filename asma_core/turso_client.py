@@ -461,7 +461,7 @@ class TursoClient:
                     s.get("uuid"),
                     s.get("title"),
                     s.get("date", ""),
-                    s.get("event_name", ""),
+                    s.get("description") or s.get("event_name", ""),
                     items_json,
                     s.get("created_at"),
                     s.get("updated_at")
@@ -472,6 +472,17 @@ class TursoClient:
         except Exception as e:
             return False, f"Errore push scalette Turso: {e}"
 
+    def delete_setlist(self, setlist_uuid: str) -> bool:
+        if not self.is_configured or not setlist_uuid:
+            return False
+        try:
+            client = self._get_connection()
+            client.execute("DELETE FROM setlists WHERE uuid = ?;", [setlist_uuid])
+            client.close()
+            return True
+        except Exception:
+            return False
+
     def fetch_setlists(self) -> List[Dict[str, Any]]:
         if not self.is_configured:
             return []
@@ -481,11 +492,13 @@ class TursoClient:
             sets = []
             for r in res.rows:
                 items = json.loads(r[4]) if r[4] else []
+                desc = r[3] or ""
                 sets.append({
                     "uuid": r[0],
                     "title": r[1],
                     "date": r[2],
-                    "event_name": r[3],
+                    "description": desc,
+                    "event_name": desc,
                     "items": items,
                     "created_at": r[5],
                     "updated_at": r[6]
