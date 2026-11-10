@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from asma_core.models import Song, Repertoire, Setlist, SetlistItem, DeviceProfile
+from asma_core.models import Song, Repertoire, Setlist, SetlistItem, DeviceProfile, generate_uuid
 from asma_core.storage_manager import StorageManager
 from asma_core.music_engine import MusicEngine
 from asma_core.aml_parser import AMLParser

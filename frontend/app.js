@@ -863,7 +863,7 @@ function showNewSongForm() {
     const repSelect = document.getElementById('new-song-repertoire');
     if (repSelect && state.repertoires && state.repertoires.length > 0) {
       repSelect.innerHTML = state.repertoires.map(r => {
-        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && r.name.toLowerCase() === 'provvisorio');
+        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (r.owner_email === state.currentUser.email || r.is_official));
         return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
       }).join('');
     }
@@ -1921,9 +1921,13 @@ async function submitNewSetlist() {
       if (data.setlist && data.setlist.uuid) {
         openSetlistDetail(data.setlist.uuid);
       }
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore creazione scaletta');
     }
   } catch (err) {
     console.error('Error creating setlist:', err);
+    showToast('Errore di connessione creazione scaletta');
   }
 }
 

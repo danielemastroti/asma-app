@@ -7,5 +7,14 @@
     "items": [],
     "created_at": "2026-11-09T22:17:48.762534+00:00",
     "updated_at": "2026-11-10T17:56:03.123249+00:00"
+  },
+  {
+    "uuid": "d461499e-a45a-4423-985b-e0550ceafc9d",
+    "title": "Concerto Teatro Estate",
+    "date": "2026-07-20",
+    "description": "Scaletta ufficiale",
+    "items": [],
+    "created_at": "2026-11-10T18:40:36.561678+00:00",
+    "updated_at": "2026-11-10T18:40:36.562701+00:00"
   }
 ]
