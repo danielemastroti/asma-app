@@ -1370,6 +1370,7 @@ class StorageManager:
                     current_reps = self.list_repertoires()
                     rep_map = {r.uuid: r for r in current_reps}
                     reps_changed = False
+                    turso_needs_push = False
                     for tr in turso_reps:
                         r_uuid = tr.get("uuid")
                         if not r_uuid or tr.get("name", "").strip().lower() == "provvisorio":
@@ -1382,6 +1383,8 @@ class StorageManager:
                             if set(merged_songs) != set(existing.song_uuids):
                                 existing.song_uuids = merged_songs
                                 reps_changed = True
+                            if set(merged_songs) != set(remote_songs):
+                                turso_needs_push = True
                         else:
                             new_r = Repertoire.from_dict(tr)
                             current_reps.append(new_r)
@@ -1389,6 +1392,11 @@ class StorageManager:
                             reps_changed = True
                     if reps_changed or not os.path.exists(self._repertoires_file):
                         self._save_repertoires_file(current_reps)
+                    if turso_needs_push:
+                        try:
+                            self.turso_client.push_repertoires([r.to_dict() for r in current_reps])
+                        except Exception:
+                            pass
 
                 turso_sets = self.turso_client.fetch_setlists()
                 if turso_sets:
@@ -1566,25 +1574,35 @@ class StorageManager:
                     if isinstance(remote_reps_data, list):
                         local_reps = self.list_repertoires()
                         merged_reps: Dict[str, Repertoire] = {r.uuid: r for r in local_reps}
+                        gist_needs_push = False
                         for r_item in remote_reps_data:
                             if not isinstance(r_item, dict):
                                 continue
                             r_uuid = r_item.get("uuid")
-                            if not r_uuid or r_uuid in deleted_rep_uuids:
+                            if not r_uuid or r_uuid in deleted_rep_uuids or r_item.get("name", "").strip().lower() == "provvisorio":
                                 continue
                             rem_rep = Repertoire.from_dict(r_item)
                             if r_uuid not in merged_reps:
                                 merged_reps[r_uuid] = rem_rep
                                 synced_repertoires += 1
                             else:
-                                local_up = merged_reps[r_uuid].updated_at or ""
-                                rem_up = rem_rep.updated_at or ""
-                                if rem_up >= local_up:
-                                    merged_reps[r_uuid] = rem_rep
+                                existing = merged_reps[r_uuid]
+                                # Union songs: NEVER wipe local or Turso songs with stale Gist
+                                remote_songs = rem_rep.song_uuids or []
+                                merged_songs = list(dict.fromkeys(existing.song_uuids + remote_songs))
+                                if set(merged_songs) != set(existing.song_uuids):
+                                    existing.song_uuids = merged_songs
                                     synced_repertoires += 1
+                                if set(merged_songs) != set(remote_songs):
+                                    gist_needs_push = True
                         final_reps = list(merged_reps.values())
                         self._save_repertoires_file(final_reps)
                         self._load_all_into_index()
+                        if gist_needs_push:
+                            try:
+                                self.sync_push_repertoires_to_gist()
+                            except Exception:
+                                pass
                 except Exception:
                     pass
             elif self.gist_client.is_configured:
