@@ -37,6 +37,7 @@ const state = {
     layout_font_size_chords: 13.0,
     layout_columns: 1,
     layout_margin_lateral: 10.0,
+    layout_margin_top: 10.0,
     color_lyrics: '#111111',
     color_chords: '#B71C1C',
     color_aml_markup: '#4A148C',
@@ -217,6 +218,7 @@ function applyPreferencesToDom() {
   root.style.setProperty('--pref-chords-size', `${p.layout_font_size_chords || 13}px`);
   root.style.setProperty('--pref-columns', p.layout_columns || 1);
   root.style.setProperty('--pref-lateral-margin', `${p.layout_margin_lateral || 10}px`);
+  root.style.setProperty('--pref-top-margin', `${p.layout_margin_top || 10}px`);
 
   // Update live preview in settings if visible
   const prevBox = document.getElementById('settings-live-preview');
@@ -264,6 +266,8 @@ function updateSettingsFormValues() {
   if (valChords) valChords.textContent = p.layout_font_size_chords;
   const valMargin = document.getElementById('val-margin-lat');
   if (valMargin) valMargin.textContent = p.layout_margin_lateral;
+  const valMarginTop = document.getElementById('val-margin-top');
+  if (valMarginTop) valMarginTop.textContent = p.layout_margin_top || 10;
 
   // Color inputs - Spartito & PDF (Sfondo Bianco)
   const cLyrics = document.getElementById('pick-color-lyrics');
@@ -380,6 +384,14 @@ function adjustFontSize(type, delta) {
 
 function adjustMargin(delta) {
   state.userPrefs.layout_margin_lateral = Math.max(4, Math.min(30, (state.userPrefs.layout_margin_lateral || 10) + delta));
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function adjustMarginTop(delta) {
+  state.userPrefs.layout_margin_top = Math.max(2, Math.min(50, (state.userPrefs.layout_margin_top || 10) + delta));
+  const val = document.getElementById('val-margin-top');
+  if (val) val.textContent = state.userPrefs.layout_margin_top;
   autosaveUserPreferences();
   if (state.selectedSong) renderSongViewer();
 }
@@ -787,7 +799,7 @@ async function loadSongPdfPreview(songUuid) {
 
   try {
     const p = state.userPrefs;
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}`;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -1378,7 +1390,7 @@ async function renderStageSong(currentSong) {
     try {
       const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
-      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}`;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -2205,12 +2217,7 @@ async function deleteSongWithUndo(uuid) {
 }
 
 function showSongUndoBanner(title) {
-  const banner = document.getElementById('song-undo-banner');
-  const txt = document.getElementById('song-undo-text');
-  if (banner && txt) {
-    txt.innerHTML = `⚠️ Brano <b>"${escapeHtml(title)}"</b> eliminato.`;
-    banner.style.display = 'flex';
-  }
+  // Banner eliminato su richiesta utente
 }
 
 async function undoDeleteSong() {

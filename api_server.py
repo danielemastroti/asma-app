@@ -156,6 +156,7 @@ class UserPreferencesRequest(BaseModel):
     layout_font_size_chords: Optional[float] = 13.0
     layout_columns: Optional[int] = 1
     layout_margin_lateral: Optional[float] = 10.0
+    layout_margin_top: Optional[float] = 10.0
     color_lyrics: Optional[str] = "#111111"
     color_chords: Optional[str] = "#B71C1C"
     color_aml_markup: Optional[str] = "#4A148C"
@@ -765,6 +766,8 @@ def get_song_pdf(
                 lat = float(user_prefs["layout_margin_lateral"])
                 prof.margin_left_mm = lat
                 prof.margin_right_mm = lat
+            if "layout_margin_top" in user_prefs:
+                prof.margin_top_mm = float(user_prefs["layout_margin_top"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -804,7 +807,8 @@ def get_song_pdf_preview(
     email: Optional[str] = Query(None, description="Email musicista per preferenze"),
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
-    margin_lateral: Optional[float] = Query(None, description="Override margini laterali")
+    margin_lateral: Optional[float] = Query(None, description="Override margini laterali"),
+    margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)")
 ):
     """
     Renders high-resolution formatted PDF pages as base64 images for real sheet-music preview.
@@ -850,6 +854,8 @@ def get_song_pdf_preview(
                 lat = float(user_prefs["layout_margin_lateral"])
                 prof.margin_left_mm = lat
                 prof.margin_right_mm = lat
+            if "layout_margin_top" in user_prefs:
+                prof.margin_top_mm = float(user_prefs["layout_margin_top"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -872,10 +878,12 @@ def get_song_pdf_preview(
     if margin_lateral is not None:
         prof.margin_left_mm = margin_lateral
         prof.margin_right_mm = margin_lateral
+    if margin_top is not None:
+        prof.margin_top_mm = margin_top
 
     cache_key = (
         f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
-        f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.color_lyrics}_{prof.color_chords}_"
+        f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
         f"{prof.color_aml_markup}_{chords}"
     )
 
@@ -1110,6 +1118,8 @@ def get_setlist_pdf(
                 lat = float(user_prefs["layout_margin_lateral"])
                 prof.margin_left_mm = lat
                 prof.margin_right_mm = lat
+            if "layout_margin_top" in user_prefs:
+                prof.margin_top_mm = float(user_prefs["layout_margin_top"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -1214,6 +1224,7 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
         "layout_font_size_chords": req.layout_font_size_chords or 13.0,
         "layout_columns": req.layout_columns or 1,
         "layout_margin_lateral": req.layout_margin_lateral if req.layout_margin_lateral is not None else 10.0,
+        "layout_margin_top": req.layout_margin_top if req.layout_margin_top is not None else 10.0,
         "color_lyrics": c_lyric,
         "layout_color_text": c_lyric,
         "color_chords": c_chord,

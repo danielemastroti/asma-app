@@ -193,10 +193,6 @@ girano in centro sfiorando i novanta"></textarea>
       </div>
 
       <!-- SELECTED SONG VIEWER (SPARTITO) -->
-      <div id="song-undo-banner" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span id="song-undo-text" style="color: #fbbf24; font-weight: 700; font-size: 13px;"></span>
-        <button class="btn btn-primary" style="min-height: 32px; padding: 2px 12px; font-size: 12px; font-weight: 800;" onclick="undoDeleteSong()">↩️ ANNULLA ELIMINAZIONE</button>
-      </div>
       <div id="song-viewer" class="song-viewer">
         <!-- Rendered by app.js -->
       </div>
@@ -324,6 +320,15 @@ girano in centro sfiorando i novanta"></textarea>
                 <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMargin(-2)">−</button>
                 <span id="val-margin-lat" class="stepper-val">10</span>
                 <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMargin(2)">+</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label class="control-label">Margine Superiore PDF (mm):</label>
+              <div class="stepper">
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMarginTop(-2)">−</button>
+                <span id="val-margin-top" class="stepper-val">10</span>
+                <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" onclick="adjustMarginTop(2)">+</button>
               </div>
             </div>
           </div>
@@ -515,6 +520,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=11.1"></script>
+  <script src="/app.js?v=11.2"></script>
 </body>
 </html>
