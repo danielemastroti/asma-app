@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initKeyboardAndPedals();
   await loadUsersAndDevices();
   await loadUserPreferences();
-  loadRepertoires();
-  loadSongs();
+  await loadRepertoires();
+  await loadSongs();
   loadSetlists();
 });
 
@@ -126,6 +126,16 @@ function showToast(message) {
   }, 2400);
 }
 
+function isCurrentUserAdmin() {
+  if (!state.currentUser || !state.currentUser.email) return false;
+  const email = state.currentUser.email.toLowerCase();
+  if (['danyposta@gmail.com', 'danyposta@yahoo.it'].includes(email)) return true;
+  if (state.currentUser.role === 'ADMIN' || state.currentUser.role === 'BAND_LEADER') return true;
+  const matched = (state.usersList || []).find(u => u.email.toLowerCase() === email);
+  if (matched && (matched.role === 'ADMIN' || matched.role === 'BAND_LEADER')) return true;
+  return false;
+}
+
 // ----------------------------------------------------------------------------
 // USER & HARDWARE PREFERENCES (TURSO CLOUD DB)
 // ----------------------------------------------------------------------------
@@ -147,9 +157,11 @@ async function loadUsersAndDevices() {
       const matched = users.find(u => u.email === state.currentUser.email);
       if (matched) {
         state.currentUser.name = matched.name;
+        state.currentUser.role = matched.role;
       } else if (users.length) {
         state.currentUser.email = users[0].email;
         state.currentUser.name = users[0].name;
+        state.currentUser.role = users[0].role;
       }
       const nameSpan = document.getElementById('current-user-name');
       if (nameSpan) nameSpan.textContent = state.currentUser.name;
@@ -306,14 +318,24 @@ async function autosaveUserPreferences() {
   }
 }
 
-function onMusicianChange(email) {
+async function onMusicianChange(email) {
   state.currentUser.email = email;
   try { localStorage.setItem('asma_user_email', email); } catch (e) {}
-  const user = (state.usersList || []).find(u => u.email === email);
+  const user = (state.usersList || []).find(u => u.email.toLowerCase() === email.toLowerCase());
   state.currentUser.name = user ? user.name : (email.split('@')[0]);
+  state.currentUser.role = user ? user.role : 'BAND_MEMBER';
   const nameSpan = document.getElementById('current-user-name');
   if (nameSpan) nameSpan.textContent = state.currentUser.name;
-  loadUserPreferences();
+
+  // Non-admins must never have activeRepertoire as __ALL__
+  const isAdmin = isCurrentUserAdmin();
+  if (!isAdmin && state.activeRepertoire === '__ALL__') {
+    state.activeRepertoire = '';
+  }
+
+  await loadUserPreferences();
+  await loadRepertoires();
+  await loadSongs();
   showToast(`Profilo attivo: ${state.currentUser.name}`);
 }
 
@@ -382,10 +404,21 @@ async function loadRepertoires() {
     const res = await fetch(`${API_BASE}/api/repertoires?user_email=${encodeURIComponent(state.currentUser.email)}`);
     if (res.ok) {
       state.repertoires = await res.json();
-      const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
-      if (state.activeRepertoire !== '__ALL__' && !currentExists) {
-        const official = state.repertoires.find(r => r.is_official);
-        state.activeRepertoire = official ? official.uuid : '__ALL__';
+      const isAdmin = isCurrentUserAdmin();
+      const official = state.repertoires.find(r => r.is_official);
+
+      if (!isAdmin) {
+        // Musicians NEVER see '__ALL__' and must default to Official Repertoire
+        const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
+        if (state.activeRepertoire === '__ALL__' || !currentExists) {
+          state.activeRepertoire = official ? official.uuid : (state.repertoires[0]?.uuid || '');
+        }
+      } else {
+        // Admin can see '__ALL__'
+        const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
+        if (state.activeRepertoire !== '__ALL__' && !currentExists) {
+          state.activeRepertoire = official ? official.uuid : '__ALL__';
+        }
       }
       renderRepertoireChips();
     }
@@ -398,8 +431,14 @@ function renderRepertoireChips() {
   const container = document.getElementById('repertoire-chips');
   if (!container) return;
 
-  const totalSongs = state.songs.length;
-  let html = `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti (${totalSongs})</button>`;
+  const isAdmin = isCurrentUserAdmin();
+  let html = '';
+
+  // Only Admin sees "🌐 Tutti"
+  if (isAdmin) {
+    const totalSongs = state.songs.length;
+    html += `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti (${totalSongs})</button>`;
+  }
 
   state.repertoires.forEach(r => {
     const isActive = state.activeRepertoire === r.uuid ? 'active' : '';
@@ -419,7 +458,6 @@ function renderRepertoireChips() {
 
   container.innerHTML = html;
 
-  const isAdmin = state.currentUser.role === 'ADMIN' || ['danyposta@gmail.com', 'danyposta@yahoo.it'].includes(state.currentUser.email);
   const adminBtn = document.getElementById('btn-admin-manage-rep');
   if (adminBtn) {
     adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
@@ -434,7 +472,10 @@ function selectRepertoire(repUuid) {
 
 async function loadSongs() {
   try {
-    const res = await fetch(`${API_BASE}/api/songs`);
+    const url = state.currentUser?.email
+      ? `${API_BASE}/api/songs?user_email=${encodeURIComponent(state.currentUser.email)}`
+      : `${API_BASE}/api/songs`;
+    const res = await fetch(url);
     if (res.ok) {
       state.songs = await res.json();
       renderRepertoireChips();

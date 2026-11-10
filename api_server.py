@@ -444,18 +444,53 @@ def fork_song_personal(uuid: str, req: ForkSongRequest):
 @app.get("/api/songs")
 def list_songs(
     repertoire_uuid: Optional[str] = Query(None, description="Filtra per repertorio (__ALL__ per archivio intero)"),
-    search: Optional[str] = Query(None, description="Filtra per testo nel titolo o autore")
+    search: Optional[str] = Query(None, description="Filtra per testo nel titolo o autore"),
+    user_email: Optional[str] = Query(None, description="Email musicista per scoping permessi")
 ):
-    """Lists songs filtered by repertoire and optional text search."""
+    """Lists songs filtered by repertoire, user role, and optional text search."""
     all_songs = sorted(storage.list_songs(), key=lambda s: s["title"].lower())
+    all_reps = storage.list_repertoires()
 
-    if repertoire_uuid and repertoire_uuid != "__ALL__":
-        rep = storage.get_repertoire(repertoire_uuid)
-        if rep:
-            allowed_uids = set(rep.song_uuids)
-            all_songs = [s for s in all_songs if s["uuid"] in allowed_uids]
+    is_admin = is_admin_email(user_email) if user_email else True
+
+    if user_email and not is_admin:
+        # Non-admin musician: can ONLY see songs in Official Repertoire and their own Personal Repertoire
+        visible_reps = [
+            r for r in all_reps
+            if getattr(r, "is_official", False) or getattr(r, "owner_email", None) == user_email
+        ]
+        visible_song_uuids = set()
+        for r in visible_reps:
+            visible_song_uuids.update(r.song_uuids)
+
+        if repertoire_uuid and repertoire_uuid != "__ALL__":
+            target_rep = next((r for r in visible_reps if r.uuid == repertoire_uuid), None)
+            if target_rep:
+                allowed_uids = set(target_rep.song_uuids)
+                all_songs = [s for s in all_songs if s["uuid"] in allowed_uids]
+            else:
+                all_songs = []
         else:
-            all_songs = []
+            all_songs = [s for s in all_songs if s["uuid"] in visible_song_uuids]
+
+        # In assigned_repertoires, only include repertoires visible to this user
+        for s in all_songs:
+            s_reps = [r.name for r in visible_reps if s["uuid"] in r.song_uuids]
+            s["assigned_repertoires"] = s_reps
+    else:
+        # Admin or unscoped API call
+        if repertoire_uuid and repertoire_uuid != "__ALL__":
+            rep = storage.get_repertoire(repertoire_uuid)
+            if rep:
+                allowed_uids = set(rep.song_uuids)
+                all_songs = [s for s in all_songs if s["uuid"] in allowed_uids]
+            else:
+                all_songs = []
+
+        # Include repertoire names for each song
+        for s in all_songs:
+            s_reps = [r.name for r in all_reps if s["uuid"] in r.song_uuids]
+            s["assigned_repertoires"] = s_reps
 
     if search and search.strip():
         kw = search.strip().lower()
@@ -463,12 +498,6 @@ def list_songs(
             s for s in all_songs
             if (kw in s["title"].lower() or kw in s.get("artist", "").lower() or kw in s.get("author", "").lower())
         ]
-
-    # Include repertoire names for each song
-    all_reps = storage.list_repertoires()
-    for s in all_songs:
-        s_reps = [r.name for r in all_reps if s["uuid"] in r.song_uuids]
-        s["assigned_repertoires"] = s_reps
 
     return all_songs
 
