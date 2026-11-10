@@ -326,7 +326,6 @@
         "layout_margin_left": 10.0,
         "color_lyrics": "#111111",
         "color_aml_markup": "#4A148C",
-        "color_chords": "#B71C1C",
         "stage_color_lyrics": "#FFFFFF",
         "stage_color_chords": "#FFD600",
         "stage_color_aml_markup": "#38BDF8"

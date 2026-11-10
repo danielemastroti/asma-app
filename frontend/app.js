@@ -783,7 +783,6 @@ function setSongViewType(type) {
   try { localStorage.setItem('asma_song_view_type', state.songViewType); } catch (e) {}
   renderSongViewer();
 }
-}
 
 // ----------------------------------------------------------------------------
 // TOUCH EDITOR & SONG IMPORT ENGINE (1-Touch Actions)
@@ -1431,10 +1430,6 @@ function updateStageScoreModeButton() {
       btn.style.borderColor = '#ffd600';
     } else {
       btn.textContent = '🎤 Solo Testo';
-      btn.style.color = '#38bdf8';
-      btn.style.borderColor = '#38bdf8';
-    }
-  }
       btn.style.color = '#38bdf8';
       btn.style.borderColor = '#38bdf8';
     }
