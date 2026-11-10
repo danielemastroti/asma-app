@@ -44,9 +44,17 @@
         "custom_key": null,
         "custom_bpm": null,
         "notes": "Esecuzione Live"
+      },
+      {
+        "song_uuid": "50_special_bebdbb",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
       }
     ],
     "created_at": "2026-11-09T22:15:18.943761+00:00",
-    "updated_at": "2026-11-09T22:15:18.943761+00:00"
+    "updated_at": "2026-11-10T17:21:15.971367+00:00"
   }
 ]

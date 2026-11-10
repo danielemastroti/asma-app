@@ -30,6 +30,8 @@ const state = {
   activeDevice: savedDevice || 'Huawei MediaPad M5',
   usersList: [],
   devicesList: [],
+  songViewType: (() => { try { return localStorage.getItem('asma_song_view_type') || 'pdf'; } catch (e) { return 'pdf'; } })(),
+  stageViewType: (() => { try { return localStorage.getItem('asma_stage_view_type') || 'pdf'; } catch (e) { return 'pdf'; } })(),
   userPrefs: {
     layout_font_size: 12.0,
     layout_font_size_chords: 13.0,
@@ -38,6 +40,9 @@ const state = {
     color_lyrics: '#111111',
     color_chords: '#B71C1C',
     color_aml_markup: '#4A148C',
+    stage_color_lyrics: '#FFFFFF',
+    stage_color_chords: '#FFD600',
+    stage_color_aml_markup: '#38BDF8',
     score_display_mode: savedScoreMode || 'lyrics',
     app_mode: 'simplified'
   },
@@ -193,6 +198,9 @@ function applyPreferencesToDom() {
   root.style.setProperty('--pref-lyrics-color', p.color_lyrics || '#111111');
   root.style.setProperty('--pref-chords-color', p.color_chords || '#B71C1C');
   root.style.setProperty('--pref-aml-color', p.color_aml_markup || '#4A148C');
+  root.style.setProperty('--stage-lyrics-color', p.stage_color_lyrics || '#FFFFFF');
+  root.style.setProperty('--stage-chords-color', p.stage_color_chords || '#FFD600');
+  root.style.setProperty('--stage-aml-color', p.stage_color_aml_markup || '#38BDF8');
   root.style.setProperty('--pref-lyrics-size', `${p.layout_font_size || 12}px`);
   root.style.setProperty('--pref-chords-size', `${p.layout_font_size_chords || 13}px`);
   root.style.setProperty('--pref-columns', p.layout_columns || 1);
@@ -204,6 +212,10 @@ function applyPreferencesToDom() {
     prevBox.style.color = p.color_lyrics;
     prevBox.style.fontSize = `${p.layout_font_size}px`;
     prevBox.style.columnCount = p.layout_columns;
+  }
+  const stagePrevBox = document.getElementById('settings-stage-live-preview');
+  if (stagePrevBox) {
+    stagePrevBox.style.color = p.stage_color_lyrics || '#FFFFFF';
   }
 }
 
@@ -241,20 +253,35 @@ function updateSettingsFormValues() {
   const valMargin = document.getElementById('val-margin-lat');
   if (valMargin) valMargin.textContent = p.layout_margin_lateral;
 
-  // Color inputs
+  // Color inputs - Spartito & PDF (Sfondo Bianco)
   const cLyrics = document.getElementById('pick-color-lyrics');
-  if (cLyrics) cLyrics.value = p.color_lyrics;
+  if (cLyrics) cLyrics.value = p.color_lyrics || '#111111';
   const cChords = document.getElementById('pick-color-chords');
-  if (cChords) cChords.value = p.color_chords;
+  if (cChords) cChords.value = p.color_chords || '#B71C1C';
   const cAml = document.getElementById('pick-color-aml');
-  if (cAml) cAml.value = p.color_aml_markup;
+  if (cAml) cAml.value = p.color_aml_markup || '#4A148C';
 
   const tLyrics = document.getElementById('val-color-lyrics');
-  if (tLyrics) tLyrics.textContent = p.color_lyrics;
+  if (tLyrics) tLyrics.textContent = p.color_lyrics || '#111111';
   const tChords = document.getElementById('val-color-chords');
-  if (tChords) tChords.textContent = p.color_chords;
+  if (tChords) tChords.textContent = p.color_chords || '#B71C1C';
   const tAml = document.getElementById('val-color-aml');
-  if (tAml) tAml.textContent = p.color_aml_markup;
+  if (tAml) tAml.textContent = p.color_aml_markup || '#4A148C';
+
+  // Color inputs - Modalità Palco (Teleprompter Sfondo Nero)
+  const cStageLyrics = document.getElementById('pick-stage-color-lyrics');
+  if (cStageLyrics) cStageLyrics.value = p.stage_color_lyrics || '#FFFFFF';
+  const cStageChords = document.getElementById('pick-stage-color-chords');
+  if (cStageChords) cStageChords.value = p.stage_color_chords || '#FFD600';
+  const cStageAml = document.getElementById('pick-stage-color-aml');
+  if (cStageAml) cStageAml.value = p.stage_color_aml_markup || '#38BDF8';
+
+  const tStageLyrics = document.getElementById('val-stage-color-lyrics');
+  if (tStageLyrics) tStageLyrics.textContent = p.stage_color_lyrics || '#FFFFFF';
+  const tStageChords = document.getElementById('val-stage-color-chords');
+  if (tStageChords) tStageChords.textContent = p.stage_color_chords || '#FFD600';
+  const tStageAml = document.getElementById('val-stage-color-aml');
+  if (tStageAml) tStageAml.textContent = p.stage_color_aml_markup || '#38BDF8';
 }
 
 async function autosaveUserPreferences() {
@@ -339,6 +366,10 @@ function onColorChange(type, hexColor) {
   if (type === 'lyrics') state.userPrefs.color_lyrics = hexColor;
   else if (type === 'chords') state.userPrefs.color_chords = hexColor;
   else if (type === 'aml') state.userPrefs.color_aml_markup = hexColor;
+  else if (type === 'stage_lyrics') state.userPrefs.stage_color_lyrics = hexColor;
+  else if (type === 'stage_chords') state.userPrefs.stage_color_chords = hexColor;
+  else if (type === 'stage_aml') state.userPrefs.stage_color_aml_markup = hexColor;
+  applyPreferencesToDom();
   autosaveUserPreferences();
   if (state.selectedSong) renderSongViewer();
 }
@@ -649,21 +680,21 @@ function renderSongViewer() {
   const hasChords = state.scoreMode === 'chords';
   const modeLabel = hasChords ? '🎸 Accordi: ON' : '🎤 Solo Testo';
   const colsLabel = state.userPrefs.layout_columns === 2 ? '2 Colonne' : '1 Colonna';
-
-  const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
+  const viewTypeLabel = state.songViewType === 'pdf' ? '📄 Spartito PDF' : '📝 Testo Web';
 
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
   const promoteBtn = (!isInOfficial && officialRep) ? 
     `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Aggiungi questo brano al Repertorio Ufficiale della Band">⭐ Promuovi a Ufficiale</button>` : '';
 
-  container.innerHTML = `
+  const headerHtml = `
     <div class="viewer-header">
       <div>
         <h2 style="font-size: 22px; font-weight: 900; color: #fff;">${escapeHtml(s.title)}</h2>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
           <b>${escapeHtml(s.artist || 'Band')}</b> &bull; Tonalità: <code style="color:#ffd600; font-weight:700;">${s.key_current}</code>
           &bull; Tempo: <code style="color:#00e5ff;">${s.bpm || 120} BPM</code> &bull; Capo: <b>${s.capo || 0}°</b>
+          &bull; Formato: <code style="color:#38bdf8;">${escapeHtml(state.activeDevice)}</code>
         </div>
       </div>
       <div class="viewer-tools">
@@ -673,6 +704,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', 1)" title="Ingrandisci dimensione caratteri">A+</button>
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
+        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="toggleSongViewType()" title="Passa tra vista Spartito PDF reale e Testo Web">${viewTypeLabel}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
         ${promoteBtn}
@@ -683,10 +715,74 @@ function renderSongViewer() {
         <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>
       </div>
     </div>
-    <div class="lyrics-container" id="printable-lyrics">
-      ${formattedHtml}
-    </div>
   `;
+
+  if (state.songViewType === 'pdf') {
+    container.innerHTML = `
+      ${headerHtml}
+      <div class="lyrics-container" id="printable-lyrics" style="padding: 10px; background: transparent; border: none; box-shadow: none;">
+        <div id="pdf-preview-loading" style="text-align: center; padding: 40px 16px; color: #94a3b8;">
+          <div style="font-size: 26px; margin-bottom: 8px;">⏳</div>
+          Caricamento impaginazione reale PDF (${escapeHtml(state.activeDevice)})...
+        </div>
+      </div>
+    `;
+    loadSongPdfPreview(s.uuid);
+  } else {
+    const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
+    container.innerHTML = `
+      ${headerHtml}
+      <div class="lyrics-container" id="printable-lyrics">
+        ${formattedHtml}
+      </div>
+    `;
+  }
+}
+
+async function loadSongPdfPreview(songUuid) {
+  const hasChords = state.scoreMode === 'chords';
+  const container = document.getElementById('printable-lyrics');
+  if (!container) return;
+
+  try {
+    const p = state.userPrefs;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+        container.innerHTML = `
+          <div class="pdf-pages-container">
+            ${data.pages.map((b64, idx) => `
+              <div class="pdf-page-wrapper">
+                <img src="${b64}" class="pdf-page-img" alt="Pagina ${idx + 1} di ${data.total_pages}" />
+                <div class="pdf-page-badge">Pagina ${idx + 1} di ${data.total_pages} &bull; Profilo ${escapeHtml(data.device)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+    } else {
+      container.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Impossibile caricare l'anteprima PDF. <button class="btn btn-secondary" style="margin-left:8px;" onclick="setSongViewType('web')">Passa a Vista Testo</button></div>`;
+    }
+  } catch (err) {
+    console.error('PDF preview error:', err);
+    container.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Errore connessione anteprima PDF. <button class="btn btn-secondary" style="margin-left:8px;" onclick="setSongViewType('web')">Passa a Vista Testo</button></div>`;
+  }
+}
+
+function toggleSongViewType() {
+  state.songViewType = (state.songViewType === 'pdf') ? 'web' : 'pdf';
+  try { localStorage.setItem('asma_song_view_type', state.songViewType); } catch (e) {}
+  renderSongViewer();
+  showToast(state.songViewType === 'pdf' ? '📄 Vista: Spartito PDF Reale' : '📝 Vista: Testo Web');
+}
+
+function setSongViewType(type) {
+  state.songViewType = type;
+  try { localStorage.setItem('asma_song_view_type', state.songViewType); } catch (e) {}
+  renderSongViewer();
+}
 }
 
 // ----------------------------------------------------------------------------
@@ -737,7 +833,7 @@ async function saveSongEdit() {
         state.songs[idx] = Object.assign(state.songs[idx], state.selectedSong);
       }
       state.isEditingSong = false;
-      renderSongGrid();
+      renderSongCards();
       renderSongViewer();
       showToast(`Brano "${state.selectedSong.title}" salvato con successo ✓`);
     } else {
@@ -1032,12 +1128,11 @@ async function submitNewSong() {
       const data = await res.json();
       showToast(`Brano "${title}" salvato nel repertorio ✓`);
       hideNewSongForm();
-      if (targetRepertoire && state.activeRepertoire !== '__ALL__' && state.activeRepertoire !== targetRepertoire) {
+      if (targetRepertoire) {
         state.activeRepertoire = targetRepertoire;
-        const selector = document.getElementById('repertoire-select');
-        if (selector) selector.value = targetRepertoire;
       }
-      // Reload repertoire and select created song
+      // Reload both repertoires and songs to immediately reflect new assignment in UI
+      await loadRepertoires();
       await loadSongs();
       if (data.song && data.song.uuid) {
         selectSong(data.song.uuid);
@@ -1214,7 +1309,7 @@ function startSingleSongStage() {
   openStageModal();
 }
 
-function openStageModal() {
+async function openStageModal() {
   state.isStageActive = true;
   state.isAutoscrolling = false;
 
@@ -1226,12 +1321,50 @@ function openStageModal() {
   document.getElementById('stage-song-title').textContent = currentSong.title;
   document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Key: ${currentSong.key_current} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
 
-  const container = document.getElementById('stage-lyrics');
-  container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
-  container.scrollTop = 0;
-  scrollAccumulator = 0;
+  await renderStageSong(currentSong);
+}
 
-  // Sync scrollAccumulator whenever user manually scrolls or touches lyrics
+async function renderStageSong(currentSong) {
+  const container = document.getElementById('stage-lyrics');
+  if (!container || !currentSong) return;
+
+  updateStageViewButton();
+  updateStageScoreModeButton();
+
+  const prevScroll = container.scrollTop || 0;
+
+  if (state.stageViewType === 'pdf') {
+    container.innerHTML = `<div style="text-align:center; padding:50px 16px; color:#94a3b8;"><div style="font-size:32px; margin-bottom:10px;">⏳</div>Caricamento spartito PDF per il palco...</div>`;
+    try {
+      const hasChords = state.scoreMode === 'chords';
+      const p = state.userPrefs;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        container.innerHTML = `
+          <div class="stage-pdf-container">
+            ${data.pages.map((b64, idx) => `
+              <div class="stage-pdf-page">
+                <img src="${b64}" alt="Pagina ${idx + 1} di ${data.total_pages}" />
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+      }
+    } catch (err) {
+      console.error('Stage PDF preview error:', err);
+      container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+    }
+  } else {
+    container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+  }
+
+  container.scrollTop = prevScroll;
+  scrollAccumulator = prevScroll;
+
   container.onscroll = () => {
     if (!state.isAutoscrolling) {
       scrollAccumulator = container.scrollTop;
@@ -1245,10 +1378,32 @@ function openStageModal() {
     startMetronomePulse(currentSong.bpm || 120);
   }
 
-  updateStageScoreModeButton();
-
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(console.warn);
+  }
+}
+
+function toggleStageViewType() {
+  state.stageViewType = (state.stageViewType === 'pdf') ? 'prompter' : 'pdf';
+  try { localStorage.setItem('asma_stage_view_type', state.stageViewType); } catch (e) {}
+  updateStageViewButton();
+  const currentSong = state.stageSongs[state.stageIndex];
+  if (currentSong) renderStageSong(currentSong);
+  showToast(state.stageViewType === 'pdf' ? '📄 Vista Palco: Spartito PDF Reale' : '🎤 Vista Palco: Teleprompter Notte');
+}
+
+function updateStageViewButton() {
+  const btn = document.getElementById('stage-view-btn');
+  if (btn) {
+    if (state.stageViewType === 'pdf') {
+      btn.textContent = '📄 Spartito PDF';
+      btn.style.color = '#38bdf8';
+      btn.style.borderColor = '#38bdf8';
+    } else {
+      btn.textContent = '🎤 Teleprompter';
+      btn.style.color = '#ffd600';
+      btn.style.borderColor = '#ffd600';
+    }
   }
 }
 
@@ -1259,16 +1414,9 @@ function toggleStageScoreMode() {
   updateStageScoreModeButton();
   updateSettingsFormValues();
 
-  // Re-render current stage song preserving exact scroll position
   const currentSong = state.stageSongs[state.stageIndex];
   if (currentSong) {
-    const container = document.getElementById('stage-lyrics');
-    if (container) {
-      const prevScroll = container.scrollTop;
-      container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
-      container.scrollTop = prevScroll;
-      scrollAccumulator = prevScroll;
-    }
+    renderStageSong(currentSong);
   }
   showToast(`Modalità: ${state.scoreMode === 'chords' ? '🎸 Testo + Accordi' : '🎤 Solo Testo (Cantante)'}`);
   autosaveUserPreferences();
@@ -1283,6 +1431,10 @@ function updateStageScoreModeButton() {
       btn.style.borderColor = '#ffd600';
     } else {
       btn.textContent = '🎤 Solo Testo';
+      btn.style.color = '#38bdf8';
+      btn.style.borderColor = '#38bdf8';
+    }
+  }
       btn.style.color = '#38bdf8';
       btn.style.borderColor = '#38bdf8';
     }

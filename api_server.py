@@ -159,6 +159,9 @@ class UserPreferencesRequest(BaseModel):
     color_lyrics: Optional[str] = "#111111"
     color_chords: Optional[str] = "#B71C1C"
     color_aml_markup: Optional[str] = "#4A148C"
+    stage_color_lyrics: Optional[str] = "#FFFFFF"
+    stage_color_chords: Optional[str] = "#FFD600"
+    stage_color_aml_markup: Optional[str] = "#38BDF8"
 
 
 # -----------------------------------------------------------------------------
@@ -526,7 +529,6 @@ def create_song(req: SongCreateRequest):
         key_current=req.key_current or "C",
         aml_content=req.aml_content or "{verse}\n[DO]Testo iniziale...\n"
     )
-    saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Creazione brano")
     target_rep_uuid = req.repertoire_uuid
     if not target_rep_uuid or target_rep_uuid == "__ALL__":
         all_reps = storage.list_repertoires()
@@ -534,6 +536,12 @@ def create_song(req: SongCreateRequest):
             official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), all_reps[0])
             target_rep_uuid = official_rep.uuid
 
+    if target_rep_uuid:
+        can_add, reason = storage.can_add_song_to_repertoire(target_rep_uuid, song.title)
+        if not can_add:
+            raise HTTPException(status_code=409, detail=reason)
+
+    saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Creazione brano")
     if target_rep_uuid:
         storage.move_song_to_repertoire(saved.uuid, target_rep_uuid, req.user_email, req.user_name)
     return {"status": "success", "song": saved.to_dict()}
@@ -545,8 +553,15 @@ def update_song(uuid: str, req: SongUpdateRequest):
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
-    if req.title is not None:
-        song.title = req.title.strip().upper()
+    if req.title is not None and req.title.strip().upper() != song.title.strip().upper():
+        new_title = req.title.strip().upper()
+        all_reps = storage.list_repertoires()
+        for r in all_reps:
+            if uuid in r.song_uuids:
+                can_add, reason = storage.can_add_song_to_repertoire(r.uuid, new_title, exclude_song_uuid=uuid)
+                if not can_add:
+                    raise HTTPException(status_code=409, detail=reason)
+        song.title = new_title
     if req.artist is not None:
         song.artist = req.artist.strip()
     if req.author is not None:
@@ -749,6 +764,127 @@ def get_song_pdf(
         }
     )
 
+_pdf_pages_cache: Dict[str, List[str]] = {}
+
+@app.get("/api/songs/{uuid}/pdf/preview")
+def get_song_pdf_preview(
+    uuid: str,
+    device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
+    chords: bool = Query(True, description="True per spartito con accordi, False per solo testo"),
+    columns: Optional[int] = Query(None, description="Forza 1 o 2 colonne"),
+    email: Optional[str] = Query(None, description="Email musicista per preferenze"),
+    font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
+    font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
+    margin_lateral: Optional[float] = Query(None, description="Override margini laterali")
+):
+    """
+    Renders high-resolution formatted PDF pages as base64 images for real sheet-music preview.
+    Matches 100% the layout, font size, chord wrapping, and page distribution of exported PDF.
+    """
+    import base64
+    import pymupdf
+
+    song = storage.get_song(uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    base_prof = resolve_device_profile(device)
+    prof = DeviceProfile(
+        name=base_prof.name,
+        target_device=base_prof.target_device,
+        device_type=base_prof.device_type,
+        width_mm=base_prof.width_mm,
+        height_mm=base_prof.height_mm,
+        orientation=base_prof.orientation,
+        columns=base_prof.columns,
+        font_size_lyrics=base_prof.font_size_lyrics,
+        font_size_chords=base_prof.font_size_chords,
+        margin_top_mm=base_prof.margin_top_mm,
+        margin_bottom_mm=base_prof.margin_bottom_mm,
+        margin_left_mm=base_prof.margin_left_mm,
+        margin_right_mm=base_prof.margin_right_mm,
+        color_lyrics=getattr(base_prof, "color_lyrics", "#111111"),
+        color_chords=getattr(base_prof, "color_chords", "#B71C1C"),
+        color_aml_markup=getattr(base_prof, "color_aml_markup", "#4A148C")
+    )
+
+    if email:
+        user_prefs = pref_mgr.get_preferences(email, prof.name)
+        if user_prefs:
+            if "layout_font_size" in user_prefs:
+                prof.font_size_lyrics = float(user_prefs["layout_font_size"])
+            if "layout_font_size_chords" in user_prefs:
+                prof.font_size_chords = float(user_prefs["layout_font_size_chords"])
+            if "layout_columns" in user_prefs:
+                prof.columns = int(user_prefs["layout_columns"])
+            if "layout_margin_lateral" in user_prefs:
+                lat = float(user_prefs["layout_margin_lateral"])
+                prof.margin_left_mm = lat
+                prof.margin_right_mm = lat
+            if "color_lyrics" in user_prefs:
+                prof.color_lyrics = user_prefs["color_lyrics"]
+            elif "layout_color_text" in user_prefs:
+                prof.color_lyrics = user_prefs["layout_color_text"]
+            if "color_chords" in user_prefs:
+                prof.color_chords = user_prefs["color_chords"]
+            elif "layout_color_chords" in user_prefs:
+                prof.color_chords = user_prefs["layout_color_chords"]
+            if "color_aml_markup" in user_prefs:
+                prof.color_aml_markup = user_prefs["color_aml_markup"]
+            elif "layout_color_aml" in user_prefs:
+                prof.color_aml_markup = user_prefs["layout_color_aml"]
+
+    if columns is not None:
+        prof.columns = columns
+    if font_size is not None:
+        prof.font_size_lyrics = font_size
+    if font_size_chords is not None:
+        prof.font_size_chords = font_size_chords
+    if margin_lateral is not None:
+        prof.margin_left_mm = margin_lateral
+        prof.margin_right_mm = margin_lateral
+
+    cache_key = (
+        f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
+        f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.color_lyrics}_{prof.color_chords}_"
+        f"{prof.color_aml_markup}_{chords}"
+    )
+
+    if cache_key in _pdf_pages_cache:
+        cached_pages = _pdf_pages_cache[cache_key]
+        return {
+            "uuid": song.uuid,
+            "title": song.title,
+            "total_pages": len(cached_pages),
+            "device": prof.name,
+            "chords": chords,
+            "columns": prof.columns,
+            "pages": cached_pages
+        }
+
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=True)
+    doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+    pages_b64 = []
+    for page in doc:
+        pix = page.get_pixmap(dpi=125)
+        png_data = pix.tobytes("png")
+        b64 = "data:image/png;base64," + base64.b64encode(png_data).decode("ascii")
+        pages_b64.append(b64)
+
+    if len(_pdf_pages_cache) > 100:
+        _pdf_pages_cache.clear()
+    _pdf_pages_cache[cache_key] = pages_b64
+
+    return {
+        "uuid": song.uuid,
+        "title": song.title,
+        "total_pages": len(pages_b64),
+        "device": prof.name,
+        "chords": chords,
+        "columns": prof.columns,
+        "pages": pages_b64
+    }
+
 @app.get("/api/songs/{uuid}/export/{export_format}")
 def export_song_file(uuid: str, export_format: str):
     """Exports song in standard music formats (songbook, mobilesheets, chordpro, onsong)."""
@@ -854,8 +990,9 @@ def save_setlist(req: SetlistSaveRequest):
         )
         for it in req.items
     ]
+    setlist_uuid = req.uuid.strip() if (req.uuid and req.uuid.strip()) else generate_uuid()
     setlist = Setlist(
-        uuid=req.uuid or "",
+        uuid=setlist_uuid,
         title=req.title.strip(),
         date=req.date.strip() if req.date else "",
         description=req.description.strip() if req.description else "",
@@ -1023,6 +1160,11 @@ def get_user_preferences(email: str, device: Optional[str] = "Huawei MediaPad M5
         prefs["color_chords"] = prefs["layout_color_chords"]
     if "layout_color_aml" in prefs and "color_aml_markup" not in prefs:
         prefs["color_aml_markup"] = prefs["layout_color_aml"]
+
+    # Valori predefiniti per la palette Teleprompter Modalità Palco (sfondo nero)
+    prefs.setdefault("stage_color_lyrics", "#FFFFFF")
+    prefs.setdefault("stage_color_chords", "#FFD600")
+    prefs.setdefault("stage_color_aml_markup", "#38BDF8")
     return prefs
 
 @app.post("/api/preferences/{email}")
@@ -1033,6 +1175,9 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
     c_lyric = req.color_lyrics or "#111111"
     c_chord = req.color_chords or "#B71C1C"
     c_aml = req.color_aml_markup or "#4A148C"
+    c_stage_lyric = req.stage_color_lyrics or "#FFFFFF"
+    c_stage_chord = req.stage_color_chords or "#FFD600"
+    c_stage_aml = req.stage_color_aml_markup or "#38BDF8"
     payload = {
         "app_mode": req.app_mode or "simplified",
         "score_display_mode": req.score_display_mode or "chords",
@@ -1045,7 +1190,10 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
         "color_chords": c_chord,
         "layout_color_chords": c_chord,
         "color_aml_markup": c_aml,
-        "layout_color_aml": c_aml
+        "layout_color_aml": c_aml,
+        "stage_color_lyrics": c_stage_lyric,
+        "stage_color_chords": c_stage_chord,
+        "stage_color_aml_markup": c_stage_aml
     }
     pref_mgr.set_user_preference(email, "app_mode", payload["app_mode"])
     pref_mgr.set_user_preference(email, "score_display_mode", payload["score_display_mode"])
