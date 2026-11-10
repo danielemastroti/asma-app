@@ -1,5 +1,5 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v29';
+const CACHE_NAME = 'asma-pwa-v30';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -29,7 +29,15 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network-First for ALL requests (fresh content online, cached offline)
+  const url = e.request.url;
+
+  // CRITICAL: NEVER intercept /api/ endpoints or PDF download streams.
+  // Intercepting attachments in ServiceWorker causes Chromium to fail downloads with about:blank!
+  if (url.includes('/api/')) {
+    return;
+  }
+
+  // Network-First for static assets (fresh content online, cached offline fallback)
   e.respondWith(
     fetch(e.request)
       .then((response) => {

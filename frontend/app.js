@@ -1524,7 +1524,7 @@ async function printDirectA4(url) {
           printFrame.contentWindow.focus();
           printFrame.contentWindow.print();
         } catch (e) {
-          const w = window.open(blobUrl, '_blank');
+          const w = window.open(url, '_blank');
           if (w) {
             w.focus();
             try { w.print(); } catch (err) {}
