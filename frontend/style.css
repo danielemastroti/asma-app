@@ -408,7 +408,18 @@ body {
 }
 
 .aml-lyric-line, .aml-chord-line {
-  line-height: 1.6;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+}
+.aml-chord-line {
+  font-weight: 700;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  color: var(--pref-chords-color, #ffd600);
+}
+.aml-lyric-line {
+  margin-bottom: 6px;
 }
 
 .aml-grid-line {
@@ -641,10 +652,10 @@ body {
 .stage-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 20px 95px 20px;
+  padding: 24px 20px 140px 20px;
   font-family: var(--font-mono);
   font-size: 22px;
-  line-height: 1.8;
+  line-height: 1.4;
   white-space: pre-wrap;
   scroll-behavior: smooth;
   color: var(--stage-lyrics-color, #ffffff);
@@ -652,15 +663,40 @@ body {
 
 .stage-content .chord-token {
   color: var(--stage-chords-color, #ffd600);
+  font-weight: 800;
+}
+
+.stage-content .aml-chord-line {
+  line-height: 1.25;
+  margin-top: 14px;
+  margin-bottom: 2px;
+  font-weight: 800;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+}
+
+.stage-content .aml-lyric-line {
+  line-height: 1.35;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
 }
 
 .stage-content .aml-tag-header {
   color: var(--stage-aml-color, #38bdf8);
   border-bottom: 1px solid #334155;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  font-size: 0.95em;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .stage-content .aml-instrumental {
   color: var(--stage-aml-color, #38bdf8);
+  margin-top: 10px;
+  margin-bottom: 8px;
 }
 
 /* FORMATTED PDF PAGES STYLES (EXACT SHEET MUSIC) */
@@ -712,7 +748,7 @@ body {
   align-items: center;
   gap: 16px;
   width: 100%;
-  padding: 2px 0 95px 0;
+  padding: 2px 0 140px 0;
 }
 
 .stage-pdf-page {

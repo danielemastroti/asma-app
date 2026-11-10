@@ -1306,6 +1306,70 @@ function isChordGridOrTabLine(trimmedLine) {
   return false;
 }
 
+function formatChordLyricLine(line) {
+  const regex = /\[([^\]]+)\]/g;
+  let match;
+  let lastIndex = 0;
+  const segments = [];
+
+  while ((match = regex.exec(line)) !== null) {
+    const textBefore = line.slice(lastIndex, match.index);
+    if (textBefore || segments.length === 0) {
+      if (segments.length === 0 && textBefore) {
+        segments.push({ chord: '', text: textBefore });
+      } else if (segments.length > 0 && !segments[segments.length - 1].text) {
+        segments[segments.length - 1].text = textBefore;
+      } else if (textBefore) {
+        segments.push({ chord: '', text: textBefore });
+      }
+    }
+    const chordText = match[1].trim();
+    segments.push({ chord: chordText, text: '' });
+    lastIndex = regex.lastIndex;
+  }
+  const remainingText = line.slice(lastIndex);
+  if (segments.length > 0) {
+    segments[segments.length - 1].text += remainingText;
+  } else {
+    segments.push({ chord: '', text: remainingText });
+  }
+
+  let chordHtml = '';
+  let lyricHtml = '';
+  let hasChords = false;
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const c = seg.chord;
+    const t = seg.text;
+
+    if (!c && !t) continue;
+
+    if (!c) {
+      chordHtml += escapeHtml(' '.repeat(t.length));
+      lyricHtml += escapeHtml(t);
+    } else {
+      hasChords = true;
+      const hasFollowingChord = segments.slice(i + 1).some(s => s.chord);
+      let targetLen;
+      if (hasFollowingChord && t.length <= c.length) {
+        const gap = 1;
+        targetLen = c.length + gap;
+      } else {
+        targetLen = Math.max(c.length, t.length);
+      }
+      chordHtml += `<span class="chord-token">${escapeHtml(c)}</span>` + escapeHtml(' '.repeat(targetLen - c.length));
+      lyricHtml += escapeHtml(t.padEnd(targetLen, ' '));
+    }
+  }
+
+  return {
+    hasChords,
+    chordHtml: chordHtml.replace(/\s+$/, ''),
+    lyricHtml: lyricHtml.replace(/\s+$/, '')
+  };
+}
+
 function parseAmlForWeb(aml, showChords) {
   if (!aml) return '<i>Nessun testo inserito.</i>';
 
@@ -1326,10 +1390,10 @@ function parseAmlForWeb(aml, showChords) {
     let sectionTitle = null;
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       sectionTitle = trimmed.slice(1, -1).replace(/^[c|comment]:\s*/i, '').toUpperCase();
-    } else if (trimmed.startsWith('[') && trimmed.endsWith(']') && !trimmed.slice(1, -1).includes(' ')) {
+    } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       const candidate = trimmed.slice(1, -1).toUpperCase();
-      const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO'];
-      if (standardSections.some(s => candidate.includes(s))) {
+      const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO', 'RIFF'];
+      if (standardSections.some(s => candidate.startsWith(s) || candidate.includes(s))) {
         sectionTitle = candidate;
       }
     } else if (trimmed.endsWith(':') && trimmed.length < 35 && !trimmed.includes('[')) {
@@ -1364,7 +1428,7 @@ function parseAmlForWeb(aml, showChords) {
       continue;
     }
 
-    // 3. Render Line (interleaved chords and lyrics)
+    // 3. Render Line (chords above lyrics, without [ ] brackets)
     const lyricsOnly = line.replace(/\[[^\]]+\]/g, '').trim();
     const hasChordTokens = /\[[^\]]+\]/.test(line);
 
@@ -1380,8 +1444,17 @@ function parseAmlForWeb(aml, showChords) {
         lastWasInstrumental = false;
       }
     } else {
-      const lineWithChords = line.replace(/\[([^\]]+)\]/g, '<span class="chord-token">[$1]</span>');
-      html += `<div class="aml-chord-line">${lineWithChords || '&nbsp;'}</div>`;
+      if (hasChordTokens) {
+        const formatted = formatChordLyricLine(line);
+        if (formatted.chordHtml && formatted.chordHtml.trim()) {
+          html += `<div class="aml-chord-line">${formatted.chordHtml}</div>`;
+        }
+        if (formatted.lyricHtml && formatted.lyricHtml.trim()) {
+          html += `<div class="aml-lyric-line">${formatted.lyricHtml}</div>`;
+        }
+      } else {
+        html += `<div class="aml-lyric-line">${escapeHtml(line)}</div>`;
+      }
       lastWasInstrumental = false;
     }
   }
