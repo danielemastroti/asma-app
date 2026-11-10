@@ -271,7 +271,13 @@ class PDFEngine:
 
         story.append(Paragraph(f"<b>SCALETTA LIVE: {setlist.title.upper()}</b>", styles["DocTitle"]))
         if setlist.date:
-            story.append(Paragraph(f"Data Esecuzione: <b>{setlist.date}</b>", styles["SectionText"]))
+            date_raw = str(setlist.date).strip()
+            date_parts = date_raw.split("T")[0].split("-")
+            if len(date_parts) == 3 and len(date_parts[0]) == 4:
+                date_display = f"{date_parts[2]}/{date_parts[1]}/{date_parts[0]}"
+            else:
+                date_display = date_raw
+            story.append(Paragraph(f"Data Esecuzione: <b>{date_display}</b>", styles["SectionText"]))
         if setlist.description:
             story.append(Paragraph(f"<i>{setlist.description}</i>", styles["SectionText"]))
 
@@ -279,14 +285,16 @@ class PDFEngine:
 
         # Index Table of Songs (responsive to device usable_w)
         song_map = {s.uuid: s for s in songs}
+        from asma_core.music_engine import MusicEngine
 
         if usable_w < 110 * mm:
             # Layout ultra-compatto per smartphone (senza BPM o Metro)
-            index_data = [["#", "Titolo", "Key"]]
+            index_data = [["#", "Titolo", "Tonalità"]]
             for idx, item in enumerate(setlist.items, start=1):
                 s = song_map.get(item.song_uuid)
                 title = s.title if s else "Sconosciuto"
-                key = item.custom_key or (s.key_current if s else "-")
+                raw_k = item.custom_key or (s.key_current if s else "-")
+                key = MusicEngine.convert_notation(raw_k, "ITA") if raw_k and raw_k != "-" else "-"
                 index_data.append([str(idx), title, key])
 
             col_widths = [usable_w * 0.14, usable_w * 0.62, usable_w * 0.24]
@@ -307,7 +315,8 @@ class PDFEngine:
                 s = song_map.get(item.song_uuid)
                 title = s.title if s else "Brano sconosciuto"
                 artist = s.artist if s else ""
-                key = item.custom_key or (s.key_current if s else "-")
+                raw_k = item.custom_key or (s.key_current if s else "-")
+                key = MusicEngine.convert_notation(raw_k, "ITA") if raw_k and raw_k != "-" else "-"
                 notes = item.notes or ("(Medley)" if item.is_medley else "")
                 index_data.append([str(idx), title, artist, key, notes])
 
@@ -338,7 +347,15 @@ class PDFEngine:
             if not s:
                 continue
 
-            header_t = cls._create_song_header_table(s, styles, prof, usable_w, setlist_pos=f"{i+1} di {len(setlist.items)}", include_chords=include_chords)
+            header_t = cls._create_song_header_table(
+                s,
+                styles,
+                prof,
+                usable_w,
+                setlist_pos=f"{i+1} di {len(setlist.items)}",
+                include_chords=include_chords,
+                custom_key=item.custom_key
+            )
             story.append(header_t)
             story.append(Spacer(1, 4 * mm))
 
@@ -498,9 +515,10 @@ class PDFEngine:
         profile: DeviceProfile,
         usable_width: float,
         setlist_pos: Optional[str] = None,
-        include_chords: bool = True
+        include_chords: bool = True,
+        custom_key: Optional[str] = None
     ) -> Table:
-        """Constructs an elegant header box containing metadata (Key, BPM, Time Signature, Capo)."""
+        """Constructs an elegant header box containing metadata (Tonalità latina, BPM, Time Signature, Capo)."""
         title_p = Paragraph(f"<b>{song.title}</b>", styles["DocTitle"])
         pos_str = f" [{setlist_pos}]" if setlist_pos else ""
 
@@ -513,13 +531,17 @@ class PDFEngine:
         if song.author and song.author.strip() and song.author.strip().lower() != (song.artist or "").strip().lower():
             parts.append(f"<i>{song.author.strip()}</i>")
 
+        from asma_core.music_engine import MusicEngine
+        raw_key = custom_key or song.key_current or "-"
+        ita_key = MusicEngine.convert_notation(raw_key, "ITA") if raw_key and raw_key != "-" else "-"
+
         if include_chords:
-            meta_info = f"<b>Key:</b> {song.key_current}"
+            meta_info = f"<b>Tonalità:</b> {ita_key}"
             if song.capo > 0:
                 meta_info += f" | <b>Capo:</b> {song.capo}° tasto"
             parts.append(meta_info)
         else:
-            parts.append("<b>Solo Testo (Cantante)</b>")
+            parts.append(f"<b>Solo Testo (Cantante)</b> &bull; <b>Tonalità:</b> {ita_key}")
 
         sub_text = " &bull; ".join(parts)
         subtitle_p = Paragraph(sub_text, styles["DocSubtitle"])

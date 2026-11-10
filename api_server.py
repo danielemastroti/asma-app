@@ -420,16 +420,23 @@ def fork_song_personal(uuid: str, req: ForkSongRequest):
         artist=source_song.artist,
         author=source_song.author,
         genre=source_song.genre,
+        year=source_song.year,
+        duration_seconds=source_song.duration_seconds,
         bpm=source_song.bpm,
         time_signature=source_song.time_signature,
         capo=source_song.capo,
         key_original=source_song.key_original,
         key_current=source_song.key_current,
+        notation_system=source_song.notation_system,
+        tags=list(source_song.tags) if source_song.tags else [],
         aml_content=source_song.aml_content,
-        notes=f"Versione personale di {req.user_name}"
+        shared_notes=f"Versione personale di {req.user_name}"
     )
     saved = storage.save_song(cloned_song, req.user_email, req.user_name, f"Copia personale creata da {req.user_name}")
-    storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, req.user_email, req.user_name)
+    try:
+        storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, req.user_email, req.user_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {
         "status": "success",
         "cloned_song": saved.to_dict(),
@@ -493,6 +500,11 @@ def list_songs(
             s_reps = [r.name for r in all_reps if s["uuid"] in r.song_uuids]
             s["assigned_repertoires"] = s_reps
 
+    from asma_core.music_engine import MusicEngine
+    for s in all_songs:
+        raw_k = s.get("key_current", "C")
+        s["key_current"] = MusicEngine.convert_notation(raw_k, "ITA") if raw_k else "DO"
+
     if search and search.strip():
         kw = search.strip().lower()
         all_songs = [
@@ -539,6 +551,8 @@ def get_song(uuid: str):
     orig_ita = MusicEngine.convert_notation(song.key_original, "ITA") if song.key_original else "-"
 
     res = song.to_dict()
+    res["key_current"] = ita_key
+    res["key_original"] = orig_ita
     res["key_current_ita"] = ita_key
     res["key_original_ita"] = orig_ita
     res["assigned_repertoires"] = assigned
@@ -993,6 +1007,16 @@ def export_song_file(uuid: str, export_format: str):
 # 5. SETLISTS ENDPOINTS
 # -----------------------------------------------------------------------------
 
+def format_date_ddmmyyyy(date_val: Optional[str]) -> str:
+    if not date_val:
+        return ""
+    s = str(date_val).strip()
+    parts = s.split("T")[0].split("-")
+    if len(parts) == 3 and len(parts[0]) == 4:
+        return f"{parts[2]}/{parts[1]}/{parts[0]}"
+    return s
+
+
 @app.get("/api/setlists")
 def list_setlists():
     """Lists all active setlists with item counts and total duration."""
@@ -1002,7 +1026,8 @@ def list_setlists():
         result.append({
             "uuid": s.uuid,
             "title": s.title,
-            "date": s.date,
+            "date": format_date_ddmmyyyy(s.date),
+            "raw_date": s.date,
             "description": s.description,
             "item_count": len(s.items),
             "updated_at": s.updated_at
@@ -1016,18 +1041,21 @@ def get_setlist(uuid: str):
     if not s:
         raise HTTPException(status_code=404, detail="Scaletta non trovata")
 
+    from asma_core.music_engine import MusicEngine
     resolved_items = []
     total_duration = 0
     for idx, item in enumerate(s.items):
         song = storage.get_song(item.song_uuid)
         dur = song.duration_seconds if song else 0
         total_duration += dur
+        raw_k = item.custom_key or (song.key_current if song else "-")
+        ita_k = MusicEngine.convert_notation(raw_k, "ITA") if raw_k and raw_k != "-" else "-"
         resolved_items.append({
             "index": idx + 1,
             "song_uuid": item.song_uuid,
             "title": song.title if song else "Brano non trovato",
             "artist": song.artist if song else "",
-            "key": item.custom_key or (song.key_current if song else "-"),
+            "key": ita_k,
             "bpm": item.custom_bpm or (song.bpm if song else 120),
             "duration_seconds": dur,
             "is_medley": item.is_medley,
@@ -1038,7 +1066,8 @@ def get_setlist(uuid: str):
     return {
         "uuid": s.uuid,
         "title": s.title,
-        "date": s.date,
+        "date": format_date_ddmmyyyy(s.date),
+        "raw_date": s.date,
         "description": s.description,
         "total_songs": len(resolved_items),
         "total_duration_seconds": total_duration,
@@ -1204,14 +1233,11 @@ def get_setlist_pdf(
             pdf_bytes = doc.tobytes(garbage=3)
         except Exception:
             pass
-    filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', s.title).strip('_') or "scaletta"
-    mode_suffix = "accordi" if chords else "testo"
-
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{filename}_{mode_suffix}.pdf"'
+            "Content-Disposition": 'inline; filename="SCALETTA_LIVE.pdf"'
         }
     )
 

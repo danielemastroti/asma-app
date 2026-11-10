@@ -23,7 +23,7 @@ class TestImportExportEngine(unittest.TestCase):
             tags=["rock", "classic"],
             aml_content="""{title: Hotel California}
 {artist: Eagles}
-{key: Bm}
+{key: SIm}
 {intro}
 | Bm | F#7 | A | E |
 
@@ -41,7 +41,7 @@ class TestImportExportEngine(unittest.TestCase):
     def test_export_for_mobilesheets_and_songbook(self):
         """Test MobileSheets/SongBookPro metadata header injection."""
         ms = ExportEngine.export_for_mobilesheets(self.song)
-        self.assertIn("{key: Bm}", ms)
+        self.assertIn("{key: SIm}", ms)
         self.assertIn("{tempo: 74}", ms)
         self.assertIn("{keywords: rock, classic}", ms)
 

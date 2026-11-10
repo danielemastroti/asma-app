@@ -549,7 +549,7 @@ function renderSongCards(searchKw = '') {
         </div>
         <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
         <div class="song-card-meta">
-          <span class="badge">Key: ${s.key_current || '-'}</span>
+          <span class="badge">Tonalità: ${toLatinKey(s.key_current)}</span>
           <span class="badge">${s.bpm || 120} BPM</span>
           <span class="badge">📁 ${escapeHtml(repsStr)}</span>
         </div>
@@ -583,6 +583,52 @@ const FLAT_MAP = {
   "DB": "C#", "EB": "D#", "GB": "F#", "AB": "G#", "BB": "A#",
   "REB": "DO#", "MIB": "RE#", "SOLB": "FA#", "LAB": "SOL#", "SIB": "LA#"
 };
+
+const INT_TO_ITA_MAP = {
+  "C": "DO", "C#": "DO#", "DB": "REb",
+  "D": "RE", "D#": "RE#", "EB": "MIb",
+  "E": "MI",
+  "F": "FA", "F#": "FA#", "GB": "SOLb",
+  "G": "SOL", "G#": "SOL#", "AB": "LAb",
+  "A": "LA", "A#": "LA#", "BB": "SIb", "B": "SI"
+};
+
+function toLatinKey(keyStr) {
+  if (!keyStr) return '-';
+  let s = String(keyStr).trim();
+  if (!s || s === '-') return '-';
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    return `${toLatinKey(parts[0])}/${toLatinKey(parts[1])}`;
+  }
+  const m = s.match(/^(DO#|RE#|FA#|SOL#|LA#|REB|MIB|SOLB|LAB|SIB|DO|RE|MI|FA|SOL|LA|SI|C#|D#|F#|G#|A#|DB|EB|GB|AB|BB|[CDEFGAB])(.*)$/i);
+  if (!m) return s;
+  const root = m[1].toUpperCase();
+  const rest = m[2];
+  const latinRoot = INT_TO_ITA_MAP[root] || root;
+  return `${latinRoot}${rest}`;
+}
+
+function formatDateDDMMYYYY(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    return `${m[3]}/${m[2]}/${m[1]}`;
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) {
+    return s;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return s;
+}
 
 function transposeSingleChord(chordStr, semitones) {
   if (!chordStr || semitones === 0) return chordStr;
@@ -753,7 +799,7 @@ function renderSongViewer() {
       <div>
         <h2 style="font-size: 22px; font-weight: 900; color: #fff;">${escapeHtml(s.title)}</h2>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
-          <b>${escapeHtml(s.artist || 'Band')}</b> &bull; Tonalità: <code style="color:#ffd600; font-weight:700;">${s.key_current}</code>
+          <b>${escapeHtml(s.artist || 'Band')}</b> &bull; Tonalità: <code style="color:#ffd600; font-weight:700;">${toLatinKey(s.key_current)}</code>
           &bull; Tempo: <code style="color:#00e5ff;">${s.bpm || 120} BPM</code> &bull; Capo: <b>${s.capo || 0}°</b>
           &bull; Formato: <code style="color:#38bdf8;">${escapeHtml(state.activeDevice)}</code>
         </div>
@@ -1424,7 +1470,7 @@ async function openStageModal() {
 
   stageModal.style.display = 'flex';
   document.getElementById('stage-song-title').textContent = currentSong.title;
-  document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Key: ${currentSong.key_current} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
+  document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Tonalità: ${toLatinKey(currentSong.key_current)} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
 
   await renderStageSong(currentSong);
 }
@@ -1755,7 +1801,7 @@ function renderSetlists() {
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div>
           <div class="song-card-title">📑 ${escapeHtml(s.title)}</div>
-          <div class="song-card-artist">${escapeHtml(s.date || 'Data da definire')} &bull; ${escapeHtml(s.description || 'Scaletta Concerto')}</div>
+          <div class="song-card-artist">${escapeHtml(formatDateDDMMYYYY(s.date) || 'Data da definire')} &bull; ${escapeHtml(s.description || 'Scaletta Concerto')}</div>
         </div>
         <span class="badge" style="background:#0284c7; color:#fff;">${s.item_count} Brani</span>
       </div>
@@ -1773,7 +1819,13 @@ function renderSetlists() {
 function downloadSetlistPdf(uuid) {
   const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
   const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}`;
-  window.open(url, '_blank');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SCALETTA_LIVE.pdf';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function printSetlistA4(uuid) {
@@ -1825,7 +1877,7 @@ function renderSetlistEditor() {
       <div style="flex:1;">
         <div style="font-weight:700; color:#fff;">${escapeHtml(item.title)}</div>
         <div style="font-size:12px; color:#94a3b8;">
-          ${escapeHtml(item.artist || '')} &bull; Tonalità: <b style="color:#ffd600;">${item.key}</b>
+          ${escapeHtml(item.artist || '')} &bull; Tonalità: <b style="color:#ffd600;">${toLatinKey(item.key)}</b>
           &bull; Tempo: <b>${item.bpm} BPM</b> ${item.is_medley ? '<span class="badge" style="background:#7c3aed; color:#fff; font-size:10px; margin-left:6px;">🔗 MEDLEY</span>' : ''}
         </div>
       </div>
@@ -1840,7 +1892,7 @@ function renderSetlistEditor() {
 
   // Song options for "+ Aggiungi Brano"
   const songOptions = (state.songs || []).map(song => 
-    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Key: ${escapeHtml(song.key_current || '-')}]</option>`
+    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Tonalità: ${escapeHtml(toLatinKey(song.key_current))}]</option>`
   ).join('');
 
   container.innerHTML = `
@@ -1849,7 +1901,7 @@ function renderSetlistEditor() {
         <div>
           <h2 style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
           <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
-            <b>${escapeHtml(s.date || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)
+            <b>${escapeHtml(formatDateDDMMYYYY(s.date) || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)
           </div>
         </div>
         <div class="viewer-tools">
@@ -2330,7 +2382,11 @@ async function forkSongToPersonal(uuid) {
     if (res.ok) {
       const data = await res.json();
       showToast(`✓ Copia personale creata in "${data.target_repertoire_name}"!`);
+      if (data.target_repertoire_uuid) {
+        state.activeRepertoire = data.target_repertoire_uuid;
+      }
       await loadRepertoires();
+      renderRepertoireChips();
       await loadSongs();
       if (data.cloned_song && data.cloned_song.uuid) {
         selectSong(data.cloned_song.uuid);

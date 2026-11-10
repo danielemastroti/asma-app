@@ -4687,7 +4687,7 @@ elif menu_choice == "📑 Scalette Live":
             st.download_button(
                 label=f"📄 Scarica PDF Unico Scaletta ({set_prof.name})",
                 data=set_pdf,
-                file_name=f"Scaletta_{active_setlist.title.replace(' ', '_')}.pdf",
+                file_name="SCALETTA_LIVE.pdf",
                 mime="application/pdf",
                 width="stretch",
                 help="Genera un unico documento PDF con copertina, indice e tutti i brani impaginati sequenzialmente nel formato del dispositivo."
