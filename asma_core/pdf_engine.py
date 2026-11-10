@@ -156,7 +156,7 @@ class PDFEngine:
             f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.target_device}_{prof.orientation}_"
             f"{getattr(prof, 'columns', 1)}_{getattr(prof, 'font_size_lyrics', 12)}_"
             f"{getattr(prof, 'font_size_chords', 13)}_"
-            f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
+            f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'margin_top_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
             f"{getattr(prof, 'color_chords', '')}_{getattr(prof, 'color_aml_markup', '')}_"
             f"{template_name}_{watermark}_{include_chords}"
         )
@@ -168,7 +168,7 @@ class PDFEngine:
         pagesize = cls.get_page_size(prof)
 
         # Top margin: exactly 58 pt (px) default for single songs, lateral margins from profile
-        top_m = 58.0
+        top_m = max(float(getattr(prof, "margin_top_mm", 10.0)), 0.0) * mm
         # Bottom margin: at least 15.0 mm to guarantee no overlap with the footer line (which sits at 9.5 mm)
         bot_m = max(prof.margin_bottom_mm, 15.0) * mm
         left_m = prof.margin_left_mm * mm

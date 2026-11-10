@@ -389,7 +389,7 @@ function adjustMargin(delta) {
 }
 
 function adjustMarginTop(delta) {
-  state.userPrefs.layout_margin_top = Math.max(2, Math.min(50, (state.userPrefs.layout_margin_top || 10) + delta));
+  state.userPrefs.layout_margin_top = Math.max(0, Math.min(50, (state.userPrefs.layout_margin_top || 10) + delta));
   const val = document.getElementById('val-margin-top');
   if (val) val.textContent = state.userPrefs.layout_margin_top;
   autosaveUserPreferences();
