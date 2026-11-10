@@ -1774,7 +1774,7 @@ function renderSetlistEditor() {
 
   // Song options for "+ Aggiungi Brano"
   const songOptions = (state.songs || []).map(song => 
-    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || '')})</option>`
+    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Key: ${escapeHtml(song.key_current || '-')}]</option>`
   ).join('');
 
   container.innerHTML = `
@@ -1795,14 +1795,22 @@ function renderSetlistEditor() {
         </div>
       </div>
 
-      <!-- ADD SONG CONTROLS -->
-      <div style="display:flex; gap:10px; margin: 16px 0; align-items:center; background:var(--bg-surface-elevated); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
-        <label style="font-size:13px; font-weight:700; color:#38bdf8;">+ Aggiungi Brano:</label>
-        <select id="select-add-song-setlist" class="search-input" style="flex:1;">
-          <option value="">-- Seleziona un brano dal repertorio --</option>
-          ${songOptions}
-        </select>
-        <button class="btn btn-primary" onclick="addSelectedSongToSetlist()">Aggiungi</button>
+      <!-- ADD SONG CONTROLS WITH EXPLICIT CONFIRM BUTTON -->
+      <div style="display:flex; flex-wrap:wrap; gap:12px; margin: 18px 0; align-items:flex-end; background:var(--bg-surface-elevated); padding:14px 16px; border-radius:10px; border:1.5px solid var(--accent-cyan); box-shadow: 0 4px 14px rgba(0,0,0,0.3);">
+        <div style="flex:1 1 280px; min-width:0; display:flex; flex-direction:column; gap:6px;">
+          <label for="select-add-song-setlist" style="font-size:13.5px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+            <span>➕</span> Scegli un brano da aggiungere alla scaletta:
+          </label>
+          <select id="select-add-song-setlist" class="search-input" style="width:100%; min-height:44px; font-size:14px; font-weight:600; padding:8px 12px; background:#0f172a; border:1px solid var(--accent-cyan); color:#fff; border-radius:8px;" onchange="onSetlistSongSelectChange()" onkeydown="if(event.key==='Enter') addSelectedSongToSetlist()">
+            <option value="">-- Seleziona un brano dal repertorio --</option>
+            ${songOptions}
+          </select>
+        </div>
+        <div style="flex:0 0 auto;">
+          <button id="btn-confirm-add-song-setlist" class="btn btn-success" style="min-height:44px; padding:10px 22px; font-size:14px; font-weight:900; white-space:nowrap; display:flex; align-items:center; gap:8px; border-radius:8px; cursor:pointer;" onclick="addSelectedSongToSetlist()">
+            ✓ Conferma e Aggiungi
+          </button>
+        </div>
       </div>
 
       <!-- ITEMS LIST -->
@@ -1842,9 +1850,31 @@ function removeSetlistItem(index) {
   saveCurrentSetlist();
 }
 
+function onSetlistSongSelectChange() {
+  const sel = document.getElementById('select-add-song-setlist');
+  const btn = document.getElementById('btn-confirm-add-song-setlist');
+  if (!sel || !btn) return;
+
+  if (sel.value) {
+    const song = (state.songs || []).find(s => s.uuid === sel.value);
+    const title = song ? song.title : 'questo brano';
+    btn.innerHTML = `✓ Conferma e Inserisci "${escapeHtml(title)}"`;
+    btn.style.boxShadow = '0 0 16px rgba(16, 185, 129, 0.7)';
+    btn.style.borderColor = '#10b981';
+  } else {
+    btn.innerHTML = `✓ Conferma e Aggiungi`;
+    btn.style.boxShadow = 'none';
+    btn.style.borderColor = 'transparent';
+  }
+}
+
 function addSelectedSongToSetlist() {
   const sel = document.getElementById('select-add-song-setlist');
-  if (!sel || !sel.value || !state.selectedSetlist) return;
+  if (!sel || !state.selectedSetlist) return;
+  if (!sel.value) {
+    showToast("⚠️ Seleziona prima un brano dall'elenco a discesa");
+    return;
+  }
   const songUuid = sel.value;
   const song = (state.songs || []).find(s => s.uuid === songUuid);
   if (!song) return;
@@ -1865,7 +1895,7 @@ function addSelectedSongToSetlist() {
 
   renderSetlistEditor();
   saveCurrentSetlist();
-  showToast(`Aggiunto: ${song.title} ✓`);
+  showToast(`Aggiunto alla scaletta: ${song.title} ✓`);
 }
 
 async function saveCurrentSetlist() {

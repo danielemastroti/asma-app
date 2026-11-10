@@ -1,20 +1,38 @@
 [
   {
-    "uuid": "649ed9af-9ccc-407a-8b1a-254790577557",
-    "title": "Novembre2026",
-    "date": "2026-11-10",
-    "description": "",
-    "items": [],
-    "created_at": "2026-11-09T22:17:48.762534+00:00",
-    "updated_at": "2026-11-10T17:56:03.123249+00:00"
-  },
-  {
     "uuid": "d461499e-a45a-4423-985b-e0550ceafc9d",
     "title": "Concerto Teatro Estate",
     "date": "2026-07-20",
     "description": "Scaletta ufficiale",
-    "items": [],
+    "items": [
+      {
+        "song_uuid": "50_special_bebdbb",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
     "created_at": "2026-11-10T18:40:36.561678+00:00",
-    "updated_at": "2026-11-10T18:40:36.562701+00:00"
+    "updated_at": "2026-11-10T18:52:54.212984+00:00"
+  },
+  {
+    "uuid": "649ed9af-9ccc-407a-8b1a-254790577557",
+    "title": "Novembre2026",
+    "date": "2026-11-10",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "50_special_bebdbb",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-10T19:02:38.037729+00:00",
+    "updated_at": "2026-11-10T19:02:38.038728+00:00"
   }
 ]
