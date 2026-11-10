@@ -2,6 +2,7 @@
 ASMA 2.0 - High Performance FastAPI Backend API
 Conforms to SRS & PWA Architecture Blueprint.
 Provides clean REST API endpoints for all asma_core services.
+Deploy test: verify personal repertoire persistence across cloud deploys.
 """
 
 from __future__ import annotations
