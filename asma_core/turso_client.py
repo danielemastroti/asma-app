@@ -426,10 +426,26 @@ class TursoClient:
                     rep.get("updated_at")
                 ]))
             client.batch(statements)
+            # Prune any repertoires from Turso that are no longer active
+            active_uuids = [r.get("uuid") for r in repertoires if r.get("uuid")]
+            if active_uuids:
+                placeholders = ",".join("?" * len(active_uuids))
+                client.execute(f"DELETE FROM repertoires WHERE uuid NOT IN ({placeholders}) OR LOWER(name) = 'provvisorio';", active_uuids)
             client.close()
             return True, f"Sincronizzati {len(repertoires)} repertori su Turso."
         except Exception as e:
             return False, f"Errore push repertori Turso: {e}"
+
+    def delete_repertoire(self, uuid: str) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "Turso non configurato."
+        try:
+            client = self._get_connection()
+            client.execute("DELETE FROM repertoires WHERE uuid = ? OR LOWER(name) = 'provvisorio';", [uuid])
+            client.close()
+            return True, f"Repertorio {uuid} eliminato da Turso."
+        except Exception as e:
+            return False, f"Errore eliminazione repertorio da Turso: {e}"
 
     def fetch_repertoires(self) -> List[Dict[str, Any]]:
         if not self.is_configured:

@@ -809,6 +809,11 @@ class StorageManager:
         self._save_repertoires_file(reps)
         self._load_all_into_index()
         self.audit.log("DELETE", "REPERTOIRE", repertoire_uuid, user_email, user_name, {"name": target_rep.name})
+        if hasattr(self, "turso_client") and self.turso_client.is_configured:
+            try:
+                self.turso_client.delete_repertoire(repertoire_uuid)
+            except Exception:
+                pass
         self._trigger_background_gist_sync("ALL")
         return True
 
@@ -1367,7 +1372,7 @@ class StorageManager:
                     reps_changed = False
                     for tr in turso_reps:
                         r_uuid = tr.get("uuid")
-                        if not r_uuid:
+                        if not r_uuid or tr.get("name", "").strip().lower() == "provvisorio":
                             continue
                         if r_uuid in rep_map:
                             existing = rep_map[r_uuid]
