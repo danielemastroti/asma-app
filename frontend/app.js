@@ -1744,11 +1744,68 @@ function parseAmlForWeb(aml, showChords) {
       continue;
     }
 
-    // 1. Detect Section Header ([INTRO], {verse}, Intro:, etc.)
+    // 1. Detect Directives ({tag} or {tag: value})
+    const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$/);
+    if (dirMatch) {
+      const tag = dirMatch[1].toLowerCase();
+      const val = dirMatch[2] ? dirMatch[2].trim() : '';
+
+      // Skip metadata directives already displayed in the main song header
+      if (['title', 't', 'artist', 'a', 'key', 'tempo', 'bpm', 'capo', 'time'].includes(tag)) {
+        continue;
+      }
+
+      // Comments / band notes: {c: ...} or {comment: ...}
+      if (['c', 'comment', 'ci', 'cb'].includes(tag)) {
+        html += `<div style="margin: 6px 0; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 4px 10px; border-radius: 0 4px 4px 0; font-style: italic; font-size: 13px;">💬 <b>[NOTA]:</b> ${escapeHtml(val || 'Nota')}</div>`;
+        continue;
+      }
+
+      // Column break: {colb}
+      if (['colb', 'column_break', 'col_break'].includes(tag)) {
+        html += `<div style="break-before: column; border-top: 1px dashed #a855f7; margin: 12px 0; color: #a855f7; font-size: 11px; font-weight: 700; padding-top: 4px;">--- SALTO COLONNA ---</div>`;
+        continue;
+      }
+
+      // Section open directives
+      let secName = null;
+      if (['soc', 'start_of_chorus', 'chorus', 'ritornello'].includes(tag)) {
+        secName = val ? val.toUpperCase() : 'RITORNELLO';
+      } else if (['sov', 'start_of_verse', 'verse', 'strofa'].includes(tag)) {
+        secName = val ? val.toUpperCase() : 'STROFA';
+      } else if (['sob', 'start_of_bridge', 'bridge', 'speciale'].includes(tag)) {
+        secName = val ? val.toUpperCase() : 'SPECIALE';
+      }
+
+      if (secName) {
+        if (inSection) html += '</div>';
+        const isChorus = secName.includes('RITORNELLO') || secName.includes('CHORUS');
+        const borderColor = isChorus ? '#ffd600' : 'var(--accent-cyan)';
+        const bgTint = isChorus ? 'background: rgba(255, 214, 0, 0.06); border-left: 3px solid #ffd600; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
+        html += `<div class="aml-section" style="${bgTint}"><div class="aml-tag-header" style="color: ${borderColor}; font-weight: 900;">[${escapeHtml(secName)}]</div>`;
+        inSection = true;
+        lastWasInstrumental = false;
+        continue;
+      }
+
+      // Section close directives
+      if (['eoc', 'end_of_chorus', 'eov', 'end_of_verse', 'eob', 'end_of_bridge'].includes(tag)) {
+        if (inSection) {
+          html += '</div>';
+          inSection = false;
+        }
+        continue;
+      }
+
+      if (val) {
+        html += `<div style="font-size: 11.5px; color: #94a3b8; margin: 4px 0;"><b>[${escapeHtml(tag.toUpperCase())}]:</b> ${escapeHtml(val)}</div>`;
+      }
+      continue;
+    }
+
+    // 2. Detect Bracketed / Colon Section Header ([INTRO], [STROFA], Intro:, etc.)
     let sectionTitle = null;
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      sectionTitle = trimmed.slice(1, -1).replace(/^[c|comment]:\s*/i, '').toUpperCase();
-    } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       const candidate = trimmed.slice(1, -1).toUpperCase();
       const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO', 'RIFF'];
       if (standardSections.some(s => candidate.startsWith(s) || candidate.includes(s))) {
@@ -1762,7 +1819,6 @@ function parseAmlForWeb(aml, showChords) {
       if (inSection) html += '</div>';
       html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
       inSection = true;
-      // If the section title itself is instrumental/solo, avoid duplicate ♪ (Strumentale) marker
       lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO');
       continue;
     }

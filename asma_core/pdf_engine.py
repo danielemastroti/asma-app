@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import re
 import io
+from html import escape
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -640,10 +641,114 @@ class PDFEngine:
         for node in doc.nodes:
             if isinstance(node, DirectiveNode):
                 d_name = node.name.strip().lower()
+                d_val = (node.value or "").strip()
                 if d_name in ["sot", "start_of_tab", "tab", "tablatura"]:
                     in_tab_block = True
+                    continue
                 elif d_name in ["eot", "end_of_tab"]:
                     in_tab_block = False
+                    continue
+
+                if in_tab_block:
+                    continue
+
+                # Header metadata directives (already rendered in PDF title header)
+                if d_name in ["title", "t", "artist", "a", "key", "tempo", "bpm", "capo", "time"]:
+                    continue
+
+                # Band notes and comments: {c: ...} or {comment: ...}
+                if d_name in ["c", "comment", "ci", "cb"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    note_text = d_val or "Nota"
+                    comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; [NOTA]: {escape(note_text)}</i></b></font>", styles["DocSubtitle"])
+                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
+                    last_was_inst_marker = False
+                    continue
+
+                # Section directives: {soc}, {start_of_chorus}, {sov}, {start_of_verse}, {sob}, {start_of_bridge}
+                if d_name in ["soc", "start_of_chorus", "chorus", "ritornello"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if flowables and not isinstance(flowables[-1], Spacer):
+                        flowables.append(Spacer(1, 3.5 * mm))
+                    badge_title = d_val.upper() if d_val else "RITORNELLO"
+                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
+                    p = Paragraph(badge_text, styles["SectionBadge"])
+                    badge_table = Table([[p]], colWidths=[usable_width])
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ]))
+                    pending_badge = badge_table
+                    last_was_inst_marker = False
+                    continue
+
+                if d_name in ["sov", "start_of_verse", "verse", "strofa"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if flowables and not isinstance(flowables[-1], Spacer):
+                        flowables.append(Spacer(1, 3.5 * mm))
+                    badge_title = d_val.upper() if d_val else "STROFA"
+                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
+                    p = Paragraph(badge_text, styles["SectionBadge"])
+                    badge_table = Table([[p]], colWidths=[usable_width])
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ]))
+                    pending_badge = badge_table
+                    last_was_inst_marker = False
+                    continue
+
+                if d_name in ["sob", "start_of_bridge", "bridge", "speciale"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if flowables and not isinstance(flowables[-1], Spacer):
+                        flowables.append(Spacer(1, 3.5 * mm))
+                    badge_title = d_val.upper() if d_val else "SPECIALE"
+                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
+                    p = Paragraph(badge_text, styles["SectionBadge"])
+                    badge_table = Table([[p]], colWidths=[usable_width])
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ]))
+                    pending_badge = badge_table
+                    last_was_inst_marker = False
+                    continue
+
+                if d_name in ["eoc", "end_of_chorus", "eov", "end_of_verse", "eob", "end_of_bridge"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if flowables and not isinstance(flowables[-1], Spacer):
+                        flowables.append(Spacer(1, 2.0 * mm))
+                    continue
+
+                # Column break: {colb} or {column_break}
+                if d_name in ["colb", "column_break", "col_break"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if cols == 2:
+                        flowables.append(FrameBreak())
+                    else:
+                        flowables.append(Spacer(1, 4.0 * mm))
+                    continue
+
+                # Any other directive with value (e.g. custom tag)
+                if d_val:
+                    comm_p = Paragraph(f"<font color='{c_aml_hex}'><b>[{d_name.upper()}]:</b> {escape(d_val)}</font>", styles["DocSubtitle"])
+                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.0 * mm)]))
+                    last_was_inst_marker = False
                 continue
 
             elif isinstance(node, SectionNode):
