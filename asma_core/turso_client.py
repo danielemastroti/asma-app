@@ -403,6 +403,19 @@ class TursoClient:
         except Exception:
             return []
 
+    def fetch_deleted_song_map(self) -> Dict[str, str]:
+        """Returns mapping {uuid: updated_at} for songs marked is_deleted=1 on Turso."""
+        if not self.is_configured:
+            return {}
+        try:
+            client = self._get_connection()
+            res = client.execute("SELECT uuid, updated_at FROM songs WHERE is_deleted = 1;")
+            deleted = {r[0]: (r[1] or "") for r in res.rows if r[0]}
+            client.close()
+            return deleted
+        except Exception:
+            return {}
+
     # ---------------- REPERTOIRES & SETLISTS ----------------
     def push_repertoires(self, repertoires: List[Dict[str, Any]]) -> Tuple[bool, str]:
         if not self.is_configured:

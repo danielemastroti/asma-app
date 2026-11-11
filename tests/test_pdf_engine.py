@@ -317,6 +317,25 @@ E|-------------------|
             titles = [s["title"].lower() for s in songs]
             self.assertEqual(titles, sorted(titles))
 
+    def test_pdf_header_no_solo_testo_label_and_pseudonym_in_parens(self):
+        """PDF removes 'Solo Testo'/'Accordi' label and wraps user pseudonym in parentheses."""
+        import pymupdf
+        song = Song(
+            title="Test Header PDF",
+            artist="Band",
+            key_current="C",
+            aml_content="[C]Prima [G]riga\n" + ("[Am]Riga lunga\n" * 60),
+        )
+        pdf_singer = PDFEngine.generate_song_pdf(
+            song, include_chords=False, use_cache=False, user_name="Cico"
+        )
+        doc = pymupdf.open(stream=pdf_singer, filetype="pdf")
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("(Cico)", full_text)
+        self.assertNotIn("Solo Testo", full_text)
+        self.assertNotIn("ASMA Accordi", full_text)
+
 
 if __name__ == "__main__":
     unittest.main()

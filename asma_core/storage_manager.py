@@ -24,6 +24,19 @@ from asma_core.gist_client import GistClient
 from asma_core.turso_client import TursoClient
 
 
+def _parse_iso_ts(val: Optional[str]) -> datetime:
+    if not val:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    s = str(val).strip().replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+
 class StorageManager:
     """
     Two-layer Storage Engine for ASMA 2.0.
@@ -216,8 +229,9 @@ class StorageManager:
             )
             self._save_revision(rev)
 
-            # Update SQLite Index
-            self._upsert_index_record(song)
+            # Preserve existing repertoire memberships in SQLite Index
+            song_reps = [r.uuid for r in self.list_repertoires() if song.uuid in r.song_uuids]
+            self._upsert_index_record(song, repertoire_uuids=song_reps, is_deleted=0)
 
             # Audit
             self.audit.log(
@@ -285,7 +299,7 @@ class StorageManager:
                     reps_list = tuple(sorted(json.loads(raw_reps)))
                 except Exception:
                     reps_list = ()
-                combo_key = (norm, reps_list) if reps_list else norm
+                combo_key = (norm, reps_list) if reps_list else (norm, r.get("uuid"))
                 if combo_key not in seen_combos:
                     seen_combos.add(combo_key)
                     unique_results.append(r)
@@ -329,9 +343,11 @@ class StorageManager:
                 for r in reps:
                     if song_uuid in r.song_uuids:
                         r.song_uuids = [sid for sid in r.song_uuids if sid != song_uuid]
+                        r.updated_at = current_iso_timestamp()
                         rep_mod = True
                 if rep_mod:
                     self._save_repertoires_file(reps)
+                    self._load_all_into_index()
             except Exception:
                 pass
 
@@ -836,6 +852,7 @@ class StorageManager:
 
         if song_uuid not in target_rep.song_uuids:
             target_rep.song_uuids.append(song_uuid)
+            target_rep.updated_at = current_iso_timestamp()
             self._save_repertoires_file(reps)
             self._load_all_into_index()
             self.audit.log("UPDATE", "REPERTOIRE", target_rep.uuid, user_email, user_name, {"action": "song_added", "song_uuid": song_uuid})
@@ -857,6 +874,7 @@ class StorageManager:
             return False
 
         rep.song_uuids.remove(song_uuid)
+        rep.updated_at = current_iso_timestamp()
         self._save_repertoires_file(reps)
         self._load_all_into_index()
         self.audit.log("UPDATE", "REPERTOIRE", rep.uuid, user_email, user_name, {"action": "song_removed", "song_uuid": song_uuid})
@@ -1299,18 +1317,49 @@ class StorageManager:
         if hasattr(self, "turso_client") and self.turso_client.is_configured:
             try:
                 synced_from_turso = 0
+                needs_reindex = False
+                turso_deleted = self.turso_client.fetch_deleted_song_map() if hasattr(self.turso_client, "fetch_deleted_song_map") else {}
                 turso_songs = self.turso_client.fetch_all_songs()
                 for s_dict in turso_songs:
                     s_id = s_dict.get("uuid")
                     if not s_id:
                         continue
                     s_path = os.path.join(self._songs_dir, f"{s_id}.json")
+                    trash_path = os.path.join(self._trash_dir, f"song_{s_id}.json")
+                    remote_dt = _parse_iso_ts(s_dict.get("updated_at"))
+                    should_write = False
                     if not os.path.exists(s_path):
+                        if not os.path.exists(trash_path):
+                            should_write = True
+                    else:
+                        try:
+                            with open(s_path, "r", encoding="utf-8") as lf:
+                                local_data = json.load(lf)
+                            if remote_dt > _parse_iso_ts(local_data.get("updated_at")):
+                                should_write = True
+                        except Exception:
+                            should_write = True
+                    if should_write:
                         with open(s_path, "w", encoding="utf-8") as sf:
                             json.dump(s_dict, sf, indent=2, ensure_ascii=False)
-                        s_obj = Song.from_dict(s_dict)
-                        self._upsert_index_record(s_obj)
                         synced_from_turso += 1
+                        needs_reindex = True
+
+                # Propagate Turso soft-deletes over stale Git-seeded song files
+                for del_id, del_ts in turso_deleted.items():
+                    s_path = os.path.join(self._songs_dir, f"{del_id}.json")
+                    if os.path.exists(s_path):
+                        try:
+                            with open(s_path, "r", encoding="utf-8") as lf:
+                                local_data = json.load(lf)
+                            if _parse_iso_ts(del_ts) >= _parse_iso_ts(local_data.get("updated_at")):
+                                trash_path = os.path.join(self._trash_dir, f"song_{del_id}.json")
+                                with open(trash_path, "w", encoding="utf-8") as tf:
+                                    json.dump({"deleted_at": del_ts or current_iso_timestamp(), "entity_type": "SONG", "entity_uuid": del_id, "data": local_data}, tf, indent=2, ensure_ascii=False)
+                                os.remove(s_path)
+                                needs_reindex = True
+                        except Exception:
+                            pass
 
                 turso_reps = self.turso_client.fetch_repertoires()
                 if turso_reps:
@@ -1322,21 +1371,28 @@ class StorageManager:
                         r_uuid = tr.get("uuid")
                         if not r_uuid or tr.get("name", "").strip().lower() == "provvisorio":
                             continue
+                        remote_songs = [u for u in tr.get("song_uuids", []) if u not in turso_deleted]
                         if r_uuid in rep_map:
                             existing = rep_map[r_uuid]
-                            remote_songs = tr.get("song_uuids", [])
-                            # Union of songs, preserving order
-                            merged_songs = list(dict.fromkeys(existing.song_uuids + remote_songs))
-                            if set(merged_songs) != set(existing.song_uuids):
-                                existing.song_uuids = merged_songs
-                                reps_changed = True
-                            if set(merged_songs) != set(remote_songs):
-                                turso_needs_push = True
+                            remote_dt = _parse_iso_ts(tr.get("updated_at"))
+                            local_dt = _parse_iso_ts(existing.updated_at)
+                            if remote_dt >= local_dt:
+                                if existing.song_uuids != remote_songs:
+                                    existing.song_uuids = list(dict.fromkeys(remote_songs))
+                                    existing.updated_at = tr.get("updated_at") or existing.updated_at
+                                    reps_changed = True
+                                    needs_reindex = True
+                            else:
+                                if set(existing.song_uuids) != set(remote_songs):
+                                    turso_needs_push = True
                         else:
-                            new_r = Repertoire.from_dict(tr)
+                            tr_copy = dict(tr)
+                            tr_copy["song_uuids"] = list(dict.fromkeys(remote_songs))
+                            new_r = Repertoire.from_dict(tr_copy)
                             current_reps.append(new_r)
                             rep_map[r_uuid] = new_r
                             reps_changed = True
+                            needs_reindex = True
                     if reps_changed or not os.path.exists(self._repertoires_file):
                         self._save_repertoires_file(current_reps)
                     if turso_needs_push:
@@ -1344,6 +1400,8 @@ class StorageManager:
                             self.turso_client.push_repertoires([r.to_dict() for r in current_reps])
                         except Exception:
                             pass
+                if needs_reindex:
+                    self._load_all_into_index()
 
                 turso_sets = self.turso_client.fetch_setlists()
                 if turso_sets:
@@ -1369,8 +1427,7 @@ class StorageManager:
                         with open(self._setlists_file, "w", encoding="utf-8") as sf:
                             json.dump([s.to_dict() for s in current_sets], sf, indent=2, ensure_ascii=False)
 
-                if synced_from_turso > 0:
-                    return True, f"Sincronizzati {synced_from_turso} brani da Turso Cloud Database."
+                return True, f"Sincronizzati {synced_from_turso} brani da Turso Cloud Database."
             except Exception:
                 pass
 

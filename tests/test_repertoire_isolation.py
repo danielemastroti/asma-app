@@ -219,3 +219,32 @@ class TestRepertoireIsolation(unittest.TestCase):
             )
         self.assertEqual(ctx.exception.status_code, 409)
         self.assertEqual(len(self.storage.list_songs()), 2)
+
+    def test_promote_overwrite_remains_visible_in_official_even_with_orphans(self):
+        """Regression test: save_song during promote overwrite keeps repertoire_uuids intact in index."""
+        orphan = Song(uuid="aaa_orphan", title="50 SPECIAL", artist="Band", key_current="G", aml_content="[G]Orphan")
+        official = Song(uuid="50_special_bebdbb", title="50 SPECIAL", artist="Lunapop", key_current="G", aml_content="[G]Old")
+        personal = Song(uuid="ppp_personal", title="50 SPECIAL", artist="Lunapop", key_current="Ab", aml_content="[Ab]New")
+
+        self.storage.save_song(orphan, "system", "System", "Orphan")
+        self.storage.save_song(official, "system", "System", "Official")
+        self.storage.save_song(personal, "cico@band.org", "Cico", "Personal")
+        self.official_rep.song_uuids.append(official.uuid)
+        self.personal_rep.song_uuids.append(personal.uuid)
+        self.storage._save_repertoires_file([self.official_rep, self.personal_rep])
+        self.storage.reload_from_disk()
+
+        res = api_server.promote_song_to_official(
+            api_server.PromoteSongRequest(song_uuid=personal.uuid, user_email="cico@band.org", user_name="Cico")
+        )
+        self.assertEqual(res["action"], "overwritten")
+        visible_uuids = {s["uuid"] for s in self.storage.list_songs()}
+        self.assertIn(official.uuid, visible_uuids)
+        self.assertNotIn(personal.uuid, visible_uuids)
+        official_listed = api_server.list_songs(
+            repertoire_uuid=self.official_rep.uuid,
+            search=None,
+            user_email=None,
+        )
+        self.assertEqual([s["uuid"] for s in official_listed], [official.uuid])
+        self.assertEqual(official_listed[0]["key_current"], "LAb")

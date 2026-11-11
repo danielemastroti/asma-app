@@ -84,7 +84,7 @@ class NumberedCanvas(canvas.Canvas):
         if self._pageNumber > 1:
             self.setFont("Helvetica", 8)
             self.setFillColor(colors.HexColor("#666666"))
-            self.drawString(15 * mm, page_h - 10 * mm, f"ASMA Accordi — {self.document_title}")
+            self.drawString(15 * mm, page_h - 10 * mm, f"ASMA — {self.document_title}")
             self.setStrokeColor(colors.HexColor("#CCCCCC"))
             self.setLineWidth(0.5)
             self.line(15 * mm, page_h - 11 * mm, page_w - 15 * mm, page_h - 11 * mm)
@@ -214,7 +214,9 @@ class PDFEngine:
             c.document_title = song.title
             c.version_str = f"| Rev #{song.current_revision}"
             if user_name:
-                c.version_str += f" | {user_name}"
+                clean_foot = re.sub(r'\(.*?\)', '', user_name).strip()
+                if clean_foot:
+                    c.version_str += f" | ({clean_foot})"
             return c
 
         doc.build(story, canvasmaker=canvas_maker)
@@ -284,7 +286,9 @@ class PDFEngine:
                 date_display = date_raw
             story.append(Paragraph(f"Data Esecuzione: <b>{date_display}</b>", styles["SectionText"]))
         if user_name:
-            story.append(Paragraph(f"Musicista: <b>{user_name}</b>", styles["SectionText"]))
+            clean_cover = re.sub(r'\(.*?\)', '', user_name).strip()
+            if clean_cover:
+                story.append(Paragraph(f"Musicista: <b>({clean_cover})</b>", styles["SectionText"]))
         if setlist.description:
             story.append(Paragraph(f"<i>{setlist.description}</i>", styles["SectionText"]))
 
@@ -547,15 +551,12 @@ class PDFEngine:
         if user_name and user_name.strip():
             clean_pseudo = re.sub(r'\(.*?\)', '', user_name).strip()
             if clean_pseudo:
-                parts.append(f"<b>{clean_pseudo}</b>")
+                parts.append(f"<b>({clean_pseudo})</b>")
 
-        if include_chords:
-            meta_info = f"<b>Tonalità:</b> {ita_key}"
-            if song.capo > 0:
-                meta_info += f" | <b>Capo:</b> {song.capo}° tasto"
-            parts.append(meta_info)
-        else:
-            parts.append(f"<b>Solo Testo</b> &bull; <b>Tonalità:</b> {ita_key}")
+        meta_info = f"<b>Tonalità:</b> {ita_key}"
+        if include_chords and song.capo > 0:
+            meta_info += f" | <b>Capo:</b> {song.capo}° tasto"
+        parts.append(meta_info)
 
         sub_text = " &bull; ".join(parts)
         subtitle_p = Paragraph(sub_text, styles["DocSubtitle"])

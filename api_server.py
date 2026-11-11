@@ -492,6 +492,16 @@ def promote_song_to_official(req: PromoteSongRequest):
             f"Versione ufficiale sovrascritta da copia personale di {req.user_name}",
         )
         storage.delete_song(req.song_uuid, req.user_email, req.user_name)
+        storage.reload_from_disk()
+
+        default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
+        if os.path.abspath(storage._base_dir) == default_base and getattr(storage, "turso_client", None) and storage.turso_client.is_configured:
+            try:
+                storage.turso_client.push_song(saved_official.to_dict())
+                storage.turso_client.soft_delete_song(req.song_uuid)
+                storage.turso_client.push_repertoires([r.to_dict() for r in storage.list_repertoires()])
+            except Exception:
+                pass
 
         return {
             "status": "success",
@@ -506,7 +516,7 @@ def promote_song_to_official(req: PromoteSongRequest):
     # New song: simply move from personal to Official preserving UUID and history
     if song.shared_notes and song.shared_notes.startswith("Versione personale di"):
         song.shared_notes = ""
-        storage.save_song(
+        song = storage.save_song(
             song,
             req.user_email,
             req.user_name,
@@ -517,6 +527,15 @@ def promote_song_to_official(req: PromoteSongRequest):
     if req.song_uuid not in official_rep.song_uuids:
         official_rep.song_uuids.append(req.song_uuid)
         storage.save_repertoire(official_rep, req.user_email, req.user_name)
+
+    storage.reload_from_disk()
+    default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
+    if os.path.abspath(storage._base_dir) == default_base and getattr(storage, "turso_client", None) and storage.turso_client.is_configured:
+        try:
+            storage.turso_client.push_song(song.to_dict())
+            storage.turso_client.push_repertoires([r.to_dict() for r in storage.list_repertoires()])
+        except Exception:
+            pass
 
     return {
         "status": "success",
