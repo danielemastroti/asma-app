@@ -2308,10 +2308,19 @@ function buildPdfQueryParams(hasChords, extra = {}) {
 }
 
 /**
- * Avvia il download di un PDF in modo sincrono dal gesture utente tramite link diretto HTTPS,
- * evitando fetch+blob (bloccati su WebAPK) e window.open('_blank') (che apre about:blank su PWA Android).
+ * Desktop: avvio download sincrono diretto.
+ * Mobile / PWA standalone: apre la modale di esportazione in-app (share file nativo, link diretto,
+ * apertura esterna nel browser via Android intent://, o stampa sistema -> Salva come PDF).
  */
-function triggerPdfDownload(url, filename) {
+function triggerPdfDownload(url, filename, onPrint = null) {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+  if (isStandalone || isMobile) {
+    openPdfExportModal(url, filename, onPrint);
+    return;
+  }
+
   showToast(`Avvio download "${filename}"...`);
   const a = document.createElement('a');
   a.style.display = 'none';
@@ -2324,13 +2333,112 @@ function triggerPdfDownload(url, filename) {
   }, 1500);
 }
 
+function closePdfExportModal() {
+  const modal = document.getElementById('pdf-export-modal');
+  if (modal) modal.style.display = 'none';
+  if (state._pdfExport && state._pdfExport.blobUrl) {
+    const oldUrl = state._pdfExport.blobUrl;
+    setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
+  }
+  state._pdfExport = null;
+}
+
+async function openPdfExportModal(url, filename, onPrint = null) {
+  closePdfExportModal();
+  const modal = document.getElementById('pdf-export-modal');
+  const nameEl = document.getElementById('pdf-export-filename');
+  const statusEl = document.getElementById('pdf-export-status');
+  const shareBtn = document.getElementById('pdf-export-share-btn');
+  const directLink = document.getElementById('pdf-export-direct-link');
+  const browserLink = document.getElementById('pdf-export-browser-link');
+  const printBtn = document.getElementById('pdf-export-print-btn');
+
+  if (!modal) return;
+  if (nameEl) nameEl.textContent = filename;
+  if (statusEl) statusEl.textContent = '⏳ Preparazione file PDF dal server...';
+  if (shareBtn) shareBtn.style.display = 'none';
+  if (directLink) directLink.style.display = 'none';
+  if (printBtn) printBtn.style.display = onPrint ? 'inline-flex' : 'none';
+
+  // Link diretto esterno per uscire dalla sandbox WebAPK Android
+  if (browserLink) {
+    if (/Android/i.test(navigator.userAgent || '')) {
+      const parsed = new URL(url, window.location.origin);
+      const scheme = parsed.protocol.replace(':', '');
+      browserLink.href = `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+      browserLink.style.display = 'inline-flex';
+    } else {
+      browserLink.style.display = 'none';
+    }
+  }
+
+  state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null, file: null };
+  modal.style.display = 'flex';
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    // Ignora se nel frattempo l'utente ha chiuso la modale o aperto un altro PDF
+    if (!state._pdfExport || state._pdfExport.url !== url) return;
+
+    const blobUrl = URL.createObjectURL(blob);
+    let pdfFile = null;
+    try {
+      pdfFile = new File([blob], filename, { type: 'application/pdf' });
+    } catch (e) {
+      pdfFile = null;
+    }
+
+    state._pdfExport.blob = blob;
+    state._pdfExport.blobUrl = blobUrl;
+    state._pdfExport.file = pdfFile;
+
+    const kb = Math.max(1, Math.round(blob.size / 1024));
+    if (statusEl) statusEl.textContent = `✅ File pronto (${kb} KB). Scegli come salvare sul dispositivo:`;
+
+    if (shareBtn && pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      shareBtn.style.display = 'inline-flex';
+    }
+    if (directLink) {
+      directLink.href = blobUrl;
+      directLink.download = filename;
+      directLink.style.display = 'inline-flex';
+    }
+  } catch (err) {
+    console.warn('PDF export fetch failed:', err);
+    if (statusEl) statusEl.textContent = `⚠️ Caricamento in-app non riuscito (${err.message}). Usa "Scarica tramite Browser" o "Stampa / Salva come PDF".`;
+  }
+}
+
+async function shareExportedPdf() {
+  const ctx = state._pdfExport;
+  if (!ctx || !ctx.file || !navigator.share) return;
+  try {
+    await navigator.share({
+      files: [ctx.file],
+      title: ctx.filename
+    });
+  } catch (err) {
+    if (err && err.name !== 'AbortError') {
+      showToast('Condivisione file non supportata da questo browser');
+    }
+  }
+}
+
+function printExportedPdf() {
+  const fn = state._pdfExport && state._pdfExport.onPrint;
+  closePdfExportModal();
+  if (typeof fn === 'function') fn();
+}
+
 function downloadPdf() {
   if (!state.selectedSong) return;
   const cleanTitle = (state.selectedSong.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
   const filename = `${cleanTitle}.pdf`;
   const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
   const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?${qs}`;
-  triggerPdfDownload(url, filename);
+  triggerPdfDownload(url, filename, () => printA4());
 }
 
 async function printDirectA4(url) {
@@ -2840,7 +2948,7 @@ function downloadSetlistPdf(uuid) {
   const filename = 'SCALETTA_LIVE.pdf';
   const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
   const url = `${API_BASE}/api/setlists/${uuid}/pdf?${qs}`;
-  triggerPdfDownload(url, filename);
+  triggerPdfDownload(url, filename, () => printSetlistA4(uuid));
 }
 
 function printSetlistA4(uuid) {
