@@ -493,9 +493,29 @@ function renderRepertoireChips() {
 }
 
 function selectRepertoire(repUuid) {
+  const prevTitle = state.selectedSong && state.selectedSong.title
+    ? state.selectedSong.title.trim().toUpperCase()
+    : '';
   state.activeRepertoire = repUuid;
+  state.isEditingSong = false;
   renderRepertoireChips();
   renderSongCards();
+
+  const filtered = getFilteredSongs();
+  if (state.selectedSong) {
+    const stillInFiltered = filtered.find(s => s.uuid === state.selectedSong.uuid);
+    if (!stillInFiltered) {
+      const titleMatch = prevTitle
+        ? filtered.find(s => (s.title || '').trim().toUpperCase() === prevTitle)
+        : null;
+      if (titleMatch) {
+        selectSong(titleMatch.uuid);
+      } else {
+        state.selectedSong = null;
+        renderSongViewer();
+      }
+    }
+  }
 }
 
 async function loadSongs({ autoSelect = true } = {}) {
@@ -573,8 +593,9 @@ function renderSongCards(searchKw = '') {
 
 async function selectSong(uuid) {
   try {
-    const res = await fetch(`${API_BASE}/api/songs/${uuid}`);
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
+      state.isEditingSong = false;
       state.selectedSong = await res.json();
       renderSongCards();
       renderSongViewer();
