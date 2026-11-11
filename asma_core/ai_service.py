@@ -644,3 +644,107 @@ class BandAIService:
 
         return engine_res
 
+    @classmethod
+    def transcribe_sheet_music_images(cls, image_items: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Uses Gemini Multimodal Vision API to transcribe photographed sheet music or song charts
+        into standard AML / ChordPro format with title, artist, key, bpm, and inline chords.
+        Supports multi-page images (page 1, page 2, etc.).
+        """
+        api_key = cls.get_api_key()
+        if not api_key:
+            raise RuntimeError("Chiave API Gemini non configurata. Verifica gemini_api_key nei secrets.")
+
+        if not image_items:
+            raise ValueError("Nessuna immagine fornita per la trascrizione.")
+
+        prompt = (
+            "Sei un assistente musicale professionista esperto nella trascrizione di spartiti, canzonieri e fogli musicali cartacei in formato ChordPro / AML (Accordi Band).\n"
+            "Ti vengono fornite una o più immagini fotografate in sequenza (pagina 1, pagina 2, ecc.) di un brano musicale cartaceo con testo e accordi posizionati sopra le parole.\n"
+            "Il tuo compito è trascrivere con assoluta fedeltà l'intero brano convertendolo in formato ChordPro / AML.\n\n"
+            "REGOLE DI TRASCRIZIONE:\n"
+            "1. Posiziona ciascun accordo ESATTAMENTE all'interno del testo prima della sillaba/parola corrispondente tra parentesi quadre, es: '[DO]Vespe truccate [SOL]anni sessanta'.\n"
+            "2. Non perdere nessuna strofa o ritornello di tutte le pagine fornite. Unisci le pagine in un unico testo ordinato e coerente.\n"
+            "3. Usa le direttive di sezione ChordPro / AML:\n"
+            "   - Ritornello: usa {soc} all'inizio del ritornello e {eoc} alla fine (oppure [RITORNELLO]).\n"
+            "   - Strofe: usa {sov} all'inizio e {eov} alla fine (oppure [STROFA 1], [STROFA 2]).\n"
+            "   - Ponte/Speciale: usa {sob} e {eob} (oppure [SPECIALE] o [BRIDGE]).\n"
+            "   - Intro/Outro/Assolo: [INTRO], [OUTRO], [ASSOLO], ♪ (Strumentale).\n"
+            "   - Se ci sono commenti o indicazioni per i musicisti sul foglio (es. 'arpeggio tastiera', 'stop', 'ritmo 2 volte'): usa la direttiva {c: commento}.\n"
+            "4. Estrai i metadati dall'intestazione del foglio:\n"
+            "   - Titolo del brano (se non presente, deducilo dal ritornello o prima riga).\n"
+            "   - Artista / Band (se presente, altrimenti lascia vuoto o 'Band').\n"
+            "   - Tonalità iniziale (es. DO, RE, SOL, C, G, Am, ecc.).\n"
+            "   - BPM / Tempo (se indicato in numeri, es. 120, altrimenti 120).\n"
+            "   - Capotasto (se indicato, es. 2, altrimenti 0).\n"
+            "5. RISPONDI ESCLUSIVAMENTE con un oggetto JSON valido con questa struttura esatta:\n"
+            "{\n"
+            '  "title": "TITOLO DEL BRANO",\n'
+            '  "artist": "Nome Artista",\n'
+            '  "key": "DO",\n'
+            '  "bpm": 120,\n'
+            '  "capo": 0,\n'
+            '  "aml_content": "{title: TITOLO}\\n{artist: Artista}\\n{key: DO}\\n\\n[INTRO]\\n| DO | SOL | FA | DO |\\n\\n[DO]Testo con accordi...\\n"\n'
+            "}\n"
+        )
+
+        parts: List[Dict[str, Any]] = [{"text": prompt}]
+        for idx, img in enumerate(image_items, 1):
+            raw_b64 = img.get("data", "")
+            if "," in raw_b64:
+                raw_b64 = raw_b64.split(",", 1)[1]
+            mime = img.get("mime_type", "image/jpeg")
+            parts.append({"text": f"--- PAGINA {idx} DEL BRANO ---"})
+            parts.append({
+                "inlineData": {
+                    "mimeType": mime,
+                    "data": raw_b64
+                }
+            })
+
+        payload = {
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 4096,
+                "responseMimeType": "application/json"
+            }
+        }
+
+        models_to_try = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
+        last_error = None
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=30.0) as resp:
+                    if resp.status == 200:
+                        res_json = json.loads(resp.read().decode("utf-8"))
+                        candidates = res_json.get("candidates", [])
+                        if candidates:
+                            resp_parts = candidates[0].get("content", {}).get("parts", [])
+                            if resp_parts:
+                                raw_text = resp_parts[0].get("text", "").strip()
+                                clean_json = re.sub(r"^```(?:json)?\s*", "", raw_text, flags=re.IGNORECASE)
+                                clean_json = re.sub(r"\s*```$", "", clean_json)
+                                parsed_data = json.loads(clean_json)
+                                return {
+                                    "title": parsed_data.get("title", "Nuovo Brano"),
+                                    "artist": parsed_data.get("artist", ""),
+                                    "key": parsed_data.get("key", "DO"),
+                                    "bpm": int(parsed_data.get("bpm", 120)) if str(parsed_data.get("bpm", "")).isdigit() else 120,
+                                    "capo": int(parsed_data.get("capo", 0)) if str(parsed_data.get("capo", "")).isdigit() else 0,
+                                    "aml_content": parsed_data.get("aml_content", "")
+                                }
+            except Exception as e:
+                last_error = e
+                continue
+
+        raise RuntimeError(f"Errore durante l'elaborazione Vision AI: {last_error}")
+
+

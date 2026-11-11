@@ -756,25 +756,53 @@ function renderSongViewer() {
       </div>
 
       <div style="margin-bottom: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Testo AML (tocca i tasti rapidi per inserire accordi nel testo):</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px;">
+          <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Testo AML (Pronto per il Palco & PDF):</label>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleEditorLivePreview('edit-song-aml', 'edit-song-live-preview', this)">👁️ Anteprima Live</button>
+          </div>
         </div>
-        <div class="quick-chips-bar">
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[DO]')">[DO]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[RE]')">[RE]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[MI]')">[MI]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[FA]')">[FA]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SOL]')">[SOL]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[LA]')">[LA]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SI]')">[SI]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[m]')">[m]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[7]')">[7]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '|')">|</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n[RITORNELLO]\\n')">[RIT]</button>
-          <button class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '\\n♪ (Strumentale)\\n')">♪ Inst</button>
+        <!-- QUICK CHIPS TOOLBAR -->
+        <div class="quick-chips-bar" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- RIGA 1: ACCORDI BASE & MODIFICATORI -->
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+            <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Accordi:</span>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[DO]')">[DO]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[RE]')">[RE]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[MI]')">[MI]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[FA]')">[FA]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SOL]')">[SOL]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[LA]')">[LA]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SI]')">[SI]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[m]')">[m]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[7]')">[7]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[maj7]')">[maj7]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[4]')">[4]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[sus]')">[sus]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[dim]')">[dim]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[b]')">[b]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[#]')">[#]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '/')">[/]</button>
+            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', ' | ')">|</button>
+          </div>
+          <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+            <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'comment')" title="Inserisci nota o commento">{c: Commento}</button>
+            <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'colb')" title="Interruzione colonna">{colb} Salto Colonna</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[STROFA]\\n')">[STROFA]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[RITORNELLO]\\n')">[RIT]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[SPECIALE]\\n')">[SPECIAL]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[OUTRO]\\n')">[OUTRO]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n♪ (Strumentale)\\n')">♪ Inst</button>
+          </div>
         </div>
         <textarea id="edit-song-aml" class="touch-textarea" style="min-height: 340px;">${escapeHtml(s.aml_content || '')}</textarea>
+        <div id="edit-song-live-preview" class="editor-preview-pane" style="display: none;"></div>
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 14px;">
@@ -965,42 +993,329 @@ function insertChordAtCursor(textareaId, textToInsert) {
   textarea.focus();
 }
 
-function showNewSongForm() {
-  const form = document.getElementById('new-song-form');
-  if (form) {
-    const repSelect = document.getElementById('new-song-repertoire');
-    if (repSelect && state.repertoires && state.repertoires.length > 0) {
-      repSelect.innerHTML = state.repertoires.map(r => {
-        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (r.owner_email === state.currentUser.email || r.is_official));
-        return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
-      }).join('');
-    }
-    form.style.display = 'block';
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function insertDirectiveAtCursor(textareaId, type) {
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const val = textarea.value;
+  const selectedText = val.substring(start, end);
+
+  let insertion = '';
+  let cursorOffset = 0;
+
+  switch (type) {
+    case 'chorus':
+      if (selectedText) {
+        insertion = `{soc}\n${selectedText}\n{eoc}\n`;
+      } else {
+        insertion = `{soc}\n\n{eoc}\n`;
+        cursorOffset = 6;
+      }
+      break;
+    case 'verse':
+      if (selectedText) {
+        insertion = `{sov}\n${selectedText}\n{eov}\n`;
+      } else {
+        insertion = `{sov}\n\n{eov}\n`;
+        cursorOffset = 6;
+      }
+      break;
+    case 'bridge':
+      if (selectedText) {
+        insertion = `{sob}\n${selectedText}\n{eob}\n`;
+      } else {
+        insertion = `{sob}\n\n{eob}\n`;
+        cursorOffset = 6;
+      }
+      break;
+    case 'comment':
+      if (selectedText) {
+        insertion = `{c: ${selectedText}}\n`;
+      } else {
+        insertion = `{c: Nota per la band}\n`;
+        cursorOffset = 4;
+      }
+      break;
+    case 'colb':
+      insertion = `\n{colb}\n`;
+      break;
+    default:
+      insertion = `{${type}}\n`;
+  }
+
+  textarea.value = val.substring(0, start) + insertion + val.substring(end);
+  const newPos = cursorOffset > 0 ? (start + cursorOffset) : (start + insertion.length);
+  textarea.selectionStart = textarea.selectionEnd = newPos;
+  textarea.focus();
+}
+
+function toggleEditorLivePreview(textareaId, previewId, btn) {
+  const textarea = document.getElementById(textareaId);
+  const preview = document.getElementById(previewId);
+  if (!textarea || !preview) return;
+
+  const isShowingPreview = preview.style.display !== 'none';
+  if (isShowingPreview) {
+    preview.style.display = 'none';
+    textarea.style.display = 'block';
+    if (btn) btn.innerHTML = '👁️ Anteprima Live';
+  } else {
+    const rawText = textarea.value;
+    preview.innerHTML = renderAmlToPreviewHtml(rawText);
+    textarea.style.display = 'none';
+    preview.style.display = 'block';
+    if (btn) btn.innerHTML = '✏️ Torna all\'Editor';
   }
 }
 
-function hideNewSongForm() {
-  const form = document.getElementById('new-song-form');
-  if (form) form.style.display = 'none';
+function renderAmlToPreviewHtml(amlText) {
+  if (!amlText || !amlText.trim()) {
+    return '<div style="color: #94a3b8; font-style: italic; padding: 20px; text-align: center;">Nessun testo da visualizzare</div>';
+  }
+  const lines = amlText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  let html = '<div style="line-height: 1.8; font-family: monospace;">';
+  let inChorus = false;
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      html += '<div style="height: 12px;"></div>';
+      continue;
+    }
+    // Directive handling
+    const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$/);
+    if (dirMatch) {
+      const tag = dirMatch[1].toLowerCase();
+      const val = dirMatch[2] || '';
+      if (tag === 'soc' || tag === 'start_of_chorus') {
+        inChorus = true;
+        html += '<div style="border-left: 3px solid #ffd600; padding-left: 10px; margin: 8px 0; background: rgba(255, 214, 0, 0.05); border-radius: 0 4px 4px 0;">';
+        html += '<div style="color: #ffd600; font-size: 11px; font-weight: 800; text-transform: uppercase;">[RITORNELLO]</div>';
+        continue;
+      }
+      if (tag === 'eoc' || tag === 'end_of_chorus') {
+        inChorus = false;
+        html += '</div>';
+        continue;
+      }
+      if (tag === 'sov' || tag === 'start_of_verse') {
+        html += '<div style="border-left: 3px solid #38bdf8; padding-left: 10px; margin: 8px 0;">';
+        continue;
+      }
+      if (tag === 'eov' || tag === 'end_of_verse') {
+        html += '</div>';
+        continue;
+      }
+      if (tag === 'c' || tag === 'comment') {
+        html += `<div style="color: #e2e8f0; background: #334155; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 4px 0; font-style: italic;">💬 ${escapeHtml(val)}</div>`;
+        continue;
+      }
+      if (tag === 'colb') {
+        html += '<div style="border-top: 1px dashed #a855f7; margin: 10px 0; color: #a855f7; font-size: 11px; font-weight: 700;">--- SALTO COLONNA ---</div>';
+        continue;
+      }
+      if (['title', 't', 'artist', 'a', 'key', 'tempo', 'capo'].includes(tag)) {
+        html += `<div style="font-size: 11px; color: #64748b;"><b>{${escapeHtml(tag)}:</b> ${escapeHtml(val)}<b>}</b></div>`;
+        continue;
+      }
+    }
+
+    // Section headings like [INTRO], [RITORNELLO]
+    if (trimmed.startsWith('[') && trimmed.endsWith(']') && !trimmed.slice(1, -1).includes('[')) {
+      const inner = trimmed.slice(1, -1).trim();
+      const isChord = /^[A-G][b#]?(?:m|maj|min|dim|aug|sus|add|\d)*$/i.test(inner) ||
+                      /^(?:DO|RE|MI|FA|SOL|LA|SI)[b#]?(?:m|maj|min|dim|aug|sus|add|\d)*$/i.test(inner);
+      if (!isChord) {
+        html += `<div style="color: #f59e0b; font-weight: 800; font-size: 12px; margin-top: 6px; text-transform: uppercase;">${escapeHtml(trimmed)}</div>`;
+        continue;
+      }
+    }
+
+    // Line with inline chords [DO]Parola
+    let renderedLine = escapeHtml(line);
+    renderedLine = renderedLine.replace(/\[([^\]]+)\]/g, '<span style="color: #ff5252; font-weight: 800; background: rgba(255, 82, 82, 0.12); padding: 1px 4px; border-radius: 3px; margin: 0 1px;">$1</span>');
+    html += `<div>${renderedLine}</div>`;
+  }
+
+  if (inChorus) html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+// State for camera/vision multi-page import
+state.cameraImages = [];
+
+function handleCameraFilesSelected(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const filesArray = Array.from(files);
+  let loadedCount = 0;
+
+  filesArray.forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const mime = file.type || 'image/jpeg';
+      state.cameraImages.push({
+        data: dataUrl,
+        mime_type: mime,
+        rotation: 0
+      });
+      loadedCount++;
+      if (loadedCount === filesArray.length) {
+        renderCameraThumbnails();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
+}
+
+function renderCameraThumbnails() {
+  const container = document.getElementById('camera-thumbnails-container');
+  const btnRun = document.getElementById('btn-run-vision');
+  const btnClear = document.getElementById('btn-clear-camera');
+
+  if (!container) return;
+
+  if (state.cameraImages.length === 0) {
+    container.innerHTML = '';
+    if (btnRun) btnRun.style.display = 'none';
+    if (btnClear) btnClear.style.display = 'none';
+    return;
+  }
+
+  if (btnRun) btnRun.style.display = 'inline-block';
+  if (btnClear) btnClear.style.display = 'inline-block';
+
+  container.innerHTML = state.cameraImages.map((img, idx) => `
+    <div class="camera-thumb-card" id="camera-thumb-${idx}">
+      <img src="${img.data}" class="camera-thumb-img" style="transform: rotate(${img.rotation || 0}deg);" alt="Pagina ${idx + 1}">
+      <div class="camera-thumb-badge">Pag. ${idx + 1}</div>
+      <div class="camera-thumb-actions">
+        <button type="button" class="camera-thumb-btn" onclick="rotateCameraImage(${idx})" title="Ruota di 90°">🔄</button>
+        <button type="button" class="camera-thumb-btn" style="color: #ef4444;" onclick="removeCameraImage(${idx})" title="Rimuovi pagina">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function rotateCameraImage(index) {
+  if (!state.cameraImages[index]) return;
+  state.cameraImages[index].rotation = ((state.cameraImages[index].rotation || 0) + 90) % 360;
+  renderCameraThumbnails();
+}
+
+function removeCameraImage(index) {
+  state.cameraImages.splice(index, 1);
+  renderCameraThumbnails();
+}
+
+function clearCameraImages() {
+  state.cameraImages = [];
+  renderCameraThumbnails();
+}
+
+async function executeVisionTranscription() {
+  if (!state.cameraImages || state.cameraImages.length === 0) {
+    showToast('Scatta o seleziona almeno una foto');
+    return;
+  }
+
+  const btnRun = document.getElementById('btn-run-vision');
+  const statusDiv = document.getElementById('camera-vision-status');
+
+  if (btnRun) btnRun.disabled = true;
+  if (statusDiv) {
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = `⏳ Analisi di ${state.cameraImages.length} pagina/e con Gemini Vision AI... attendi qualche secondo.`;
+  }
+
+  try {
+    const payload = {
+      images: state.cameraImages.map(img => ({
+        data: img.data,
+        mime_type: img.mime_type || 'image/jpeg'
+      })),
+      user_email: state.currentUser ? state.currentUser.email : 'cico@band.org',
+      user_name: state.currentUser ? state.currentUser.name : 'Cico'
+    };
+
+    const res = await fetch(`${API_BASE}/api/songs/import-vision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.title) {
+        const titleField = document.getElementById('new-song-title');
+        if (titleField) titleField.value = data.title;
+      }
+      if (data.artist) {
+        const artistField = document.getElementById('new-song-artist');
+        if (artistField) artistField.value = data.artist;
+      }
+      if (data.key) {
+        const keyField = document.getElementById('new-song-key');
+        if (keyField) keyField.value = data.key;
+      }
+      if (data.bpm) {
+        const bpmField = document.getElementById('new-song-bpm');
+        if (bpmField) bpmField.value = data.bpm;
+      }
+      if (data.capo !== undefined) {
+        const capoField = document.getElementById('new-song-capo');
+        if (capoField) capoField.value = data.capo;
+      }
+      if (data.aml) {
+        const amlField = document.getElementById('new-song-aml');
+        if (amlField) {
+          amlField.value = data.aml;
+          amlField.focus();
+        }
+      }
+
+      showToast(`Brano "${data.title || 'Digitalizzato'}" trascritto con successo da Vision AI! ✓`);
+      switchImportTab('manual');
+    } else {
+      const err = await res.json();
+      showToast(`Errore Vision AI: ${err.detail || 'Impossibile trascrivere'}`);
+    }
+  } catch (err) {
+    console.error('Vision transcription error:', err);
+    showToast('Errore di connessione durante la trascrizione');
+  } finally {
+    if (btnRun) btnRun.disabled = false;
+    if (statusDiv) statusDiv.style.display = 'none';
+  }
 }
 
 function switchImportTab(tab) {
   const btnWeb = document.getElementById('btn-import-tab-web');
+  const btnCamera = document.getElementById('btn-import-tab-camera');
   const btnPaste = document.getElementById('btn-import-tab-paste');
   const btnUrl = document.getElementById('btn-import-tab-url');
   const btnManual = document.getElementById('btn-import-tab-manual');
 
   if (btnWeb) btnWeb.classList.toggle('active', tab === 'web');
+  if (btnCamera) btnCamera.classList.toggle('active', tab === 'camera');
   if (btnPaste) btnPaste.classList.toggle('active', tab === 'paste');
   if (btnUrl) btnUrl.classList.toggle('active', tab === 'url');
   if (btnManual) btnManual.classList.toggle('active', tab === 'manual');
 
   const paneWeb = document.getElementById('import-pane-web');
+  const paneCamera = document.getElementById('import-pane-camera');
   const panePaste = document.getElementById('import-pane-paste');
   const paneUrl = document.getElementById('import-pane-url');
 
   if (paneWeb) paneWeb.style.display = tab === 'web' ? 'block' : 'none';
+  if (paneCamera) paneCamera.style.display = tab === 'camera' ? 'block' : 'none';
   if (panePaste) panePaste.style.display = tab === 'paste' ? 'block' : 'none';
   if (paneUrl) paneUrl.style.display = tab === 'url' ? 'block' : 'none';
 }

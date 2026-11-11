@@ -145,6 +145,15 @@ class ConvertTextRequest(BaseModel):
     title: Optional[str] = "Nuovo Brano"
     artist: Optional[str] = "Band"
 
+class VisionImageItem(BaseModel):
+    data: str
+    mime_type: Optional[str] = "image/jpeg"
+
+class VisionImportRequest(BaseModel):
+    images: List[VisionImageItem]
+    user_email: Optional[str] = "cico@band.org"
+    user_name: Optional[str] = "Cico"
+
 class ImportUrlRequest(BaseModel):
     url: str
     user_email: Optional[str] = "cico@band.org"
@@ -687,6 +696,27 @@ def import_song_from_url(req: ImportUrlRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Errore importazione web: {str(e)}")
+
+@app.post("/api/songs/import-vision")
+def import_song_from_vision(req: VisionImportRequest):
+    """Transcribes photographed sheet music pages into AML format using Gemini Vision."""
+    if not req.images:
+        raise HTTPException(status_code=400, detail="Nessuna immagine fornita")
+    try:
+        from asma_core.ai_service import BandAIService
+        image_dicts = [{"data": img.data, "mime_type": img.mime_type or "image/jpeg"} for img in req.images]
+        res = BandAIService.transcribe_sheet_music_images(image_dicts)
+        return {
+            "status": "success",
+            "title": res.get("title", "Nuovo Brano"),
+            "artist": res.get("artist", ""),
+            "key": res.get("key", "DO"),
+            "bpm": res.get("bpm", 120),
+            "capo": res.get("capo", 0),
+            "aml": res.get("aml_content", "")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Errore trascrizione Vision: {str(e)}")
 
 @app.post("/api/songs/{uuid}/transpose")
 def transpose_song(uuid: str, req: TransposeRequest):

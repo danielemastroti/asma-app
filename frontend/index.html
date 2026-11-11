@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.1">
+  <link rel="stylesheet" href="/style.css?v=4.2">
 </head>
 <body>
 
@@ -72,6 +72,7 @@
         <!-- IMPORT MODE TABS -->
         <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
           <button id="btn-import-tab-web" class="btn btn-secondary active" onclick="switchImportTab('web')">🌐 Cerca sul Web</button>
+          <button id="btn-import-tab-camera" class="btn btn-secondary" onclick="switchImportTab('camera')">📷 Fotocamera / Foto</button>
           <button id="btn-import-tab-paste" class="btn btn-secondary" onclick="switchImportTab('paste')">📋 Incolla Testo / Accordi</button>
           <button id="btn-import-tab-url" class="btn btn-secondary" onclick="switchImportTab('url')">🔗 Da Link Web</button>
           <button id="btn-import-tab-manual" class="btn btn-secondary" onclick="switchImportTab('manual')">✍️ Scrivi AML</button>
@@ -126,6 +127,34 @@ girano in centro sfiorando i novanta"></textarea>
           </div>
         </div>
 
+        <!-- TAB 4: IMPORT CAMERA / VISION MULTIPAGE -->
+        <div id="import-pane-camera" style="display: none;">
+          <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-size: 13px; font-weight: 800; color: #4ade80; margin-bottom: 6px;">
+              📸 Scatta o carica le foto del testo cartaceo (anche multipagina):
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
+              Fotografa le pagine del brano in sequenza (pagina 1, pagina 2, ecc.). L'intelligenza visiva estrarrà automaticamente titolo, artista, tonalità, sezioni e posizionerà gli accordi esattamente nel testo.
+            </div>
+            <input type="file" id="camera-file-input" accept="image/*" capture="environment" multiple style="display: none;" onchange="handleCameraFilesSelected(event)">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="btn btn-primary" style="font-weight: 800; min-height: 40px; padding: 0 16px;" onclick="document.getElementById('camera-file-input').click()">
+                📷 Scatta / Scegli Foto Pagine
+              </button>
+              <button type="button" id="btn-clear-camera" class="btn btn-secondary" style="display: none; min-height: 40px;" onclick="clearCameraImages()">
+                🗑️ Rimuovi Tutte
+              </button>
+              <button type="button" id="btn-run-vision" class="btn btn-success" style="display: none; font-weight: 800; min-height: 40px; padding: 0 18px;" onclick="executeVisionTranscription()">
+                ✨ Digitalizza con Vision AI
+              </button>
+            </div>
+            <div id="camera-vision-status" style="display: none; margin-top: 10px; font-size: 13px; color: #38bdf8; font-weight: 700;">
+              ⏳ Elaborazione con Vision AI in corso... attendi qualche secondo.
+            </div>
+            <div id="camera-thumbnails-container" class="camera-thumbnails"></div>
+          </div>
+        </div>
+
         <!-- METADATA & AML OUTPUT -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px;">
           <div>
@@ -158,27 +187,53 @@ girano in centro sfiorando i novanta"></textarea>
 
         <!-- AML CONTENT TEXTAREA -->
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px;">
             <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Contenuto AML (Pronto per il Palco & PDF):</label>
-            <span style="font-size: 11px; color: #10b981;">Tocca i tasti rapidi per inserire accordi:</span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleEditorLivePreview('new-song-aml', 'new-song-live-preview', this)">👁️ Anteprima Live</button>
+            </div>
           </div>
-          <!-- QUICK CHIPS -->
-          <div class="quick-chips-bar" id="new-song-chips">
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[DO]')">[DO]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[RE]')">[RE]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[MI]')">[MI]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[FA]')">[FA]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SOL]')">[SOL]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[LA]')">[LA]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SI]')">[SI]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[m]')">[m]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[7]')">[7]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '|')">|</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n[INTRO]\n')">[INTRO]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n[RITORNELLO]\n')">[RIT]</button>
-            <button class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '\n♪ (Strumentale)\n')">♪ Inst</button>
+          <!-- QUICK CHIPS TOOLBAR -->
+          <div class="quick-chips-bar" id="new-song-chips" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- RIGA 1: ACCORDI BASE & MODIFICATORI -->
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+              <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Accordi:</span>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[DO]')">[DO]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[RE]')">[RE]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[MI]')">[MI]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[FA]')">[FA]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SOL]')">[SOL]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[LA]')">[LA]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SI]')">[SI]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[m]')">[m]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[7]')">[7]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[maj7]')">[maj7]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[4]')">[4]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[sus]')">[sus]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[dim]')">[dim]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[b]')">[b]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[#]')">[#]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '/')">[/]</button>
+              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', ' | ')">|</button>
+            </div>
+            <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+              <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'comment')" title="Inserisci nota o commento">{c: Commento}</button>
+              <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('new-song-aml', 'colb')" title="Interruzione colonna">{colb} Salto Colonna</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n[INTRO]\n')">[INTRO]</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n[STROFA]\n')">[STROFA]</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n[RITORNELLO]\n')">[RIT]</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n[SPECIALE]\n')">[SPECIAL]</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n[OUTRO]\n')">[OUTRO]</button>
+              <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('new-song-aml', '\n♪ (Strumentale)\n')">♪ Inst</button>
+            </div>
           </div>
           <textarea id="new-song-aml" class="touch-textarea" style="min-height: 220px;" placeholder="[SOL]Vespe truccate [SOL4+]anni sessanta..."></textarea>
+          <div id="new-song-live-preview" class="editor-preview-pane" style="display: none;"></div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 12px;">
@@ -520,6 +575,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=12.3"></script>
+  <script src="/app.js?v=12.4"></script>
 </body>
 </html>

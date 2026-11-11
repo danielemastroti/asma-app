@@ -209,6 +209,34 @@ class TestApiServer(unittest.TestCase):
         self.assertIsInstance(data["candidates"], list)
         self.assertGreater(data["count"], 0)
 
+    def test_13_import_vision_validation(self):
+        # Empty images list must return 400
+        resp = self.client.post("/api/songs/import-vision", json={"images": []})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_14_import_vision_mocked(self):
+        from unittest.mock import patch
+        mock_res = {
+            "title": "Canzone Cartacea",
+            "artist": "Cantautore",
+            "key": "SOL",
+            "bpm": 115,
+            "capo": 2,
+            "aml_content": "{title: Canzone Cartacea}\n[SOL]Strofa con accordi...\n"
+        }
+        with patch("asma_core.ai_service.BandAIService.transcribe_sheet_music_images", return_value=mock_res):
+            resp = self.client.post("/api/songs/import-vision", json={
+                "images": [{"data": "dummyBase64", "mime_type": "image/jpeg"}]
+            })
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            self.assertEqual(data["status"], "success")
+            self.assertEqual(data["title"], "Canzone Cartacea")
+            self.assertEqual(data["key"], "SOL")
+            self.assertEqual(data["bpm"], 115)
+            self.assertEqual(data["capo"], 2)
+            self.assertIn("[SOL]", data["aml"])
+
 
 if __name__ == '__main__':
     unittest.main()
