@@ -144,20 +144,46 @@ function switchTab(tabName) {
   }
 }
 
+function isOwnPersonalRepertoire(rep) {
+  if (!rep || rep.is_official || !rep.owner_email || !state.currentUser?.email) return false;
+  return rep.owner_email.toLowerCase() === state.currentUser.email.toLowerCase();
+}
+
+/**
+ * Restituisce i repertori del workspace dell'utente attivo (Ufficiale, condivisi senza owner,
+ * e il proprio repertorio personale), escludendo cartelle personali di altri musicisti.
+ */
+function getWorkspaceRepertoires() {
+  const reps = Array.isArray(state.repertoires) ? state.repertoires : [];
+  return reps.filter(r => r.is_official || !r.owner_email || isOwnPersonalRepertoire(r));
+}
+
+/**
+ * Restituisce i brani unici appartenenti ai repertori del workspace attivo (esclude file orfani).
+ */
+function getWorkspaceSongs() {
+  const songs = Array.isArray(state.songs) ? state.songs : [];
+  const reps = getWorkspaceRepertoires();
+  if (reps.length === 0) return songs;
+  const allowed = new Set();
+  reps.forEach(r => (r.song_uuids || []).forEach(uid => allowed.add(uid)));
+  return songs.filter(s => allowed.has(s.uuid));
+}
+
 function renderDashboard() {
   const userEl = document.getElementById('dash-user-name');
   if (userEl) userEl.textContent = (state.currentUser && state.currentUser.name) || 'Musicista';
   const devEl = document.getElementById('dash-device-name');
   if (devEl) devEl.textContent = state.activeDevice || 'Tablet';
 
-  const songs = Array.isArray(state.songs) ? state.songs : [];
-  const reps = Array.isArray(state.repertoires) ? state.repertoires : [];
+  const songs = getWorkspaceSongs();
+  const reps = getWorkspaceRepertoires();
   const setlists = Array.isArray(state.setlists) ? state.setlists : [];
 
   const songsStat = document.getElementById('dash-stat-songs');
   const songsSub = document.getElementById('dash-stat-songs-sub');
   const officialRep = reps.find(r => r.is_official);
-  const personalRep = reps.find(r => !r.is_official && state.currentUser && r.owner_email === state.currentUser.email);
+  const personalRep = reps.find(r => isOwnPersonalRepertoire(r));
   if (songsStat) songsStat.textContent = songs.length;
   if (songsSub) {
     const offCount = officialRep ? (officialRep.song_count ?? (officialRep.song_uuids || []).length) : 0;
@@ -191,10 +217,10 @@ function renderDashboard() {
       repsListEl.innerHTML = `<div style="color: var(--text-secondary); font-size: 12.5px; padding: 8px 4px;">Nessun repertorio disponibile.</div>`;
     } else {
       repsListEl.innerHTML = reps.map(r => {
-        const icon = r.is_official ? '🌟' : (state.currentUser && r.owner_email === state.currentUser.email ? '👤' : '📁');
+        const icon = r.is_official ? '🌟' : (isOwnPersonalRepertoire(r) ? '👤' : '📁');
         const label = r.is_official
           ? escapeHtml(r.name)
-          : (state.currentUser && r.owner_email === state.currentUser.email ? `Personale (${escapeHtml(r.name)})` : escapeHtml(r.name));
+          : (isOwnPersonalRepertoire(r) ? `Personale (${escapeHtml(r.name)})` : escapeHtml(r.name));
         const count = r.song_count ?? (r.song_uuids || []).length;
         return `
           <button type="button" class="dash-quick-item" onclick="openRepertoireFromDashboard('${r.uuid}')">
@@ -625,18 +651,19 @@ async function loadRepertoires() {
     );
     if (res.ok) {
       state.repertoires = await res.json();
+      const workspaceReps = getWorkspaceRepertoires();
       const isAdmin = isCurrentUserAdmin();
-      const official = state.repertoires.find(r => r.is_official);
+      const official = workspaceReps.find(r => r.is_official);
 
       if (!isAdmin) {
         // Musicians NEVER see '__ALL__' and must default to Official Repertoire
-        const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
+        const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
         if (state.activeRepertoire === '__ALL__' || !currentExists) {
-          state.activeRepertoire = official ? official.uuid : (state.repertoires[0]?.uuid || '');
+          state.activeRepertoire = official ? official.uuid : (workspaceReps[0]?.uuid || '');
         }
       } else {
         // Admin can see '__ALL__'
-        const currentExists = state.repertoires.some(r => r.uuid === state.activeRepertoire);
+        const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
         if (state.activeRepertoire !== '__ALL__' && !currentExists) {
           state.activeRepertoire = official ? official.uuid : '__ALL__';
         }
@@ -654,15 +681,16 @@ function renderRepertoireChips() {
   if (!container) return;
 
   const isAdmin = isCurrentUserAdmin();
+  const workspaceReps = getWorkspaceRepertoires();
   let html = '';
 
   // Only Admin sees "🌐 Tutti"
   if (isAdmin) {
-    const totalSongs = state.songs.length;
+    const totalSongs = getWorkspaceSongs().length;
     html += `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti (${totalSongs})</button>`;
   }
 
-  state.repertoires.forEach(r => {
+  workspaceReps.forEach(r => {
     const isActive = state.activeRepertoire === r.uuid ? 'active' : '';
     let icon = '📁';
     let label = escapeHtml(r.name);
@@ -671,7 +699,7 @@ function renderRepertoireChips() {
       icon = '🌟';
       label = `<b>${escapeHtml(r.name)}</b>`;
       extraStyle = 'border-color: #ffd600; color: #ffd600; font-weight: 800;';
-    } else if (r.owner_email === state.currentUser.email) {
+    } else if (isOwnPersonalRepertoire(r)) {
       icon = '👤';
       label = `Personale (${escapeHtml(r.name)})`;
     }
@@ -740,12 +768,12 @@ async function loadSongs({ autoSelect = true } = {}) {
 }
 
 function getFilteredSongs(searchKw = '') {
-  let list = state.songs;
+  let list = getWorkspaceSongs();
   if (state.activeRepertoire !== '__ALL__') {
     const rep = state.repertoires.find(r => r.uuid === state.activeRepertoire);
     if (rep && rep.song_uuids) {
       const allowed = new Set(rep.song_uuids);
-      list = list.filter(s => allowed.has(s.uuid));
+      list = state.songs.filter(s => allowed.has(s.uuid));
     }
   }
   if (searchKw) {
@@ -1386,9 +1414,10 @@ function showNewSongForm() {
   const form = document.getElementById('new-song-form');
   if (form) {
     const repSelect = document.getElementById('new-song-repertoire');
-    if (repSelect && state.repertoires && state.repertoires.length > 0) {
-      repSelect.innerHTML = state.repertoires.map(r => {
-        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (r.owner_email === state.currentUser?.email || r.is_official));
+    const workspaceReps = getWorkspaceRepertoires();
+    if (repSelect && workspaceReps.length > 0) {
+      repSelect.innerHTML = workspaceReps.map(r => {
+        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (isOwnPersonalRepertoire(r) || r.is_official));
         return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
       }).join('');
     }
