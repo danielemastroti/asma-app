@@ -18,7 +18,7 @@ const savedDevice = (() => {
 
 // Application State
 const state = {
-  currentTab: 'songs',
+  currentTab: 'dashboard',
   repertoires: [],
   activeRepertoire: '__ALL__',
   songs: [],
@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadUserPreferences();
   await loadRepertoires();
   await loadSongs();
-  loadSetlists();
+  await loadSetlists();
+  renderDashboard();
 });
 
 function initServiceWorker() {
@@ -111,11 +112,18 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === tabName);
   });
+  const dashEl = document.getElementById('view-dashboard');
+  if (dashEl) dashEl.style.display = tabName === 'dashboard' ? 'block' : 'none';
   document.getElementById('view-songs').style.display = tabName === 'songs' ? 'block' : 'none';
   document.getElementById('view-setlists').style.display = tabName === 'setlists' ? 'block' : 'none';
   document.getElementById('view-settings').style.display = tabName === 'settings' ? 'block' : 'none';
 
-  if (tabName === 'setlists') {
+  if (tabName === 'dashboard') {
+    renderDashboard();
+    loadRepertoires();
+    loadSongs({ autoSelect: false });
+    loadSetlists();
+  } else if (tabName === 'setlists') {
     if (state.selectedSetlist && state.selectedSetlist.uuid) {
       openSetlistDetail(state.selectedSetlist.uuid);
     } else {
@@ -130,6 +138,93 @@ function switchTab(tabName) {
   } else if (tabName === 'songs') {
     loadRepertoires();
   }
+}
+
+function renderDashboard() {
+  const userEl = document.getElementById('dash-user-name');
+  if (userEl) userEl.textContent = (state.currentUser && state.currentUser.name) || 'Musicista';
+  const devEl = document.getElementById('dash-device-name');
+  if (devEl) devEl.textContent = state.activeDevice || 'Tablet';
+
+  const songs = Array.isArray(state.songs) ? state.songs : [];
+  const reps = Array.isArray(state.repertoires) ? state.repertoires : [];
+  const setlists = Array.isArray(state.setlists) ? state.setlists : [];
+
+  const songsStat = document.getElementById('dash-stat-songs');
+  const songsSub = document.getElementById('dash-stat-songs-sub');
+  const officialRep = reps.find(r => r.is_official);
+  const personalRep = reps.find(r => !r.is_official && state.currentUser && r.owner_email === state.currentUser.email);
+  if (songsStat) songsStat.textContent = songs.length;
+  if (songsSub) {
+    const offCount = officialRep ? (officialRep.song_count ?? (officialRep.song_uuids || []).length) : 0;
+    const persCount = personalRep ? (personalRep.song_count ?? (personalRep.song_uuids || []).length) : 0;
+    songsSub.textContent = personalRep
+      ? `${offCount} Ufficiale • ${persCount} Personali`
+      : `${offCount} nel Repertorio Ufficiale`;
+  }
+
+  const repsStat = document.getElementById('dash-stat-repertoires');
+  const repsSub = document.getElementById('dash-stat-repertoires-sub');
+  if (repsStat) repsStat.textContent = reps.length;
+  if (repsSub) {
+    const names = reps.slice(0, 2).map(r => r.is_official ? 'Ufficiale' : r.name).join(', ');
+    repsSub.textContent = reps.length > 2 ? `${names} +${reps.length - 2}` : (names || 'Nessun repertorio');
+  }
+
+  const setlistsStat = document.getElementById('dash-stat-setlists');
+  const setlistsSub = document.getElementById('dash-stat-setlists-sub');
+  if (setlistsStat) setlistsStat.textContent = setlists.length;
+  if (setlistsSub) {
+    const totalItems = setlists.reduce((acc, s) => acc + (parseInt(s.item_count, 10) || 0), 0);
+    setlistsSub.textContent = setlists.length > 0
+      ? `${totalItems} brani in scaletta`
+      : 'Crea la prima scaletta';
+  }
+
+  const repsListEl = document.getElementById('dash-repertoires-list');
+  if (repsListEl) {
+    if (reps.length === 0) {
+      repsListEl.innerHTML = `<div style="color: var(--text-secondary); font-size: 12.5px; padding: 8px 4px;">Nessun repertorio disponibile.</div>`;
+    } else {
+      repsListEl.innerHTML = reps.map(r => {
+        const icon = r.is_official ? '🌟' : (state.currentUser && r.owner_email === state.currentUser.email ? '👤' : '📁');
+        const label = r.is_official
+          ? escapeHtml(r.name)
+          : (state.currentUser && r.owner_email === state.currentUser.email ? `Personale (${escapeHtml(r.name)})` : escapeHtml(r.name));
+        const count = r.song_count ?? (r.song_uuids || []).length;
+        return `
+          <button type="button" class="dash-quick-item" onclick="openRepertoireFromDashboard('${r.uuid}')">
+            <span>${icon} ${label}</span>
+            <span class="dash-quick-badge">${count} brani</span>
+          </button>
+        `;
+      }).join('');
+    }
+  }
+
+  const setlistsListEl = document.getElementById('dash-setlists-list');
+  if (setlistsListEl) {
+    if (setlists.length === 0) {
+      setlistsListEl.innerHTML = `<div style="color: var(--text-secondary); font-size: 12.5px; padding: 8px 4px;">Nessuna scaletta creata. Tocca "Apri Scalette" per iniziare.</div>`;
+    } else {
+      setlistsListEl.innerHTML = setlists.slice(0, 4).map(s => `
+        <button type="button" class="dash-quick-item" onclick="openSetlistFromDashboard('${s.uuid}')">
+          <span>📑 ${escapeHtml(s.title)} <small style="color: var(--text-secondary); font-weight: 500;">${escapeHtml(formatDateDDMMYYYY(s.date) || '')}</small></span>
+          <span class="dash-quick-badge">${s.item_count || 0} brani</span>
+        </button>
+      `).join('');
+    }
+  }
+}
+
+function openRepertoireFromDashboard(repUuid) {
+  switchTab('songs');
+  selectRepertoire(repUuid);
+}
+
+function openSetlistFromDashboard(setlistUuid) {
+  state.selectedSetlist = { uuid: setlistUuid };
+  switchTab('setlists');
 }
 
 // ----------------------------------------------------------------------------
@@ -367,6 +462,7 @@ function onDeviceChange(deviceName) {
   state.activeDevice = deviceName;
   try { localStorage.setItem('asma_active_device', deviceName); } catch (e) {}
   loadUserPreferences();
+  renderDashboard();
   showToast(`Hardware selezionato: ${deviceName}`);
 }
 
@@ -457,6 +553,7 @@ async function loadRepertoires() {
         }
       }
       renderRepertoireChips();
+      renderDashboard();
     }
   } catch (err) {
     console.warn('Repertoires offline:', err);
@@ -540,6 +637,7 @@ async function loadSongs({ autoSelect = true } = {}) {
       state.songs = await res.json();
       renderRepertoireChips();
       renderSongCards();
+      renderDashboard();
       if (autoSelect && !state.selectedSong) {
         const filtered = getFilteredSongs();
         if (filtered.length > 0) {
@@ -2518,10 +2616,11 @@ function initKeyboardAndPedals() {
 // ----------------------------------------------------------------------------
 async function loadSetlists() {
   try {
-    const res = await fetch(`${API_BASE}/api/setlists`);
+    const res = await fetch(`${API_BASE}/api/setlists?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
       state.setlists = await res.json();
       renderSetlists();
+      renderDashboard();
     }
   } catch (err) {
     console.warn('Setlists error:', err);
@@ -2947,7 +3046,7 @@ async function openAddToSetlistModal(songUuid) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/setlists`);
+    const res = await fetch(`${API_BASE}/api/setlists?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) state.setlists = await res.json();
   } catch (e) {}
 
@@ -3139,6 +3238,7 @@ async function deleteSongWithUndo(uuid) {
       await loadSongs({ autoSelect: false });
       renderRepertoireChips();
       renderSongCards();
+      renderDashboard();
       renderSongViewer();
     } else {
       showToast('Errore durante l\'eliminazione');
@@ -3169,6 +3269,7 @@ async function undoDeleteSong() {
       await loadSongs({ autoSelect: false });
       renderRepertoireChips();
       renderSongCards();
+      renderDashboard();
       selectSong(restoredUuid);
     } else {
       showToast('Impossibile ripristinare il brano');

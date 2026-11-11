@@ -14,13 +14,13 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.2">
+  <link rel="stylesheet" href="/style.css?v=4.3">
 </head>
 <body>
 
   <!-- TOP FIXED BRAND HEADER -->
   <header class="app-header">
-    <div class="brand-container">
+    <div class="brand-container" onclick="switchTab('dashboard')" style="cursor: pointer;" title="Torna alla Dashboard">
       <img src="/assets/band_logo.png" alt="ASMA" class="brand-logo" onerror="this.style.display='none'">
       <div class="brand-title">
         THE New ASMA
@@ -38,7 +38,8 @@
 
   <!-- NAVIGATION TABS -->
   <nav class="nav-bar">
-    <button class="nav-tab active" data-tab="songs">🎵 Brani</button>
+    <button class="nav-tab active" data-tab="dashboard">🏠 Home</button>
+    <button class="nav-tab" data-tab="songs">🎵 Brani</button>
     <button class="nav-tab" data-tab="setlists">📑 Scalette</button>
     <button class="nav-tab" data-tab="settings">⚙️ Impostazioni</button>
   </nav>
@@ -46,8 +47,115 @@
   <!-- MAIN APP CONTAINER -->
   <main class="main-content">
 
+    <!-- 0. VIEW: DASHBOARD HOME -->
+    <section id="view-dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-text">
+          <div class="dash-eyebrow">⚡ BAND LIVE WORKSPACE</div>
+          <h1 class="dash-title">Ciao, <span id="dash-user-name">Cico</span> 👋</h1>
+          <p class="dash-subtitle">
+            Profilo hardware attivo: <strong id="dash-device-name" style="color: var(--accent-cyan);">Huawei MediaPad M5</strong>
+            &bull; Archivio sincronizzato in cloud
+          </p>
+        </div>
+        <div class="dash-hero-actions">
+          <button class="btn btn-primary dash-hero-btn" onclick="switchTab('songs')">🎵 Vai ai Brani</button>
+          <button class="btn btn-secondary dash-hero-btn" onclick="switchTab('setlists')">📑 Apri Scalette</button>
+        </div>
+      </div>
+
+      <!-- KPI COUNTERS -->
+      <div class="dash-stats-grid">
+        <div class="dash-stat-card dash-stat-cyan" onclick="switchTab('songs')" role="button" tabindex="0">
+          <div class="dash-stat-top">
+            <span class="dash-stat-icon">🎵</span>
+            <span class="dash-stat-tag">Archivio</span>
+          </div>
+          <div class="dash-stat-value" id="dash-stat-songs">-</div>
+          <div class="dash-stat-label">Brani Disponibili</div>
+          <div class="dash-stat-sub" id="dash-stat-songs-sub">Caricamento...</div>
+        </div>
+
+        <div class="dash-stat-card dash-stat-gold" onclick="switchTab('songs')" role="button" tabindex="0">
+          <div class="dash-stat-top">
+            <span class="dash-stat-icon">📁</span>
+            <span class="dash-stat-tag">Raccolte</span>
+          </div>
+          <div class="dash-stat-value" id="dash-stat-repertoires">-</div>
+          <div class="dash-stat-label">Repertori Attivi</div>
+          <div class="dash-stat-sub" id="dash-stat-repertoires-sub">Caricamento...</div>
+        </div>
+
+        <div class="dash-stat-card dash-stat-green" onclick="switchTab('setlists')" role="button" tabindex="0">
+          <div class="dash-stat-top">
+            <span class="dash-stat-icon">📑</span>
+            <span class="dash-stat-tag">Live</span>
+          </div>
+          <div class="dash-stat-value" id="dash-stat-setlists">-</div>
+          <div class="dash-stat-label">Scalette Band</div>
+          <div class="dash-stat-sub" id="dash-stat-setlists-sub">Caricamento...</div>
+        </div>
+      </div>
+
+      <!-- MENU DI ACCESSO RAPIDO -->
+      <div class="dash-section-header">
+        <span>🧭 Menu Principale</span>
+      </div>
+      <div class="dash-menu-grid">
+        <button type="button" class="dash-menu-card" onclick="switchTab('songs')">
+          <div class="dash-menu-icon dash-menu-icon-cyan">🎵</div>
+          <div class="dash-menu-body">
+            <div class="dash-menu-title">Brani &amp; Spartiti</div>
+            <div class="dash-menu-desc">Sfoglia repertori, cambia tonalità, modifica accordi, scansiona foto ed esporta PDF.</div>
+          </div>
+          <div class="dash-menu-arrow">›</div>
+        </button>
+
+        <button type="button" class="dash-menu-card" onclick="switchTab('setlists')">
+          <div class="dash-menu-icon dash-menu-icon-green">📑</div>
+          <div class="dash-menu-body">
+            <div class="dash-menu-title">Scalette &amp; Palco Live</div>
+            <div class="dash-menu-desc">Gestisci la scaletta del concerto, stampa A4 e avvia il prompter per il palco.</div>
+          </div>
+          <div class="dash-menu-arrow">›</div>
+        </button>
+
+        <button type="button" class="dash-menu-card" onclick="switchTab('settings')">
+          <div class="dash-menu-icon dash-menu-icon-gold">⚙️</div>
+          <div class="dash-menu-body">
+            <div class="dash-menu-title">Impostazioni &amp; Profilo</div>
+            <div class="dash-menu-desc">Seleziona musicista, tablet, font, colori spartito e configurazione AI.</div>
+          </div>
+          <div class="dash-menu-arrow">›</div>
+        </button>
+      </div>
+
+      <!-- ACCESSO DIRETTO REPERTORI & SCALETTE -->
+      <div class="dash-lists-grid">
+        <div class="dash-panel">
+          <div class="dash-panel-header">
+            <span>📁 Accesso Rapido Repertori</span>
+            <button type="button" class="dash-panel-link" onclick="switchTab('songs')">Vedi tutti ›</button>
+          </div>
+          <div id="dash-repertoires-list" class="dash-quick-list">
+            <!-- Rendered by app.js -->
+          </div>
+        </div>
+
+        <div class="dash-panel">
+          <div class="dash-panel-header">
+            <span>📑 Ultime Scalette</span>
+            <button type="button" class="dash-panel-link" onclick="switchTab('setlists')">Vedi tutte ›</button>
+          </div>
+          <div id="dash-setlists-list" class="dash-quick-list">
+            <!-- Rendered by app.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 1. VIEW: SONGS & REPERTOIRES -->
-    <section id="view-songs">
+    <section id="view-songs" style="display: none;">
       <!-- 1-TOUCH REPERTOIRE CHIPS & ADMIN TOOL -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <div id="repertoire-chips" class="repertoire-chips" style="flex: 1; margin-bottom: 0;">
@@ -586,6 +694,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=13.3"></script>
+  <script src="/app.js?v=13.4"></script>
 </body>
 </html>
