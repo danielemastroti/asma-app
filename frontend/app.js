@@ -2308,32 +2308,20 @@ function buildPdfQueryParams(hasChords, extra = {}) {
 }
 
 /**
- * Avvia il download di un PDF in modo sincrono dal gesture utente, evitando fetch+blob
- * che vengono bloccati o scadono nelle PWA standalone / WebAPK su Android e iOS.
+ * Avvia il download di un PDF in modo sincrono dal gesture utente tramite link diretto HTTPS,
+ * evitando fetch+blob (bloccati su WebAPK) e window.open('_blank') (che apre about:blank su PWA Android).
  */
 function triggerPdfDownload(url, filename) {
   showToast(`Avvio download "${filename}"...`);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-
-  if (isStandalone || isMobile) {
-    const popup = window.open(url, '_blank');
-    if (!popup) {
-      window.location.assign(url);
-    }
-    return;
-  }
-
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = url;
   a.download = filename;
-  a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
     if (a.parentNode) a.parentNode.removeChild(a);
-  }, 1000);
+  }, 1500);
 }
 
 function downloadPdf() {
