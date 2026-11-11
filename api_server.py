@@ -1095,7 +1095,8 @@ def get_song_pdf_preview(
     font_size: Optional[float] = Query(None, description="Override dimensione font testo"),
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali"),
-    margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)")
+    margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)"),
+    transpose: int = Query(0, description="Trasposizione temporanea al volo (semitoni) senza salvare sul DB")
 ):
     """
     Renders high-resolution formatted PDF pages as base64 images for real sheet-music preview.
@@ -1107,6 +1108,37 @@ def get_song_pdf_preview(
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    if transpose != 0:
+        doc_aml = AMLParser.parse(song.aml_content)
+        new_doc_aml = AMLParser.transpose_document(doc_aml, semitones=transpose)
+        transposed_key = song.key_current
+        if transposed_key and transposed_key != "-":
+            try:
+                transposed_key = MusicEngine.transpose_chord(transposed_key, transpose)
+            except Exception:
+                pass
+        song = Song(
+            uuid=song.uuid,
+            title=song.title,
+            artist=song.artist,
+            author=song.author,
+            genre=song.genre,
+            year=song.year,
+            duration_seconds=song.duration_seconds,
+            bpm=song.bpm,
+            time_signature=song.time_signature,
+            capo=song.capo,
+            key_original=song.key_original,
+            key_current=transposed_key,
+            notation_system=song.notation_system,
+            tags=list(song.tags) if song.tags else [],
+            aml_content=new_doc_aml.to_aml(),
+            shared_notes=song.shared_notes,
+            current_revision=song.current_revision,
+            created_at=song.created_at,
+            updated_at=song.updated_at,
+        )
 
     base_prof = resolve_device_profile(device)
     prof = DeviceProfile(
@@ -1170,7 +1202,7 @@ def get_song_pdf_preview(
 
     pseudonym = resolve_user_pseudonym(email, user_name)
     cache_key = (
-        f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
+        f"{song.uuid}_{song.updated_at}_{transpose}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
         f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
         f"{prof.color_aml_markup}_{chords}_{pseudonym}"
     )
@@ -1187,7 +1219,7 @@ def get_song_pdf_preview(
             "pages": cached_pages
         }
 
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=True, user_name=pseudonym)
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=(transpose == 0), user_name=pseudonym)
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     pages_b64 = []
     for page in doc:

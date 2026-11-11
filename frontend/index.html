@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.3">
+  <link rel="stylesheet" href="/style.css?v=4.4">
 </head>
 <body>
 
@@ -28,6 +28,9 @@
       </div>
     </div>
     <div class="header-actions">
+      <div id="header-mode-pill" class="mode-pill mode-pill-simplified" onclick="switchTab('dashboard')" title="Tocca per cambiare modalità (Casa/Palco vs Editing)">
+        🎤 Casa / Palco
+      </div>
       <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
         <span>👤</span>
         <span id="current-user-name">Cico</span>
@@ -61,6 +64,33 @@
         <div class="dash-hero-actions">
           <button class="btn btn-primary dash-hero-btn" onclick="switchTab('songs')">🎵 Vai ai Brani</button>
           <button class="btn btn-secondary dash-hero-btn" onclick="switchTab('setlists')">📑 Apri Scalette</button>
+        </div>
+      </div>
+
+      <!-- MODALITA' OPERATIVA: SEMPLIFICATO (CASA / PALCO) VS EDITING -->
+      <div class="dash-mode-card">
+        <div class="dash-mode-header">
+          <div>
+            <div class="dash-mode-title">🎛️ Modalità Operativa</div>
+            <div class="dash-mode-hint" id="dash-mode-hint">Modalità Semplificata attiva: ideale per studiare a casa, prove e palco live senza rischio di alterare i brani.</div>
+          </div>
+          <span id="dash-mode-badge" class="dash-mode-badge dash-mode-badge-simplified">🎤 Casa / Palco</span>
+        </div>
+        <div class="dash-mode-options">
+          <button type="button" id="btn-mode-simplified" class="dash-mode-btn active" onclick="setAppMode('simplified')">
+            <div class="dash-mode-btn-icon">🎤</div>
+            <div class="dash-mode-btn-body">
+              <div class="dash-mode-btn-title">Casa / Palco (Semplificata)</div>
+              <div class="dash-mode-btn-desc">Modalità Palco, Stampa &amp; Salva PDF, cambio tonalità al volo solo sul palco (non salvato) e scalette in sola lettura.</div>
+            </div>
+          </button>
+          <button type="button" id="btn-mode-editing" class="dash-mode-btn" onclick="setAppMode('editing')">
+            <div class="dash-mode-btn-icon">✏️</div>
+            <div class="dash-mode-btn-body">
+              <div class="dash-mode-btn-title">Editing Completo</div>
+              <div class="dash-mode-btn-desc">Accesso completo: modifica testi e accordi, salva tonalità nel DB, nuovi brani, copia personale e modifica scalette.</div>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -630,6 +660,10 @@ girano in centro sfiorando i novanta"></textarea>
         <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(-2)" title="Riduci font">A−</button>
         <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(2)" title="Ingrandisci font">A+</button>
         <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
+        <button class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#ffd600;" onclick="transposeStageLive(-1)" title="Abbassa tonalità al volo solo per questa esecuzione (non modifica il brano)">♭ -1</button>
+        <span id="stage-transpose-badge" style="color:#ffd600; font-weight:800; font-size:11px; min-width:34px; text-align:center;" title="Tonalità temporanea sul palco">Orig.</span>
+        <button class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#ffd600;" onclick="transposeStageLive(1)" title="Alza tonalità al volo solo per questa esecuzione (non modifica il brano)">♯ +1</button>
+        <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
         <button id="stage-view-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#38bdf8; border-color:#38bdf8;" onclick="toggleStageViewType()" title="Passa da Spartito PDF reale a Teleprompter testo">📄 Spartito PDF</button>
         <button id="stage-mode-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800;" onclick="toggleStageScoreMode()" title="Cambia modalità: Solo Testo / Testo + Accordi">🎤 Solo Testo</button>
       </div>
@@ -694,6 +728,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=13.4"></script>
+  <script src="/app.js?v=13.5"></script>
 </body>
 </html>

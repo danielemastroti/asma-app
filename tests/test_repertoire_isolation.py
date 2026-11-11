@@ -248,3 +248,30 @@ class TestRepertoireIsolation(unittest.TestCase):
         )
         self.assertEqual([s["uuid"] for s in official_listed], [official.uuid])
         self.assertEqual(official_listed[0]["key_current"], "LAb")
+
+    def test_stage_pdf_preview_transpose_does_not_modify_stored_song(self):
+        """Transient stage PDF preview transpose must render shifted PDF without altering DB song."""
+        from fastapi.testclient import TestClient
+
+        song = Song(
+            title="LIVE STAGE TEST",
+            artist="Band",
+            key_original="DO",
+            key_current="DO",
+            aml_content="[DO]Prima riga [SOL]accordo",
+        )
+        saved = self.storage.save_song(song, "system", "System", "Create")
+        self.official_rep.song_uuids.append(saved.uuid)
+        self.storage.save_repertoire(self.official_rep, "system", "System")
+
+        client = TestClient(api_server.app)
+        resp = client.get(f"/api/songs/{saved.uuid}/pdf/preview?chords=true&transpose=2")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertGreaterEqual(data["total_pages"], 1)
+        self.assertTrue(len(data["pages"]) >= 1)
+
+        # Stored song remains untouched
+        reloaded = self.storage.get_song(saved.uuid)
+        self.assertEqual(reloaded.key_current, "DO")
+        self.assertIn("[DO]", reloaded.aml_content)

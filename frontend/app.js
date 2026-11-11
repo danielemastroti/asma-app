@@ -15,10 +15,14 @@ const savedUserEmail = (() => {
 const savedDevice = (() => {
   try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; }
 })();
+const savedAppMode = (() => {
+  try { return localStorage.getItem('asma_app_mode'); } catch (e) { return null; }
+})();
 
 // Application State
 const state = {
   currentTab: 'dashboard',
+  appMode: (savedAppMode === 'editing' || savedAppMode === 'simplified') ? savedAppMode : 'simplified',
   repertoires: [],
   activeRepertoire: '__ALL__',
   songs: [],
@@ -45,7 +49,7 @@ const state = {
     stage_color_chords: '#FFD600',
     stage_color_aml_markup: '#38BDF8',
     score_display_mode: savedScoreMode || 'lyrics',
-    app_mode: 'simplified'
+    app_mode: (savedAppMode === 'editing' || savedAppMode === 'simplified') ? savedAppMode : 'simplified'
   },
   // Live Stage State
   isStageActive: false,
@@ -68,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadRepertoires();
   await loadSongs();
   await loadSetlists();
-  renderDashboard();
+  applyAppModeToUi();
 });
 
 function initServiceWorker() {
@@ -308,15 +312,100 @@ async function loadUserPreferences() {
         try { return localStorage.getItem('asma_score_mode'); } catch (e) { return null; }
       })();
       state.scoreMode = localMode || state.userPrefs.score_display_mode || 'lyrics';
+      const localAppMode = (() => {
+        try { return localStorage.getItem('asma_app_mode'); } catch (e) { return null; }
+      })();
+      state.appMode = (localAppMode === 'editing' || localAppMode === 'simplified')
+        ? localAppMode
+        : (state.userPrefs.app_mode === 'editing' ? 'editing' : 'simplified');
+      state.userPrefs.app_mode = state.appMode;
       applyPreferencesToDom();
       updateSettingsFormValues();
       updateStageScoreModeButton();
+      applyAppModeToUi();
     }
   } catch (err) {
     console.warn('Preferences load error:', err);
     applyPreferencesToDom();
     updateStageScoreModeButton();
+    applyAppModeToUi();
   }
+}
+
+function isEditingMode() {
+  return state.appMode === 'editing';
+}
+
+function requireEditingMode() {
+  if (isEditingMode()) return true;
+  showToast('Passa a "Editing Completo" dalla Home per modificare brani o scalette');
+  return false;
+}
+
+function setAppMode(mode) {
+  const next = mode === 'editing' ? 'editing' : 'simplified';
+  state.appMode = next;
+  state.userPrefs.app_mode = next;
+  try { localStorage.setItem('asma_app_mode', next); } catch (e) {}
+
+  if (next !== 'editing') {
+    state.isEditingSong = false;
+    hideNewSongForm();
+    hideNewSetlistForm();
+    if (typeof closeAdminRepertoiresModal === 'function') closeAdminRepertoiresModal();
+    if (typeof closeAddToSetlistModal === 'function') closeAddToSetlistModal();
+  }
+
+  applyAppModeToUi();
+  autosaveUserPreferences();
+  showToast(next === 'editing'
+    ? '✏️ Modalità Editing Completo attiva'
+    : '🎤 Modalità Casa / Palco (Semplificata) attiva');
+}
+
+function applyAppModeToUi() {
+  const editing = isEditingMode();
+
+  const pill = document.getElementById('header-mode-pill');
+  if (pill) {
+    pill.textContent = editing ? '✏️ Editing' : '🎤 Casa / Palco';
+    pill.classList.toggle('mode-pill-editing', editing);
+    pill.classList.toggle('mode-pill-simplified', !editing);
+  }
+
+  const btnSimp = document.getElementById('btn-mode-simplified');
+  const btnEdit = document.getElementById('btn-mode-editing');
+  if (btnSimp) btnSimp.classList.toggle('active', !editing);
+  if (btnEdit) btnEdit.classList.toggle('active', editing);
+
+  const badge = document.getElementById('dash-mode-badge');
+  if (badge) {
+    badge.textContent = editing ? '✏️ Editing Completo' : '🎤 Casa / Palco';
+    badge.classList.toggle('dash-mode-badge-editing', editing);
+    badge.classList.toggle('dash-mode-badge-simplified', !editing);
+  }
+
+  const hint = document.getElementById('dash-mode-hint');
+  if (hint) {
+    hint.textContent = editing
+      ? 'Modalità Editing Completo attiva: puoi modificare testi/accordi, salvare trasposizioni nel DB, creare brani e gestire scalette.'
+      : 'Modalità Semplificata attiva: ideale per studiare a casa, prove e palco live senza rischio di alterare i brani.';
+  }
+
+  const newSongBtn = document.getElementById('btn-open-new-song');
+  if (newSongBtn) newSongBtn.style.display = editing ? 'inline-flex' : 'none';
+
+  const newSetlistBtn = document.getElementById('btn-open-new-setlist');
+  if (newSetlistBtn) newSetlistBtn.style.display = editing ? 'inline-flex' : 'none';
+
+  renderRepertoireChips();
+  renderSongCards();
+  renderSongViewer();
+  renderSetlists();
+  if (state.selectedSetlist) {
+    renderSetlistEditor();
+  }
+  renderDashboard();
 }
 
 function applyPreferencesToDom() {
@@ -593,7 +682,7 @@ function renderRepertoireChips() {
 
   const adminBtn = document.getElementById('btn-admin-manage-rep');
   if (adminBtn) {
-    adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    adminBtn.style.display = (isAdmin && isEditingMode()) ? 'inline-block' : 'none';
   }
 }
 
@@ -682,11 +771,14 @@ function renderSongCards(searchKw = '') {
   container.innerHTML = filtered.map(s => {
     const isSel = state.selectedSong && state.selectedSong.uuid === s.uuid ? 'selected' : '';
     const repsStr = (s.assigned_repertoires || []).join(', ') || 'Archivio';
+    const cardBtn = isEditingMode()
+      ? `<button class="btn btn-secondary" style="min-height: 26px; padding: 2px 8px; font-size: 11px; color: #38bdf8; border-color: #38bdf8; font-weight: 800; white-space: nowrap;" onclick="event.stopPropagation(); openAddToSetlistModal('${s.uuid}')" title="Aggiungi a una scaletta">+ Scaletta</button>`
+      : '';
     return `
       <div class="song-card ${isSel}" onclick="selectSong('${s.uuid}')">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div class="song-card-title">${escapeHtml(s.title)}</div>
-          <button class="btn btn-secondary" style="min-height: 26px; padding: 2px 8px; font-size: 11px; color: #38bdf8; border-color: #38bdf8; font-weight: 800; white-space: nowrap;" onclick="event.stopPropagation(); openAddToSetlistModal('${s.uuid}')" title="Aggiungi a una scaletta">+ Scaletta</button>
+          ${cardBtn}
         </div>
         <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
         <div class="song-card-meta">
@@ -853,7 +945,7 @@ function transposeAmlText(aml, semitones) {
 }
 
 async function transposeSong(semitones) {
-  if (!state.selectedSong) return;
+  if (!state.selectedSong || !requireEditingMode()) return;
 
   // 1. Instant Client-Side Transposition (0ms!)
   state.selectedSong.aml_content = transposeAmlText(state.selectedSong.aml_content, semitones);
@@ -1067,8 +1159,19 @@ function renderSongViewer() {
 
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
-  const promoteBtn = (!isInOfficial && officialRep) ? 
+  const editing = isEditingMode();
+  const promoteBtn = (editing && !isInOfficial && officialRep) ? 
     `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Sposta nel Repertorio Ufficiale Band (se già presente su Ufficiale lo sovrascrive ed elimina questa copia personale)">⭐ Promuovi a Ufficiale</button>` : '';
+
+  const editingToolsHtml = editing ? `
+        <button class="btn btn-secondary" onclick="transposeSong(-1)" title="Abbassa di 1 semitono (salva nel DB)">♭ -1</button>
+        <button class="btn btn-secondary" onclick="transposeSong(1)" title="Alza di 1 semitono (salva nel DB)">♯ +1</button>` : '';
+  const editingActionsHtml = editing ? `
+        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
+        ${promoteBtn}
+        <button class="btn btn-secondary" onclick="forkSongToPersonal('${s.uuid}')" title="Crea una copia indipendente nel tuo repertorio personale per personalizzarla liberamente">📋 Copia Personale</button>
+        <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
+        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>` : '';
 
   const headerHtml = `
     <div class="viewer-header">
@@ -1081,21 +1184,16 @@ function renderSongViewer() {
         </div>
       </div>
       <div class="viewer-tools">
-        <button class="btn btn-secondary" onclick="transposeSong(-1)" title="Abbassa di 1 semitono">♭ -1</button>
-        <button class="btn btn-secondary" onclick="transposeSong(1)" title="Alza di 1 semitono">♯ +1</button>
+        ${editingToolsHtml}
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', -1)" title="Riduci dimensione caratteri">A−</button>
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', 1)" title="Ingrandisci dimensione caratteri">A+</button>
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="toggleSongViewType()" title="Passa tra vista Spartito PDF reale e Testo Web">${viewTypeLabel}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
-        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
-        ${promoteBtn}
-        <button class="btn btn-secondary" onclick="forkSongToPersonal('${s.uuid}')" title="Crea una copia indipendente nel tuo repertorio personale per personalizzarla liberamente">📋 Copia Personale</button>
-        <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
+        ${editingActionsHtml}
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
-        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>
       </div>
     </div>
   `;
@@ -1171,6 +1269,7 @@ function setSongViewType(type) {
 // TOUCH EDITOR & SONG IMPORT ENGINE (1-Touch Actions)
 // ----------------------------------------------------------------------------
 function openSongEditor() {
+  if (!requireEditingMode()) return;
   state.isEditingSong = true;
   renderSongViewer();
 }
@@ -1283,6 +1382,7 @@ function insertModifierAtCursor(textareaId, mod) {
 }
 
 function showNewSongForm() {
+  if (!requireEditingMode()) return;
   const form = document.getElementById('new-song-form');
   if (form) {
     const repSelect = document.getElementById('new-song-repertoire');
@@ -2273,7 +2373,12 @@ function printA4() {
 // ----------------------------------------------------------------------------
 function startSingleSongStage() {
   if (!state.selectedSong) return;
-  state.stageSongs = [state.selectedSong];
+  state.stageSongs = [{
+    ...state.selectedSong,
+    _baseAml: state.selectedSong.aml_content,
+    _baseKey: state.selectedSong.key_current,
+    _stageDelta: 0
+  }];
   state.stageIndex = 0;
   openStageModal();
 }
@@ -2287,10 +2392,61 @@ async function openStageModal() {
   if (!stageModal || !currentSong) return;
 
   stageModal.style.display = 'flex';
-  document.getElementById('stage-song-title').textContent = currentSong.title;
-  document.getElementById('stage-song-meta').textContent = `${currentSong.artist} • Tonalità: ${toLatinKey(currentSong.key_current)} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
+  updateStageHeaderMeta(currentSong);
+  updateStageTransposeBadge(currentSong);
 
   await renderStageSong(currentSong);
+}
+
+function updateStageHeaderMeta(currentSong) {
+  const titleEl = document.getElementById('stage-song-title');
+  const metaEl = document.getElementById('stage-song-meta');
+  if (titleEl) titleEl.textContent = currentSong.title;
+  if (metaEl) {
+    const delta = currentSong._stageDelta || 0;
+    const shiftTag = delta !== 0 ? ` (${delta > 0 ? '+' : ''}${delta} st al volo)` : '';
+    metaEl.textContent = `${currentSong.artist || 'Band'} • Tonalità: ${toLatinKey(currentSong.key_current)}${shiftTag} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
+  }
+}
+
+function updateStageTransposeBadge(currentSong) {
+  const badge = document.getElementById('stage-transpose-badge');
+  if (!badge || !currentSong) return;
+  const delta = currentSong._stageDelta || 0;
+  if (delta === 0) {
+    badge.textContent = 'Orig.';
+    badge.style.color = '#94a3b8';
+  } else {
+    badge.textContent = `${delta > 0 ? '+' : ''}${delta} (${toLatinKey(currentSong.key_current)})`;
+    badge.style.color = '#ffd600';
+  }
+}
+
+async function transposeStageLive(semitones) {
+  const currentSong = state.stageSongs[state.stageIndex];
+  if (!currentSong) return;
+
+  const baseAml = currentSong._baseAml !== undefined ? currentSong._baseAml : currentSong.aml_content;
+  const baseKey = currentSong._baseKey !== undefined ? currentSong._baseKey : currentSong.key_current;
+  currentSong._baseAml = baseAml;
+  currentSong._baseKey = baseKey;
+
+  let nextDelta = (currentSong._stageDelta || 0) + semitones;
+  if (nextDelta > 11) nextDelta -= 12;
+  if (nextDelta < -11) nextDelta += 12;
+  currentSong._stageDelta = nextDelta;
+
+  currentSong.aml_content = nextDelta === 0 ? baseAml : transposeAmlText(baseAml, nextDelta);
+  currentSong.key_current = nextDelta === 0 ? baseKey : transposeSingleChord(baseKey, nextDelta);
+
+  updateStageHeaderMeta(currentSong);
+  updateStageTransposeBadge(currentSong);
+  await renderStageSong(currentSong);
+
+  const label = nextDelta === 0
+    ? `Tonalità originale: ${toLatinKey(currentSong.key_current)}`
+    : `Tonalità temporanea palco: ${toLatinKey(currentSong.key_current)} (${nextDelta > 0 ? '+' : ''}${nextDelta} st • non salvata)`;
+  showToast(label);
 }
 
 async function renderStageSong(currentSong) {
@@ -2299,6 +2455,8 @@ async function renderStageSong(currentSong) {
 
   updateStageViewButton();
   updateStageScoreModeButton();
+  updateStageHeaderMeta(currentSong);
+  updateStageTransposeBadge(currentSong);
 
   const prevScroll = container.scrollTop || 0;
 
@@ -2307,7 +2465,8 @@ async function renderStageSong(currentSong) {
     try {
       const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
-      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
+      const stageDelta = currentSong._stageDelta || 0;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&transpose=${stageDelta}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -2631,8 +2790,11 @@ function renderSetlists() {
   const container = document.getElementById('setlists-list');
   if (!container) return;
 
+  const editing = isEditingMode();
   if (state.setlists.length === 0) {
-    container.innerHTML = '<div style="padding: 20px; color:#94a3b8;">Nessuna scaletta presente. Creane una con il tasto "+ Nuova Scaletta".</div>';
+    container.innerHTML = editing
+      ? '<div style="padding: 20px; color:#94a3b8;">Nessuna scaletta presente. Creane una con il tasto "+ Nuova Scaletta".</div>'
+      : '<div style="padding: 20px; color:#94a3b8;">Nessuna scaletta presente.</div>';
     return;
   }
 
@@ -2649,8 +2811,8 @@ function renderSetlists() {
         <button class="btn btn-primary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); loadAndPlaySetlist('${s.uuid}')">🎤 Palco Live</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
-        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">✏️ Modifica</button>
-        <button class="btn btn-danger" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); deleteSetlist('${s.uuid}')">🗑️ Elimina</button>
+        <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">${editing ? '✏️ Modifica' : '👁️ Vedi Scaletta'}</button>
+        ${editing ? `<button class="btn btn-danger" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); deleteSetlist('${s.uuid}')">🗑️ Elimina</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -2725,6 +2887,7 @@ function renderSetlistEditor() {
   if (!container || !state.selectedSetlist) return;
 
   const s = state.selectedSetlist;
+  const editing = isEditingMode();
   const minutes = Math.floor((s.total_duration_seconds || 0) / 60);
 
   const itemsHtml = (s.items || []).map((item, idx) => `
@@ -2737,38 +2900,22 @@ function renderSetlistEditor() {
           &bull; Tempo: <b>${item.bpm} BPM</b> ${item.is_medley ? '<span class="badge" style="background:#7c3aed; color:#fff; font-size:10px; margin-left:6px;">🔗 MEDLEY</span>' : ''}
         </div>
       </div>
+      ${editing ? `
       <div style="display:flex; gap:6px;">
         <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta su" onclick="moveSetlistItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
         <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta giù" onclick="moveSetlistItem(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''}>▼</button>
         <button class="btn btn-secondary" style="min-height:34px; padding:0 8px; font-size:11px;" title="Attiva/disattiva Medley" onclick="toggleSetlistMedley(${idx})">🔗</button>
         <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0; color:#ef4444;" title="Rimuovi" onclick="removeSetlistItem(${idx})">✕</button>
-      </div>
+      </div>` : ''}
     </div>
   `).join('');
 
   // Song options for "+ Aggiungi Brano"
-  const songOptions = (state.songs || []).map(song => 
+  const songOptions = editing ? (state.songs || []).map(song => 
     `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Tonalità: ${escapeHtml(toLatinKey(song.key_current))}]</option>`
-  ).join('');
+  ).join('') : '';
 
-  container.innerHTML = `
-    <div class="song-viewer" style="margin-bottom:14px;">
-      <div class="viewer-header">
-        <div>
-          <h2 style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
-          <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
-            <b>${escapeHtml(formatDateDDMMYYYY(s.date) || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)
-          </div>
-        </div>
-        <div class="viewer-tools">
-          <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
-          <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
-          <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
-          <button class="btn btn-danger" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>
-          <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
-        </div>
-      </div>
-
+  const addSongSectionHtml = editing ? `
       <!-- ADD SONG CONTROLS WITH EXPLICIT CONFIRM BUTTON -->
       <div style="display:flex; flex-wrap:wrap; gap:12px; margin: 18px 0; align-items:flex-end; background:var(--bg-surface-elevated); padding:14px 16px; border-radius:10px; border:1.5px solid var(--accent-cyan); box-shadow: 0 4px 14px rgba(0,0,0,0.3);">
         <div style="flex:1 1 280px; min-width:0; display:flex; flex-direction:column; gap:6px;">
@@ -2785,18 +2932,36 @@ function renderSetlistEditor() {
             ✓ Conferma e Aggiungi
           </button>
         </div>
-      </div>
+      </div>` : '';
 
+  container.innerHTML = `
+    <div class="song-viewer" style="margin-bottom:14px;">
+      <div class="viewer-header">
+        <div>
+          <h2 style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
+          <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+            <b>${escapeHtml(formatDateDDMMYYYY(s.date) || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)${editing ? '' : ' &bull; <span style="color:#34d399; font-weight:700;">Sola lettura</span>'}
+          </div>
+        </div>
+        <div class="viewer-tools">
+          <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
+          <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
+          <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
+          ${editing ? `<button class="btn btn-danger" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>` : ''}
+          <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
+        </div>
+      </div>
+      ${addSongSectionHtml}
       <!-- ITEMS LIST -->
       <div style="margin-top:14px;">
-        ${itemsHtml || '<div style="color:#94a3b8; padding:16px;">Nessun brano in questa scaletta. Aggiungine uno sopra!</div>'}
+        ${itemsHtml || (editing ? '<div style="color:#94a3b8; padding:16px;">Nessun brano in questa scaletta. Aggiungine uno sopra!</div>' : '<div style="color:#94a3b8; padding:16px;">Nessun brano in questa scaletta.</div>')}
       </div>
     </div>
   `;
 }
 
 function moveSetlistItem(index, delta) {
-  if (!state.selectedSetlist || !state.selectedSetlist.items) return;
+  if (!requireEditingMode() || !state.selectedSetlist || !state.selectedSetlist.items) return;
   const items = state.selectedSetlist.items;
   const target = index + delta;
   if (target < 0 || target >= items.length) return;
@@ -2810,7 +2975,7 @@ function moveSetlistItem(index, delta) {
 }
 
 function toggleSetlistMedley(index) {
-  if (!state.selectedSetlist || !state.selectedSetlist.items) return;
+  if (!requireEditingMode() || !state.selectedSetlist || !state.selectedSetlist.items) return;
   const item = state.selectedSetlist.items[index];
   item.is_medley = !item.is_medley;
   renderSetlistEditor();
@@ -2913,6 +3078,7 @@ async function saveCurrentSetlist() {
 }
 
 function showNewSetlistForm() {
+  if (!requireEditingMode()) return;
   const form = document.getElementById('new-setlist-form');
   const btn = document.getElementById('btn-open-new-setlist');
   if (form) {
@@ -2934,7 +3100,7 @@ function hideNewSetlistForm() {
   const form = document.getElementById('new-setlist-form');
   const btn = document.getElementById('btn-open-new-setlist');
   if (form) form.style.display = 'none';
-  if (btn) btn.style.display = 'inline-flex';
+  if (btn) btn.style.display = isEditingMode() ? 'inline-flex' : 'none';
 }
 
 async function submitNewSetlist() {
@@ -2983,6 +3149,7 @@ async function submitNewSetlist() {
 }
 
 async function deleteSetlist(uuid) {
+  if (!requireEditingMode()) return;
   const s = (state.setlists || []).find(item => item.uuid === uuid) || (state.selectedSetlist && state.selectedSetlist.uuid === uuid ? state.selectedSetlist : null);
   const title = s ? s.title : 'questa scaletta';
   if (!confirm(`Sei sicuro di voler eliminare definitivamente la scaletta "${title}"?`)) return;
@@ -3012,7 +3179,12 @@ async function loadAndPlaySetlist(uuid) {
         const sRes = await fetch(`${API_BASE}/api/songs/${item.song_uuid}`);
         if (sRes.ok) {
           const sObj = await sRes.json();
-          state.stageSongs.push(sObj);
+          state.stageSongs.push({
+            ...sObj,
+            _baseAml: sObj.aml_content,
+            _baseKey: sObj.key_current,
+            _stageDelta: 0
+          });
         }
       }
       if (state.stageSongs.length > 0) {
@@ -3034,6 +3206,7 @@ async function loadAndPlaySetlist(uuid) {
 let pendingSetlistSongUuid = null;
 
 async function openAddToSetlistModal(songUuid) {
+  if (!requireEditingMode()) return;
   pendingSetlistSongUuid = songUuid;
   const song = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
   const modal = document.getElementById('add-to-setlist-modal');
@@ -3131,6 +3304,7 @@ async function createSetlistAndAddCurrentSong() {
 // PROMOTE SONG TO OFFICIAL BAND REPERTOIRE
 // ----------------------------------------------------------------------------
 async function promoteSongToOfficial(songUuid) {
+  if (!requireEditingMode()) return;
   const songObj = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
   const officialRep = (state.repertoires || []).find(r => r.is_official);
   const cleanTitle = songObj && songObj.title ? songObj.title.trim().toUpperCase() : '';
@@ -3207,6 +3381,7 @@ async function promoteSongToOfficial(songUuid) {
 let lastDeletedSong = null;
 
 async function deleteSongWithUndo(uuid) {
+  if (!requireEditingMode()) return;
   const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
   if (!song) return;
 
@@ -3283,6 +3458,7 @@ async function undoDeleteSong() {
 // FORK SONG TO PERSONAL REPERTOIRE (Independent Copy)
 // ----------------------------------------------------------------------------
 async function forkSongToPersonal(uuid) {
+  if (!requireEditingMode()) return;
   const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
   if (!song) return;
 
