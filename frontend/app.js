@@ -119,6 +119,8 @@ function switchTab(tabName) {
     }
   } else if (tabName === 'settings') {
     loadAiSettingsStatus();
+  } else if (tabName === 'songs') {
+    loadRepertoires();
   }
 }
 
@@ -424,7 +426,10 @@ function onColorChange(type, hexColor) {
 // ----------------------------------------------------------------------------
 async function loadRepertoires() {
   try {
-    const res = await fetch(`${API_BASE}/api/repertoires?user_email=${encodeURIComponent(state.currentUser.email)}`);
+    const res = await fetch(
+      `${API_BASE}/api/repertoires?user_email=${encodeURIComponent(state.currentUser.email)}&_t=${Date.now()}`,
+      { cache: 'no-store' }
+    );
     if (res.ok) {
       state.repertoires = await res.json();
       const isAdmin = isCurrentUserAdmin();
@@ -493,18 +498,23 @@ function selectRepertoire(repUuid) {
   renderSongCards();
 }
 
-async function loadSongs() {
+async function loadSongs({ autoSelect = true } = {}) {
   try {
-    const url = state.currentUser?.email
+    const sep = state.currentUser?.email ? `&` : `?`;
+    const base = state.currentUser?.email
       ? `${API_BASE}/api/songs?user_email=${encodeURIComponent(state.currentUser.email)}`
       : `${API_BASE}/api/songs`;
-    const res = await fetch(url);
+    const url = `${base}${sep}_t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
     if (res.ok) {
       state.songs = await res.json();
       renderRepertoireChips();
       renderSongCards();
-      if (state.songs.length > 0 && !state.selectedSong) {
-        selectSong(state.songs[0].uuid);
+      if (autoSelect && !state.selectedSong) {
+        const filtered = getFilteredSongs();
+        if (filtered.length > 0) {
+          selectSong(filtered[0].uuid);
+        }
       }
     }
   } catch (err) {
@@ -799,7 +809,12 @@ function toggleScoreMode() {
 
 function renderSongViewer() {
   const container = document.getElementById('song-viewer');
-  if (!container || !state.selectedSong) return;
+  if (!container) return;
+  if (!state.selectedSong) {
+    state.isEditingSong = false;
+    container.innerHTML = '';
+    return;
+  }
 
   const s = state.selectedSong;
 
@@ -3005,15 +3020,33 @@ async function promoteSongToOfficial(songUuid) {
       } else {
         showToast(`⭐ "${data.song_title}" spostato nel Repertorio Ufficiale Band!`);
       }
-      await loadRepertoires();
-      await loadSongs();
       const targetUuid = data.song_uuid || songUuid;
+      // Immediate optimistic repertoire count update so chips reflect the change at 0ms
+      if (Array.isArray(state.repertoires)) {
+        state.repertoires.forEach(r => {
+          if (!r.is_official && Array.isArray(r.song_uuids) && r.song_uuids.includes(songUuid)) {
+            r.song_uuids = r.song_uuids.filter(uid => uid !== songUuid);
+            r.song_count = r.song_uuids.length;
+          } else if (r.is_official && data.action === 'moved' && Array.isArray(r.song_uuids) && !r.song_uuids.includes(targetUuid)) {
+            r.song_uuids.push(targetUuid);
+            r.song_count = r.song_uuids.length;
+          }
+        });
+        renderRepertoireChips();
+      }
+      state.isEditingSong = false;
+      state.selectedSong = null;
+      renderSongViewer();
+      await loadRepertoires();
+      await loadSongs({ autoSelect: false });
       const inCurrentFilter = (typeof getFilteredSongs === 'function' ? getFilteredSongs() : state.songs || [])
         .some(x => x.uuid === targetUuid);
       if (inCurrentFilter) {
         selectSong(targetUuid);
       } else {
+        state.isEditingSong = false;
         state.selectedSong = null;
+        renderRepertoireChips();
         renderSongCards();
         renderSongViewer();
       }
@@ -3055,8 +3088,15 @@ async function deleteSongWithUndo(uuid) {
         showToast(`🗑️ "${song.title}" spostato nel cestino`);
         showSongUndoBanner(song.title);
       }
-      await loadSongs();
+      if (state.selectedSong && state.selectedSong.uuid === uuid) {
+        state.isEditingSong = false;
+        state.selectedSong = null;
+      }
       await loadRepertoires();
+      await loadSongs({ autoSelect: false });
+      renderRepertoireChips();
+      renderSongCards();
+      renderSongViewer();
     } else {
       showToast('Errore durante l\'eliminazione');
     }
@@ -3082,8 +3122,10 @@ async function undoDeleteSong() {
       if (banner) banner.style.display = 'none';
       const restoredUuid = lastDeletedSong.uuid;
       lastDeletedSong = null;
-      await loadSongs();
       await loadRepertoires();
+      await loadSongs({ autoSelect: false });
+      renderRepertoireChips();
+      renderSongCards();
       selectSong(restoredUuid);
     } else {
       showToast('Impossibile ripristinare il brano');

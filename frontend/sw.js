@@ -1,5 +1,5 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v37';
+const CACHE_NAME = 'asma-pwa-v38';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -37,16 +37,20 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Network-First for static assets (fresh content online, cached offline fallback)
+  // Network-First for static assets (fallback to cache on network error or 5xx during cloud restart)
   e.respondWith(
     fetch(e.request)
       .then((response) => {
         if (response && response.status === 200 && e.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          return response;
+        }
+        if (response && response.status >= 500) {
+          return caches.match(e.request, { ignoreSearch: true }).then((cached) => cached || response);
         }
         return response;
       })
-      .catch(() => caches.match(e.request))
+      .catch(() => caches.match(e.request, { ignoreSearch: true }))
   );
 });

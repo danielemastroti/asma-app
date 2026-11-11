@@ -873,7 +873,7 @@ class StorageManager:
         if not rep or song_uuid not in rep.song_uuids:
             return False
 
-        rep.song_uuids.remove(song_uuid)
+        rep.song_uuids = [uid for uid in rep.song_uuids if uid != song_uuid]
         rep.updated_at = current_iso_timestamp()
         self._save_repertoires_file(reps)
         self._load_all_into_index()
