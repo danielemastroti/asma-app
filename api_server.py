@@ -98,11 +98,13 @@ class SongUpdateRequest(BaseModel):
     user_email: Optional[str] = "cico@band.org"
     user_name: Optional[str] = "Cico"
     comment: Optional[str] = "Modifica brano"
+    repertoire_uuid: Optional[str] = None
 
 class TransposeRequest(BaseModel):
     semitones: int
     user_email: Optional[str] = "cico@band.org"
     user_name: Optional[str] = "Cico"
+    repertoire_uuid: Optional[str] = None
 
 class RepertoireCreateRequest(BaseModel):
     uuid: Optional[str] = None
@@ -364,9 +366,69 @@ def save_repertoire(req: RepertoireCreateRequest):
     saved = storage.save_repertoire(rep, req.user_email, req.user_name)
     return {"status": "success", "repertoire": saved.to_dict()}
 
+def _clone_song_object(source_song: Song, shared_notes: Optional[str] = None) -> Song:
+    """Creates a brand-new independent Song clone with a fresh UUID."""
+    return Song(
+        title=source_song.title,
+        artist=source_song.artist,
+        author=source_song.author,
+        genre=source_song.genre,
+        year=source_song.year,
+        duration_seconds=source_song.duration_seconds,
+        bpm=source_song.bpm,
+        time_signature=source_song.time_signature,
+        capo=source_song.capo,
+        key_original=source_song.key_original,
+        key_current=source_song.key_current,
+        notation_system=source_song.notation_system,
+        tags=list(source_song.tags) if source_song.tags else [],
+        aml_content=source_song.aml_content,
+        shared_notes=shared_notes if shared_notes is not None else source_song.shared_notes,
+    )
+
+
+def _ensure_personal_copy_if_shared(
+    song: Song,
+    repertoire_uuid: Optional[str],
+    user_email: Optional[str],
+    user_name: Optional[str],
+):
+    """Copy-On-Write isolation: when editing/transposing inside a personal repertoire
+    where song.uuid is also referenced by another repertoire (e.g., Official Band),
+    clone into a fresh UUID and rebind only that personal repertoire to the clone.
+    """
+    if not repertoire_uuid:
+        return song, False
+
+    all_reps = storage.list_repertoires()
+    target_rep = next((r for r in all_reps if r.uuid == repertoire_uuid), None)
+    if not target_rep or getattr(target_rep, "is_official", False):
+        return song, False
+    if song.uuid not in target_rep.song_uuids:
+        return song, False
+
+    other_reps = [r for r in all_reps if r.uuid != target_rep.uuid and song.uuid in r.song_uuids]
+    if not other_reps:
+        return song, False
+
+    actor_name = user_name or "Utente"
+    cloned = _clone_song_object(song, shared_notes=f"Versione personale di {actor_name}")
+    saved_clone = storage.save_song(
+        cloned,
+        user_email or "system",
+        actor_name,
+        "Copia personale separata automaticamente dal repertorio condiviso",
+    )
+    target_rep.song_uuids = [
+        saved_clone.uuid if su == song.uuid else su for su in target_rep.song_uuids
+    ]
+    storage.save_repertoire(target_rep, user_email or "system", actor_name)
+    return saved_clone, True
+
+
 @app.post("/api/repertoires/promote-song")
 def promote_song_to_official(req: PromoteSongRequest):
-    """Adds a song from a personal repertoire into the Official Band Repertoire."""
+    """Promotes a song from a personal repertoire into the Official Band Repertoire as an independent clone."""
     all_reps = storage.list_repertoires()
     official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
     if not official_rep:
@@ -377,16 +439,35 @@ def promote_song_to_official(req: PromoteSongRequest):
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
-    if req.song_uuid not in official_rep.song_uuids:
-        official_rep.song_uuids.append(req.song_uuid)
-        storage.save_repertoire(official_rep, req.user_email, req.user_name)
+    if req.song_uuid in official_rep.song_uuids:
+        return {
+            "status": "success",
+            "song_uuid": req.song_uuid,
+            "song_title": song.title,
+            "repertoire_uuid": official_rep.uuid,
+            "repertoire_name": official_rep.name,
+        }
+
+    can_add, reason = storage.can_add_song_to_repertoire(official_rep.uuid, song.title)
+    if not can_add:
+        raise HTTPException(status_code=409, detail=reason)
+
+    official_clone = _clone_song_object(song, shared_notes="")
+    saved_official = storage.save_song(
+        official_clone,
+        req.user_email,
+        req.user_name,
+        f"Brano promosso nel Repertorio Ufficiale da {req.user_name}",
+    )
+    official_rep.song_uuids.append(saved_official.uuid)
+    storage.save_repertoire(official_rep, req.user_email, req.user_name)
 
     return {
         "status": "success",
-        "song_uuid": req.song_uuid,
-        "song_title": song.title,
+        "song_uuid": saved_official.uuid,
+        "song_title": saved_official.title,
         "repertoire_uuid": official_rep.uuid,
-        "repertoire_name": official_rep.name
+        "repertoire_name": official_rep.name,
     }
 
 @app.delete("/api/repertoires/{uuid}")
@@ -429,23 +510,11 @@ def fork_song_personal(uuid: str, req: ForkSongRequest):
         )
         target_rep = storage.save_repertoire(target_rep, req.user_email, req.user_name)
 
-    cloned_song = Song(
-        title=source_song.title,
-        artist=source_song.artist,
-        author=source_song.author,
-        genre=source_song.genre,
-        year=source_song.year,
-        duration_seconds=source_song.duration_seconds,
-        bpm=source_song.bpm,
-        time_signature=source_song.time_signature,
-        capo=source_song.capo,
-        key_original=source_song.key_original,
-        key_current=source_song.key_current,
-        notation_system=source_song.notation_system,
-        tags=list(source_song.tags) if source_song.tags else [],
-        aml_content=source_song.aml_content,
-        shared_notes=f"Versione personale di {req.user_name}"
-    )
+    can_add, reason = storage.can_add_song_to_repertoire(target_rep.uuid, source_song.title)
+    if not can_add:
+        raise HTTPException(status_code=409, detail=reason)
+
+    cloned_song = _clone_song_object(source_song, shared_notes=f"Versione personale di {req.user_name}")
     saved = storage.save_song(cloned_song, req.user_email, req.user_name, f"Copia personale creata da {req.user_name}")
     try:
         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, req.user_email, req.user_name)
@@ -611,12 +680,16 @@ def update_song(uuid: str, req: SongUpdateRequest):
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
+    song, was_detached = _ensure_personal_copy_if_shared(
+        song, req.repertoire_uuid, req.user_email, req.user_name
+    )
+
     if req.title is not None and req.title.strip().upper() != song.title.strip().upper():
         new_title = req.title.strip().upper()
         all_reps = storage.list_repertoires()
         for r in all_reps:
-            if uuid in r.song_uuids:
-                can_add, reason = storage.can_add_song_to_repertoire(r.uuid, new_title, exclude_song_uuid=uuid)
+            if song.uuid in r.song_uuids:
+                can_add, reason = storage.can_add_song_to_repertoire(r.uuid, new_title, exclude_song_uuid=song.uuid)
                 if not can_add:
                     raise HTTPException(status_code=409, detail=reason)
         song.title = new_title
@@ -640,11 +713,24 @@ def update_song(uuid: str, req: SongUpdateRequest):
         song.tags = req.tags
 
     saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Modifica brano")
-    return {"status": "success", "song": saved.to_dict()}
+    return {"status": "success", "song": saved.to_dict(), "detached_copy": was_detached}
 
 @app.delete("/api/songs/{uuid}")
-def delete_song(uuid: str, user_email: str = "cico@band.org", user_name: str = "Cico"):
-    """Soft deletes song into trash with protected undo/restore capability."""
+def delete_song(
+    uuid: str,
+    user_email: str = "cico@band.org",
+    user_name: str = "Cico",
+    repertoire_uuid: Optional[str] = None,
+):
+    """Soft deletes song into trash, or detaches from repertoire_uuid if shared across repertoires."""
+    all_reps = storage.list_repertoires()
+    containing_reps = [r for r in all_reps if uuid in r.song_uuids]
+    if repertoire_uuid and len(containing_reps) > 1 and any(r.uuid == repertoire_uuid for r in containing_reps):
+        removed = storage.remove_song_from_repertoire(uuid, repertoire_uuid, user_email, user_name)
+        if not removed:
+            raise HTTPException(status_code=404, detail="Brano non trovato nel repertorio specificato")
+        return {"status": "success", "deleted_uuid": uuid, "detached_only": True}
+
     success = storage.delete_song(uuid, user_email, user_name)
     if not success:
         raise HTTPException(status_code=404, detail="Brano non trovato")
@@ -731,6 +817,10 @@ def transpose_song(uuid: str, req: TransposeRequest):
     if req.semitones == 0:
         return {"status": "noop", "song": song.to_dict()}
 
+    song, was_detached = _ensure_personal_copy_if_shared(
+        song, req.repertoire_uuid, req.user_email, req.user_name
+    )
+
     doc = AMLParser.parse(song.aml_content)
     new_doc = AMLParser.transpose_document(doc, semitones=req.semitones)
     song.aml_content = new_doc.to_aml()
@@ -741,7 +831,7 @@ def transpose_song(uuid: str, req: TransposeRequest):
             pass
 
     saved = storage.save_song(song, req.user_email, req.user_name, f"Trasposizione ({req.semitones:+d} semitoni)")
-    return {"status": "success", "song": saved.to_dict()}
+    return {"status": "success", "song": saved.to_dict(), "detached_copy": was_detached}
 
 
 # -----------------------------------------------------------------------------

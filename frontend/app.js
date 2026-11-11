@@ -727,17 +727,30 @@ async function transposeSong(semitones) {
   showToast(`Tonalità: ${state.selectedSong.key_current} (${semitones > 0 ? '+' : ''}${semitones})`);
 
   // 2. Cloud Persistence (Turso)
+  const oldUuid = state.selectedSong.uuid;
+  const activeRepUuid = (state.activeRepertoire && state.activeRepertoire !== '__ALL__') ? state.activeRepertoire : null;
   try {
-    const res = await fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}/transpose`, {
+    const res = await fetch(`${API_BASE}/api/songs/${oldUuid}/transpose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ semitones: semitones, user_email: state.currentUser.email, user_name: state.currentUser.name })
+      body: JSON.stringify({
+        semitones: semitones,
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name,
+        repertoire_uuid: activeRepUuid
+      })
     });
     if (res.ok) {
       const data = await res.json();
       if (data.song) {
         state.selectedSong = data.song;
-        if (idx !== -1) state.songs[idx] = Object.assign(state.songs[idx], data.song);
+        if (data.detached_copy || data.song.uuid !== oldUuid) {
+          await loadRepertoires();
+          await loadSongs();
+          selectSong(data.song.uuid);
+        } else if (idx !== -1) {
+          state.songs[idx] = Object.assign(state.songs[idx], data.song);
+        }
       }
     }
   } catch (err) {
@@ -1026,6 +1039,8 @@ async function saveSongEdit(downloadPdfAfter = false) {
     newAmlVal = newAmlVal.replace(/^(\{(?:key|tonalita)\s*:\s*)([^\}]+)(\})/gmi, `$1${newKeyVal}$3`);
   }
 
+  const oldUuid = state.selectedSong.uuid;
+  const activeRepUuid = (state.activeRepertoire && state.activeRepertoire !== '__ALL__') ? state.activeRepertoire : null;
   const payload = {
     title: titleInput ? titleInput.value.trim() : state.selectedSong.title,
     artist: artistInput ? artistInput.value.trim() : state.selectedSong.artist,
@@ -1035,11 +1050,12 @@ async function saveSongEdit(downloadPdfAfter = false) {
     aml_content: newAmlVal,
     user_email: state.currentUser.email,
     user_name: state.currentUser.name,
-    comment: 'Modifica touch da tablet'
+    comment: 'Modifica touch da tablet',
+    repertoire_uuid: activeRepUuid
   };
 
   try {
-    const res = await fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}`, {
+    const res = await fetch(`${API_BASE}/api/songs/${oldUuid}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1047,9 +1063,16 @@ async function saveSongEdit(downloadPdfAfter = false) {
     if (res.ok) {
       const data = await res.json();
       state.selectedSong = data.song;
-      const idx = state.songs.findIndex(x => x.uuid === state.selectedSong.uuid);
-      if (idx !== -1) {
-        state.songs[idx] = Object.assign(state.songs[idx], state.selectedSong);
+      if (data.detached_copy || (data.song && data.song.uuid !== oldUuid)) {
+        await loadRepertoires();
+        await loadSongs();
+        const fresh = state.songs.find(x => x.uuid === data.song.uuid);
+        if (fresh) state.selectedSong = fresh;
+      } else {
+        const idx = state.songs.findIndex(x => x.uuid === state.selectedSong.uuid);
+        if (idx !== -1) {
+          state.songs[idx] = Object.assign(state.songs[idx], state.selectedSong);
+        }
       }
       state.isEditingSong = false;
       renderSongCards();
@@ -2965,11 +2988,13 @@ async function promoteSongToOfficial(songUuid) {
       const data = await res.json();
       showToast(`⭐ "${data.song_title}" aggiunto al Repertorio Ufficiale Band!`);
       await loadRepertoires();
+      await loadSongs();
       if (state.selectedSong) {
         selectSong(state.selectedSong.uuid);
       }
     } else {
-      showToast('Impossibile promuovere il brano');
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Impossibile promuovere il brano');
     }
   } catch (err) {
     console.error('Error promoting song:', err);
@@ -2990,13 +3015,21 @@ async function deleteSongWithUndo(uuid) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/songs/${uuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}`, {
+    const activeRepParam = (state.activeRepertoire && state.activeRepertoire !== '__ALL__')
+      ? `&repertoire_uuid=${encodeURIComponent(state.activeRepertoire)}`
+      : '';
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}?user_email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name)}${activeRepParam}`, {
       method: 'DELETE'
     });
     if (res.ok) {
-      lastDeletedSong = { uuid: song.uuid, title: song.title };
-      showToast(`🗑️ "${song.title}" spostato nel cestino`);
-      showSongUndoBanner(song.title);
+      const delData = await res.json().catch(() => ({}));
+      if (delData.detached_only) {
+        showToast(`🗑️ "${song.title}" rimosso da questo repertorio`);
+      } else {
+        lastDeletedSong = { uuid: song.uuid, title: song.title };
+        showToast(`🗑️ "${song.title}" spostato nel cestino`);
+        showSongUndoBanner(song.title);
+      }
       await loadSongs();
       await loadRepertoires();
     } else {

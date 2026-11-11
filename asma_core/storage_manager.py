@@ -143,63 +143,10 @@ class StorageManager:
                     except Exception:
                         pass
 
-            # Title Deduplication: detect and eliminate duplicate files on disk
-            by_title: Dict[str, List[Tuple[Song, str]]] = {}
-            for s, fp in loaded_songs:
-                norm_title = re.sub(r"[^A-Z0-9]", "", s.title.upper())
-                by_title.setdefault(norm_title, []).append((s, fp))
-
-            reps_need_update = False
-            for norm_title, song_tuples in by_title.items():
-                if len(song_tuples) == 1:
-                    song, _ = song_tuples[0]
-                    reps = song_rep_map.get(song.uuid, [])
-                    self._upsert_index_record(song, reps, is_deleted=0)
-                else:
-                    # Check if there is a canonical slug version and obsolete legacy GUID duplicates
-                    slug_tuples = [t for t in song_tuples if not re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", t[0].uuid)]
-                    guid_tuples = [t for t in song_tuples if re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", t[0].uuid)]
-
-                    if slug_tuples and guid_tuples:
-                        canonical_song, _ = slug_tuples[0]
-                        reps = song_rep_map.get(canonical_song.uuid, [])
-                        self._upsert_index_record(canonical_song, reps, is_deleted=0)
-
-                        for dup_song, dup_fp in guid_tuples:
-                            trash_path = os.path.join(self._trash_dir, f"song_{dup_song.uuid}.json")
-                            trash_meta = {
-                                "deleted_at": current_iso_timestamp(),
-                                "entity_type": "SONG",
-                                "entity_uuid": dup_song.uuid,
-                                "reason": f"Deduplicato GUID legacy a favore di '{canonical_song.uuid}'",
-                                "data": dup_song.to_dict()
-                            }
-                            try:
-                                with open(trash_path, "w", encoding="utf-8") as tf:
-                                    json.dump(trash_meta, tf, indent=2, ensure_ascii=False)
-                                if os.path.exists(dup_fp):
-                                    os.remove(dup_fp)
-                            except Exception:
-                                pass
-
-                            self._upsert_index_record(dup_song, song_rep_map.get(dup_song.uuid, []), is_deleted=1)
-
-                            for r in repertoires:
-                                if dup_song.uuid in r.song_uuids:
-                                    r.song_uuids = [canonical_song.uuid if sid == dup_song.uuid else sid for sid in r.song_uuids]
-                                    r.song_uuids = list(dict.fromkeys(r.song_uuids))
-                                    reps_need_update = True
-                    else:
-                        for s, _ in song_tuples:
-                            reps = song_rep_map.get(s.uuid, [])
-                            self._upsert_index_record(s, reps, is_deleted=0)
-
-            if reps_need_update:
-                try:
-                    self._save_repertoires_file(repertoires)
-                    self._trigger_background_gist_sync("ALL")
-                except Exception:
-                    pass
+            # Index all active songs independently (same title across official vs personal repertoires is allowed)
+            for song, _ in loaded_songs:
+                reps = song_rep_map.get(song.uuid, [])
+                self._upsert_index_record(song, reps, is_deleted=0)
 
     def reload_from_disk(self) -> None:
         """Forces full reload of in-memory SQLite index from JSON files on disk."""
