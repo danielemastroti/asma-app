@@ -2285,34 +2285,64 @@ function parseAmlForWeb(aml, showChords) {
   return html;
 }
 
-async function downloadPdf() {
+/**
+ * Costruisce la query string comune per generazione/download PDF con preferenze layout utente.
+ */
+function buildPdfQueryParams(hasChords, extra = {}) {
+  const p = state.userPrefs || {};
+  const params = new URLSearchParams({
+    chords: hasChords ? 'true' : 'false',
+    device: state.activeDevice || 'Default',
+    email: state.currentUser?.email || '',
+    user_name: state.currentUser?.name || '',
+    columns: String(p.layout_columns || 1),
+    font_size: String(p.layout_font_size || 12),
+    font_size_chords: String(p.layout_font_size_chords || 13),
+    margin_lateral: String(p.layout_margin_lateral || 10),
+    margin_top: String(p.layout_margin_top || 10),
+  });
+  Object.entries(extra).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.set(k, String(v));
+  });
+  return params.toString();
+}
+
+/**
+ * Avvia il download di un PDF in modo sincrono dal gesture utente, evitando fetch+blob
+ * che vengono bloccati o scadono nelle PWA standalone / WebAPK su Android e iOS.
+ */
+function triggerPdfDownload(url, filename) {
+  showToast(`Avvio download "${filename}"...`);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+  if (isStandalone || isMobile) {
+    const popup = window.open(url, '_blank');
+    if (!popup) {
+      window.location.assign(url);
+    }
+    return;
+  }
+
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+  }, 1000);
+}
+
+function downloadPdf() {
   if (!state.selectedSong) return;
-  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
   const cleanTitle = (state.selectedSong.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
   const filename = `${cleanTitle}.pdf`;
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&download=true`;
-
-  showToast(`Scaricamento "${filename}" in corso...`);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    }, 2000);
-    showToast(`PDF salvato: ${filename} ✓`);
-  } catch (err) {
-    console.warn('Blob download fallback:', err);
-    window.location.href = url;
-  }
+  const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?${qs}`;
+  triggerPdfDownload(url, filename);
 }
 
 async function printDirectA4(url) {
@@ -2818,32 +2848,11 @@ function renderSetlists() {
   `).join('');
 }
 
-async function downloadSetlistPdf(uuid) {
-  const chordsParam = state.scoreMode === 'chords' ? 'true' : 'false';
+function downloadSetlistPdf(uuid) {
   const filename = 'SCALETTA_LIVE.pdf';
-  const url = `${API_BASE}/api/setlists/${uuid}/pdf?chords=${chordsParam}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&download=true`;
-
-  showToast(`Scaricamento "${filename}" in corso...`);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    }, 2000);
-    showToast(`PDF scaletta salvato: ${filename} ✓`);
-  } catch (err) {
-    console.warn('Blob setlist download fallback:', err);
-    window.location.href = url;
-  }
+  const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
+  const url = `${API_BASE}/api/setlists/${uuid}/pdf?${qs}`;
+  triggerPdfDownload(url, filename);
 }
 
 function printSetlistA4(uuid) {

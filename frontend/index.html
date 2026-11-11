@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.4">
+  <link rel="stylesheet" href="/style.css?v=4.5">
 </head>
 <body>
 
@@ -656,14 +656,14 @@ girano in centro sfiorando i novanta"></textarea>
           <span id="stage-speed-display" style="color:#ffd600; font-weight:800; font-size:12.5px; min-width:44px; text-align:center;">28 px/s</span>
           <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; border-radius:50%;" onclick="adjustStageScrollSpeed(5)" title="Accelera">🐇</button>
         </div>
-        <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
+        <div class="stage-divider"></div>
         <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(-2)" title="Riduci font">A−</button>
         <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; font-size:11px;" onclick="adjustStageFontSize(2)" title="Ingrandisci font">A+</button>
-        <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
+        <div class="stage-divider"></div>
         <button class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#ffd600;" onclick="transposeStageLive(-1)" title="Abbassa tonalità al volo solo per questa esecuzione (non modifica il brano)">♭ -1</button>
         <span id="stage-transpose-badge" style="color:#ffd600; font-weight:800; font-size:11px; min-width:34px; text-align:center;" title="Tonalità temporanea sul palco">Orig.</span>
         <button class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#ffd600;" onclick="transposeStageLive(1)" title="Alza tonalità al volo solo per questa esecuzione (non modifica il brano)">♯ +1</button>
-        <div style="width: 1px; height: 18px; background: #334155; margin: 0 2px;"></div>
+        <div class="stage-divider"></div>
         <button id="stage-view-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#38bdf8; border-color:#38bdf8;" onclick="toggleStageViewType()" title="Passa da Spartito PDF reale a Teleprompter testo">📄 Spartito PDF</button>
         <button id="stage-mode-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800;" onclick="toggleStageScoreMode()" title="Cambia modalità: Solo Testo / Testo + Accordi">🎤 Solo Testo</button>
       </div>
@@ -728,6 +728,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=13.5"></script>
+  <script src="/app.js?v=13.6"></script>
 </body>
 </html>
