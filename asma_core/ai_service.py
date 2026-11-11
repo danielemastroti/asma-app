@@ -127,7 +127,7 @@ class BandAIService:
         }
 
         # Modelli gratuiti e leggeri raccomandati per velocità e minimo consumo di token
-        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"]
+        models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview"]
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             try:
@@ -218,13 +218,17 @@ class BandAIService:
         if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale)", aml_text, re.IGNORECASE):
             return aml_text
 
-        # 1. Try lightweight AI detection
+        # 1. Fast deterministic heuristic segmentation (instantly converts Strofa 1:, Ritornello:, etc.)
+        heuristic_res = cls.detect_sections_heuristic(aml_text)
+        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale)", heuristic_res, re.IGNORECASE):
+            return heuristic_res
+
+        # 2. Try lightweight AI detection when no textual headings were found
         ai_result = cls.detect_sections_with_ai(aml_text)
         if ai_result:
             return ai_result
 
-        # 2. Fallback to deterministic heuristic segmentation
-        return cls.detect_sections_heuristic(aml_text)
+        return heuristic_res
 
 
     KNOWN_SONG_BPM: Dict[str, int] = {
@@ -613,7 +617,7 @@ class BandAIService:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.0, "maxOutputTokens": 20}
         }
-        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-latest"]
+        models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview"]
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             try:
@@ -711,7 +715,7 @@ class BandAIService:
             }
         }
 
-        models_to_try = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
+        models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-3.8-flash"]
         last_error = None
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -731,7 +735,11 @@ class BandAIService:
                             if resp_parts:
                                 raw_text = resp_parts[0].get("text", "").strip()
                                 clean_json = re.sub(r"^```(?:json)?\s*", "", raw_text, flags=re.IGNORECASE)
-                                clean_json = re.sub(r"\s*```$", "", clean_json)
+                                clean_json = re.sub(r"\s*```$", "", clean_json).strip()
+                                # Fallback regex in case model wraps JSON in commentary
+                                json_match = re.search(r"(\{.*\})", clean_json, re.DOTALL)
+                                if json_match:
+                                    clean_json = json_match.group(1)
                                 parsed_data = json.loads(clean_json)
                                 return {
                                     "title": parsed_data.get("title", "Nuovo Brano"),
@@ -741,8 +749,17 @@ class BandAIService:
                                     "capo": int(parsed_data.get("capo", 0)) if str(parsed_data.get("capo", "")).isdigit() else 0,
                                     "aml_content": parsed_data.get("aml_content", "")
                                 }
+            except urllib.error.HTTPError as he:
+                try:
+                    err_body = he.read().decode("utf-8")
+                    err_json = json.loads(err_body)
+                    msg = err_json.get("error", {}).get("message", err_body)
+                except Exception:
+                    msg = str(he)
+                last_error = f"{he.code} ({model}): {msg}"
+                continue
             except Exception as e:
-                last_error = e
+                last_error = f"{model}: {str(e)}"
                 continue
 
         raise RuntimeError(f"Errore durante l'elaborazione Vision AI: {last_error}")

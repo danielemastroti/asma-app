@@ -1262,6 +1262,45 @@ function clearCameraImages() {
   renderCameraThumbnails();
 }
 
+function compressAndOrientImage(dataUrl, rotationDeg = 0, maxWidth = 1600, maxHeight = 1600) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        // Scale down if larger than max bounds to guarantee light and fast payload
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const normalizedRot = ((rotationDeg % 360) + 360) % 360;
+        const isSwapped = (normalizedRot === 90 || normalizedRot === 270);
+
+        canvas.width = isSwapped ? height : width;
+        canvas.height = isSwapped ? width : height;
+
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((normalizedRot * Math.PI) / 180);
+        ctx.drawImage(img, -width / 2, -height / 2, width, height);
+
+        const outData = canvas.toDataURL('image/jpeg', 0.82);
+        resolve({ data: outData, mime_type: 'image/jpeg' });
+      } catch (err) {
+        console.warn('Canvas optimization fallback:', err);
+        resolve({ data: dataUrl, mime_type: 'image/jpeg' });
+      }
+    };
+    img.onerror = () => resolve({ data: dataUrl, mime_type: 'image/jpeg' });
+    img.src = dataUrl;
+  });
+}
+
 async function executeVisionTranscription() {
   if (!state.cameraImages || state.cameraImages.length === 0) {
     showToast('Scatta o seleziona almeno una foto');
@@ -1274,15 +1313,17 @@ async function executeVisionTranscription() {
   if (btnRun) btnRun.disabled = true;
   if (statusDiv) {
     statusDiv.style.display = 'block';
-    statusDiv.innerHTML = `⏳ Analisi di ${state.cameraImages.length} pagina/e con Gemini Vision AI... attendi qualche secondo.`;
+    statusDiv.innerHTML = `⏳ Ottimizzazione e analisi di ${state.cameraImages.length} pagina/e con Gemini Vision AI... attendi qualche secondo.`;
   }
 
   try {
+    // Process, compress and bake rotation for each page before sending
+    const processedImages = await Promise.all(
+      state.cameraImages.map(img => compressAndOrientImage(img.data, img.rotation || 0, 1600, 1600))
+    );
+
     const payload = {
-      images: state.cameraImages.map(img => ({
-        data: img.data,
-        mime_type: img.mime_type || 'image/jpeg'
-      })),
+      images: processedImages,
       user_email: state.currentUser ? state.currentUser.email : 'cico@band.org',
       user_name: state.currentUser ? state.currentUser.name : 'Cico'
     };
