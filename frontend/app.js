@@ -72,6 +72,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initServiceWorker() {
   if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
     navigator.serviceWorker.register('/sw.js').then(reg => {
       reg.update();
     }).catch(err => {
@@ -492,10 +500,13 @@ function renderRepertoireChips() {
   }
 }
 
+let _selectSongSeq = 0;
+
 function selectRepertoire(repUuid) {
   const prevTitle = state.selectedSong && state.selectedSong.title
     ? state.selectedSong.title.trim().toUpperCase()
     : '';
+  _selectSongSeq++;
   state.activeRepertoire = repUuid;
   state.isEditingSong = false;
   renderRepertoireChips();
@@ -505,14 +516,13 @@ function selectRepertoire(repUuid) {
   if (state.selectedSong) {
     const stillInFiltered = filtered.find(s => s.uuid === state.selectedSong.uuid);
     if (!stillInFiltered) {
+      state.selectedSong = null;
+      renderSongViewer();
       const titleMatch = prevTitle
         ? filtered.find(s => (s.title || '').trim().toUpperCase() === prevTitle)
         : null;
       if (titleMatch) {
         selectSong(titleMatch.uuid);
-      } else {
-        state.selectedSong = null;
-        renderSongViewer();
       }
     }
   }
@@ -592,11 +602,17 @@ function renderSongCards(searchKw = '') {
 }
 
 async function selectSong(uuid) {
+  const seq = ++_selectSongSeq;
+  const repAtRequest = state.activeRepertoire;
   try {
     const res = await fetch(`${API_BASE}/api/songs/${uuid}?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
+      const songData = await res.json();
+      if (seq !== _selectSongSeq || state.activeRepertoire !== repAtRequest) {
+        return;
+      }
       state.isEditingSong = false;
-      state.selectedSong = await res.json();
+      state.selectedSong = songData;
       renderSongCards();
       renderSongViewer();
       if (window.innerWidth < 768) {
@@ -831,6 +847,12 @@ function toggleScoreMode() {
 function renderSongViewer() {
   const container = document.getElementById('song-viewer');
   if (!container) return;
+  if (state.selectedSong && state.activeRepertoire && state.activeRepertoire !== '__ALL__') {
+    const activeRep = (state.repertoires || []).find(r => r.uuid === state.activeRepertoire);
+    if (activeRep && Array.isArray(activeRep.song_uuids) && !activeRep.song_uuids.includes(state.selectedSong.uuid)) {
+      state.selectedSong = null;
+    }
+  }
   if (!state.selectedSong) {
     state.isEditingSong = false;
     container.innerHTML = '';
