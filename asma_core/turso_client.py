@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import json
 import glob
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 import libsql_client
 
@@ -197,6 +198,13 @@ class TursoClient:
                     extra_json TEXT,
                     updated_at TEXT,
                     PRIMARY KEY (email, device_name)
+                );
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS band_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at TEXT
                 );
                 """
             ])
@@ -837,6 +845,38 @@ class TursoClient:
             email_clean = email.lower().strip()
             client.execute("UPDATE user_device_preferences SET is_last_active = 0 WHERE email = ?;", [email_clean])
             client.execute("UPDATE user_device_preferences SET is_last_active = 1 WHERE email = ? AND device_name = ?;", [email_clean, device_name])
+            client.close()
+            return True
+        except Exception:
+            return False
+
+    def get_setting(self, key: str) -> Optional[str]:
+        """Retrieves a persistent key-value setting from Turso band_settings table."""
+        if not self.is_configured:
+            return None
+        try:
+            client = self._get_connection()
+            client.execute("CREATE TABLE IF NOT EXISTS band_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);")
+            res = client.execute("SELECT value FROM band_settings WHERE key = ?;", [key])
+            client.close()
+            if res.rows and res.rows[0][0] is not None:
+                return str(res.rows[0][0])
+            return None
+        except Exception:
+            return None
+
+    def set_setting(self, key: str, value: str) -> bool:
+        """Stores a persistent key-value setting in Turso band_settings table."""
+        if not self.is_configured:
+            return False
+        try:
+            client = self._get_connection()
+            client.execute("CREATE TABLE IF NOT EXISTS band_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);")
+            now_iso = datetime.now(timezone.utc).isoformat()
+            client.execute(
+                "INSERT INTO band_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at;",
+                [key, value, now_iso]
+            )
             client.close()
             return True
         except Exception:

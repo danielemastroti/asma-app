@@ -117,6 +117,8 @@ function switchTab(tabName) {
       if (listContainer) listContainer.style.display = 'block';
       loadSetlists();
     }
+  } else if (tabName === 'settings') {
+    loadAiSettingsStatus();
   }
 }
 
@@ -631,9 +633,19 @@ function formatDateDDMMYYYY(dateStr) {
   return s;
 }
 
+const NON_CHORD_SECTION_TAGS = new Set([
+  'INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'RIT', 'BRIDGE',
+  'SPECIAL', 'SPECIALE', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO',
+  'ASSOLO', 'CODA', 'STACCO', 'RIFF', 'NOTA', 'TAB', 'PRE-CHORUS'
+]);
+
 function transposeSingleChord(chordStr, semitones) {
   if (!chordStr || semitones === 0) return chordStr;
   let s = chordStr.trim();
+  const upperS = s.toUpperCase();
+  if (NON_CHORD_SECTION_TAGS.has(upperS) || Array.from(NON_CHORD_SECTION_TAGS).some(t => upperS.startsWith(t + ' ') || upperS.startsWith(t + ':'))) {
+    return chordStr;
+  }
 
   // Root note regex matching ITA or INT
   const m = s.match(/^(DO#|RE#|FA#|SOL#|LA#|REB|MIB|SOLB|LAB|SIB|DO|RE|MI|FA|SOL|LA|SI|C#|D#|F#|G#|A#|DB|EB|GB|AB|BB|[CDEFGAB])(.*)$/i);
@@ -641,6 +653,11 @@ function transposeSingleChord(chordStr, semitones) {
 
   let root = m[1].toUpperCase();
   const rest = m[2];
+
+  // Validate rest is a musical chord suffix (prevent corrupting plain words)
+  if (rest && !/^(m|min|minor|-|maj|major|M|\+|7\+|5\+|5-|aug|dim|dim7|°|o|sus|sus2|sus4|add|2|4|5|6|7|8|9|11|13|b5|#5|b9|#9|\/[0-9#b+-]|\/[A-G]|\/(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?|\s)*$/i.test(rest)) {
+    return chordStr;
+  }
 
   if (FLAT_MAP[root]) root = FLAT_MAP[root];
 
@@ -668,12 +685,29 @@ function transposeSingleChord(chordStr, semitones) {
 
 function transposeAmlText(aml, semitones) {
   if (!aml || semitones === 0) return aml;
-  return aml.replace(/\[([^\]]+)\]/g, (match, chord) => {
+  // 1. Transpose bracketed chords [CHORD]
+  let out = aml.replace(/\[([^\]]+)\]/g, (match, chord) => {
     return `[${transposeSingleChord(chord, semitones)}]`;
   });
+  // 2. Keep {key: ...} or {tonalita: ...} directive synchronized
+  out = out.replace(/^(\{(?:key|tonalita)\s*:\s*)([^\}]+)(\})/gmi, (m, p1, k, p3) => {
+    return `${p1}${transposeSingleChord(k.trim(), semitones)}${p3}`;
+  });
+  // 3. Transpose pipe chord-grid lines like | DO | SOL |
+  out = out.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (trimmed.includes('|') && !trimmed.includes('[') && isChordGridOrTabLine(trimmed)) {
+      return line.split('|').map(seg => {
+        if (!seg.trim()) return seg;
+        return seg.replace(/\S+/g, tok => isMusicalChord(tok) ? transposeSingleChord(tok, semitones) : tok);
+      }).join('|');
+    }
+    return line;
+  }).join('\n');
+  return out;
 }
 
-function transposeSong(semitones) {
+async function transposeSong(semitones) {
   if (!state.selectedSong) return;
 
   // 1. Instant Client-Side Transposition (0ms!)
@@ -687,15 +721,53 @@ function transposeSong(semitones) {
   }
 
   renderSongCards();
-  renderSongViewer();
+  if (state.songViewType !== 'pdf') {
+    renderSongViewer();
+  }
   showToast(`Tonalità: ${state.selectedSong.key_current} (${semitones > 0 ? '+' : ''}${semitones})`);
 
-  // 2. Background Cloud Persistence (Turso)
-  fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}/transpose`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ semitones: semitones, user_email: state.currentUser.email })
-  }).catch(console.warn);
+  // 2. Cloud Persistence (Turso)
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${state.selectedSong.uuid}/transpose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ semitones: semitones, user_email: state.currentUser.email, user_name: state.currentUser.name })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.song) {
+        state.selectedSong = data.song;
+        if (idx !== -1) state.songs[idx] = Object.assign(state.songs[idx], data.song);
+      }
+    }
+  } catch (err) {
+    console.warn('Transpose sync error:', err);
+  }
+  if (state.songViewType === 'pdf') {
+    renderSongViewer();
+  }
+}
+
+function transposeSongInEditor(semitones) {
+  const keyInput = document.getElementById('edit-song-key');
+  const amlInput = document.getElementById('edit-song-aml');
+  if (!amlInput) return;
+
+  const currentKey = keyInput ? keyInput.value.trim() : '';
+  const newKey = currentKey ? transposeSingleChord(currentKey, semitones) : '';
+  if (keyInput && newKey) {
+    keyInput.value = newKey;
+  }
+
+  amlInput.value = transposeAmlText(amlInput.value, semitones);
+
+  // Sync live preview if open
+  const previewPane = document.getElementById('edit-song-live-preview');
+  if (previewPane && previewPane.style.display !== 'none') {
+    previewPane.innerHTML = renderAmlToPreviewHtml(amlInput.value);
+  }
+
+  showToast(`Tonalità in modifica: ${newKey || (semitones > 0 ? '+' + semitones : semitones)} (${semitones > 0 ? '+' : ''}${semitones} st) — Premi Salva`);
 }
 
 // ----------------------------------------------------------------------------
@@ -727,12 +799,13 @@ function renderSongViewer() {
           <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Modifica testo, accordi o dati musicali</div>
         </div>
         <div class="viewer-tools">
-          <button class="btn btn-success" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit()">💾 Salva Modifiche</button>
+          <button class="btn btn-success" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit(false)">💾 Salva nel DB</button>
+          <button class="btn btn-primary" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit(true)">📄 Salva & Scarica PDF</button>
           <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="closeSongEditor()">✕ Annulla</button>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 12px 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 12px 0;">
         <div>
           <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Titolo</label>
           <input type="text" id="edit-song-title" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.title)}">
@@ -742,8 +815,12 @@ function renderSongViewer() {
           <input type="text" id="edit-song-artist" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.artist || '')}">
         </div>
         <div>
-          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Tonalità</label>
-          <input type="text" id="edit-song-key" class="search-input" style="width: 100%; margin-top: 2px;" value="${escapeHtml(s.key_current || 'C')}">
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">Tonalità (Trasponi)</label>
+          <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
+            <button type="button" class="btn btn-secondary" style="min-height: 36px; padding: 0 10px; font-weight: 800; color: #ffd600;" onclick="transposeSongInEditor(-1)" title="Abbassa tonalità e tutti gli accordi di 1 semitono">♭ -1</button>
+            <input type="text" id="edit-song-key" class="search-input" style="width: 100%; min-width: 50px; text-align: center; font-weight: 800; color: #ffd600;" value="${escapeHtml(s.key_current || 'C')}">
+            <button type="button" class="btn btn-secondary" style="min-height: 36px; padding: 0 10px; font-weight: 800; color: #ffd600;" onclick="transposeSongInEditor(1)" title="Alza tonalità e tutti gli accordi di 1 semitono">♯ +1</button>
+          </div>
         </div>
         <div>
           <label style="font-size: 11px; color: #94a3b8; font-weight: 700;">BPM</label>
@@ -805,8 +882,9 @@ function renderSongViewer() {
         <div id="edit-song-live-preview" class="editor-preview-pane" style="display: none;"></div>
       </div>
 
-      <div style="display: flex; gap: 10px; margin-top: 14px;">
-        <button class="btn btn-success" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit()">💾 Salva Modifiche</button>
+      <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+        <button class="btn btn-success" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit(false)">💾 Salva nel DB</button>
+        <button class="btn btn-primary" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit(true)">📄 Salva & Scarica PDF</button>
         <button class="btn btn-secondary" style="min-height: 42px; padding: 6px 14px;" onclick="closeSongEditor()">✕ Annulla</button>
       </div>
     `;
@@ -933,7 +1011,7 @@ function closeSongEditor() {
   renderSongViewer();
 }
 
-async function saveSongEdit() {
+async function saveSongEdit(downloadPdfAfter = false) {
   if (!state.selectedSong) return;
   const titleInput = document.getElementById('edit-song-title');
   const artistInput = document.getElementById('edit-song-artist');
@@ -942,13 +1020,19 @@ async function saveSongEdit() {
   const capoInput = document.getElementById('edit-song-capo');
   const amlInput = document.getElementById('edit-song-aml');
 
+  const newKeyVal = keyInput ? keyInput.value.trim() : state.selectedSong.key_current;
+  let newAmlVal = amlInput ? amlInput.value : state.selectedSong.aml_content;
+  if (newKeyVal && newAmlVal) {
+    newAmlVal = newAmlVal.replace(/^(\{(?:key|tonalita)\s*:\s*)([^\}]+)(\})/gmi, `$1${newKeyVal}$3`);
+  }
+
   const payload = {
     title: titleInput ? titleInput.value.trim() : state.selectedSong.title,
     artist: artistInput ? artistInput.value.trim() : state.selectedSong.artist,
-    key_current: keyInput ? keyInput.value.trim() : state.selectedSong.key_current,
+    key_current: newKeyVal,
     bpm: bpmInput ? (parseInt(bpmInput.value) || 120) : state.selectedSong.bpm,
     capo: capoInput ? (parseInt(capoInput.value) || 0) : state.selectedSong.capo,
-    aml_content: amlInput ? amlInput.value : state.selectedSong.aml_content,
+    aml_content: newAmlVal,
     user_email: state.currentUser.email,
     user_name: state.currentUser.name,
     comment: 'Modifica touch da tablet'
@@ -970,9 +1054,13 @@ async function saveSongEdit() {
       state.isEditingSong = false;
       renderSongCards();
       renderSongViewer();
-      showToast(`Brano "${state.selectedSong.title}" salvato con successo ✓`);
+      showToast(`Brano "${state.selectedSong.title}" salvato nel DB ✓`);
+      if (downloadPdfAfter) {
+        await downloadPdf();
+      }
     } else {
-      showToast('Errore durante il salvataggio del brano');
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Errore durante il salvataggio del brano');
     }
   } catch (err) {
     console.error('Song edit error:', err);
@@ -3117,6 +3205,54 @@ async function adminDeleteRepertoire(uuid, name) {
     }
   } catch (err) {
     console.error('Error deleting repertoire:', err);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// AI SETTINGS (Turso Persistent Gemini Key)
+// ----------------------------------------------------------------------------
+async function loadAiSettingsStatus() {
+  const statusEl = document.getElementById('set-gemini-status');
+  if (!statusEl) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/settings/ai`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.configured) {
+        statusEl.innerHTML = `<span style="color:#10b981; font-weight:700;">✓ Chiave Gemini AI configurata (${escapeHtml(data.masked_key || 'Attiva')})</span>`;
+      } else {
+        statusEl.innerHTML = `<span style="color:#f59e0b; font-weight:700;">⚠ Chiave API Gemini non ancora configurata</span>`;
+      }
+    }
+  } catch (err) {
+    console.warn('AI status load error:', err);
+  }
+}
+
+async function saveGeminiApiKey() {
+  const inputEl = document.getElementById('set-gemini-key');
+  const val = inputEl ? inputEl.value.trim() : '';
+  if (!val) {
+    showToast('Incolla una chiave API Gemini valida');
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/settings/ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gemini_api_key: val })
+    });
+    if (res.ok) {
+      if (inputEl) inputEl.value = '';
+      showToast('✓ Chiave Gemini Vision AI salvata nel Cloud DB!');
+      loadAiSettingsStatus();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Errore salvataggio chiave API');
+    }
+  } catch (err) {
+    console.error('Save Gemini key error:', err);
+    showToast('Errore di connessione');
   }
 }
 

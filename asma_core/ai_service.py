@@ -46,10 +46,11 @@ class BandAIService:
     MODE_OFF = "OFF"
     MODE_FREE = "FREE"
     MODE_PREMIUM = "PREMIUM"
+    _cached_turso_key: Optional[str] = None
 
     @classmethod
     def get_api_key(cls) -> Optional[str]:
-        """Retrieves Gemini API key from environment, Streamlit secrets or .streamlit/secrets.toml."""
+        """Retrieves Gemini API key from environment, Streamlit secrets, .streamlit/secrets.toml, or Turso settings."""
         for env_var in ["GEMINI_API_KEY", "GOOGLE_API_KEY"]:
             val = os.environ.get(env_var)
             if val and not val.startswith("AIzaSy_YOUR_OPTIONAL"):
@@ -83,7 +84,37 @@ class BandAIService:
         except Exception:
             pass
 
+        # Fallback to Turso Cloud band_settings (enables Render cloud deploy out-of-the-box)
+        if cls._cached_turso_key:
+            return cls._cached_turso_key
+        try:
+            from asma_core.turso_client import TursoClient
+            tc = TursoClient()
+            if tc.is_configured:
+                db_key = tc.get_setting("gemini_api_key")
+                if db_key and db_key.strip():
+                    cls._cached_turso_key = db_key.strip()
+                    return cls._cached_turso_key
+        except Exception:
+            pass
+
         return None
+
+    @classmethod
+    def save_api_key(cls, api_key: str) -> bool:
+        """Persists Gemini API key into Turso band_settings for cloud access."""
+        clean_key = (api_key or "").strip()
+        if not clean_key:
+            return False
+        try:
+            from asma_core.turso_client import TursoClient
+            tc = TursoClient()
+            if tc.is_configured and tc.set_setting("gemini_api_key", clean_key):
+                cls._cached_turso_key = clean_key
+                return True
+        except Exception:
+            pass
+        return False
 
     @classmethod
     def get_current_mode(cls) -> str:

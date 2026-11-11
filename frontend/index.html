@@ -471,6 +471,17 @@ girano in centro sfiorando i novanta"></textarea>
               ✓ Tutte le modifiche sono sincronizzate all'istante su Turso Cloud DB per il tuo profilo hardware.
             </div>
           </div>
+
+          <!-- CARD: GEMINI VISION AI KEY -->
+          <div class="setting-card">
+            <h3>✨ Chiave API Google Gemini (Vision AI)</h3>
+            <p class="setting-desc">Necessaria per la trascrizione da fotocamera e il rilevamento automatico sezioni. Salvata in sicurezza su Turso Cloud DB per tutta la band.</p>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input type="password" id="set-gemini-key" class="search-input" placeholder="Incolla la tua chiave API Gemini (es. AIza... o AQ...)" style="flex:1; min-width:220px;">
+              <button class="btn btn-primary" style="min-height:38px; padding:4px 16px; font-weight:800;" onclick="saveGeminiApiKey()">💾 Salva Chiave AI</button>
+            </div>
+            <div id="set-gemini-status" style="margin-top:8px; font-size:12px; color:#94a3b8;">Verifica stato configurazione AI...</div>
+          </div>
         </div>
       </div>
     </section>
@@ -575,6 +586,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=12.7"></script>
+  <script src="/app.js?v=12.8"></script>
 </body>
 </html>

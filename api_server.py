@@ -175,6 +175,9 @@ class UserPreferencesRequest(BaseModel):
     stage_color_chords: Optional[str] = "#FFD600"
     stage_color_aml_markup: Optional[str] = "#38BDF8"
 
+class AISettingsRequest(BaseModel):
+    gemini_api_key: str
+
 
 # -----------------------------------------------------------------------------
 # 1. HEALTH & SYSTEM ENDPOINTS
@@ -1411,6 +1414,27 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
     pref_mgr.set_user_preference(email, "score_display_mode", payload["score_display_mode"])
     pref_mgr.save_preferences(email, dev_name, payload)
     return {"status": "success", "saved": payload}
+
+
+@app.get("/api/settings/ai")
+def get_ai_settings():
+    """Returns whether Gemini Vision AI API key is configured (masked)."""
+    from asma_core.ai_service import BandAIService
+    k = BandAIService.get_api_key()
+    masked = f"{k[:6]}...{k[-4:]}" if k and len(k) > 10 else ("Configurata" if k else "")
+    return {"configured": bool(k), "masked_key": masked}
+
+
+@app.post("/api/settings/ai")
+def save_ai_settings(req: AISettingsRequest):
+    """Saves Gemini Vision AI API key persistently into Turso band_settings."""
+    from asma_core.ai_service import BandAIService
+    if not req.gemini_api_key or not req.gemini_api_key.strip():
+        raise HTTPException(status_code=400, detail="Chiave API non valida")
+    ok = BandAIService.save_api_key(req.gemini_api_key.strip())
+    if not ok:
+        raise HTTPException(status_code=500, detail="Impossibile salvare la chiave su Turso DB")
+    return {"status": "success", "configured": True}
 
 
 # -----------------------------------------------------------------------------
