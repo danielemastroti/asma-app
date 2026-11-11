@@ -40,10 +40,10 @@ class TestRepertoireIsolation(unittest.TestCase):
         StorageManager._instance = None
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
-    def test_promote_song_clones_with_independent_uuid(self):
-        """Promoting a personal song creates a separate Official song clone."""
+    def test_promote_new_song_moves_from_personal_to_official(self):
+        """Promoting a brand-new personal song moves it out of personal rep into Official."""
         personal_song = Song(
-            title="SONG PERSONALE",
+            title="SONG NUOVA PERSONALE",
             artist="Band",
             key_current="C",
             aml_content="[C]Linea originale",
@@ -59,26 +59,76 @@ class TestRepertoireIsolation(unittest.TestCase):
                 user_name="Cico",
             )
         )
-        official_uuid = res["song_uuid"]
-        self.assertNotEqual(official_uuid, personal_song.uuid)
+        self.assertEqual(res["action"], "moved")
+        self.assertEqual(res["song_uuid"], personal_song.uuid)
+        self.assertIn(personal_song.uuid, self.storage.get_repertoire(self.official_rep.uuid).song_uuids)
+        self.assertNotIn(personal_song.uuid, self.storage.get_repertoire(self.personal_rep.uuid).song_uuids)
 
-        # Edit the personal copy and verify the Official copy stays unchanged
+    def test_promote_existing_song_overwrites_official_and_deletes_personal_and_allows_refork(self):
+        """Promoting a personal copy of an Official song overwrites Official, deletes personal, and allows re-forking."""
+        official_song = Song(
+            uuid="official_song_123",
+            title="CANZONE BAND",
+            artist="Band",
+            bpm=110,
+            key_current="C",
+            aml_content="[C]Versione ufficiale vecchia",
+        )
+        self.storage.save_song(official_song, "system", "System", "Seed")
+        self.official_rep.song_uuids.append(official_song.uuid)
+        self.storage._save_repertoires_file([self.official_rep, self.personal_rep])
+        self.storage.reload_from_disk()
+
+        # 1. User creates personal copy & edits it without touching Official
+        fork_res = api_server.fork_song_personal(
+            official_song.uuid,
+            api_server.ForkSongRequest(user_email="cico@band.org", user_name="Cico"),
+        )
+        personal_uuid = fork_res["cloned_song"]["uuid"]
+        self.assertNotEqual(personal_uuid, official_song.uuid)
+
         api_server.update_song(
-            personal_song.uuid,
+            personal_uuid,
             api_server.SongUpdateRequest(
-                aml_content="[G]Versione personale modificata",
-                key_current="G",
+                bpm=128,
+                key_current="D",
+                aml_content="[D]Versione personale perfezionata",
                 repertoire_uuid=self.personal_rep.uuid,
                 user_email="cico@band.org",
                 user_name="Cico",
             ),
         )
-        official_after = self.storage.get_song(official_uuid)
-        personal_after = self.storage.get_song(personal_song.uuid)
-        self.assertEqual(official_after.key_current, "C")
-        self.assertIn("Linea originale", official_after.aml_content)
-        self.assertEqual(personal_after.key_current, "G")
-        self.assertIn("Versione personale modificata", personal_after.aml_content)
+        self.assertEqual(self.storage.get_song(official_song.uuid).key_current, "C")
+
+        # 2. Promote personal copy -> overwrites Official (preserving Official UUID) and deletes personal copy
+        promo_res = api_server.promote_song_to_official(
+            api_server.PromoteSongRequest(
+                song_uuid=personal_uuid,
+                user_email="cico@band.org",
+                user_name="Cico",
+            )
+        )
+        self.assertEqual(promo_res["action"], "overwritten")
+        self.assertEqual(promo_res["song_uuid"], official_song.uuid)
+
+        official_after = self.storage.get_song(official_song.uuid)
+        self.assertEqual(official_after.bpm, 128)
+        self.assertEqual(official_after.key_current, "D")
+        self.assertIn("Versione personale perfezionata", official_after.aml_content)
+        self.assertEqual(official_after.shared_notes, "")
+
+        self.assertIsNone(self.storage.get_song(personal_uuid))
+        self.assertNotIn(personal_uuid, self.storage.get_repertoire(self.personal_rep.uuid).song_uuids)
+        self.assertIn(official_song.uuid, self.storage.get_repertoire(self.official_rep.uuid).song_uuids)
+
+        # 3. User can re-fork from Official again for subsequent edits
+        refork_res = api_server.fork_song_personal(
+            official_song.uuid,
+            api_server.ForkSongRequest(user_email="cico@band.org", user_name="Cico"),
+        )
+        new_personal_uuid = refork_res["cloned_song"]["uuid"]
+        self.assertNotEqual(new_personal_uuid, official_song.uuid)
+        self.assertIn(new_personal_uuid, self.storage.get_repertoire(self.personal_rep.uuid).song_uuids)
 
     def test_cow_detaches_shared_slug_song_on_personal_edit_and_survives_reload(self):
         """Editing/transposing a shared song (even with slug UUID) in personal rep isolates Official copy."""

@@ -912,7 +912,7 @@ function renderSongViewer() {
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
   const promoteBtn = (!isInOfficial && officialRep) ? 
-    `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Aggiungi questo brano al Repertorio Ufficiale della Band">⭐ Promuovi a Ufficiale</button>` : '';
+    `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Sposta nel Repertorio Ufficiale Band (se già presente su Ufficiale lo sovrascrive ed elimina questa copia personale)">⭐ Promuovi a Ufficiale</button>` : '';
 
   const headerHtml = `
     <div class="viewer-header">
@@ -2974,6 +2974,20 @@ async function createSetlistAndAddCurrentSong() {
 // PROMOTE SONG TO OFFICIAL BAND REPERTOIRE
 // ----------------------------------------------------------------------------
 async function promoteSongToOfficial(songUuid) {
+  const songObj = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
+  const officialRep = (state.repertoires || []).find(r => r.is_official);
+  const cleanTitle = songObj && songObj.title ? songObj.title.trim().toUpperCase() : '';
+  const existsInOfficialByTitle = !!(officialRep && cleanTitle && (officialRep.song_uuids || []).some(uid => {
+    if (uid === songUuid) return false;
+    const os = (state.songs || []).find(x => x.uuid === uid);
+    return os && os.title && os.title.trim().toUpperCase() === cleanTitle;
+  }));
+
+  const confirmMsg = existsInOfficialByTitle
+    ? `Il brano "${songObj.title}" è già presente nel Repertorio Ufficiale.\nPromuovendolo, la versione ufficiale verrà SOVRASCRITTA e questa copia personale verrà eliminata.\n(Potrai sempre ricreare una copia personale dall'ufficiale in seguito.)\n\nProcedere?`
+    : `Vuoi spostare "${songObj ? songObj.title : 'questo brano'}" dal tuo repertorio personale al Repertorio Ufficiale Band?`;
+  if (!confirm(confirmMsg)) return;
+
   try {
     const res = await fetch(`${API_BASE}/api/repertoires/promote-song`, {
       method: 'POST',
@@ -2986,11 +3000,22 @@ async function promoteSongToOfficial(songUuid) {
     });
     if (res.ok) {
       const data = await res.json();
-      showToast(`⭐ "${data.song_title}" aggiunto al Repertorio Ufficiale Band!`);
+      if (data.action === 'overwritten') {
+        showToast(`⭐ "${data.song_title}" sovrascritto nel Repertorio Ufficiale! Copia personale rimossa.`);
+      } else {
+        showToast(`⭐ "${data.song_title}" spostato nel Repertorio Ufficiale Band!`);
+      }
       await loadRepertoires();
       await loadSongs();
-      if (state.selectedSong) {
-        selectSong(state.selectedSong.uuid);
+      const targetUuid = data.song_uuid || songUuid;
+      const inCurrentFilter = (typeof getFilteredSongs === 'function' ? getFilteredSongs() : state.songs || [])
+        .some(x => x.uuid === targetUuid);
+      if (inCurrentFilter) {
+        selectSong(targetUuid);
+      } else {
+        state.selectedSong = null;
+        renderSongCards();
+        renderSongViewer();
       }
     } else {
       const err = await res.json().catch(() => ({}));

@@ -428,7 +428,11 @@ def _ensure_personal_copy_if_shared(
 
 @app.post("/api/repertoires/promote-song")
 def promote_song_to_official(req: PromoteSongRequest):
-    """Promotes a song from a personal repertoire into the Official Band Repertoire as an independent clone."""
+    """Promotes a personal song into the Official Band Repertoire:
+    - If a song with the same title already exists in Official, overwrites the Official copy
+      and automatically deletes the personal copy.
+    - If it is a new song, moves it from personal repertoire(s) into Official.
+    """
     all_reps = storage.list_repertoires()
     official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
     if not official_rep:
@@ -442,30 +446,83 @@ def promote_song_to_official(req: PromoteSongRequest):
     if req.song_uuid in official_rep.song_uuids:
         return {
             "status": "success",
+            "action": "already_official",
             "song_uuid": req.song_uuid,
             "song_title": song.title,
             "repertoire_uuid": official_rep.uuid,
             "repertoire_name": official_rep.name,
         }
 
-    can_add, reason = storage.can_add_song_to_repertoire(official_rep.uuid, song.title)
-    if not can_add:
-        raise HTTPException(status_code=409, detail=reason)
+    # Find if Official already contains a song with matching title
+    clean_title = song.title.strip().upper()
+    existing_official = None
+    for off_uid in official_rep.song_uuids:
+        candidate = storage.get_song(off_uid)
+        if candidate and candidate.title.strip().upper() == clean_title:
+            existing_official = candidate
+            break
 
-    official_clone = _clone_song_object(song, shared_notes="")
-    saved_official = storage.save_song(
-        official_clone,
-        req.user_email,
-        req.user_name,
-        f"Brano promosso nel Repertorio Ufficiale da {req.user_name}",
-    )
-    official_rep.song_uuids.append(saved_official.uuid)
-    storage.save_repertoire(official_rep, req.user_email, req.user_name)
+    # Remove personal copy link from any non-official repertoire containing req.song_uuid
+    for r in all_reps:
+        if r.uuid != official_rep.uuid and req.song_uuid in r.song_uuids:
+            storage.remove_song_from_repertoire(req.song_uuid, r.uuid, req.user_email, req.user_name)
+
+    if existing_official:
+        # Overwrite Official song content/metadata keeping its Official UUID intact
+        existing_official.title = song.title
+        existing_official.artist = song.artist
+        existing_official.author = song.author
+        existing_official.genre = song.genre
+        existing_official.year = song.year
+        existing_official.duration_seconds = song.duration_seconds
+        existing_official.bpm = song.bpm
+        existing_official.time_signature = song.time_signature
+        existing_official.capo = song.capo
+        existing_official.key_original = song.key_original
+        existing_official.key_current = song.key_current
+        existing_official.notation_system = song.notation_system
+        existing_official.tags = list(song.tags) if song.tags else []
+        existing_official.aml_content = song.aml_content
+        existing_official.shared_notes = ""
+
+        saved_official = storage.save_song(
+            existing_official,
+            req.user_email,
+            req.user_name,
+            f"Versione ufficiale sovrascritta da copia personale di {req.user_name}",
+        )
+        storage.delete_song(req.song_uuid, req.user_email, req.user_name)
+
+        return {
+            "status": "success",
+            "action": "overwritten",
+            "song_uuid": saved_official.uuid,
+            "song_title": saved_official.title,
+            "removed_personal_uuid": req.song_uuid,
+            "repertoire_uuid": official_rep.uuid,
+            "repertoire_name": official_rep.name,
+        }
+
+    # New song: simply move from personal to Official preserving UUID and history
+    if song.shared_notes and song.shared_notes.startswith("Versione personale di"):
+        song.shared_notes = ""
+        storage.save_song(
+            song,
+            req.user_email,
+            req.user_name,
+            f"Brano spostato nel Repertorio Ufficiale da {req.user_name}",
+        )
+
+    official_rep = storage.get_repertoire(official_rep.uuid) or official_rep
+    if req.song_uuid not in official_rep.song_uuids:
+        official_rep.song_uuids.append(req.song_uuid)
+        storage.save_repertoire(official_rep, req.user_email, req.user_name)
 
     return {
         "status": "success",
-        "song_uuid": saved_official.uuid,
-        "song_title": saved_official.title,
+        "action": "moved",
+        "song_uuid": song.uuid,
+        "song_title": song.title,
         "repertoire_uuid": official_rep.uuid,
         "repertoire_name": official_rep.name,
     }
