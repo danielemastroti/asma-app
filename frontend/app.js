@@ -774,15 +774,15 @@ function renderSongViewer() {
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SOL]')">[SOL]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[LA]')">[LA]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SI]')">[SI]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[m]')">[m]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[7]')">[7]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[maj7]')">[maj7]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[4]')">[4]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[sus]')">[sus]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[dim]')">[dim]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[b]')">[b]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[#]')">[#]</button>
-            <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '/')">[/]</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'm')">m</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', '7')">7</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'maj7')">maj7</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', '4')">4</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'sus')">sus</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'dim')">dim</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'b')">b</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', '#')">#</button>
+            <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', '/')">/</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', ' | ')">|</button>
           </div>
           <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
@@ -991,6 +991,48 @@ function insertChordAtCursor(textareaId, textToInsert) {
   textarea.value = val.substring(0, start) + textToInsert + val.substring(end);
   textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
   textarea.focus();
+}
+
+function insertModifierAtCursor(textareaId, mod) {
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const val = textarea.value;
+
+  // If cursor is right after a closing bracket like "[DO]|", insert inside the bracket -> "[DOm]|"
+  if (start === end && start > 0 && val[start - 1] === ']') {
+    textarea.value = val.substring(0, start - 1) + mod + ']' + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start - 1 + mod.length + 1;
+    textarea.focus();
+    return;
+  }
+
+  // Normal insertion (e.g. if cursor is already inside "[DO|]" or elsewhere)
+  textarea.value = val.substring(0, start) + mod + val.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + mod.length;
+  textarea.focus();
+}
+
+function showNewSongForm() {
+  const form = document.getElementById('new-song-form');
+  if (form) {
+    const repSelect = document.getElementById('new-song-repertoire');
+    if (repSelect && state.repertoires && state.repertoires.length > 0) {
+      repSelect.innerHTML = state.repertoires.map(r => {
+        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (r.owner_email === state.currentUser?.email || r.is_official));
+        return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
+      }).join('');
+    }
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function hideNewSongForm() {
+  const form = document.getElementById('new-song-form');
+  if (form) form.style.display = 'none';
 }
 
 function insertDirectiveAtCursor(textareaId, type) {

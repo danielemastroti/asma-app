@@ -205,15 +205,15 @@ girano in centro sfiorando i novanta"></textarea>
               <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SOL]')">[SOL]</button>
               <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[LA]')">[LA]</button>
               <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[SI]')">[SI]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[m]')">[m]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[7]')">[7]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[maj7]')">[maj7]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[4]')">[4]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[sus]')">[sus]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[dim]')">[dim]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[b]')">[b]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '[#]')">[#]</button>
-              <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', '/')">[/]</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', 'm')">m</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', '7')">7</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', 'maj7')">maj7</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', '4')">4</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', 'sus')">sus</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', 'dim')">dim</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', 'b')">b</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', '#')">#</button>
+              <button type="button" class="quick-chip" onclick="insertModifierAtCursor('new-song-aml', '/')">/</button>
               <button type="button" class="quick-chip" onclick="insertChordAtCursor('new-song-aml', ' | ')">|</button>
             </div>
             <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
@@ -575,6 +575,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=12.4"></script>
+  <script src="/app.js?v=12.5"></script>
 </body>
 </html>
