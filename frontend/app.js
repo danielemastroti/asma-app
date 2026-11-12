@@ -2640,35 +2640,112 @@ function printA4() {
 // A4 PDF EXPORT WITH CUSTOM FONT SIZES & WHATSAPP WEB SHARE
 // ----------------------------------------------------------------------------
 const shareA4State = {
+  targetType: 'song', // 'song' or 'setlist'
+  targetUuid: null,
+  targetTitle: '',
   fontSizeLyrics: 12,
   fontSizeChords: 13,
-  includeChords: true,
+  scoreMode: 'chords', // 'chords' or 'lyrics'
   twoCols: false,
 };
 
+function setShareA4ScoreMode(mode) {
+  shareA4State.scoreMode = mode;
+  const btnChords = document.getElementById('share-a4-mode-chords');
+  const btnLyrics = document.getElementById('share-a4-mode-lyrics');
+  const chordsBox = document.getElementById('share-a4-chords-box');
+
+  if (mode === 'chords') {
+    if (btnChords) {
+      btnChords.style.borderColor = '#38bdf8';
+      btnChords.style.color = '#38bdf8';
+      btnChords.style.background = 'rgba(56, 189, 248, 0.14)';
+    }
+    if (btnLyrics) {
+      btnLyrics.style.borderColor = '#475569';
+      btnLyrics.style.color = '#94a3b8';
+      btnLyrics.style.background = 'transparent';
+    }
+    if (chordsBox) {
+      chordsBox.style.opacity = '1';
+      chordsBox.style.pointerEvents = 'auto';
+    }
+  } else {
+    if (btnLyrics) {
+      btnLyrics.style.borderColor = '#38bdf8';
+      btnLyrics.style.color = '#38bdf8';
+      btnLyrics.style.background = 'rgba(56, 189, 248, 0.14)';
+    }
+    if (btnChords) {
+      btnChords.style.borderColor = '#475569';
+      btnChords.style.color = '#94a3b8';
+      btnChords.style.background = 'transparent';
+    }
+    if (chordsBox) {
+      chordsBox.style.opacity = '0.4';
+      chordsBox.style.pointerEvents = 'none';
+    }
+  }
+}
+
 function openShareA4Modal() {
   if (!state.selectedSong) return;
+  shareA4State.targetType = 'song';
+  shareA4State.targetUuid = state.selectedSong.uuid;
+  shareA4State.targetTitle = state.selectedSong.title;
+
   const modal = document.getElementById('share-a4-modal');
   const titleEl = document.getElementById('share-a4-song-title');
   const lyricsVal = document.getElementById('share-a4-lyrics-val');
   const chordsVal = document.getElementById('share-a4-chords-val');
-  const includeChords = document.getElementById('share-a4-include-chords');
   const twoCols = document.getElementById('share-a4-two-cols');
   const statusEl = document.getElementById('share-a4-status');
 
   const p = state.userPrefs || {};
   shareA4State.fontSizeLyrics = p.layout_font_size || 12;
   shareA4State.fontSizeChords = p.layout_font_size_chords || 13;
-  shareA4State.includeChords = state.scoreMode === 'chords';
+  shareA4State.scoreMode = state.scoreMode === 'chords' ? 'chords' : 'lyrics';
   shareA4State.twoCols = (p.layout_columns || 1) === 2;
 
   if (titleEl) titleEl.textContent = `🎵 ${state.selectedSong.title} — ${state.selectedSong.artist || 'Band'}`;
   if (lyricsVal) lyricsVal.textContent = `${shareA4State.fontSizeLyrics} pt`;
   if (chordsVal) chordsVal.textContent = `${shareA4State.fontSizeChords} pt`;
-  if (includeChords) includeChords.checked = shareA4State.includeChords;
   if (twoCols) twoCols.checked = shareA4State.twoCols;
-  if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 standard pronto per stampa e condivisione';
+  setShareA4ScoreMode(shareA4State.scoreMode);
 
+  if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 standard pronto per stampa e condivisione';
+  if (modal) modal.style.display = 'flex';
+}
+
+function openShareSetlistA4Modal(uuid) {
+  const setlist = (state.setlists || []).find(s => s.uuid === uuid) || state.selectedSetlist;
+  if (!setlist) return;
+
+  shareA4State.targetType = 'setlist';
+  shareA4State.targetUuid = setlist.uuid;
+  shareA4State.targetTitle = setlist.title || 'Scaletta';
+
+  const modal = document.getElementById('share-a4-modal');
+  const titleEl = document.getElementById('share-a4-song-title');
+  const lyricsVal = document.getElementById('share-a4-lyrics-val');
+  const chordsVal = document.getElementById('share-a4-chords-val');
+  const twoCols = document.getElementById('share-a4-two-cols');
+  const statusEl = document.getElementById('share-a4-status');
+
+  const p = state.userPrefs || {};
+  shareA4State.fontSizeLyrics = p.layout_font_size || 12;
+  shareA4State.fontSizeChords = p.layout_font_size_chords || 13;
+  shareA4State.scoreMode = state.scoreMode === 'chords' ? 'chords' : 'lyrics';
+  shareA4State.twoCols = (p.layout_columns || 1) === 2;
+
+  const countStr = setlist.item_count || (setlist.items || []).length;
+  if (titleEl) titleEl.textContent = `📑 SCALETTA: ${setlist.title} (${countStr} brani)`;
+  if (lyricsVal) lyricsVal.textContent = `${shareA4State.fontSizeLyrics} pt`;
+  if (chordsVal) chordsVal.textContent = `${shareA4State.fontSizeChords} pt`;
+  if (twoCols) twoCols.checked = shareA4State.twoCols;
+  setShareA4ScoreMode(shareA4State.scoreMode);
+
+  if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 per intera scaletta con copertina e indice';
   if (modal) modal.style.display = 'flex';
 }
 
@@ -2690,20 +2767,24 @@ function adjustA4FontSize(type, delta) {
 }
 
 async function executeShareA4(action = 'whatsapp') {
-  if (!state.selectedSong) return;
-  const song = state.selectedSong;
-  const cleanTitle = (song.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
-  const filename = `${cleanTitle}_A4.pdf`;
+  const isSetlist = shareA4State.targetType === 'setlist';
+  const targetUuid = shareA4State.targetUuid;
+  if (!targetUuid) return;
+
+  const targetTitle = shareA4State.targetTitle || (isSetlist ? 'Scaletta' : 'Brano');
+  const cleanTitle = targetTitle.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const hasChords = shareA4State.scoreMode === 'chords';
+  const modeSuffix = hasChords ? 'Accordi' : 'SoloTesto';
+  const filename = isSetlist ? `SCALETTA_${cleanTitle}_A4_${modeSuffix}.pdf` : `${cleanTitle}_A4_${modeSuffix}.pdf`;
+
   const statusEl = document.getElementById('share-a4-status');
-  const chordsInput = document.getElementById('share-a4-include-chords');
   const twoColsInput = document.getElementById('share-a4-two-cols');
-  const includeChords = chordsInput ? chordsInput.checked : true;
   const twoCols = twoColsInput ? twoColsInput.checked : false;
 
   const qs = new URLSearchParams({
     device: 'A4',
     a4: 'true',
-    chords: includeChords ? 'true' : 'false',
+    chords: hasChords ? 'true' : 'false',
     columns: twoCols ? '2' : '1',
     font_size: String(shareA4State.fontSizeLyrics),
     font_size_chords: String(shareA4State.fontSizeChords),
@@ -2712,7 +2793,8 @@ async function executeShareA4(action = 'whatsapp') {
     download: 'true'
   }).toString();
 
-  const url = `${API_BASE}/api/songs/${song.uuid}/pdf?${qs}`;
+  const endpoint = isSetlist ? `setlists/${targetUuid}/pdf` : `songs/${targetUuid}/pdf`;
+  const url = `${API_BASE}/api/${endpoint}?${qs}`;
 
   if (action === 'print') {
     closeShareA4Modal();
@@ -2727,6 +2809,10 @@ async function executeShareA4(action = 'whatsapp') {
   }
 
   // Azione WHATSAPP con Web Share API nativa
+  const descType = isSetlist ? 'la scaletta' : 'il brano';
+  const descMode = hasChords ? 'Con Accordi' : 'Solo Testo Cantante';
+  const shareMsg = `Ecco ${descType} "${targetTitle}" (${descMode}) in formato A4 per la band!`;
+
   if (statusEl) statusEl.textContent = '⏳ Generazione PDF A4 in corso...';
   try {
     const res = await fetch(url);
@@ -2739,22 +2825,22 @@ async function executeShareA4(action = 'whatsapp') {
       if (statusEl) statusEl.textContent = '📲 Apertura WhatsApp...';
       await navigator.share({
         files: [file],
-        title: `${song.title} (A4)`,
-        text: `Ecco il PDF A4 di "${song.title}" per la band!`
+        title: `${targetTitle} (A4 ${descMode})`,
+        text: shareMsg
       });
       if (statusEl) statusEl.textContent = '✓ Condiviso!';
       closeShareA4Modal();
     } else if (navigator.share) {
       // Fallback per browser con navigator.share solo URL/testo
       await navigator.share({
-        title: `${song.title} (A4)`,
-        text: `Spartito A4 per la band: ${song.title}\nScarica PDF: ${url}`,
+        title: `${targetTitle} (A4 ${descMode})`,
+        text: `${shareMsg}\nScarica PDF: ${url}`,
         url: url
       });
       closeShareA4Modal();
     } else {
       // Fallback desktop: apre WhatsApp Web e avvia download del PDF
-      const msg = encodeURIComponent(`Spartito A4 per la band: ${song.title}\nScarica PDF: ${url}`);
+      const msg = encodeURIComponent(`${shareMsg}\n${url}`);
       window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
       triggerPdfDownload(url, filename);
       closeShareA4Modal();
@@ -3222,6 +3308,7 @@ function renderSetlists() {
       </div>
       <div class="song-card-meta" style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-primary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); loadAndPlaySetlist('${s.uuid}')">🎤 Palco Live</button>
+        <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800; min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openShareSetlistA4Modal('${s.uuid}')" title="Condividi o stampa la scaletta in formato A4 su WhatsApp">📤 A4 / WhatsApp</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" style="min-height:36px; padding:4px 12px;" onclick="event.stopPropagation(); openSetlistDetail('${s.uuid}')">${editing ? '✏️ Modifica' : '👁️ Vedi Scaletta'}</button>
@@ -3330,19 +3417,36 @@ function renderSetlistEditor() {
     <div class="song-viewer" style="margin-bottom:14px;">
       <div class="viewer-header">
         <div>
-          <h2 style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
+          <h2 id="setlist-header-title" style="font-size: 22px; font-weight: 900; color: #fff;">📑 ${escapeHtml(s.title)}</h2>
           <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
-            <b>${escapeHtml(formatDateDDMMYYYY(s.date) || '')}</b> &bull; ${escapeHtml(s.description || '')} &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)${editing ? '' : ' &bull; <span style="color:#34d399; font-weight:700;">Sola lettura</span>'}
+            <b id="setlist-header-date" style="color: #ffd600;">${escapeHtml(formatDateDDMMYYYY(s.date) || 'Data da definire')}</b> &bull; <span id="setlist-header-desc">${escapeHtml(s.description || '')}</span> &bull; Durata: <b>${minutes} min</b> (${s.total_songs || s.items.length} brani)${editing ? '' : ' &bull; <span style="color:#34d399; font-weight:700;">Sola lettura</span>'}
           </div>
         </div>
         <div class="viewer-tools">
           <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
+          <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareSetlistA4Modal('${s.uuid}')" title="Condividi o stampa la scaletta in formato A4 su WhatsApp">📤 A4 / WhatsApp</button>
           <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
           <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
           ${editing ? `<button class="btn btn-danger" onclick="deleteSetlist('${s.uuid}')">🗑️ Elimina Scaletta</button>` : ''}
           <button class="btn btn-secondary" onclick="closeSetlistDetail()">✕ Chiudi</button>
         </div>
       </div>
+      ${editing ? `
+      <!-- SETLIST METADATA EDITING (DATE, TITLE, DESCRIPTION) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0; background: rgba(15, 23, 42, 0.6); padding: 12px 14px; border-radius: 8px; border: 1px solid #334155;">
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Titolo Scaletta</label>
+          <input type="text" id="edit-setlist-title" class="search-input" style="width: 100%;" value="${escapeHtml(s.title || '')}" onchange="updateSetlistMeta('title', this.value)">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">📅 Data di Esecuzione</label>
+          <input type="date" id="edit-setlist-date" class="search-input" style="width: 100%; color: #ffd600; font-weight: 800;" value="${s.date ? s.date.slice(0, 10) : ''}" onchange="updateSetlistMeta('date', this.value)">
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Descrizione / Location</label>
+          <input type="text" id="edit-setlist-desc" class="search-input" style="width: 100%;" value="${escapeHtml(s.description || '')}" onchange="updateSetlistMeta('description', this.value)">
+        </div>
+      </div>` : ''}
       ${addSongSectionHtml}
       <!-- ITEMS LIST -->
       <div style="margin-top:14px;">
@@ -3350,6 +3454,26 @@ function renderSetlistEditor() {
       </div>
     </div>
   `;
+}
+
+function updateSetlistMeta(field, val) {
+  if (!state.selectedSetlist) return;
+  state.selectedSetlist[field] = val;
+
+  const titleDisplay = document.getElementById('setlist-header-title');
+  if (titleDisplay && field === 'title') {
+    titleDisplay.textContent = `📑 ${val}`;
+  }
+  const dateDisplay = document.getElementById('setlist-header-date');
+  if (dateDisplay && field === 'date') {
+    dateDisplay.textContent = formatDateDDMMYYYY(val) || 'Data da definire';
+  }
+  const descDisplay = document.getElementById('setlist-header-desc');
+  if (descDisplay && field === 'description') {
+    descDisplay.textContent = val || '';
+  }
+
+  saveCurrentSetlist();
 }
 
 function moveSetlistItem(index, delta) {
