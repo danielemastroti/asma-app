@@ -2647,7 +2647,105 @@ const shareA4State = {
   fontSizeChords: 13,
   scoreMode: 'chords', // 'chords' or 'lyrics'
   twoCols: false,
+  preparedBlob: null,
+  preparedFile: null,
+  preparedKey: null,
 };
+
+let prefetchA4Timer = null;
+
+function getA4CurrentUrlKey() {
+  const isSetlist = shareA4State.targetType === 'setlist';
+  const targetUuid = shareA4State.targetUuid;
+  const hasChords = shareA4State.scoreMode === 'chords';
+  const twoCols = !!(document.getElementById('share-a4-two-cols')?.checked);
+  return `${isSetlist ? 'setlist' : 'song'}_${targetUuid}_${shareA4State.fontSizeLyrics}_${shareA4State.fontSizeChords}_${hasChords}_${twoCols}`;
+}
+
+function resetShareA4Button() {
+  const btnShare = document.getElementById('share-a4-whatsapp-btn');
+  if (btnShare) {
+    btnShare.disabled = false;
+    btnShare.style.background = '#25D366';
+    btnShare.style.borderColor = '#25D366';
+    btnShare.style.color = '#000';
+    btnShare.style.boxShadow = 'none';
+    btnShare.innerHTML = '<span style="font-size: 18px;">💬</span> Condividi su WhatsApp (Band)';
+  }
+}
+
+function onShareA4OptionsChanged() {
+  shareA4State.preparedBlob = null;
+  shareA4State.preparedFile = null;
+  shareA4State.preparedKey = null;
+  resetShareA4Button();
+  scheduleA4Prefetch(400);
+}
+
+function scheduleA4Prefetch(delay = 200) {
+  clearTimeout(prefetchA4Timer);
+  prefetchA4Timer = setTimeout(() => {
+    prefetchA4Pdf();
+  }, delay);
+}
+
+async function prefetchA4Pdf() {
+  const isSetlist = shareA4State.targetType === 'setlist';
+  const targetUuid = shareA4State.targetUuid;
+  if (!targetUuid) return;
+
+  const currentKey = getA4CurrentUrlKey();
+  if (shareA4State.preparedFile && shareA4State.preparedKey === currentKey) {
+    return;
+  }
+
+  const targetTitle = shareA4State.targetTitle || (isSetlist ? 'Scaletta' : 'Brano');
+  const cleanTitle = targetTitle.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const hasChords = shareA4State.scoreMode === 'chords';
+  const modeSuffix = hasChords ? 'Accordi' : 'SoloTesto';
+  const filename = isSetlist ? `SCALETTA_${cleanTitle}_A4_${modeSuffix}.pdf` : `${cleanTitle}_A4_${modeSuffix}.pdf`;
+
+  const twoColsInput = document.getElementById('share-a4-two-cols');
+  const twoCols = twoColsInput ? twoColsInput.checked : false;
+
+  const qs = new URLSearchParams({
+    device: 'A4',
+    a4: 'true',
+    chords: hasChords ? 'true' : 'false',
+    columns: twoCols ? '2' : '1',
+    font_size: String(shareA4State.fontSizeLyrics),
+    font_size_chords: String(shareA4State.fontSizeChords),
+    user_name: state.currentUser?.name || '',
+    email: state.currentUser?.email || '',
+    download: 'true'
+  }).toString();
+
+  const endpoint = isSetlist ? `setlists/${targetUuid}/pdf` : `songs/${targetUuid}/pdf`;
+  const url = `${API_BASE}/api/${endpoint}?${qs}`;
+
+  const statusEl = document.getElementById('share-a4-status');
+  if (statusEl && !statusEl.textContent.includes('pronto')) {
+    statusEl.innerHTML = '<span style="color:#94a3b8;">⏳ Preparazione PDF per condivisione...</span>';
+  }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: 'application/pdf' });
+
+    if (getA4CurrentUrlKey() === currentKey) {
+      shareA4State.preparedBlob = blob;
+      shareA4State.preparedFile = file;
+      shareA4State.preparedKey = currentKey;
+      if (statusEl && !statusEl.textContent.includes('⚠️')) {
+        statusEl.innerHTML = '<span style="color:#22c55e;">✅ PDF pronto per condivisione immediata!</span>';
+      }
+    }
+  } catch (e) {
+    // Non bloccare: verrà riprovato al click
+  }
+}
 
 function setShareA4ScoreMode(mode) {
   shareA4State.scoreMode = mode;
@@ -2686,6 +2784,7 @@ function setShareA4ScoreMode(mode) {
       chordsBox.style.pointerEvents = 'none';
     }
   }
+  onShareA4OptionsChanged();
 }
 
 function openShareA4Modal() {
@@ -2713,8 +2812,14 @@ function openShareA4Modal() {
   if (twoCols) twoCols.checked = shareA4State.twoCols;
   setShareA4ScoreMode(shareA4State.scoreMode);
 
+  shareA4State.preparedBlob = null;
+  shareA4State.preparedFile = null;
+  shareA4State.preparedKey = null;
+  resetShareA4Button();
+
   if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 standard pronto per stampa e condivisione';
   if (modal) modal.style.display = 'flex';
+  scheduleA4Prefetch(100);
 }
 
 function openShareSetlistA4Modal(uuid) {
@@ -2745,11 +2850,18 @@ function openShareSetlistA4Modal(uuid) {
   if (twoCols) twoCols.checked = shareA4State.twoCols;
   setShareA4ScoreMode(shareA4State.scoreMode);
 
+  shareA4State.preparedBlob = null;
+  shareA4State.preparedFile = null;
+  shareA4State.preparedKey = null;
+  resetShareA4Button();
+
   if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 per intera scaletta con copertina e indice';
   if (modal) modal.style.display = 'flex';
+  scheduleA4Prefetch(100);
 }
 
 function closeShareA4Modal() {
+  clearTimeout(prefetchA4Timer);
   const modal = document.getElementById('share-a4-modal');
   if (modal) modal.style.display = 'none';
 }
@@ -2764,6 +2876,7 @@ function adjustA4FontSize(type, delta) {
     const el = document.getElementById('share-a4-chords-val');
     if (el) el.textContent = `${shareA4State.fontSizeChords} pt`;
   }
+  onShareA4OptionsChanged();
 }
 
 async function executeShareA4(action = 'whatsapp') {
@@ -2778,6 +2891,7 @@ async function executeShareA4(action = 'whatsapp') {
   const filename = isSetlist ? `SCALETTA_${cleanTitle}_A4_${modeSuffix}.pdf` : `${cleanTitle}_A4_${modeSuffix}.pdf`;
 
   const statusEl = document.getElementById('share-a4-status');
+  const btnShare = document.getElementById('share-a4-whatsapp-btn');
   const twoColsInput = document.getElementById('share-a4-two-cols');
   const twoCols = twoColsInput ? twoColsInput.checked : false;
 
@@ -2804,7 +2918,19 @@ async function executeShareA4(action = 'whatsapp') {
 
   if (action === 'download') {
     closeShareA4Modal();
-    triggerPdfDownload(url, filename, () => printDirectA4(`${url}&autoprint=true`));
+    const currentKey = getA4CurrentUrlKey();
+    if (shareA4State.preparedBlob && shareA4State.preparedKey === currentKey) {
+      const blobUrl = URL.createObjectURL(shareA4State.preparedBlob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } else {
+      triggerPdfDownload(url, filename, () => printDirectA4(`${url}&autoprint=true`));
+    }
     return;
   }
 
@@ -2812,45 +2938,104 @@ async function executeShareA4(action = 'whatsapp') {
   const descType = isSetlist ? 'la scaletta' : 'il brano';
   const descMode = hasChords ? 'Con Accordi' : 'Solo Testo Cantante';
   const shareMsg = `Ecco ${descType} "${targetTitle}" (${descMode}) in formato A4 per la band!`;
+  const shareTitle = `${targetTitle} (A4 ${descMode})`;
 
-  if (statusEl) statusEl.textContent = '⏳ Generazione PDF A4 in corso...';
+  const currentKey = getA4CurrentUrlKey();
+
+  // Caso 1: il file è già stato preparato ed è in memoria (nessuna attesa di rete -> transient user activation garantita)
+  if (shareA4State.preparedFile && shareA4State.preparedKey === currentKey) {
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [shareA4State.preparedFile] })) {
+        await navigator.share({
+          files: [shareA4State.preparedFile],
+          title: shareTitle,
+          text: shareMsg
+        });
+        if (statusEl) statusEl.textContent = '✓ Condiviso!';
+        closeShareA4Modal();
+        return;
+      } else if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: `${shareMsg}\nScarica PDF: ${url}`,
+          url: url
+        });
+        closeShareA4Modal();
+        return;
+      }
+    } catch (shareErr) {
+      if (shareErr && shareErr.name === 'AbortError') {
+        return; // Utente ha chiuso il selettore
+      }
+      console.warn('Direct share attempt failed:', shareErr);
+    }
+  }
+
+  // Caso 2: non ancora pronto -> effettua fetch
+  if (statusEl) statusEl.innerHTML = '<span style="color:#38bdf8;">⏳ Generazione PDF scaletta in corso...</span>';
+  if (btnShare) {
+    btnShare.disabled = true;
+    btnShare.innerHTML = '<span>⏳</span> Generazione in corso...';
+  }
+
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     const file = new File([blob], filename, { type: 'application/pdf' });
 
-    // Verifica supporto nativo condivisione file (iOS Safari, Android Chrome/PWA)
+    shareA4State.preparedBlob = blob;
+    shareA4State.preparedFile = file;
+    shareA4State.preparedKey = currentKey;
+
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      if (statusEl) statusEl.textContent = '📲 Apertura WhatsApp...';
-      await navigator.share({
-        files: [file],
-        title: `${targetTitle} (A4 ${descMode})`,
-        text: shareMsg
-      });
-      if (statusEl) statusEl.textContent = '✓ Condiviso!';
-      closeShareA4Modal();
+      try {
+        await navigator.share({
+          files: [file],
+          title: shareTitle,
+          text: shareMsg
+        });
+        if (statusEl) statusEl.textContent = '✓ Condiviso!';
+        closeShareA4Modal();
+        return;
+      } catch (postFetchErr) {
+        if (postFetchErr && postFetchErr.name === 'AbortError') {
+          resetShareA4Button();
+          return;
+        }
+        // Se Safari/iOS ha fatto scadere il gesto utente durante l'attesa del download (NotAllowedError)
+        console.warn('Share blocked by transient activation expiry, enabling immediate one-tap button:', postFetchErr);
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:#22c55e; font-weight:700;">✅ PDF pronto! Tocca il pulsante qui sotto per inviare:</span>';
+        }
+        if (btnShare) {
+          btnShare.disabled = false;
+          btnShare.style.background = '#22c55e';
+          btnShare.style.borderColor = '#16a34a';
+          btnShare.style.color = '#000';
+          btnShare.style.boxShadow = '0 0 16px rgba(34, 197, 94, 0.6)';
+          btnShare.innerHTML = '<span style="font-size: 20px;">📲</span> TOCCA QUI PER INVIARE SU WHATSAPP';
+        }
+        return;
+      }
     } else if (navigator.share) {
-      // Fallback per browser con navigator.share solo URL/testo
       await navigator.share({
-        title: `${targetTitle} (A4 ${descMode})`,
+        title: shareTitle,
         text: `${shareMsg}\nScarica PDF: ${url}`,
         url: url
       });
       closeShareA4Modal();
     } else {
-      // Fallback desktop: apre WhatsApp Web e avvia download del PDF
       const msg = encodeURIComponent(`${shareMsg}\n${url}`);
       window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
       triggerPdfDownload(url, filename);
       closeShareA4Modal();
     }
   } catch (err) {
+    resetShareA4Button();
     if (err && err.name !== 'AbortError') {
       console.warn('Share error:', err);
-      if (statusEl) statusEl.textContent = `⚠️ Errore condivisione (${err.message}). Puoi usare "Scarica PDF A4".`;
-    } else {
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl) statusEl.textContent = `⚠️ Errore (${err.message}). Puoi usare "Scarica PDF A4".`;
     }
   }
 }
