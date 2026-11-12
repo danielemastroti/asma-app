@@ -2328,26 +2328,37 @@ function parseAmlForWeb(aml, showChords) {
       inSection = true;
     }
 
+    // Extract inline {c: ...} / {comment: ...} anywhere on a chord/grid/lyric line
+    const inlineComments = [];
+    const lineClean = line.replace(/\{(?:c|comment|ci|cb)\s*:\s*([^\}]+)\}/gi, (_, txt) => {
+      if (txt && txt.trim()) inlineComments.push(txt.trim());
+      return '';
+    }).replace(/\s+$/, '');
+    const trimmedClean = lineClean.trim();
+    const inlineCommHtml = inlineComments.length
+      ? ` <span style="color: #38bdf8; font-style: italic; font-weight: 700;">(${escapeHtml(inlineComments.join(' '))})</span>`
+      : '';
+
     // 2. Chord Grids, Guitar Tabs, or Pure Unbracketed Chords
-    if (isChordGridOrTabLine(trimmed)) {
+    if (isChordGridOrTabLine(trimmedClean)) {
       if (!showChords) {
         if (!lastWasInstrumental) {
-          html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+          html += `<div class="aml-instrumental">♪ (Strumentale)${inlineCommHtml}</div>`;
           lastWasInstrumental = true;
         }
       } else {
-        const isTabLine = /^[eEaAdDgGbB]\|/.test(trimmed) || (trimmed.match(/-/g) || []).length >= 4;
+        const isTabLine = /^[eEaAdDgGbB]\|/.test(trimmedClean) || (trimmedClean.match(/-/g) || []).length >= 4;
         if (isTabLine) {
-          html += `<div class="aml-tab-line">${escapeHtml(line)}</div>`;
+          html += `<div class="aml-tab-line">${escapeHtml(lineClean)}</div>`;
         } else {
-          const hasPipes = trimmed.includes('|');
-          const renderedChordLine = line.replace(/\S+/g, token => {
+          const hasPipes = trimmedClean.includes('|');
+          const renderedChordLine = lineClean.replace(/\S+/g, token => {
             if (token === '|' || token === '/' || token === '%' || token === '-') {
               return escapeHtml(token);
             }
             return `<span class="chord-token">${escapeHtml(token)}</span>`;
           });
-          html += `<div class="aml-chord-line${hasPipes ? ' aml-grid-line' : ''}">${renderedChordLine}</div>`;
+          html += `<div class="aml-chord-line${hasPipes ? ' aml-grid-line' : ''}">${renderedChordLine}${inlineCommHtml}</div>`;
         }
         lastWasInstrumental = false;
       }
@@ -2355,31 +2366,35 @@ function parseAmlForWeb(aml, showChords) {
     }
 
     // 3. Render Line (chords above lyrics, without [ ] brackets)
-    const lyricsOnly = line.replace(/\[[^\]]+\]/g, '').trim();
-    const hasChordTokens = /\[[^\]]+\]/.test(line);
+    const lyricsOnly = lineClean.replace(/\[[^\]]+\]/g, '').trim();
+    const hasChordTokens = /\[[^\]]+\]/.test(lineClean);
 
     if (!showChords) {
       if (hasChordTokens && !lyricsOnly) {
         // Pure chords line without lyrics -> Instrumental line for singer
         if (!lastWasInstrumental) {
-          html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+          html += `<div class="aml-instrumental">♪ (Strumentale)${inlineCommHtml}</div>`;
           lastWasInstrumental = true;
         }
       } else if (lyricsOnly) {
-        html += `<div class="aml-lyric-line">${escapeHtml(line.replace(/\[[^\]]+\]/g, ''))}</div>`;
+        html += `<div class="aml-lyric-line">${escapeHtml(lineClean.replace(/\[[^\]]+\]/g, ''))}${inlineCommHtml}</div>`;
+        lastWasInstrumental = false;
+      } else if (inlineCommHtml) {
+        html += `<div class="aml-lyric-line">${inlineCommHtml.trim()}</div>`;
         lastWasInstrumental = false;
       }
     } else {
       if (hasChordTokens) {
-        const formatted = formatChordLyricLine(line);
+        const formatted = formatChordLyricLine(lineClean);
         if (formatted.chordHtml && formatted.chordHtml.trim()) {
-          html += `<div class="aml-chord-line">${formatted.chordHtml}</div>`;
+          const appendToChords = !(formatted.lyricHtml && formatted.lyricHtml.trim());
+          html += `<div class="aml-chord-line">${formatted.chordHtml}${appendToChords ? inlineCommHtml : ''}</div>`;
         }
         if (formatted.lyricHtml && formatted.lyricHtml.trim()) {
-          html += `<div class="aml-lyric-line">${formatted.lyricHtml}</div>`;
+          html += `<div class="aml-lyric-line">${formatted.lyricHtml}${inlineCommHtml}</div>`;
         }
       } else {
-        html += `<div class="aml-lyric-line">${escapeHtml(line)}</div>`;
+        html += `<div class="aml-lyric-line">${escapeHtml(lineClean)}${inlineCommHtml}</div>`;
       }
       lastWasInstrumental = false;
     }

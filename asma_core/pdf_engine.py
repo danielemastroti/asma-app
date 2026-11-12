@@ -836,8 +836,10 @@ class PDFEngine:
                         if m_txt:
                             grid_tokens.append(m_txt)
                     grid_line_text = " | ".join(grid_tokens)
+                    inline_comm = getattr(node, "inline_comment", None)
+                    inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
                     if grid_line_text:
-                        p_grid = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{grid_line_text}</b></font>", styles["ChordText"])
+                        p_grid = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{grid_line_text}</b></font>{inline_comm_html}", styles["ChordText"])
                         add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_grid, Spacer(1, 1.2 * mm)]))
                         last_was_inst_marker = False
                 else:
@@ -881,18 +883,25 @@ class PDFEngine:
                     continue
 
                 if include_chords and chords_str.strip():
-                    # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
-                    p_chords = Paragraph(cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size), styles["ChordText"])
-                    p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
-                    
-                    pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
-                    pair_table.setStyle(TableStyle([
-                        ('TOPPADDING', (0, 0), (-1, -1), 0),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                    ]))
-                    add_flowable(KeepTogether([pair_table, Spacer(1, 0.8 * mm)]))
+                    inline_comm = getattr(node, "inline_comment", None)
+                    inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
+                    if lyrics_str.strip():
+                        # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
+                        p_chords = Paragraph(cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size), styles["ChordText"])
+                        p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
+                        pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
+                        pair_table.setStyle(TableStyle([
+                            ('TOPPADDING', (0, 0), (-1, -1), 0),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                        ]))
+                        add_flowable(KeepTogether([pair_table, Spacer(1, 0.8 * mm)]))
+                    else:
+                        # Pure chord line (e.g. SOL SOL# LA {c: brass} -> SOL SOL# LA (brass))
+                        chords_html = cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size)
+                        p_chords = Paragraph(f"{chords_html}{inline_comm_html}", styles["ChordText"])
+                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_chords, Spacer(1, 1.2 * mm)]))
                     last_was_inst_marker = False
                 else:
                     # Check if lyrics_str actually contains pure chords (es. SIb/FA  DO/MI   RE7/9+)
@@ -919,7 +928,9 @@ class PDFEngine:
                             last_was_inst_marker = False
                     elif lyrics_str.strip():
                         # Singer lyrics-only (or line with only lyrics)
-                        p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"])
+                        inline_comm = getattr(node, "inline_comment", None)
+                        inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
+                        p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
                         add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]))
                         last_was_inst_marker = False
                     elif chords_str.strip():

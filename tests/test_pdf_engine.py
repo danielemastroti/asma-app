@@ -423,6 +423,25 @@ E|-------------------|
         self.assertIn("solo brass", full_text)
         self.assertNotIn("[NOTA]", full_text)
 
+    def test_inline_comment_after_chords_and_lyrics_in_pdf(self):
+        """Inline {c: brass} after chords renders on the same line as (brass) in PDF."""
+        import pymupdf
+        aml = (
+            "{verse}\n"
+            "SOL SOL# LA {c: brass}\n"
+            "DO | FA | SOL {c: stacco}\n"
+            "[DO]Nel blu dipinto di blu {c: cori}"
+        )
+        song = Song(title="Inline Comment Test", artist="Band", key_current="C", aml_content=aml)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("(brass)", full_text)
+        self.assertIn("(stacco)", full_text)
+        self.assertIn("(cori)", full_text)
+        self.assertNotIn("{c:", full_text)
+
 
 if __name__ == "__main__":
     unittest.main()

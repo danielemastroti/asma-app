@@ -81,8 +81,9 @@ class LyricSegment:
 
 class ChordLyricLineNode(ASTNode):
     """Represents a line containing lyrics interwoven with chords: [Am]On a dark desert..."""
-    def __init__(self, segments: List[LyricSegment]):
+    def __init__(self, segments: List[LyricSegment], inline_comment: Optional[str] = None):
         self.segments = segments
+        self.inline_comment = inline_comment
 
     def to_aml(self) -> str:
         parts = []
@@ -90,7 +91,10 @@ class ChordLyricLineNode(ASTNode):
             if seg.chord:
                 parts.append(f"[{seg.chord.chord_text}]")
             parts.append(seg.text)
-        return "".join(parts)
+        res = "".join(parts)
+        if self.inline_comment:
+            res = f"{res.rstrip()} {{c: {self.inline_comment}}}" if res.strip() else f"{{c: {self.inline_comment}}}"
+        return res
 
     def __repr__(self) -> str:
         return f"ChordLyricLineNode({len(self.segments)} segments)"
@@ -98,14 +102,18 @@ class ChordLyricLineNode(ASTNode):
 
 class ChordGridLineNode(ASTNode):
     """Represents a measure grid line without lyrics: | Bm | F#7 | A | E |"""
-    def __init__(self, measures: List[List[str]]):
+    def __init__(self, measures: List[List[str]], inline_comment: Optional[str] = None):
         self.measures = measures  # List of measures, each measure is a list of chords or symbols
+        self.inline_comment = inline_comment
 
     def to_aml(self) -> str:
         measure_strs = []
         for m in self.measures:
             measure_strs.append(" ".join(m))
-        return f"| {' | '.join(measure_strs)} |"
+        res = f"| {' | '.join(measure_strs)} |"
+        if self.inline_comment:
+            res = f"{res} {{c: {self.inline_comment}}}"
+        return res
 
     def __repr__(self) -> str:
         return f"ChordGridLineNode({self.measures})"
@@ -134,6 +142,7 @@ class EmptyLineNode(ASTNode):
 
 # Regular expressions for line parsing
 DIRECTIVE_REGEX = re.compile(r"^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$")
+INLINE_COMMENT_REGEX = re.compile(r"\{(?:c|comment|ci|cb)\s*:\s*([^\}]+)\}", re.IGNORECASE)
 CHORD_TOKEN_REGEX = re.compile(r"\[([^\]]+)\]")
 GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
 
@@ -248,6 +257,13 @@ class AMLParser:
                     idx += 1
                     continue
 
+            # Extract inline {c: ...} / {comment: ...} if present on a chord/grid/lyric line
+            inline_comments = [m.strip() for m in INLINE_COMMENT_REGEX.findall(raw_line) if m.strip()]
+            inline_comment = " ".join(inline_comments) if inline_comments else None
+            if inline_comment:
+                raw_line = INLINE_COMMENT_REGEX.sub("", raw_line).rstrip()
+                line = raw_line.strip()
+
             # Check for chord grid line: | C | Am | F | G | or DO | LA | SOL | FA | RE
             if "|" in line and len(line) > 2 and not re.match(r"^[eEaAdDgGbB]\|", line):
                 is_wrapped_grid = line.startswith("|") and line.endswith("|")
@@ -262,19 +278,19 @@ class AMLParser:
                     all_tokens = [t for m in measures for t in m if t not in ["/", "%", "-", "|", "NC", "N.C."]]
                     valid_chords = sum(1 for t in all_tokens if MusicEngine.parse_chord(t))
                     if all_tokens and (valid_chords / len(all_tokens)) >= 0.5:
-                        nodes.append(ChordGridLineNode(measures))
+                        nodes.append(ChordGridLineNode(measures, inline_comment=inline_comment))
                         idx += 1
                         continue
                     elif is_wrapped_grid:
                         cleaned_pipe_lyric = " ".join([t for m in measures for t in m])
-                        nodes.append(ChordLyricLineNode([LyricSegment(cleaned_pipe_lyric, chord=None)]))
+                        nodes.append(ChordLyricLineNode([LyricSegment(cleaned_pipe_lyric, chord=None)], inline_comment=inline_comment))
                         idx += 1
                         continue
 
             # Check for chord/lyric line with [Chord]
             if "[" in raw_line and "]" in raw_line:
                 segments = cls._parse_chord_lyric_line(raw_line)
-                nodes.append(ChordLyricLineNode(segments))
+                nodes.append(ChordLyricLineNode(segments, inline_comment=inline_comment))
                 idx += 1
                 continue
 
@@ -282,24 +298,27 @@ class AMLParser:
             if _is_raw_chord_line(raw_line):
                 # Check if next line is a lyric line without brackets
                 if (idx + 1 < len(lines)) and lines[idx + 1].strip() and not _is_raw_chord_line(lines[idx + 1]):
-                    next_line_clean = lines[idx + 1].strip()
-                    if not next_line_clean.startswith(("{", "#", "|")) and ("[" not in next_line_clean):
+                    next_line_clean = INLINE_COMMENT_REGEX.sub("", lines[idx + 1]).strip()
+                    next_is_grid = ("|" in next_line_clean) and not re.match(r"^[eEaAdDgGbB]\|", next_line_clean) and any(
+                        MusicEngine.parse_chord(t) for t in next_line_clean.replace("|", " ").split()
+                    )
+                    if next_line_clean and not next_line_clean.startswith(("{", "#", "|")) and ("[" not in next_line_clean) and not next_is_grid:
                         # Merge traditional chord line over lyric line!
                         merged = cls._merge_chords_into_lyrics(raw_line, lines[idx + 1])
                         segments = cls._parse_chord_lyric_line(merged)
-                        nodes.append(ChordLyricLineNode(segments))
+                        nodes.append(ChordLyricLineNode(segments, inline_comment=inline_comment))
                         idx += 2
                         continue
 
                 # Isolated chord line without lyrics
                 tokens = [t.strip("[](),|") for t in line.split() if t.strip("[](),|")]
                 chord_segs = [LyricSegment("   ", chord=ChordToken(t)) for t in tokens]
-                nodes.append(ChordLyricLineNode(chord_segs))
+                nodes.append(ChordLyricLineNode(chord_segs, inline_comment=inline_comment))
                 idx += 1
                 continue
 
             # Default plain lyric line without chords
-            nodes.append(ChordLyricLineNode([LyricSegment(raw_line, chord=None)]))
+            nodes.append(ChordLyricLineNode([LyricSegment(raw_line, chord=None)], inline_comment=inline_comment))
             idx += 1
 
         return AMLDocument(nodes)
@@ -375,7 +394,7 @@ class AMLParser:
                         new_segments.append(LyricSegment(seg.text, chord=ChordToken(transposed_chord)))
                     else:
                         new_segments.append(seg)
-                new_nodes.append(ChordLyricLineNode(new_segments))
+                new_nodes.append(ChordLyricLineNode(new_segments, inline_comment=getattr(node, "inline_comment", None)))
 
             elif isinstance(node, ChordGridLineNode):
                 # Transpose all chords in the grid
@@ -395,7 +414,7 @@ class AMLParser:
                             )
                             new_m.append(transposed_chord)
                     new_measures.append(new_m)
-                new_nodes.append(ChordGridLineNode(new_measures))
+                new_nodes.append(ChordGridLineNode(new_measures, inline_comment=getattr(node, "inline_comment", None)))
 
             else:
                 new_nodes.append(node)
