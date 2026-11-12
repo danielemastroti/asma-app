@@ -2245,7 +2245,7 @@ function parseAmlForWeb(aml, showChords) {
 
       // Comments / band notes: {c: ...} or {comment: ...}
       if (['c', 'comment', 'ci', 'cb'].includes(tag)) {
-        html += `<div style="margin: 6px 0; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 4px 10px; border-radius: 0 4px 4px 0; font-style: italic; font-size: 13px;">💬 <b>[NOTA]:</b> ${escapeHtml(val || 'Nota')}</div>`;
+        html += `<div style="margin: 6px 0; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 4px 10px; border-radius: 0 4px 4px 0; font-style: italic; font-size: 13px; font-weight: 700;">${escapeHtml(val || 'Nota')}</div>`;
         continue;
       }
 

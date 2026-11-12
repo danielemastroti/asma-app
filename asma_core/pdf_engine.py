@@ -688,7 +688,7 @@ class PDFEngine:
                         flowables.append(pending_badge)
                         pending_badge = None
                     note_text = d_val or "Nota"
-                    comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; [NOTA]: {escape(note_text)}</i></b></font>", styles["DocSubtitle"])
+                    comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>{escape(note_text)}</i></b></font>", styles["DocSubtitle"])
                     add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
                     last_was_inst_marker = False
                     continue

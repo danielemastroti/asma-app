@@ -407,6 +407,22 @@ E|-------------------|
         solo_tables = [t for t in tables if t._colWidths[0] is not None and t._colWidths[0] < 220.0]
         self.assertTrue(len(solo_tables) >= 1)
 
+    def test_comment_directive_renders_only_content_without_nota_prefix(self):
+        """{c: solo brass} renders only 'solo brass' without '[NOTA]:' prefix in PDF."""
+        import pymupdf
+        song = Song(
+            title="Comment Test",
+            artist="Band",
+            key_current="C",
+            aml_content="{verse}\n{c: solo brass}\n[DO]Testo",
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("solo brass", full_text)
+        self.assertNotIn("[NOTA]", full_text)
+
 
 if __name__ == "__main__":
     unittest.main()
