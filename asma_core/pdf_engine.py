@@ -444,9 +444,9 @@ class PDFEngine:
             ),
             "ChordText": ParagraphStyle(
                 "ChordText",
-                fontName="Helvetica-Bold",
-                fontSize=base_chords_size,
-                leading=base_chords_size * 1.1,
+                fontName="Courier-Bold",
+                fontSize=base_lyrics_size,
+                leading=max(base_chords_size, base_lyrics_size) * 1.1,
                 textColor=chord_color
             ),
             "LyricText": ParagraphStyle(
@@ -495,6 +495,30 @@ class PDFEngine:
         content = text.lstrip(" ")
         content = re.sub(r" {2,}", lambda m: "&nbsp;" * (len(m.group(0)) - 1) + " ", content)
         return ("&nbsp;" * lead_len) + content
+
+    @classmethod
+    def _format_aligned_chord_line(cls, chords_str: str, chord_color_hex: str, chord_size: float, lyric_size: float) -> str:
+        """Formats a chord line in Courier-Bold using lyric-sized spaces so every chord aligns with its exact lyric column."""
+        if not chords_str:
+            return ""
+        l_size = lyric_size if lyric_size and lyric_size > 0 else 12.0
+        c_size = chord_size if chord_size and chord_size > 0 else l_size
+        ratio = c_size / l_size
+        parts: List[str] = []
+        cursor_cols = 0.0
+        for idx, match in enumerate(re.finditer(r"\S+", chords_str)):
+            start_col = match.start()
+            chord_txt = match.group(0)
+            min_gap = 0 if idx == 0 else 1
+            spaces_needed = max(min_gap, round(start_col - cursor_cols))
+            if spaces_needed > 0:
+                if idx == 0 or spaces_needed == 1:
+                    parts.append("&nbsp;" * spaces_needed)
+                else:
+                    parts.append("&nbsp;" * (spaces_needed - 1) + " ")
+            parts.append(f"<font color='{chord_color_hex}' size='{c_size}pt'><b>{escape(chord_txt)}</b></font>")
+            cursor_cols += spaces_needed + (len(chord_txt) * ratio)
+        return "".join(parts)
 
     @classmethod
     def is_guitar_tab_line(cls, line: str) -> bool:
@@ -839,7 +863,7 @@ class PDFEngine:
 
                 if include_chords and chords_str.strip():
                     # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
-                    p_chords = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{cls._format_chord_spaces(chords_str)}</b></font>", styles["ChordText"])
+                    p_chords = Paragraph(cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size), styles["ChordText"])
                     p_lyrics = Paragraph(cls._format_lyric_spaces(lyrics_str), styles["LyricText"]) if lyrics_str.strip() else Paragraph("&nbsp;", styles["LyricText"])
                     
                     pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])

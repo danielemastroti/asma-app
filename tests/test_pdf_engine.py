@@ -352,6 +352,28 @@ E|-------------------|
         self.assertIn("[BRIDGE]", full_text)
         self.assertNotIn("[SPECIALE]", full_text)
 
+    def test_plain_text_chords_align_wysiwyg_with_lyrics_in_pdf(self):
+        """Chords aligned over lyrics in monospace editor must align horizontally above the same lyric word in PDF."""
+        import pymupdf
+        aml = (
+            "{sov}\n"
+            "                              SOL SOL# LA\n"
+            "Worryin' 'bout the way things might have been\n"
+            "{eov}"
+        )
+        song = Song(title="Proud Mary Align", artist="CCR", key_current="D", aml_content=aml)
+        prof = DeviceProfile(font_size_lyrics=14.0, font_size_chords=11.0)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        words = doc[0].get_text("words")
+        doc.close()
+
+        sol_x = next(w[0] for w in words if w[4] == "SOL")
+        might_x = next(w[0] for w in words if w[4] == "might")
+        bout_x = next(w[0] for w in words if w[4] == "'bout")
+        self.assertLess(abs(sol_x - might_x), 15.0)
+        self.assertGreater(sol_x - bout_x, 80.0)
+
 
 if __name__ == "__main__":
     unittest.main()
