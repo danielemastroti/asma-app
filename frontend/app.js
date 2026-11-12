@@ -2372,6 +2372,25 @@ function closePdfExportModal() {
   state._pdfExport = null;
 }
 
+function logPdfExportAction(msg) {
+  const el = document.getElementById('pdf-export-debug-log');
+  if (!el) return;
+  const ts = new Date().toTimeString().slice(0, 8);
+  el.textContent += (el.textContent ? '\n' : '') + `[${ts}] ${msg}`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function copyPdfExportDebugLog() {
+  const el = document.getElementById('pdf-export-debug-log');
+  const txt = el ? el.textContent : '';
+  try {
+    await navigator.clipboard.writeText(txt);
+    showToast('Log diagnostica copiato ✓');
+  } catch (e) {
+    showToast('Copia non riuscita, fai uno screenshot del box');
+  }
+}
+
 async function openPdfExportModal(url, filename, onPrint = null) {
   closePdfExportModal();
   const modal = document.getElementById('pdf-export-modal');
@@ -2381,17 +2400,31 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   const directLink = document.getElementById('pdf-export-direct-link');
   const browserLink = document.getElementById('pdf-export-browser-link');
   const printBtn = document.getElementById('pdf-export-print-btn');
+  const debugEl = document.getElementById('pdf-export-debug-log');
 
   if (!modal) return;
+  if (debugEl) debugEl.textContent = '';
   if (nameEl) nameEl.textContent = filename;
   if (statusEl) statusEl.textContent = '⏳ Preparazione file PDF dal server...';
   if (shareBtn) shareBtn.style.display = 'none';
   if (directLink) directLink.style.display = 'none';
   if (printBtn) printBtn.style.display = onPrint ? 'inline-flex' : 'none';
 
+  const appScript = document.querySelector('script[src*="app.js"]');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  logPdfExportAction(`script=${appScript ? appScript.getAttribute('src') : '?'} | standalone=${isStandalone} | android=${isAndroid}`);
+  logPdfExportAction(`UA=${navigator.userAgent}`);
+  if ('caches' in window) {
+    caches.keys().then(keys => logPdfExportAction(`SW caches=[${keys.join(', ')}]`)).catch(() => {});
+  }
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    logPdfExportAction(`SW ctrl=${navigator.serviceWorker.controller.scriptURL} (${navigator.serviceWorker.controller.state})`);
+  }
+
   // Link diretto esterno per uscire dalla sandbox WebAPK Android
   if (browserLink) {
-    if (/Android/i.test(navigator.userAgent || '')) {
+    if (isAndroid) {
       const parsed = new URL(url, window.location.origin);
       const scheme = parsed.protocol.replace(':', '');
       browserLink.href = `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
@@ -2403,9 +2436,11 @@ async function openPdfExportModal(url, filename, onPrint = null) {
 
   state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null, file: null };
   modal.style.display = 'flex';
+  logPdfExportAction(`fetch: ${url}`);
 
   try {
     const res = await fetch(url);
+    logPdfExportAction(`res=${res.status} type=${res.headers.get('content-type')} disp=${res.headers.get('content-disposition')}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     // Ignora se nel frattempo l'utente ha chiuso la modale o aperto un altro PDF
@@ -2426,32 +2461,39 @@ async function openPdfExportModal(url, filename, onPrint = null) {
     const kb = Math.max(1, Math.round(blob.size / 1024));
     if (statusEl) statusEl.textContent = `✅ File pronto (${kb} KB). Scegli come salvare sul dispositivo:`;
 
-    if (shareBtn && pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    const canShareFiles = !!(pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] }));
+    logPdfExportAction(`blob=${blob.size}B | canShareFiles=${canShareFiles} | shareFn=${typeof navigator.share}`);
+
+    if (shareBtn && canShareFiles) {
       shareBtn.style.display = 'inline-flex';
     }
     if (directLink) {
       // Su Android (es. Firefox/GeckoView PWA o WebAPK) i link blob: aprono about:blank;
       // usare l'URL HTTPS diretto con Content-Disposition: attachment avvia il DownloadManager nativo.
-      const isAndroid = /Android/i.test(navigator.userAgent || '');
       directLink.href = isAndroid ? url : blobUrl;
       directLink.download = filename;
       directLink.style.display = 'inline-flex';
+      logPdfExportAction(`directLink.href=${isAndroid ? 'HTTPS_URL' : 'BLOB_URL'}`);
     }
   } catch (err) {
     console.warn('PDF export fetch failed:', err);
-    if (statusEl) statusEl.textContent = `⚠️ Caricamento in-app non riuscito (${err.message}). Usa "Scarica tramite Browser" o "Stampa / Salva come PDF".`;
+    logPdfExportAction(`ERR fetch: ${err && err.message ? err.message : err}`);
+    if (statusEl) statusEl.textContent = `⚠️ Caricamento in-app non riuscito (${err.message}). Usa "Apri nel Browser Esterno" o "Stampa / Salva come PDF".`;
   }
 }
 
 async function shareExportedPdf() {
   const ctx = state._pdfExport;
   if (!ctx || !ctx.file || !navigator.share) return;
+  logPdfExportAction('click: shareExportedPdf');
   try {
     await navigator.share({
       files: [ctx.file],
       title: ctx.filename
     });
+    logPdfExportAction('share OK');
   } catch (err) {
+    logPdfExportAction(`share ERR: ${err && err.name} ${err && err.message}`);
     if (err && err.name !== 'AbortError') {
       showToast('Condivisione file non supportata da questo browser');
     }
@@ -2461,16 +2503,21 @@ async function shareExportedPdf() {
 function triggerDirectAndroidDownload(e) {
   const ctx = state._pdfExport;
   if (!ctx) return;
-  if (/Android/i.test(navigator.userAgent || '')) {
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  logPdfExportAction(`click: directLink (isAndroid=${isAndroid})`);
+  if (isAndroid) {
     if (e) e.preventDefault();
     const targetUrl = ctx.url;
-    closePdfExportModal();
-    window.location.assign(targetUrl);
+    logPdfExportAction(`location.assign -> ${targetUrl}`);
+    setTimeout(() => {
+      window.location.assign(targetUrl);
+    }, 80);
   }
 }
 
 function printExportedPdf() {
   const fn = state._pdfExport && state._pdfExport.onPrint;
+  logPdfExportAction(`click: printExportedPdf (hasFn=${typeof fn === 'function'})`);
   closePdfExportModal();
   if (typeof fn === 'function') fn();
 }

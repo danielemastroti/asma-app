@@ -737,8 +737,17 @@ girano in centro sfiorando i novanta"></textarea>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="pdf-export-share-btn" class="btn btn-primary" style="display: none; width: 100%; font-weight: 800;" onclick="shareExportedPdf()">📤 Salva su Tablet / Condividi</button>
         <a id="pdf-export-direct-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#" onclick="triggerDirectAndroidDownload(event)">⬇️ Scarica Diretto</a>
-        <a id="pdf-export-browser-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#">🌐 Apri nel Browser Esterno</a>
+        <a id="pdf-export-browser-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#" onclick="logPdfExportAction('click: browserLink -> ' + this.href)">🌐 Apri nel Browser Esterno</a>
         <button id="pdf-export-print-btn" class="btn btn-secondary" style="display: none; width: 100%; font-weight: 700;" onclick="printExportedPdf()">🖨️ Stampa / Salva come PDF</button>
+      </div>
+
+      <!-- DEBUG TEMPORANEO PDF EXPORT -->
+      <div id="pdf-export-debug-wrap" style="margin-top: 12px; border-top: 1px solid #334155; padding-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 11px; font-weight: 800; color: #f59e0b;">🔍 Diagnostica Temporanea</span>
+          <button type="button" class="btn btn-secondary" style="min-height: 26px; padding: 2px 8px; font-size: 11px;" onclick="copyPdfExportDebugLog()">📋 Copia Log</button>
+        </div>
+        <pre id="pdf-export-debug-log" style="margin: 0; padding: 8px; background: #020617; border: 1px solid #334155; border-radius: 6px; color: #94a3b8; font-size: 10.5px; line-height: 1.35; max-height: 150px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;"></pre>
       </div>
     </div>
   </div>
@@ -747,6 +756,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=14.1"></script>
+  <script src="/app.js?v=14.2"></script>
 </body>
 </html>
