@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.6">
+  <link rel="stylesheet" href="/style.css?v=16.2">
 </head>
 <body>
 
@@ -49,24 +49,25 @@
     <div class="brand-container" onclick="switchTab('dashboard')" style="cursor: pointer;" title="Torna alla Dashboard">
       <img src="/assets/band_logo.png" alt="ASMA" class="brand-logo" onerror="this.style.display='none'">
       <div class="brand-title">
-        THE New ASMA
+        <span class="brand-title-text">THE New ASMA</span>
         <span class="online-dot" title="Cloud Database Sincronizzato"></span>
       </div>
     </div>
     <div class="header-actions">
       <div id="header-mode-pill" class="mode-pill mode-pill-simplified" onclick="switchTab('dashboard')" title="Tocca per cambiare modalità (Casa/Palco vs Editing)">
-        🎤 Casa / Palco
+        <span class="mode-pill-full">🎤 Casa / Palco</span>
+        <span class="mode-pill-short">🎤 Palco</span>
       </div>
-      <button type="button" class="btn btn-secondary" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;" onclick="openChangelogModal()" title="Consulta le novità e gli aggiornamenti di ASMA">
-        <span>📋</span> Novità
+      <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;" onclick="openChangelogModal()" title="Consulta le novità e gli aggiornamenti di ASMA">
+        <span>📋</span> <span class="header-btn-label">Novità</span>
       </button>
       <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
         <span>👤</span>
         <span id="current-user-name">Cico</span>
         <span style="font-size:10px; color:#38bdf8;">⚙️</span>
       </div>
-      <button type="button" class="btn btn-secondary" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700;" onclick="logoutGoogle()" title="Esci dall'account Google">
-        🚪 Esci
+      <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;" onclick="logoutGoogle()" title="Esci dall'account Google">
+        <span>🚪</span> <span class="header-btn-label">Esci</span>
       </button>
     </div>
   </header>
@@ -910,6 +911,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=16.1"></script>
+  <script src="/app.js?v=16.2"></script>
 </body>
 </html>

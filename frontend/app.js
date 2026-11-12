@@ -506,7 +506,9 @@ function applyAppModeToUi() {
 
   const pill = document.getElementById('header-mode-pill');
   if (pill) {
-    pill.textContent = editing ? '✏️ Editing' : '🎤 Casa / Palco';
+    pill.innerHTML = editing
+      ? '<span class="mode-pill-full">✏️ Editing Completo</span><span class="mode-pill-short">✏️ Edit</span>'
+      : '<span class="mode-pill-full">🎤 Casa / Palco</span><span class="mode-pill-short">🎤 Palco</span>';
     pill.classList.toggle('mode-pill-editing', editing);
     pill.classList.toggle('mode-pill-simplified', !editing);
   }
