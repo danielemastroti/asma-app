@@ -248,9 +248,10 @@ class AMLParser:
                     idx += 1
                     continue
 
-            # Check for chord grid line: | C | Am | F | G |
-            if line.startswith("|") and line.endswith("|") and len(line) > 2:
-                grid_content = line[1:-1].strip()
+            # Check for chord grid line: | C | Am | F | G | or DO | LA | SOL | FA | RE
+            if "|" in line and len(line) > 2 and not re.match(r"^[eEaAdDgGbB]\|", line):
+                is_wrapped_grid = line.startswith("|") and line.endswith("|")
+                grid_content = line.strip("|").strip()
                 measure_chunks = grid_content.split("|")
                 measures = []
                 for chunk in measure_chunks:
@@ -264,7 +265,7 @@ class AMLParser:
                         nodes.append(ChordGridLineNode(measures))
                         idx += 1
                         continue
-                    else:
+                    elif is_wrapped_grid:
                         cleaned_pipe_lyric = " ".join([t for m in measures for t in m])
                         nodes.append(ChordLyricLineNode([LyricSegment(cleaned_pipe_lyric, chord=None)]))
                         idx += 1

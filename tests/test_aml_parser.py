@@ -184,6 +184,18 @@ do la mano"""
         self.assertTrue(all(s.chord is None for s in lines[3].segments))
         self.assertEqual(lines[3].segments[0].text, "do la mano")
 
+    def test_chord_grid_without_outer_pipes(self):
+        """Chord grids written as 'DO  | LA |  SOL | FA | RE' (without outer pipes) parse as ChordGridLineNode."""
+        aml = """DO  | LA |  SOL | FA | RE
+ciao | mondo"""
+        doc = AMLParser.parse(aml)
+        grids = [n for n in doc.nodes if isinstance(n, ChordGridLineNode)]
+        lyrics = [n for n in doc.nodes if isinstance(n, ChordLyricLineNode)]
+        self.assertEqual(len(grids), 1)
+        self.assertEqual(grids[0].measures, [["DO"], ["LA"], ["SOL"], ["FA"], ["RE"]])
+        self.assertEqual(len(lyrics), 1)
+        self.assertEqual(lyrics[0].segments[0].text, "ciao | mondo")
+
 
 if __name__ == "__main__":
     unittest.main()
