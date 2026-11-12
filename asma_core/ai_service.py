@@ -16,7 +16,7 @@ from asma_core.music_engine import MusicEngine
 
 
 SECTION_HEADING_REGEX = re.compile(
-    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|outro|finale|coda)(?:\s*[\dIVX]+)?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
+    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|outro|finale|coda)(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
     re.IGNORECASE
 )
 
@@ -217,8 +217,8 @@ class BandAIService:
             if m:
                 raw_keyword = m.group(1).lower()
                 canonical = SECTION_NAME_MAP.get(raw_keyword, "verse")
-                num_match = re.search(r"[\dIVX]+", line_str)
-                label_suffix = f": {num_match.group(0)}" if num_match else ""
+                num_suffix = m.group(2)
+                label_suffix = f": {num_suffix.strip()}" if num_suffix and num_suffix.strip() else ""
                 new_lines.append(f"{{{canonical}{label_suffix}}}")
                 consecutive_text_lines = 0
                 continue
