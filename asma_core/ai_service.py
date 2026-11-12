@@ -246,12 +246,12 @@ class BandAIService:
             return aml_text
 
         # Check if AML already has explicit section tags
-        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale)", aml_text, re.IGNORECASE):
+        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale|sob|soc|sov|start_of_bridge|start_of_chorus|start_of_verse|speciale)", aml_text, re.IGNORECASE):
             return aml_text
 
         # 1. Fast deterministic heuristic segmentation (instantly converts Strofa 1:, Ritornello:, etc.)
         heuristic_res = cls.detect_sections_heuristic(aml_text)
-        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale)", heuristic_res, re.IGNORECASE):
+        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale|sob|soc|sov|start_of_bridge|start_of_chorus|start_of_verse|speciale)", heuristic_res, re.IGNORECASE):
             return heuristic_res
 
         # 2. Try lightweight AI detection when no textual headings were found

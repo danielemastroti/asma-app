@@ -713,7 +713,7 @@ class PDFEngine:
                         pending_badge = None
                     if flowables and not isinstance(flowables[-1], Spacer):
                         flowables.append(Spacer(1, 3.5 * mm))
-                    badge_title = d_val.upper() if d_val else "SPECIALE"
+                    badge_title = d_val.upper() if d_val else "BRIDGE"
                     badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
                     p = Paragraph(badge_text, styles["SectionBadge"])
                     badge_table = Table([[p]], colWidths=[usable_width])

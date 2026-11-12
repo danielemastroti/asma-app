@@ -336,6 +336,22 @@ E|-------------------|
         self.assertNotIn("Solo Testo", full_text)
         self.assertNotIn("ASMA Accordi", full_text)
 
+    def test_sob_renders_bridge_badge_in_pdf(self):
+        """{sob} directive without explicit label renders [BRIDGE] instead of [SPECIALE] in PDF."""
+        import pymupdf
+        song = Song(
+            title="Test Bridge PDF",
+            artist="Band",
+            key_current="C",
+            aml_content="{sob}\n[DO]Parte strumentale\n{eob}",
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("[BRIDGE]", full_text)
+        self.assertNotIn("[SPECIALE]", full_text)
+
 
 if __name__ == "__main__":
     unittest.main()

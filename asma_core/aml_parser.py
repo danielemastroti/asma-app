@@ -206,7 +206,7 @@ class AMLParser:
             if not tokens:
                 return False
             from asma_core.music_engine import ITALIAN_LOWERCASE_WORDS, MusicEngine
-            if any(t.lower() in ITALIAN_LOWERCASE_WORDS for t in tokens):
+            if any(t.islower() and t in ITALIAN_LOWERCASE_WORDS for t in tokens):
                 return False
             valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t.strip("[](),|")))
             return valid_chords > 0 and (valid_chords / len(tokens)) >= 0.70

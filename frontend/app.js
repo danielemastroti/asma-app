@@ -2240,7 +2240,7 @@ function parseAmlForWeb(aml, showChords) {
       } else if (['sov', 'start_of_verse', 'verse', 'strofa'].includes(tag)) {
         secName = val ? val.toUpperCase() : 'STROFA';
       } else if (['sob', 'start_of_bridge', 'bridge', 'speciale'].includes(tag)) {
-        secName = val ? val.toUpperCase() : 'SPECIALE';
+        secName = val ? val.toUpperCase() : 'BRIDGE';
       }
 
       if (secName) {

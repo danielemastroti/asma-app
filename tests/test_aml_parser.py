@@ -157,6 +157,32 @@ Vespe truccate anni sessanta"""
         self.assertEqual(segs[1].chord.chord_text, "SOL4+")
         self.assertEqual(segs[1].text, "anni sessanta")
 
+    def test_plain_text_italian_chords_recognized_without_brackets(self):
+        """Plain-text uppercase Italian chords like DO LA are parsed as chords, while lowercase Italian words remain lyrics."""
+        aml = """DO  LA
+Nel blu dipinto di blu
+
+DO  LA  FA  SOL
+
+la casa va
+do la mano"""
+        doc = AMLParser.parse(aml)
+        lines = [n for n in doc.nodes if isinstance(n, ChordLyricLineNode)]
+        self.assertEqual(len(lines), 4)
+
+        # Line 0: DO LA merged over lyric line
+        self.assertEqual(lines[0].segments[0].chord.chord_text, "DO")
+        self.assertEqual(lines[0].segments[1].chord.chord_text, "LA")
+
+        # Line 1: standalone DO LA FA SOL chord line
+        standalone_chords = [s.chord.chord_text for s in lines[1].segments if s.chord]
+        self.assertEqual(standalone_chords, ["DO", "LA", "FA", "SOL"])
+
+        # Lines 2 & 3: lowercase Italian words stay plain lyrics (no chords)
+        self.assertTrue(all(s.chord is None for s in lines[2].segments))
+        self.assertEqual(lines[2].segments[0].text, "la casa va")
+        self.assertTrue(all(s.chord is None for s in lines[3].segments))
+        self.assertEqual(lines[3].segments[0].text, "do la mano")
 
 
 if __name__ == "__main__":
