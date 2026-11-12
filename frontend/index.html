@@ -736,7 +736,7 @@ girano in centro sfiorando i novanta"></textarea>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="pdf-export-share-btn" class="btn btn-primary" style="display: none; width: 100%; font-weight: 800;" onclick="shareExportedPdf()">📤 Salva su Tablet / Condividi</button>
-        <a id="pdf-export-direct-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#">⬇️ Scarica Diretto</a>
+        <a id="pdf-export-direct-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#" onclick="triggerDirectAndroidDownload(event)">⬇️ Scarica Diretto</a>
         <a id="pdf-export-browser-link" class="btn btn-secondary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 700;" href="#">🌐 Apri nel Browser Esterno</a>
         <button id="pdf-export-print-btn" class="btn btn-secondary" style="display: none; width: 100%; font-weight: 700;" onclick="printExportedPdf()">🖨️ Stampa / Salva come PDF</button>
       </div>
@@ -747,6 +747,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=14.0"></script>
+  <script src="/app.js?v=14.1"></script>
 </body>
 </html>

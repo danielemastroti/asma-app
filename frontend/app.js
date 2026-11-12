@@ -2458,6 +2458,17 @@ async function shareExportedPdf() {
   }
 }
 
+function triggerDirectAndroidDownload(e) {
+  const ctx = state._pdfExport;
+  if (!ctx) return;
+  if (/Android/i.test(navigator.userAgent || '')) {
+    if (e) e.preventDefault();
+    const targetUrl = ctx.url;
+    closePdfExportModal();
+    window.location.assign(targetUrl);
+  }
+}
+
 function printExportedPdf() {
   const fn = state._pdfExport && state._pdfExport.onPrint;
   closePdfExportModal();
