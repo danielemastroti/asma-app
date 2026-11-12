@@ -2383,17 +2383,15 @@ function logPdfExportAction(msg) {
   } catch (e) {}
 }
 
-async function copyPdfExportDebugLog() {
-  const el = document.getElementById('pdf-export-debug-log');
-  const txt = el ? el.textContent : '';
+async function copyTextWithFallback(txt, okMsg) {
   if (!txt) {
-    showToast('Log vuoto');
+    showToast('Nulla da copiare');
     return;
   }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(txt);
-      showToast('Log diagnostica copiato ✓');
+      showToast(okMsg);
       return;
     }
   } catch (e) {}
@@ -2408,10 +2406,22 @@ async function copyPdfExportDebugLog() {
     ta.select();
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast(ok ? 'Log diagnostica copiato ✓' : 'Copia non riuscita, fai uno screenshot del box');
+    showToast(ok ? okMsg : 'Copia non riuscita');
   } catch (e) {
-    showToast('Copia non riuscita, fai uno screenshot del box');
+    showToast('Copia non riuscita');
   }
+}
+
+async function copyPdfExportDebugLog() {
+  const el = document.getElementById('pdf-export-debug-log');
+  await copyTextWithFallback(el ? el.textContent : '', 'Log diagnostica copiato ✓');
+}
+
+async function copyExportedPdfUrl() {
+  const ctx = state._pdfExport;
+  if (!ctx || !ctx.url) return;
+  logPdfExportAction('click: copyExportedPdfUrl');
+  await copyTextWithFallback(ctx.url, 'Link PDF copiato ✓ Incollalo in Chrome o scheda normale');
 }
 
 async function openPdfExportModal(url, filename, onPrint = null) {
@@ -2422,7 +2432,9 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   const shareBtn = document.getElementById('pdf-export-share-btn');
   const directLink = document.getElementById('pdf-export-direct-link');
   const browserLink = document.getElementById('pdf-export-browser-link');
+  const copyUrlBtn = document.getElementById('pdf-export-copy-url-btn');
   const printBtn = document.getElementById('pdf-export-print-btn');
+  const ffTip = document.getElementById('pdf-export-ff-tip');
   const debugEl = document.getElementById('pdf-export-debug-log');
 
   if (!modal) return;
@@ -2464,6 +2476,8 @@ async function openPdfExportModal(url, filename, onPrint = null) {
       browserLink.style.display = 'none';
     }
   }
+  if (copyUrlBtn) copyUrlBtn.style.display = isAndroid ? 'inline-flex' : 'none';
+  if (ffTip) ffTip.style.display = isFirefoxAndroidPwa ? 'block' : 'none';
 
   state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null, file: null };
   modal.style.display = 'flex';
