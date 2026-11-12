@@ -279,21 +279,17 @@ class AuthManager:
         """
 
         clean_email = email.strip().lower()
+        pseudonym = self.BAND_PSEUDONYMS.get(clean_email)
 
         if clean_email in self._users:
-
             user = self._users[clean_email]
-
-            if name and user.name != name:
-
+            if pseudonym:
+                user.name = pseudonym
+            elif name and user.name != name:
                 user.name = name
-
             if picture_url:
-
                 user.picture_url = picture_url
-
             self._save_users()
-
             return user
 
         # Auto-assign role and pseudonym from configured musicians

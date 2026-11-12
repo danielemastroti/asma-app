@@ -260,8 +260,8 @@ class TestApiServer(unittest.TestCase):
                 self.assertEqual(res_bad.status_code, 403)
                 self.assertIn("Accesso negato", res_bad.text)
 
-            # 4. Authorized band Google email sets session cookie and authenticates /api/auth/me
-            with patch.object(api_server.auth_mgr, "exchange_google_code_for_user", return_value={"email": "acicchelli65@gmail.com", "name": "Cico"}):
+            # 4. Authorized band Google email sets session cookie and authenticates /api/auth/me with band pseudonym
+            with patch.object(api_server.auth_mgr, "exchange_google_code_for_user", return_value={"email": "acicchelli65@gmail.com", "name": "Angelo Cicchelli"}):
                 res_ok = self.client.get("/oauth2callback?code=goodcode&state=asma_auth:editing", follow_redirects=False)
                 self.assertEqual(res_ok.status_code, 302)
                 self.assertEqual(res_ok.headers["location"], "/?mode=editing")
@@ -272,6 +272,7 @@ class TestApiServer(unittest.TestCase):
                 me_data = res_me2.json()
                 self.assertTrue(me_data["authenticated"])
                 self.assertEqual(me_data["user"]["email"], "acicchelli65@gmail.com")
+                self.assertEqual(me_data["user"]["name"], "Cico")
 
             # 5. Logout clears session
             res_out = self.client.post("/api/auth/logout")

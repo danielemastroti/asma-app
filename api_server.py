@@ -213,7 +213,14 @@ def get_health():
 def get_authorized_users():
     """Returns the list of authorized band members."""
     users = auth_mgr.list_users()
-    return [{"email": u.email, "name": u.name, "role": u.role.value if hasattr(u.role, "value") else str(u.role)} for u in users]
+    return [
+        {
+            "email": u.email,
+            "name": auth_mgr.BAND_PSEUDONYMS.get(u.email.lower()) or u.name,
+            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+        }
+        for u in users
+    ]
 
 
 SESSION_COOKIE_NAME = "asma_session"
@@ -328,15 +335,16 @@ def get_current_auth_user(request: Request):
         return {"authenticated": False, "user": None, "google_configured": google_configured}
 
     email = session_data["email"]
+    pseudonym = auth_mgr.BAND_PSEUDONYMS.get(email.lower())
     u = auth_mgr.get_user_by_email(email) or auth_mgr.authenticate_or_register_google(
-        email, name=session_data.get("name", ""), picture_url=session_data.get("picture", "")
+        email, name=pseudonym or session_data.get("name", ""), picture_url=session_data.get("picture", "")
     )
     return {
         "authenticated": True,
         "google_configured": google_configured,
         "user": {
             "email": u.email,
-            "name": u.name,
+            "name": pseudonym or u.name,
             "role": u.role.value if hasattr(u.role, "value") else str(u.role),
             "picture": getattr(u, "picture_url", "") or session_data.get("picture", ""),
         },
@@ -406,13 +414,14 @@ def google_oauth_callback(
             status_code=403,
         )
 
-    name = str(user_info.get("name") or "").strip()
+    name = auth_mgr.BAND_PSEUDONYMS.get(email) or str(user_info.get("name") or "").strip()
     picture = str(user_info.get("picture") or "").strip()
     u = auth_mgr.authenticate_or_register_google(email, name=name, picture_url=picture)
+    display_name = auth_mgr.BAND_PSEUDONYMS.get(email) or u.name
 
     payload = {
         "email": u.email,
-        "name": u.name,
+        "name": display_name,
         "role": u.role.value if hasattr(u.role, "value") else str(u.role),
         "picture": picture,
         "exp": int(time.time()) + SESSION_TTL_SECONDS,
@@ -1760,7 +1769,7 @@ def list_users():
     users = auth_mgr.list_users()
     return [
         {
-            "name": u.name,
+            "name": auth_mgr.BAND_PSEUDONYMS.get(u.email.lower()) or u.name,
             "email": u.email,
             "role": u.role.value if hasattr(u.role, 'value') else str(u.role),
             "picture_url": getattr(u, "picture_url", "")
