@@ -14,9 +14,35 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=4.5">
+  <link rel="stylesheet" href="/style.css?v=4.6">
 </head>
 <body>
+
+  <!-- GOOGLE OAUTH LOGIN GATE (Allineato a asma-app.streamlit.app) -->
+  <div id="login-gate" class="login-gate" style="display: flex;">
+    <div class="login-card">
+      <img src="/assets/band_logo.png" alt="ASMA" class="login-logo" onerror="this.style.display='none'">
+      <div class="login-eyebrow">AREA RISERVATA BAND</div>
+      <p class="login-subtitle">Accedi con l'account Google autorizzato dalla band per consultare e modificare il repertorio.</p>
+      <div class="login-mode-box">
+        <div class="login-mode-label">Seleziona Modalità di Accesso:</div>
+        <label class="login-radio-row">
+          <input type="radio" name="login-app-mode" value="simplified" checked>
+          <span>🎤 Modalità Semplificata (Casa / Palco)</span>
+        </label>
+        <label class="login-radio-row">
+          <input type="radio" name="login-app-mode" value="editing">
+          <span>✏️ Modalità Editing Completo</span>
+        </label>
+      </div>
+      <button type="button" id="btn-google-login" class="btn btn-primary login-google-btn" onclick="startGoogleLogin()">
+        🎸 Accedi con Google
+      </button>
+      <div id="login-config-warning" class="login-warning" style="display: none;">
+        Accesso Google non configurato sul server (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET mancanti).
+      </div>
+    </div>
+  </div>
 
   <!-- TOP FIXED BRAND HEADER -->
   <header class="app-header">
@@ -443,8 +469,20 @@ girano in centro sfiorando i novanta"></textarea>
           <!-- CARD 1: MUSICISTA & HARDWARE -->
           <div class="settings-card">
             <div class="settings-card-title">👤 Musicista & Dispositivo</div>
-            
-            <div class="control-row">
+
+            <div class="control-row" style="flex-wrap: wrap; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid rgba(148,163,184,0.2); margin-bottom: 10px;">
+              <div style="font-size: 12.5px; color: #cbd5e1;">
+                Account Google: <strong id="auth-google-email" style="color: #38bdf8;">-</strong>
+              </div>
+              <button type="button" class="btn btn-secondary" style="min-height: 32px; padding: 4px 10px; font-size: 12px;" onclick="logoutGoogle()">
+                🚪 Esci / Cambia Account
+              </button>
+            </div>
+            <div id="auth-nonadmin-note" style="display: none; font-size: 11.5px; color: #94a3b8; margin-bottom: 10px;">
+              ℹ️ Questa sessione è collegata al tuo account personale Google. Solo l'amministratore può commutare profili di test.
+            </div>
+
+            <div id="setting-musician-row" class="control-row">
               <label class="control-label">Musicista:</label>
               <select id="setting-musician-select" class="search-input" style="flex:1; max-width:200px;" onchange="onMusicianChange(this.value)">
                 <option value="acicchelli65@gmail.com" selected>Cico (Cantante)</option>
@@ -745,6 +783,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=14.10"></script>
+  <script src="/app.js?v=15.0"></script>
 </body>
 </html>

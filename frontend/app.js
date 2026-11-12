@@ -68,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNav();
   initHistoryNavigation();
   initKeyboardAndPedals();
+  const authed = await checkGoogleAuth();
+  if (!authed) return;
   await loadUsersAndDevices();
   await loadUserPreferences();
   await loadRepertoires();
@@ -75,6 +77,84 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSetlists();
   applyAppModeToUi();
 });
+
+async function checkGoogleAuth() {
+  const gate = document.getElementById('login-gate');
+  const warn = document.getElementById('login-config-warning');
+  const params = new URLSearchParams(window.location.search);
+  const urlMode = params.get('mode');
+  if (urlMode === 'editing' || urlMode === 'simplified') {
+    state.appMode = urlMode;
+    state.userPrefs.app_mode = urlMode;
+    try { localStorage.setItem('asma_app_mode', urlMode); } catch (e) {}
+    params.delete('mode');
+    const cleanSearch = params.toString();
+    const cleanUrl = window.location.pathname + (cleanSearch ? `?${cleanSearch}` : '') + window.location.hash;
+    window.history.replaceState(window.history.state, '', cleanUrl);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.authenticated && data.user && data.user.email) {
+        state.currentUser = {
+          email: data.user.email,
+          name: data.user.name || data.user.email.split('@')[0],
+          role: data.user.role || 'BAND_MEMBER',
+          picture: data.user.picture || ''
+        };
+        state.authenticatedUserEmail = data.user.email;
+        try { localStorage.setItem('asma_user_email', data.user.email); } catch (e) {}
+        if (gate) gate.style.display = 'none';
+        syncAuthProfileUi();
+        return true;
+      }
+      if (warn) {
+        warn.style.display = (data && data.google_configured === false) ? 'block' : 'none';
+      }
+    }
+  } catch (err) {
+    console.warn('Auth check error:', err);
+  }
+
+  if (gate) {
+    gate.style.display = 'flex';
+    const modeRadio = document.querySelector(`input[name="login-app-mode"][value="${state.appMode === 'editing' ? 'editing' : 'simplified'}"]`);
+    if (modeRadio) modeRadio.checked = true;
+  }
+  return false;
+}
+
+function startGoogleLogin() {
+  const checked = document.querySelector('input[name="login-app-mode"]:checked');
+  const chosenMode = checked ? checked.value : 'simplified';
+  try { localStorage.setItem('asma_app_mode', chosenMode); } catch (e) {}
+  (window.top || window).location.href = `${API_BASE}/api/auth/google/login?mode=${encodeURIComponent(chosenMode)}`;
+}
+
+async function logoutGoogle() {
+  try {
+    await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'same-origin' });
+  } catch (e) {}
+  try { localStorage.removeItem('asma_user_email'); } catch (e) {}
+  window.location.href = '/';
+}
+
+function syncAuthProfileUi() {
+  const emailEl = document.getElementById('auth-google-email');
+  if (emailEl) emailEl.textContent = state.authenticatedUserEmail || state.currentUser.email || '-';
+  const nameSpan = document.getElementById('current-user-name');
+  if (nameSpan) nameSpan.textContent = state.currentUser.name || 'Musicista';
+
+  const authEmail = (state.authenticatedUserEmail || state.currentUser.email || '').toLowerCase();
+  const isAuthAdmin = ['danyposta@gmail.com', 'danyposta@yahoo.it'].includes(authEmail) ||
+                      state.currentUser.role === 'ADMIN' || state.currentUser.role === 'BAND_LEADER';
+  const musRow = document.getElementById('setting-musician-row');
+  const nonAdminNote = document.getElementById('auth-nonadmin-note');
+  if (musRow) musRow.style.display = isAuthAdmin ? 'flex' : 'none';
+  if (nonAdminNote) nonAdminNote.style.display = isAuthAdmin ? 'none' : 'block';
+}
 
 function initServiceWorker() {
   if ('serviceWorker' in navigator) {

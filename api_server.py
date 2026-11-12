@@ -10,10 +10,15 @@ import os
 import io
 import re
 import json
+import hmac
+import hashlib
+import base64
+import time
+from html import escape as html_escape
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, Query, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 from asma_core.models import Song, Repertoire, Setlist, SetlistItem, DeviceProfile, generate_uuid
@@ -209,6 +214,232 @@ def get_authorized_users():
     """Returns the list of authorized band members."""
     users = auth_mgr.list_users()
     return [{"email": u.email, "name": u.name, "role": u.role.value if hasattr(u.role, "value") else str(u.role)} for u in users]
+
+
+SESSION_COOKIE_NAME = "asma_session"
+SESSION_TTL_SECONDS = 30 * 24 * 3600
+_FALLBACK_SESSION_SECRET = os.urandom(32).hex()
+
+
+def _get_google_oauth_config() -> tuple[str, str]:
+    """Loads Google OAuth2 client_id and client_secret from env vars or local .streamlit/secrets.toml."""
+    cid = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    csec = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    if cid and csec:
+        return cid, csec
+
+    secrets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".streamlit", "secrets.toml")
+    if os.path.exists(secrets_path):
+        try:
+            import tomllib
+            with open(secrets_path, "rb") as f:
+                data = tomllib.load(f)
+            for section in ("auth", "google_auth"):
+                sec = data.get(section, {})
+                if isinstance(sec, dict):
+                    cid = cid or str(sec.get("client_id", "")).strip()
+                    csec = csec or str(sec.get("client_secret", "")).strip()
+        except Exception:
+            pass
+    return cid, csec
+
+
+def _get_session_secret() -> str:
+    env_sec = os.environ.get("SESSION_SECRET", "").strip()
+    if env_sec:
+        return env_sec
+    _, csec = _get_google_oauth_config()
+    if csec:
+        return hashlib.sha256(f"asma_session::{csec}".encode("utf-8")).hexdigest()
+    return _FALLBACK_SESSION_SECRET
+
+
+def _sign_session_payload(payload: Dict[str, Any]) -> str:
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    b64 = base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+    sig = hmac.new(_get_session_secret().encode("utf-8"), b64.encode("ascii"), hashlib.sha256).hexdigest()
+    return f"{b64}.{sig}"
+
+
+def _verify_session_cookie(token: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not token or "." not in token:
+        return None
+    try:
+        b64, sig = token.rsplit(".", 1)
+        expected = hmac.new(_get_session_secret().encode("utf-8"), b64.encode("ascii"), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return None
+        padded = b64 + "=" * (-len(b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+        if not isinstance(payload, dict) or int(payload.get("exp", 0)) < int(time.time()):
+            return None
+        email = str(payload.get("email", "")).strip().lower()
+        if not email or not auth_mgr.is_email_allowed(email):
+            return None
+        return payload
+    except Exception:
+        return None
+
+
+def _get_oauth_redirect_uri(request: Request) -> str:
+    override = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
+    if override:
+        return override
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "http").split(",")[0].strip()
+    host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc).split(",")[0].strip()
+    return f"{proto}://{host}/oauth2callback"
+
+
+def _render_oauth_error_html(title: str, message: str) -> str:
+    return f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{html_escape(title)} - THE New ASMA</title>
+  <style>
+    body {{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+           background:#0f172a; color:#f8fafc; font-family:system-ui,-apple-system,sans-serif; padding:20px; }}
+    .card {{ max-width:440px; width:100%; background:#1e293b; border:1px solid #334155;
+            border-radius:14px; padding:28px; text-align:center; box-shadow:0 12px 32px rgba(0,0,0,0.45); }}
+    .title {{ color:#f87171; font-size:18px; font-weight:800; margin-bottom:10px; }}
+    .msg {{ color:#cbd5e1; font-size:14px; line-height:1.5; margin-bottom:22px; }}
+    .btn {{ display:inline-block; background:#0284c7; color:#fff; text-decoration:none; font-weight:700;
+           padding:11px 20px; border-radius:8px; font-size:14px; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">{html_escape(title)}</div>
+    <div class="msg">{html_escape(message)}</div>
+    <a class="btn" href="/api/auth/google/login">🔄 Riprova con un altro account Google</a>
+  </div>
+</body>
+</html>"""
+
+
+@app.get("/api/auth/me")
+def get_current_auth_user(request: Request):
+    """Returns the currently authenticated Google band member from the signed session cookie."""
+    cid, csec = _get_google_oauth_config()
+    google_configured = bool(cid and csec)
+    session_data = _verify_session_cookie(request.cookies.get(SESSION_COOKIE_NAME))
+    if not session_data:
+        return {"authenticated": False, "user": None, "google_configured": google_configured}
+
+    email = session_data["email"]
+    u = auth_mgr.get_user_by_email(email) or auth_mgr.authenticate_or_register_google(
+        email, name=session_data.get("name", ""), picture_url=session_data.get("picture", "")
+    )
+    return {
+        "authenticated": True,
+        "google_configured": google_configured,
+        "user": {
+            "email": u.email,
+            "name": u.name,
+            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+            "picture": getattr(u, "picture_url", "") or session_data.get("picture", ""),
+        },
+    }
+
+
+@app.get("/api/auth/google/login")
+def google_oauth_login(request: Request, mode: str = Query("simplified")):
+    """Redirects top-level browser to Google OAuth2 account selection."""
+    cid, csec = _get_google_oauth_config()
+    if not cid or not csec:
+        return HTMLResponse(
+            _render_oauth_error_html(
+                "Accesso Google non configurato",
+                "Configura GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET nelle variabili d'ambiente del server prima di effettuare il login.",
+            ),
+            status_code=503,
+        )
+    safe_mode = "editing" if mode == "editing" else "simplified"
+    redirect_uri = _get_oauth_redirect_uri(request)
+    oauth_url = auth_mgr.build_google_oauth_url(cid, redirect_uri, state=f"asma_auth:{safe_mode}")
+    return RedirectResponse(url=oauth_url, status_code=302)
+
+
+@app.get("/oauth2callback")
+def google_oauth_callback(
+    request: Request,
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    error: Optional[str] = Query(None),
+):
+    """Handles Google OAuth2 callback, verifies band allowlist, and sets signed session cookie."""
+    if error or not code:
+        return HTMLResponse(
+            _render_oauth_error_html(
+                "Autenticazione Google annullata",
+                f"Google ha restituito un errore o l'accesso è stato annullato ({error or 'codice mancante'}).",
+            ),
+            status_code=400,
+        )
+
+    cid, csec = _get_google_oauth_config()
+    if not cid or not csec:
+        return HTMLResponse(
+            _render_oauth_error_html("Configurazione OAuth mancante", "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET non impostati."),
+            status_code=503,
+        )
+
+    redirect_uri = _get_oauth_redirect_uri(request)
+    user_info = auth_mgr.exchange_google_code_for_user(code, cid, csec, redirect_uri)
+    if not user_info or not user_info.get("email"):
+        return HTMLResponse(
+            _render_oauth_error_html(
+                "Verifica Google non riuscita",
+                "Impossibile verificare l'account Google. Verifica che il Redirect URI autorizzato includa " + redirect_uri,
+            ),
+            status_code=401,
+        )
+
+    email = str(user_info["email"]).strip().lower()
+    if not auth_mgr.is_email_allowed(email):
+        return HTMLResponse(
+            _render_oauth_error_html(
+                "❌ Accesso negato",
+                f"L'account Google '{email}' non appartiene alla lista musicisti autorizzati della band ASMA.",
+            ),
+            status_code=403,
+        )
+
+    name = str(user_info.get("name") or "").strip()
+    picture = str(user_info.get("picture") or "").strip()
+    u = auth_mgr.authenticate_or_register_google(email, name=name, picture_url=picture)
+
+    payload = {
+        "email": u.email,
+        "name": u.name,
+        "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+        "picture": picture,
+        "exp": int(time.time()) + SESSION_TTL_SECONDS,
+    }
+    token = _sign_session_payload(payload)
+    chosen_mode = "editing" if (state or "").endswith(":editing") else "simplified"
+    target_url = f"/?mode={chosen_mode}"
+    resp = RedirectResponse(url=target_url, status_code=302)
+    is_https = (request.headers.get("x-forwarded-proto") or request.url.scheme) == "https"
+    resp.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        max_age=SESSION_TTL_SECONDS,
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/",
+    )
+    return resp
+
+
+@app.post("/api/auth/logout")
+def google_oauth_logout():
+    """Clears the Google session cookie."""
+    resp = JSONResponse({"status": "ok"})
+    resp.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    return resp
 
 
 # -----------------------------------------------------------------------------

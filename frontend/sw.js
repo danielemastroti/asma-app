@@ -1,5 +1,5 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v57';
+const CACHE_NAME = 'asma-pwa-v58';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (e) => {
 
   // CRITICAL: NEVER intercept /api/ endpoints or PDF download streams.
   // Intercepting attachments in ServiceWorker causes Chromium to fail downloads with about:blank!
-  if (url.includes('/api/')) {
+  if (url.includes('/api/') || url.includes('/oauth2callback')) {
     return;
   }
 

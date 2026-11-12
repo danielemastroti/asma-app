@@ -237,6 +237,48 @@ class TestApiServer(unittest.TestCase):
             self.assertEqual(data["capo"], 2)
             self.assertIn("[SOL]", data["aml"])
 
+    def test_15_google_oauth_flow_and_allowlist(self):
+        from unittest.mock import patch
+        import api_server
+
+        # 1. Unauthenticated /api/auth/me
+        res_me = self.client.get("/api/auth/me")
+        self.assertEqual(res_me.status_code, 200)
+        self.assertFalse(res_me.json()["authenticated"])
+
+        with patch.object(api_server, "_get_google_oauth_config", return_value=("test-client-id", "test-client-secret")):
+            # 2. Login redirect points to Google Accounts with /oauth2callback
+            res_login = self.client.get("/api/auth/google/login?mode=editing", follow_redirects=False)
+            self.assertEqual(res_login.status_code, 302)
+            loc = res_login.headers["location"]
+            self.assertIn("accounts.google.com/o/oauth2/v2/auth", loc)
+            self.assertIn("oauth2callback", loc)
+
+            # 3. Unauthorized Google email is rejected with 403
+            with patch.object(api_server.auth_mgr, "exchange_google_code_for_user", return_value={"email": "intruder@gmail.com", "name": "Intruder"}):
+                res_bad = self.client.get("/oauth2callback?code=badcode&state=asma_auth:simplified")
+                self.assertEqual(res_bad.status_code, 403)
+                self.assertIn("Accesso negato", res_bad.text)
+
+            # 4. Authorized band Google email sets session cookie and authenticates /api/auth/me
+            with patch.object(api_server.auth_mgr, "exchange_google_code_for_user", return_value={"email": "acicchelli65@gmail.com", "name": "Cico"}):
+                res_ok = self.client.get("/oauth2callback?code=goodcode&state=asma_auth:editing", follow_redirects=False)
+                self.assertEqual(res_ok.status_code, 302)
+                self.assertEqual(res_ok.headers["location"], "/?mode=editing")
+                self.assertIn("asma_session", res_ok.cookies)
+
+                res_me2 = self.client.get("/api/auth/me")
+                self.assertEqual(res_me2.status_code, 200)
+                me_data = res_me2.json()
+                self.assertTrue(me_data["authenticated"])
+                self.assertEqual(me_data["user"]["email"], "acicchelli65@gmail.com")
+
+            # 5. Logout clears session
+            res_out = self.client.post("/api/auth/logout")
+            self.assertEqual(res_out.status_code, 200)
+            res_me3 = self.client.get("/api/auth/me")
+            self.assertFalse(res_me3.json()["authenticated"])
+
 
 if __name__ == '__main__':
     unittest.main()
