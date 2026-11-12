@@ -2378,6 +2378,9 @@ function logPdfExportAction(msg) {
   const ts = new Date().toTimeString().slice(0, 8);
   el.textContent += (el.textContent ? '\n' : '') + `[${ts}] ${msg}`;
   el.scrollTop = el.scrollHeight;
+  try {
+    localStorage.setItem('asma_pdf_debug_last', el.textContent);
+  } catch (e) {}
 }
 
 async function copyPdfExportDebugLog() {
@@ -2403,7 +2406,11 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   const debugEl = document.getElementById('pdf-export-debug-log');
 
   if (!modal) return;
-  if (debugEl) debugEl.textContent = '';
+  let prevLog = '';
+  try { prevLog = localStorage.getItem('asma_pdf_debug_last') || ''; } catch (e) {}
+  if (debugEl) {
+    debugEl.textContent = prevLog ? `--- LOG PRECEDENTE ---\n${prevLog}\n--- SESSIONE ATTUALE ---` : '';
+  }
   if (nameEl) nameEl.textContent = filename;
   if (statusEl) statusEl.textContent = '⏳ Preparazione file PDF dal server...';
   if (shareBtn) shareBtn.style.display = 'none';
