@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=16.2">
+  <link rel="stylesheet" href="/style.css?v=16.3">
 </head>
 <body>
 
@@ -94,11 +94,6 @@
             &bull; Archivio sincronizzato in cloud
           </p>
         </div>
-        <div class="dash-hero-actions">
-          <button class="btn btn-primary dash-hero-btn" onclick="switchTab('songs')">🎵 Vai ai Brani</button>
-          <button class="btn btn-secondary dash-hero-btn" onclick="switchTab('setlists')">📑 Apri Scalette</button>
-          <button class="btn btn-secondary dash-hero-btn" onclick="openChangelogModal()" style="border-color: #38bdf8; color: #38bdf8;">📋 Novità</button>
-        </div>
       </div>
 
       <!-- MODALITA' OPERATIVA: SEMPLIFICATO (CASA / PALCO) VS EDITING -->
@@ -159,39 +154,6 @@
           <div class="dash-stat-label">Scalette Band</div>
           <div class="dash-stat-sub" id="dash-stat-setlists-sub">Caricamento...</div>
         </div>
-      </div>
-
-      <!-- MENU DI ACCESSO RAPIDO -->
-      <div class="dash-section-header">
-        <span>🧭 Menu Principale</span>
-      </div>
-      <div class="dash-menu-grid">
-        <button type="button" class="dash-menu-card" onclick="switchTab('songs')">
-          <div class="dash-menu-icon dash-menu-icon-cyan">🎵</div>
-          <div class="dash-menu-body">
-            <div class="dash-menu-title">Brani &amp; Spartiti</div>
-            <div class="dash-menu-desc">Sfoglia repertori, cambia tonalità, modifica accordi, scansiona foto ed esporta PDF.</div>
-          </div>
-          <div class="dash-menu-arrow">›</div>
-        </button>
-
-        <button type="button" class="dash-menu-card" onclick="switchTab('setlists')">
-          <div class="dash-menu-icon dash-menu-icon-green">📑</div>
-          <div class="dash-menu-body">
-            <div class="dash-menu-title">Scalette &amp; Palco Live</div>
-            <div class="dash-menu-desc">Gestisci la scaletta del concerto, stampa A4 e avvia il prompter per il palco.</div>
-          </div>
-          <div class="dash-menu-arrow">›</div>
-        </button>
-
-        <button type="button" class="dash-menu-card" onclick="switchTab('settings')">
-          <div class="dash-menu-icon dash-menu-icon-gold">⚙️</div>
-          <div class="dash-menu-body">
-            <div class="dash-menu-title">Impostazioni &amp; Profilo</div>
-            <div class="dash-menu-desc">Seleziona musicista, tablet, font, colori spartito e configurazione AI.</div>
-          </div>
-          <div class="dash-menu-arrow">›</div>
-        </button>
       </div>
 
       <!-- ACCESSO DIRETTO REPERTORI & SCALETTE -->
@@ -911,6 +873,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=16.2"></script>
+  <script src="/app.js?v=16.3"></script>
 </body>
 </html>
