@@ -815,6 +815,20 @@ class PDFEngine:
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ]))
+                elif sec_name in ["end", "fine"]:
+                    sb = styles["SectionBadge"]
+                    end_text = f"[{badge_title}]"
+                    p_end = Paragraph(f"<b>{escape(end_text)}</b>", sb)
+                    text_w = pdfmetrics.stringWidth(end_text, sb.fontName, sb.fontSize)
+                    badge_w = min(usable_width, text_w + 14.0)
+                    badge_table = Table([[p_end]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
                 else:
                     badge_table = Table([[p]], colWidths=[usable_width])
                     badge_table.setStyle(TableStyle([
@@ -985,6 +999,38 @@ class PDFEngine:
 
         if pending_badge:
             flowables.append(pending_badge)
+            pending_badge = None
+
+        # Inserisci un badge [END] di default alla fine del brano se non gia' presente
+        has_end_badge = False
+        for node in reversed(doc.nodes):
+            if isinstance(node, EmptyLineNode):
+                continue
+            if isinstance(node, SectionNode) and node.section_name in ["end", "fine"]:
+                has_end_badge = True
+                break
+            if isinstance(node, DirectiveNode) and node.name in ["end", "fine"]:
+                has_end_badge = True
+                break
+            break
+
+        if not has_end_badge and flowables:
+            if not isinstance(flowables[-1], Spacer):
+                flowables.append(Spacer(1, 2.5 * mm))
+            sb = styles["SectionBadge"]
+            end_text = "[END]"
+            p_end = Paragraph(f"<b>{escape(end_text)}</b>", sb)
+            text_w = pdfmetrics.stringWidth(end_text, sb.fontName, sb.fontSize)
+            badge_w = min(usable_width, text_w + 14.0)
+            end_table = Table([[p_end]], colWidths=[badge_w], hAlign="LEFT")
+            end_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            flowables.append(KeepTogether([end_table]))
 
         return flowables
 

@@ -1084,6 +1084,15 @@ function transposeAmlText(aml, semitones) {
 async function transposeSong(semitones) {
   if (!state.selectedSong || !requireEditingMode()) return;
 
+  const officialRep = state.repertoires.find(r => r.is_official);
+  const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(state.selectedSong.uuid);
+  if (isInOfficial) {
+    if (confirm(`I brani del Repertorio Ufficiale non possono essere modificati direttamente.\n\nVuoi creare una copia personale nel tuo repertorio per cambiare tonalità?`)) {
+      await forkSongToPersonal(state.selectedSong.uuid);
+    }
+    return;
+  }
+
   // 1. Instant Client-Side Transposition (0ms!)
   state.selectedSong.aml_content = transposeAmlText(state.selectedSong.aml_content, semitones);
   state.selectedSong.key_current = transposeSingleChord(state.selectedSong.key_current, semitones);
@@ -1274,6 +1283,7 @@ function renderSongViewer() {
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[RITORNELLO]\\n')">[RIT]</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[SPECIALE]\\n')">[SPECIAL]</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[OUTRO]\\n')">[OUTRO]</button>
+            <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[END]\\n')">[END]</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n♪ (Strumentale)\\n')">♪ Inst</button>
           </div>
         </div>
@@ -1301,20 +1311,32 @@ function renderSongViewer() {
   const promoteBtn = (editing && !isInOfficial && officialRep) ? 
     `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Sposta nel Repertorio Ufficiale Band (se già presente su Ufficiale lo sovrascrive ed elimina questa copia personale)">⭐ Promuovi a Ufficiale</button>` : '';
 
-  const editingToolsHtml = editing ? `
+  // Transpose buttons: solo per brani personali (l'ufficiale è protetto da modifiche dirette)
+  const editingToolsHtml = (editing && !isInOfficial) ? `
         <button class="btn btn-secondary" onclick="transposeSong(-1)" title="Abbassa di 1 semitono (salva nel DB)">♭ -1</button>
         <button class="btn btn-secondary" onclick="transposeSong(1)" title="Alza di 1 semitono (salva nel DB)">♯ +1</button>` : '';
-  const editingActionsHtml = editing ? `
+
+  let editingActionsHtml = '';
+  if (editing) {
+    if (isInOfficial) {
+      editingActionsHtml = `
+        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
+        <button class="btn btn-primary" style="font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8;" onclick="forkSongToPersonalAndEdit('${s.uuid}')" title="Copia questo brano nel tuo repertorio personale per poterlo modificare liberamente">📋 Copia nel Personale per Modificare</button>`;
+    } else {
+      editingActionsHtml = `
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
         ${promoteBtn}
-        <button class="btn btn-secondary" onclick="forkSongToPersonal('${s.uuid}')" title="Crea una copia indipendente nel tuo repertorio personale per personalizzarla liberamente">📋 Copia Personale</button>
         <button class="btn btn-secondary" onclick="openSongEditor()" title="Modifica testo o accordi">✏️ Modifica</button>
-        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>` : '';
+        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano con protezione e recupero immediato">🗑️</button>`;
+    }
+  }
+
+  const officialBadgeHtml = isInOfficial ? '<span style="display:inline-block; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); border-radius:4px; padding:1px 6px; font-size:11px; font-weight:800; margin-left:6px;">🔒 Ufficiale Protetto</span>' : '';
 
   const headerHtml = `
     <div class="viewer-header">
       <div>
-        <h2 style="font-size: 22px; font-weight: 900; color: #fff;">${escapeHtml(s.title)}</h2>
+        <h2 style="font-size: 22px; font-weight: 900; color: #fff;">${escapeHtml(s.title)}${officialBadgeHtml}</h2>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
           <b>${escapeHtml(s.artist || 'Band')}</b> &bull; Tonalità: <code style="color:#ffd600; font-weight:700;">${toLatinKey(s.key_current)}</code>
           &bull; Tempo: <code style="color:#00e5ff;">${s.bpm || 120} BPM</code> &bull; Capo: <b>${s.capo || 0}°</b>
@@ -1330,6 +1352,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="toggleSongViewType()" title="Passa tra vista Spartito PDF reale e Testo Web">${viewTypeLabel}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
         ${editingActionsHtml}
+        <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareA4Modal()" title="Condividi o stampa PDF in formato A4 con font personalizzato su WhatsApp per la band">📤 A4 / WhatsApp</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
       </div>
@@ -1406,8 +1429,16 @@ function setSongViewType(type) {
 // ----------------------------------------------------------------------------
 // TOUCH EDITOR & SONG IMPORT ENGINE (1-Touch Actions)
 // ----------------------------------------------------------------------------
-function openSongEditor() {
+async function openSongEditor() {
   if (!requireEditingMode()) return;
+  const officialRep = state.repertoires.find(r => r.is_official);
+  const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(state.selectedSong?.uuid);
+  if (isInOfficial) {
+    if (confirm(`I brani del Repertorio Ufficiale non possono essere modificati direttamente.\n\nVuoi creare subito una copia personale nel tuo repertorio da modificare e poi promuovere a ufficiale?`)) {
+      await forkSongToPersonalAndEdit(state.selectedSong.uuid);
+    }
+    return;
+  }
   state.isEditingSong = true;
   renderSongViewer();
 }
@@ -1419,6 +1450,12 @@ function closeSongEditor() {
 
 async function saveSongEdit(downloadPdfAfter = false) {
   if (!state.selectedSong) return;
+  const officialRep = state.repertoires.find(r => r.is_official);
+  const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(state.selectedSong?.uuid);
+  if (isInOfficial) {
+    showToast('⚠️ Non è possibile modificare direttamente il Repertorio Ufficiale. Crea una copia personale.');
+    return;
+  }
   const titleInput = document.getElementById('edit-song-title');
   const artistInput = document.getElementById('edit-song-artist');
   const keyInput = document.getElementById('edit-song-key');
@@ -2302,7 +2339,7 @@ function parseAmlForWeb(aml, showChords) {
     let sectionTitle = null;
     if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       const candidate = trimmed.slice(1, -1).toUpperCase();
-      const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO', 'RIFF'];
+      const standardSections = ['INTRO', 'STROFA', 'VERSE', 'RITORNELLO', 'CHORUS', 'BRIDGE', 'SPECIAL', 'OUTRO', 'FINALE', 'STRUMENTALE', 'SOLO', 'CODA', 'STACCO', 'RIFF', 'END', 'FINE'];
       if (standardSections.some(s => candidate.startsWith(s) || candidate.includes(s))) {
         sectionTitle = candidate;
       }
@@ -2401,6 +2438,14 @@ function parseAmlForWeb(aml, showChords) {
   }
 
   if (inSection) html += '</div>';
+
+  // Inserisci un badge [END] di default alla fine del brano se non già presente
+  const trimmedAml = (amlText || '').trim();
+  const alreadyHasEnd = /\[\s*(?:END|FINE)\s*\]\s*$/i.test(trimmedAml) || /\{\s*(?:end|fine)\s*\}\s*$/i.test(trimmedAml);
+  if (!alreadyHasEnd && trimmedAml.length > 0) {
+    html += '<div class="aml-section"><div class="aml-tag-header" style="color: var(--stage-aml-color, #38bdf8); font-weight: 900;">[END]</div></div>';
+  }
+
   return html;
 }
 
@@ -2589,6 +2634,139 @@ function printA4() {
   const hasChords = state.scoreMode === 'chords';
   const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
   printDirectA4(url);
+}
+
+// ----------------------------------------------------------------------------
+// A4 PDF EXPORT WITH CUSTOM FONT SIZES & WHATSAPP WEB SHARE
+// ----------------------------------------------------------------------------
+const shareA4State = {
+  fontSizeLyrics: 12,
+  fontSizeChords: 13,
+  includeChords: true,
+  twoCols: false,
+};
+
+function openShareA4Modal() {
+  if (!state.selectedSong) return;
+  const modal = document.getElementById('share-a4-modal');
+  const titleEl = document.getElementById('share-a4-song-title');
+  const lyricsVal = document.getElementById('share-a4-lyrics-val');
+  const chordsVal = document.getElementById('share-a4-chords-val');
+  const includeChords = document.getElementById('share-a4-include-chords');
+  const twoCols = document.getElementById('share-a4-two-cols');
+  const statusEl = document.getElementById('share-a4-status');
+
+  const p = state.userPrefs || {};
+  shareA4State.fontSizeLyrics = p.layout_font_size || 12;
+  shareA4State.fontSizeChords = p.layout_font_size_chords || 13;
+  shareA4State.includeChords = state.scoreMode === 'chords';
+  shareA4State.twoCols = (p.layout_columns || 1) === 2;
+
+  if (titleEl) titleEl.textContent = `🎵 ${state.selectedSong.title} — ${state.selectedSong.artist || 'Band'}`;
+  if (lyricsVal) lyricsVal.textContent = `${shareA4State.fontSizeLyrics} pt`;
+  if (chordsVal) chordsVal.textContent = `${shareA4State.fontSizeChords} pt`;
+  if (includeChords) includeChords.checked = shareA4State.includeChords;
+  if (twoCols) twoCols.checked = shareA4State.twoCols;
+  if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 standard pronto per stampa e condivisione';
+
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeShareA4Modal() {
+  const modal = document.getElementById('share-a4-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function adjustA4FontSize(type, delta) {
+  if (type === 'lyrics') {
+    shareA4State.fontSizeLyrics = Math.max(9, Math.min(22, shareA4State.fontSizeLyrics + delta));
+    const el = document.getElementById('share-a4-lyrics-val');
+    if (el) el.textContent = `${shareA4State.fontSizeLyrics} pt`;
+  } else if (type === 'chords') {
+    shareA4State.fontSizeChords = Math.max(10, Math.min(24, shareA4State.fontSizeChords + delta));
+    const el = document.getElementById('share-a4-chords-val');
+    if (el) el.textContent = `${shareA4State.fontSizeChords} pt`;
+  }
+}
+
+async function executeShareA4(action = 'whatsapp') {
+  if (!state.selectedSong) return;
+  const song = state.selectedSong;
+  const cleanTitle = (song.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const filename = `${cleanTitle}_A4.pdf`;
+  const statusEl = document.getElementById('share-a4-status');
+  const chordsInput = document.getElementById('share-a4-include-chords');
+  const twoColsInput = document.getElementById('share-a4-two-cols');
+  const includeChords = chordsInput ? chordsInput.checked : true;
+  const twoCols = twoColsInput ? twoColsInput.checked : false;
+
+  const qs = new URLSearchParams({
+    device: 'A4',
+    a4: 'true',
+    chords: includeChords ? 'true' : 'false',
+    columns: twoCols ? '2' : '1',
+    font_size: String(shareA4State.fontSizeLyrics),
+    font_size_chords: String(shareA4State.fontSizeChords),
+    user_name: state.currentUser?.name || '',
+    email: state.currentUser?.email || '',
+    download: 'true'
+  }).toString();
+
+  const url = `${API_BASE}/api/songs/${song.uuid}/pdf?${qs}`;
+
+  if (action === 'print') {
+    closeShareA4Modal();
+    printDirectA4(`${url}&autoprint=true`);
+    return;
+  }
+
+  if (action === 'download') {
+    closeShareA4Modal();
+    triggerPdfDownload(url, filename, () => printDirectA4(`${url}&autoprint=true`));
+    return;
+  }
+
+  // Azione WHATSAPP con Web Share API nativa
+  if (statusEl) statusEl.textContent = '⏳ Generazione PDF A4 in corso...';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: 'application/pdf' });
+
+    // Verifica supporto nativo condivisione file (iOS Safari, Android Chrome/PWA)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (statusEl) statusEl.textContent = '📲 Apertura WhatsApp...';
+      await navigator.share({
+        files: [file],
+        title: `${song.title} (A4)`,
+        text: `Ecco il PDF A4 di "${song.title}" per la band!`
+      });
+      if (statusEl) statusEl.textContent = '✓ Condiviso!';
+      closeShareA4Modal();
+    } else if (navigator.share) {
+      // Fallback per browser con navigator.share solo URL/testo
+      await navigator.share({
+        title: `${song.title} (A4)`,
+        text: `Spartito A4 per la band: ${song.title}\nScarica PDF: ${url}`,
+        url: url
+      });
+      closeShareA4Modal();
+    } else {
+      // Fallback desktop: apre WhatsApp Web e avvia download del PDF
+      const msg = encodeURIComponent(`Spartito A4 per la band: ${song.title}\nScarica PDF: ${url}`);
+      window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+      triggerPdfDownload(url, filename);
+      closeShareA4Modal();
+    }
+  } catch (err) {
+    if (err && err.name !== 'AbortError') {
+      console.warn('Share error:', err);
+      if (statusEl) statusEl.textContent = `⚠️ Errore condivisione (${err.message}). Puoi usare "Scarica PDF A4".`;
+    } else {
+      if (statusEl) statusEl.textContent = '';
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -3596,6 +3774,12 @@ let lastDeletedSong = null;
 
 async function deleteSongWithUndo(uuid) {
   if (!requireEditingMode()) return;
+  const officialRep = state.repertoires.find(r => r.is_official);
+  const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(uuid);
+  if (isInOfficial && (!state.activeRepertoire || state.activeRepertoire === officialRep.uuid || state.activeRepertoire === '__ALL__')) {
+    showToast('⚠️ I brani del Repertorio Ufficiale non possono essere eliminati direttamente.');
+    return;
+  }
   const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
   if (!song) return;
 
@@ -3707,6 +3891,44 @@ async function forkSongToPersonal(uuid) {
     }
   } catch (err) {
     console.error('Error forking song:', err);
+    showToast('Errore di connessione');
+  }
+}
+
+async function forkSongToPersonalAndEdit(uuid) {
+  if (!requireEditingMode()) return;
+  const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
+  if (!song) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}/fork-personal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`✓ Copia personale creata in "${data.target_repertoire_name}"! Ora puoi modificarla.`);
+      if (data.target_repertoire_uuid) {
+        state.activeRepertoire = data.target_repertoire_uuid;
+      }
+      await loadRepertoires();
+      renderRepertoireChips();
+      await loadSongs();
+      if (data.cloned_song && data.cloned_song.uuid) {
+        selectSong(data.cloned_song.uuid);
+        state.isEditingSong = true;
+        renderSongViewer();
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Errore durante la creazione della copia personale');
+    }
+  } catch (err) {
+    console.error('Error forking song for edit:', err);
     showToast('Errore di connessione');
   }
 }

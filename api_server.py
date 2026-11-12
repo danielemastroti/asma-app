@@ -1000,6 +1000,15 @@ def update_song(uuid: str, req: SongUpdateRequest):
         song, req.repertoire_uuid, req.user_email, req.user_name
     )
 
+    if not was_detached:
+        all_reps = storage.list_repertoires()
+        official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+        if official_rep and song.uuid in official_rep.song_uuids:
+            raise HTTPException(
+                status_code=403,
+                detail="I brani del Repertorio Ufficiale non possono essere modificati direttamente. Crea prima una copia personale nel tuo repertorio e promuovila a ufficiale quando completata."
+            )
+
     if req.title is not None and req.title.strip().upper() != song.title.strip().upper():
         new_title = req.title.strip().upper()
         all_reps = storage.list_repertoires()
@@ -1136,6 +1145,15 @@ def transpose_song(uuid: str, req: TransposeRequest):
     song, was_detached = _ensure_personal_copy_if_shared(
         song, req.repertoire_uuid, req.user_email, req.user_name
     )
+
+    if not was_detached:
+        all_reps = storage.list_repertoires()
+        official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+        if official_rep and song.uuid in official_rep.song_uuids:
+            raise HTTPException(
+                status_code=403,
+                detail="I brani del Repertorio Ufficiale non possono essere modificati direttamente. Crea prima una copia personale nel tuo repertorio e promuovila a ufficiale quando completata."
+            )
 
     song.aml_content = AMLParser.transpose_preserving_format(song.aml_content, semitones=req.semitones)
     if song.key_current and song.key_current != "-":

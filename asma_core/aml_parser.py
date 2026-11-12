@@ -150,7 +150,7 @@ GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
 KNOWN_SECTIONS = {
     "intro", "verse", "chorus", "bridge", "solo", "outro",
     "coda", "interlude", "pre-chorus", "medley_start", "medley_transition",
-    "strofa", "ritornello", "assolo", "finale"
+    "strofa", "ritornello", "assolo", "finale", "end", "fine"
 }
 
 KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria"}
@@ -257,6 +257,13 @@ class AMLParser:
                     nodes.append(DirectiveNode(tag_name, tag_value))
                     idx += 1
                     continue
+
+            # Check for bracketed section header on its own line: [END], [FINE], [INTRO], etc.
+            bracket_sec_match = re.match(r"^\[(END|FINE)\]$", line, re.IGNORECASE)
+            if bracket_sec_match:
+                nodes.append(SectionNode(bracket_sec_match.group(1).strip().lower()))
+                idx += 1
+                continue
 
             # Extract inline {c: ...} / {comment: ...} if present on a chord/grid/lyric line
             inline_comments = [m.strip() for m in INLINE_COMMENT_REGEX.findall(raw_line) if m.strip()]
