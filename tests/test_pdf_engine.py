@@ -391,6 +391,22 @@ E|-------------------|
         self.assertIn("[SOLO: BRASS ENSEMBLE]", full_text)
         self.assertIn("[SOLO: ELECTRIC GUITAR]", full_text)
 
+        # Verify {solo:} badge is compact (does not span full usable_width like section badges)
+        from asma_core.aml_parser import AMLParser
+        styles = PDFEngine._build_style_sheet(DeviceProfile(), "classic")
+        doc_ast = AMLParser.parse("{verse}\nTesto\n{solo: brass ensemble}\n| DO | FA |")
+        flowables = PDFEngine._render_aml_nodes_to_flowables(doc_ast, styles, 450.0, include_chords=True)
+        # Collect all Table colWidths (inside KeepTogether or top-level)
+        tables = []
+        for f in flowables:
+            if hasattr(f, "_content"):
+                tables.extend([c for c in f._content if hasattr(c, "_colWidths")])
+            elif hasattr(f, "_colWidths"):
+                tables.append(f)
+        # Section badge ([VERSE]) uses full width (450.0); solo badge does not
+        solo_tables = [t for t in tables if t._colWidths[0] is None or t._colWidths[0] < 400.0]
+        self.assertTrue(len(solo_tables) >= 1)
+
 
 if __name__ == "__main__":
     unittest.main()

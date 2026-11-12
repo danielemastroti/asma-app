@@ -2269,12 +2269,17 @@ function parseAmlForWeb(aml, showChords) {
 
       if (secName) {
         if (inSection) html += '</div>';
+        const isSoloBadge = secName.startsWith('SOLO') || secName.startsWith('ASSOLO');
         const isChorus = secName.includes('RITORNELLO') || secName.includes('CHORUS');
-        const borderColor = isChorus ? '#ffd600' : 'var(--accent-cyan)';
-        const bgTint = isChorus ? 'background: rgba(255, 214, 0, 0.06); border-left: 3px solid #ffd600; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
-        html += `<div class="aml-section" style="${bgTint}"><div class="aml-tag-header" style="color: ${borderColor}; font-weight: 900;">[${escapeHtml(secName)}]</div>`;
+        if (isSoloBadge) {
+          html += `<div class="aml-section"><div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">[${escapeHtml(secName)}]</div>`;
+        } else {
+          const borderColor = isChorus ? '#ffd600' : 'var(--accent-cyan)';
+          const bgTint = isChorus ? 'background: rgba(255, 214, 0, 0.06); border-left: 3px solid #ffd600; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
+          html += `<div class="aml-section" style="${bgTint}"><div class="aml-tag-header" style="color: ${borderColor}; font-weight: 900;">[${escapeHtml(secName)}]</div>`;
+        }
         inSection = true;
-        lastWasInstrumental = secName.startsWith('SOLO') || secName.startsWith('ASSOLO');
+        lastWasInstrumental = isSoloBadge;
         continue;
       }
 

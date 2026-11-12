@@ -799,12 +799,23 @@ class PDFEngine:
                 badge_title = f"{node.section_name.upper()}: {label_clean.upper()}" if label_clean else node.section_name.upper()
                 badge_text = f"&nbsp;&nbsp;<b>[{escape(badge_title)}]</b>&nbsp;&nbsp;"
                 p = Paragraph(badge_text, styles["SectionBadge"])
-                badge_table = Table([[p]], colWidths=[usable_width])
-                badge_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ]))
+                if sec_name in ["solo", "assolo"]:
+                    # Compact inline-width pill in distinct amber/ochre color (only wraps written text, not full line)
+                    badge_table = Table([[p]], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#B45309")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ]))
+                else:
+                    badge_table = Table([[p]], colWidths=[usable_width])
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ]))
                 pending_badge = badge_table
                 last_was_inst_marker = False
 
