@@ -423,8 +423,6 @@ body {
 }
 
 .aml-grid-line {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.8px;
   font-weight: 700;
   margin: 6px 0;
 }

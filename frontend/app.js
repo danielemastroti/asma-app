@@ -1541,74 +1541,7 @@ function renderAmlToPreviewHtml(amlText) {
   if (!amlText || !amlText.trim()) {
     return '<div style="color: #94a3b8; font-style: italic; padding: 20px; text-align: center;">Nessun testo da visualizzare</div>';
   }
-  const lines = amlText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  let html = '<div style="line-height: 1.8; font-family: monospace;">';
-  let inChorus = false;
-
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      html += '<div style="height: 12px;"></div>';
-      continue;
-    }
-    // Directive handling
-    const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$/);
-    if (dirMatch) {
-      const tag = dirMatch[1].toLowerCase();
-      const val = dirMatch[2] || '';
-      if (tag === 'soc' || tag === 'start_of_chorus') {
-        inChorus = true;
-        html += '<div style="border-left: 3px solid #ffd600; padding-left: 10px; margin: 8px 0; background: rgba(255, 214, 0, 0.05); border-radius: 0 4px 4px 0;">';
-        html += '<div style="color: #ffd600; font-size: 11px; font-weight: 800; text-transform: uppercase;">[RITORNELLO]</div>';
-        continue;
-      }
-      if (tag === 'eoc' || tag === 'end_of_chorus') {
-        inChorus = false;
-        html += '</div>';
-        continue;
-      }
-      if (tag === 'sov' || tag === 'start_of_verse') {
-        html += '<div style="border-left: 3px solid #38bdf8; padding-left: 10px; margin: 8px 0;">';
-        continue;
-      }
-      if (tag === 'eov' || tag === 'end_of_verse') {
-        html += '</div>';
-        continue;
-      }
-      if (tag === 'c' || tag === 'comment') {
-        html += `<div style="color: #e2e8f0; background: #334155; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 4px 0; font-style: italic;">💬 ${escapeHtml(val)}</div>`;
-        continue;
-      }
-      if (tag === 'colb') {
-        html += '<div style="border-top: 1px dashed #a855f7; margin: 10px 0; color: #a855f7; font-size: 11px; font-weight: 700;">--- SALTO COLONNA ---</div>';
-        continue;
-      }
-      if (['title', 't', 'artist', 'a', 'key', 'tempo', 'capo'].includes(tag)) {
-        html += `<div style="font-size: 11px; color: #64748b;"><b>{${escapeHtml(tag)}:</b> ${escapeHtml(val)}<b>}</b></div>`;
-        continue;
-      }
-    }
-
-    // Section headings like [INTRO], [RITORNELLO]
-    if (trimmed.startsWith('[') && trimmed.endsWith(']') && !trimmed.slice(1, -1).includes('[')) {
-      const inner = trimmed.slice(1, -1).trim();
-      const isChord = /^[A-G][b#]?(?:m|maj|min|dim|aug|sus|add|\d)*$/i.test(inner) ||
-                      /^(?:DO|RE|MI|FA|SOL|LA|SI)[b#]?(?:m|maj|min|dim|aug|sus|add|\d)*$/i.test(inner);
-      if (!isChord) {
-        html += `<div style="color: #f59e0b; font-weight: 800; font-size: 12px; margin-top: 6px; text-transform: uppercase;">${escapeHtml(trimmed)}</div>`;
-        continue;
-      }
-    }
-
-    // Line with inline chords [DO]Parola
-    let renderedLine = escapeHtml(line);
-    renderedLine = renderedLine.replace(/\[([^\]]+)\]/g, '<span style="color: #ff5252; font-weight: 800; background: rgba(255, 82, 82, 0.12); padding: 1px 4px; border-radius: 3px; margin: 0 1px;">$1</span>');
-    html += `<div>${renderedLine}</div>`;
-  }
-
-  if (inChorus) html += '</div>';
-  html += '</div>';
-  return html;
+  return `<div class="lyrics-container" style="padding: 14px 16px; column-count: 1; box-shadow: none;">${parseAmlForWeb(amlText, true)}</div>`;
 }
 
 // State for camera/vision multi-page import
@@ -2118,10 +2051,10 @@ function isChordGridOrTabLine(trimmedLine) {
     }
   }
 
-  // Pure chords lines without brackets or pipes (e.g. SOL DO MIm RE)
+  // Pure chords lines without brackets or pipes (e.g. DO, or SOL DO MIm RE)
   if (!trimmedLine.includes('[') && !trimmedLine.includes(']')) {
     const words = trimmedLine.split(/\s+/).filter(Boolean);
-    if (words.length >= 2 && words.length <= 16) {
+    if (words.length >= 1 && words.length <= 16) {
       const chordCount = words.filter(isMusicalChord).length;
       if ((chordCount / words.length) >= 0.75) return true;
     }
@@ -2302,7 +2235,19 @@ function parseAmlForWeb(aml, showChords) {
           lastWasInstrumental = true;
         }
       } else {
-        html += `<div class="aml-chord-line aml-grid-line"><span class="chord-token">${escapeHtml(trimmed)}</span></div>`;
+        const isTabLine = /^[eEaAdDgGbB]\|/.test(trimmed) || (trimmed.match(/-/g) || []).length >= 4;
+        if (isTabLine) {
+          html += `<div class="aml-tab-line">${escapeHtml(line)}</div>`;
+        } else {
+          const hasPipes = trimmed.includes('|');
+          const renderedChordLine = line.replace(/\S+/g, token => {
+            if (token === '|' || token === '/' || token === '%' || token === '-') {
+              return escapeHtml(token);
+            }
+            return `<span class="chord-token">${escapeHtml(token)}</span>`;
+          });
+          html += `<div class="aml-chord-line${hasPipes ? ' aml-grid-line' : ''}">${renderedChordLine}</div>`;
+        }
         lastWasInstrumental = false;
       }
       continue;
