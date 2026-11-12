@@ -2438,10 +2438,12 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   if (printBtn) printBtn.style.display = onPrint ? 'inline-flex' : 'none';
 
   const appScript = document.querySelector('script[src*="app.js"]');
+  const ua = navigator.userAgent || '';
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  const isAndroid = /Android/i.test(navigator.userAgent || '');
-  logPdfExportAction(`script=${appScript ? appScript.getAttribute('src') : '?'} | standalone=${isStandalone} | android=${isAndroid}`);
-  logPdfExportAction(`UA=${navigator.userAgent}`);
+  const isAndroid = /Android/i.test(ua);
+  const isFirefoxAndroidPwa = isAndroid && isStandalone && /Firefox/i.test(ua);
+  logPdfExportAction(`script=${appScript ? appScript.getAttribute('src') : '?'} | standalone=${isStandalone} | android=${isAndroid} | ffPwa=${isFirefoxAndroidPwa}`);
+  logPdfExportAction(`UA=${ua}`);
   if ('caches' in window) {
     caches.keys().then(keys => logPdfExportAction(`SW caches=[${keys.join(', ')}]`)).catch(() => {});
   }
@@ -2449,12 +2451,14 @@ async function openPdfExportModal(url, filename, onPrint = null) {
     logPdfExportAction(`SW ctrl=${navigator.serviceWorker.controller.scriptURL} (${navigator.serviceWorker.controller.state})`);
   }
 
-  // Link diretto esterno per uscire dalla sandbox WebAPK Android
+  // Link diretto esterno per uscire dalla sandbox WebAPK / Fenix PWA Android
   if (browserLink) {
     if (isAndroid) {
       const parsed = new URL(url, window.location.origin);
       const scheme = parsed.protocol.replace(':', '');
       browserLink.href = `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+      browserLink.className = isFirefoxAndroidPwa ? 'btn btn-primary' : 'btn btn-secondary';
+      browserLink.textContent = isFirefoxAndroidPwa ? '⬇️ Scarica PDF (via Browser)' : '🌐 Apri nel Browser Esterno';
       browserLink.style.display = 'inline-flex';
     } else {
       browserLink.style.display = 'none';
@@ -2495,12 +2499,17 @@ async function openPdfExportModal(url, filename, onPrint = null) {
       shareBtn.style.display = 'inline-flex';
     }
     if (directLink) {
-      // Su Android (es. Firefox/GeckoView PWA o WebAPK) i link blob: aprono about:blank;
-      // usare l'URL HTTPS diretto con Content-Disposition: attachment avvia il DownloadManager nativo.
-      directLink.href = isAndroid ? url : blobUrl;
-      directLink.download = filename;
-      directLink.style.display = 'inline-flex';
-      logPdfExportAction(`directLink.href=${isAndroid ? 'HTTPS_URL' : 'BLOB_URL'}`);
+      if (isFirefoxAndroidPwa) {
+        // Nella PWA standalone di Firefox Android sia <a download> che location.assign aprono about:blank;
+        // nascondiamo questo tasto e lasciamo in primo piano il download via intent:// browser esterno.
+        directLink.style.display = 'none';
+        logPdfExportAction('directLink hidden on Firefox Android standalone PWA');
+      } else {
+        directLink.href = isAndroid ? url : blobUrl;
+        directLink.download = filename;
+        directLink.style.display = 'inline-flex';
+        logPdfExportAction(`directLink.href=${isAndroid ? 'HTTPS_URL' : 'BLOB_URL'}`);
+      }
     }
   } catch (err) {
     console.warn('PDF export fetch failed:', err);
