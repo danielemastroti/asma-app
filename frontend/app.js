@@ -2430,7 +2430,10 @@ async function openPdfExportModal(url, filename, onPrint = null) {
       shareBtn.style.display = 'inline-flex';
     }
     if (directLink) {
-      directLink.href = blobUrl;
+      // Su Android (es. Firefox/GeckoView PWA o WebAPK) i link blob: aprono about:blank;
+      // usare l'URL HTTPS diretto con Content-Disposition: attachment avvia il DownloadManager nativo.
+      const isAndroid = /Android/i.test(navigator.userAgent || '');
+      directLink.href = isAndroid ? url : blobUrl;
       directLink.download = filename;
       directLink.style.display = 'inline-flex';
     }
