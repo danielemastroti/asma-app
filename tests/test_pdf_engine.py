@@ -442,6 +442,26 @@ E|-------------------|
         self.assertIn("(cori)", full_text)
         self.assertNotIn("{c:", full_text)
 
+    def test_inline_comment_on_chord_line_over_lyrics_stays_on_chord_line(self):
+        """{c: brass} written on a chord line above lyrics renders on the chord row (not dropped to lyric row)."""
+        import pymupdf
+        aml = (
+            "{sob}\n"
+            "                     LAb  LA  SIbm {c: brass}\n"
+            "wheel keep on turnin',\n"
+            "{eob}"
+        )
+        song = Song(title="Chord Row Comment", artist="CCR", key_current="B", aml_content=aml)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        words = doc[0].get_text("words")
+        doc.close()
+        sibm_y = next(w[1] for w in words if w[4] == "SIbm")
+        brass_y = next(w[1] for w in words if w[4] == "(brass)")
+        wheel_y = next(w[1] for w in words if w[4] == "wheel")
+        self.assertLess(abs(brass_y - sibm_y), 3.0)
+        self.assertLess(brass_y, wheel_y - 5.0)
+
 
 if __name__ == "__main__":
     unittest.main()

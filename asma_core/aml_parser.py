@@ -81,9 +81,10 @@ class LyricSegment:
 
 class ChordLyricLineNode(ASTNode):
     """Represents a line containing lyrics interwoven with chords: [Am]On a dark desert..."""
-    def __init__(self, segments: List[LyricSegment], inline_comment: Optional[str] = None):
+    def __init__(self, segments: List[LyricSegment], inline_comment: Optional[str] = None, comment_on_chords: bool = False):
         self.segments = segments
         self.inline_comment = inline_comment
+        self.comment_on_chords = comment_on_chords
 
     def to_aml(self) -> str:
         parts = []
@@ -304,9 +305,18 @@ class AMLParser:
                     )
                     if next_line_clean and not next_line_clean.startswith(("{", "#", "|")) and ("[" not in next_line_clean) and not next_is_grid:
                         # Merge traditional chord line over lyric line!
-                        merged = cls._merge_chords_into_lyrics(raw_line, lines[idx + 1])
+                        next_raw = lines[idx + 1]
+                        next_comments = [m.strip() for m in INLINE_COMMENT_REGEX.findall(next_raw) if m.strip()]
+                        if next_comments:
+                            next_raw = INLINE_COMMENT_REGEX.sub("", next_raw).rstrip()
+                        merged = cls._merge_chords_into_lyrics(raw_line, next_raw)
                         segments = cls._parse_chord_lyric_line(merged)
-                        nodes.append(ChordLyricLineNode(segments, inline_comment=inline_comment))
+                        if inline_comment:
+                            nodes.append(ChordLyricLineNode(segments, inline_comment=inline_comment, comment_on_chords=True))
+                        elif next_comments:
+                            nodes.append(ChordLyricLineNode(segments, inline_comment=" ".join(next_comments), comment_on_chords=False))
+                        else:
+                            nodes.append(ChordLyricLineNode(segments))
                         idx += 2
                         continue
 
@@ -394,7 +404,7 @@ class AMLParser:
                         new_segments.append(LyricSegment(seg.text, chord=ChordToken(transposed_chord)))
                     else:
                         new_segments.append(seg)
-                new_nodes.append(ChordLyricLineNode(new_segments, inline_comment=getattr(node, "inline_comment", None)))
+                new_nodes.append(ChordLyricLineNode(new_segments, inline_comment=getattr(node, "inline_comment", None), comment_on_chords=getattr(node, "comment_on_chords", False)))
 
             elif isinstance(node, ChordGridLineNode):
                 # Transpose all chords in the grid

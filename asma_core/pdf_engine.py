@@ -885,10 +885,12 @@ class PDFEngine:
                 if include_chords and chords_str.strip():
                     inline_comm = getattr(node, "inline_comment", None)
                     inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
+                    on_chords = getattr(node, "comment_on_chords", False)
                     if lyrics_str.strip():
                         # Atomic 2-row table for chord line over lyric line: mai separati tra pagine
-                        p_chords = Paragraph(cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size), styles["ChordText"])
-                        p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
+                        chords_html = cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size)
+                        p_chords = Paragraph(f"{chords_html}{inline_comm_html if on_chords else ''}", styles["ChordText"])
+                        p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{'' if on_chords else inline_comm_html}", styles["LyricText"])
                         pair_table = Table([[p_chords], [p_lyrics]], colWidths=[usable_width])
                         pair_table.setStyle(TableStyle([
                             ('TOPPADDING', (0, 0), (-1, -1), 0),
