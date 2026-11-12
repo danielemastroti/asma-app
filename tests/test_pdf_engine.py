@@ -374,6 +374,23 @@ E|-------------------|
         self.assertLess(abs(sol_x - might_x), 15.0)
         self.assertGreater(sol_x - bout_x, 80.0)
 
+    def test_solo_directive_with_instrument_renders_in_pdf(self):
+        """{solo: brass ensemble} and {solo: electric guitar} render full instrument label in PDF badge."""
+        import pymupdf
+        aml = (
+            "{solo: brass ensemble}\n"
+            "| DO | FA | SOL | DO |\n\n"
+            "{solo: electric guitar}\n"
+            "| LA | RE | MI | LA |"
+        )
+        song = Song(title="Solo Instruments Test", artist="Band", key_current="C", aml_content=aml)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, include_chords=True, use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("[SOLO: BRASS ENSEMBLE]", full_text)
+        self.assertIn("[SOLO: ELECTRIC GUITAR]", full_text)
+
 
 if __name__ == "__main__":
     unittest.main()

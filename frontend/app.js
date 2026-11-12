@@ -1266,6 +1266,7 @@ function renderSongViewer() {
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'solo')" title="Inserisci sezione assolo strumentale">{solo: Strumento}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'comment')" title="Inserisci nota o commento">{c: Commento}</button>
             <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'colb')" title="Interruzione colonna">{colb} Salto Colonna</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
@@ -1575,6 +1576,14 @@ function insertDirectiveAtCursor(textareaId, type) {
       } else {
         insertion = `{sob}\n\n{eob}\n`;
         cursorOffset = 6;
+      }
+      break;
+    case 'solo':
+      if (selectedText) {
+        insertion = `{solo: ${selectedText}}\n`;
+      } else {
+        insertion = `{solo: brass ensemble}\n`;
+        cursorOffset = 7;
       }
       break;
     case 'comment':
@@ -2254,6 +2263,8 @@ function parseAmlForWeb(aml, showChords) {
         secName = val ? val.toUpperCase() : 'STROFA';
       } else if (['sob', 'start_of_bridge', 'bridge', 'speciale'].includes(tag)) {
         secName = val ? val.toUpperCase() : 'BRIDGE';
+      } else if (['solo', 'assolo', 'intro', 'outro', 'finale', 'coda', 'interlude'].includes(tag)) {
+        secName = val ? `${tag.toUpperCase()}: ${val.toUpperCase()}` : tag.toUpperCase();
       }
 
       if (secName) {
@@ -2263,7 +2274,7 @@ function parseAmlForWeb(aml, showChords) {
         const bgTint = isChorus ? 'background: rgba(255, 214, 0, 0.06); border-left: 3px solid #ffd600; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
         html += `<div class="aml-section" style="${bgTint}"><div class="aml-tag-header" style="color: ${borderColor}; font-weight: 900;">[${escapeHtml(secName)}]</div>`;
         inSection = true;
-        lastWasInstrumental = false;
+        lastWasInstrumental = secName.startsWith('SOLO') || secName.startsWith('ASSOLO');
         continue;
       }
 

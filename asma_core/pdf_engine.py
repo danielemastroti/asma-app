@@ -794,8 +794,10 @@ class PDFEngine:
                 if flowables and not isinstance(flowables[-1], Spacer):
                     flowables.append(Spacer(1, 3.5 * mm))
 
-                # Section badge
-                badge_text = f"&nbsp;&nbsp;<b>[{node.section_name.upper()}]</b>&nbsp;&nbsp;"
+                # Section badge (preserves optional label, e.g. {solo: brass ensemble} -> [SOLO: BRASS ENSEMBLE])
+                label_clean = (node.label or "").strip()
+                badge_title = f"{node.section_name.upper()}: {label_clean.upper()}" if label_clean else node.section_name.upper()
+                badge_text = f"&nbsp;&nbsp;<b>[{escape(badge_title)}]</b>&nbsp;&nbsp;"
                 p = Paragraph(badge_text, styles["SectionBadge"])
                 badge_table = Table([[p]], colWidths=[usable_width])
                 badge_table.setStyle(TableStyle([
