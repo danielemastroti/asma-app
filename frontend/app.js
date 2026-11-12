@@ -2386,9 +2386,29 @@ function logPdfExportAction(msg) {
 async function copyPdfExportDebugLog() {
   const el = document.getElementById('pdf-export-debug-log');
   const txt = el ? el.textContent : '';
+  if (!txt) {
+    showToast('Log vuoto');
+    return;
+  }
   try {
-    await navigator.clipboard.writeText(txt);
-    showToast('Log diagnostica copiato ✓');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(txt);
+      showToast('Log diagnostica copiato ✓');
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(ok ? 'Log diagnostica copiato ✓' : 'Copia non riuscita, fai uno screenshot del box');
   } catch (e) {
     showToast('Copia non riuscita, fai uno screenshot del box');
   }
