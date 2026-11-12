@@ -403,8 +403,8 @@ E|-------------------|
                 tables.extend([c for c in f._content if hasattr(c, "_colWidths")])
             elif hasattr(f, "_colWidths"):
                 tables.append(f)
-        # Section badge ([VERSE]) uses full width (450.0); solo badge does not
-        solo_tables = [t for t in tables if t._colWidths[0] is None or t._colWidths[0] < 400.0]
+        # Section badge ([VERSE]) uses full width (450.0); solo badge uses exact tight width (< 220.0)
+        solo_tables = [t for t in tables if t._colWidths[0] is not None and t._colWidths[0] < 220.0]
         self.assertTrue(len(solo_tables) >= 1)
 
 

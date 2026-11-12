@@ -22,6 +22,7 @@ from reportlab.platypus import (
     KeepTogether, PageBreak, Flowable
 )
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
 
 from asma_core.models import Song, DeviceProfile, Setlist, Repertoire
 from asma_core.aml_parser import (
@@ -801,13 +802,18 @@ class PDFEngine:
                 p = Paragraph(badge_text, styles["SectionBadge"])
                 if sec_name in ["solo", "assolo"]:
                     # Compact inline-width pill in distinct amber/ochre color (only wraps written text, not full line)
-                    badge_table = Table([[p]], hAlign="LEFT")
+                    sb = styles["SectionBadge"]
+                    solo_text = f"[{badge_title}]"
+                    p_solo = Paragraph(f"<b>{escape(solo_text)}</b>", sb)
+                    text_w = pdfmetrics.stringWidth(solo_text, sb.fontName, sb.fontSize)
+                    badge_w = min(usable_width, text_w + 14.0)
+                    badge_table = Table([[p_solo]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#B45309")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ]))
                 else:
                     badge_table = Table([[p]], colWidths=[usable_width])

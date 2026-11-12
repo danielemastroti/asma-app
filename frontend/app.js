@@ -2312,9 +2312,14 @@ function parseAmlForWeb(aml, showChords) {
 
     if (sectionTitle) {
       if (inSection) html += '</div>';
-      html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
+      const isSoloSec = sectionTitle.startsWith('SOLO') || sectionTitle.startsWith('ASSOLO');
+      if (isSoloSec) {
+        html += `<div class="aml-section"><div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">[${escapeHtml(sectionTitle)}]</div>`;
+      } else {
+        html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
+      }
       inSection = true;
-      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO');
+      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || isSoloSec;
       continue;
     }
 
