@@ -2338,8 +2338,7 @@ function buildPdfQueryParams(hasChords, extra = {}) {
 
 /**
  * Desktop: avvio download sincrono diretto.
- * Mobile / PWA standalone: apre la modale di esportazione in-app (share file nativo, link diretto,
- * apertura esterna nel browser via Android intent://, o stampa sistema -> Salva come PDF).
+ * Mobile: apre la modale di esportazione con Scarica Diretto e Stampa / Salva come PDF.
  */
 function triggerPdfDownload(url, filename, onPrint = null) {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -2372,202 +2371,61 @@ function closePdfExportModal() {
   state._pdfExport = null;
 }
 
-function logPdfExportAction(msg) {
-  const el = document.getElementById('pdf-export-debug-log');
-  if (!el) return;
-  const ts = new Date().toTimeString().slice(0, 8);
-  el.textContent += (el.textContent ? '\n' : '') + `[${ts}] ${msg}`;
-  el.scrollTop = el.scrollHeight;
-  try {
-    localStorage.setItem('asma_pdf_debug_last', el.textContent);
-  } catch (e) {}
-}
-
-async function copyTextWithFallback(txt, okMsg) {
-  if (!txt) {
-    showToast('Nulla da copiare');
-    return;
-  }
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(txt);
-      showToast(okMsg);
-      return;
-    }
-  } catch (e) {}
-
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = txt;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast(ok ? okMsg : 'Copia non riuscita');
-  } catch (e) {
-    showToast('Copia non riuscita');
-  }
-}
-
-async function copyPdfExportDebugLog() {
-  const el = document.getElementById('pdf-export-debug-log');
-  await copyTextWithFallback(el ? el.textContent : '', 'Log diagnostica copiato ✓');
-}
-
-async function copyExportedPdfUrl() {
-  const ctx = state._pdfExport;
-  if (!ctx || !ctx.url) return;
-  logPdfExportAction('click: copyExportedPdfUrl');
-  await copyTextWithFallback(ctx.url, 'Link PDF copiato ✓ Incollalo in Chrome o scheda normale');
-}
-
 async function openPdfExportModal(url, filename, onPrint = null) {
   closePdfExportModal();
   const modal = document.getElementById('pdf-export-modal');
   const nameEl = document.getElementById('pdf-export-filename');
   const statusEl = document.getElementById('pdf-export-status');
-  const shareBtn = document.getElementById('pdf-export-share-btn');
   const directLink = document.getElementById('pdf-export-direct-link');
-  const browserLink = document.getElementById('pdf-export-browser-link');
-  const copyUrlBtn = document.getElementById('pdf-export-copy-url-btn');
   const printBtn = document.getElementById('pdf-export-print-btn');
-  const ffTip = document.getElementById('pdf-export-ff-tip');
-  const debugEl = document.getElementById('pdf-export-debug-log');
 
   if (!modal) return;
-  let prevLog = '';
-  try { prevLog = localStorage.getItem('asma_pdf_debug_last') || ''; } catch (e) {}
-  if (debugEl) {
-    debugEl.textContent = prevLog ? `--- LOG PRECEDENTE ---\n${prevLog}\n--- SESSIONE ATTUALE ---` : '';
-  }
   if (nameEl) nameEl.textContent = filename;
   if (statusEl) statusEl.textContent = '⏳ Preparazione file PDF dal server...';
-  if (shareBtn) shareBtn.style.display = 'none';
   if (directLink) directLink.style.display = 'none';
   if (printBtn) printBtn.style.display = onPrint ? 'inline-flex' : 'none';
 
-  const appScript = document.querySelector('script[src*="app.js"]');
-  const ua = navigator.userAgent || '';
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  const isAndroid = /Android/i.test(ua);
-  const isFirefoxAndroidPwa = isAndroid && isStandalone && /Firefox/i.test(ua);
-  logPdfExportAction(`script=${appScript ? appScript.getAttribute('src') : '?'} | standalone=${isStandalone} | android=${isAndroid} | ffPwa=${isFirefoxAndroidPwa}`);
-  logPdfExportAction(`UA=${ua}`);
-  if ('caches' in window) {
-    caches.keys().then(keys => logPdfExportAction(`SW caches=[${keys.join(', ')}]`)).catch(() => {});
-  }
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    logPdfExportAction(`SW ctrl=${navigator.serviceWorker.controller.scriptURL} (${navigator.serviceWorker.controller.state})`);
-  }
-
-  // Link diretto esterno per uscire dalla sandbox WebAPK / Fenix PWA Android
-  if (browserLink) {
-    if (isAndroid) {
-      const parsed = new URL(url, window.location.origin);
-      const scheme = parsed.protocol.replace(':', '');
-      browserLink.href = `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
-      browserLink.className = isFirefoxAndroidPwa ? 'btn btn-primary' : 'btn btn-secondary';
-      browserLink.textContent = isFirefoxAndroidPwa ? '⬇️ Scarica PDF (via Browser)' : '🌐 Apri nel Browser Esterno';
-      browserLink.style.display = 'inline-flex';
-    } else {
-      browserLink.style.display = 'none';
-    }
-  }
-  if (copyUrlBtn) copyUrlBtn.style.display = isAndroid ? 'inline-flex' : 'none';
-  if (ffTip) ffTip.style.display = isFirefoxAndroidPwa ? 'block' : 'none';
-
-  state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null, file: null };
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null };
   modal.style.display = 'flex';
-  logPdfExportAction(`fetch: ${url}`);
 
   try {
     const res = await fetch(url);
-    logPdfExportAction(`res=${res.status} type=${res.headers.get('content-type')} disp=${res.headers.get('content-disposition')}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
-    // Ignora se nel frattempo l'utente ha chiuso la modale o aperto un altro PDF
     if (!state._pdfExport || state._pdfExport.url !== url) return;
 
     const blobUrl = URL.createObjectURL(blob);
-    let pdfFile = null;
-    try {
-      pdfFile = new File([blob], filename, { type: 'application/pdf' });
-    } catch (e) {
-      pdfFile = null;
-    }
-
     state._pdfExport.blob = blob;
     state._pdfExport.blobUrl = blobUrl;
-    state._pdfExport.file = pdfFile;
 
     const kb = Math.max(1, Math.round(blob.size / 1024));
-    if (statusEl) statusEl.textContent = `✅ File pronto (${kb} KB). Scegli come salvare sul dispositivo:`;
+    if (statusEl) statusEl.textContent = `✅ File pronto (${kb} KB). Scegli come procedere:`;
 
-    const canShareFiles = !!(pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] }));
-    logPdfExportAction(`blob=${blob.size}B | canShareFiles=${canShareFiles} | shareFn=${typeof navigator.share}`);
-
-    if (shareBtn && canShareFiles) {
-      shareBtn.style.display = 'inline-flex';
-    }
     if (directLink) {
-      if (isFirefoxAndroidPwa) {
-        // Nella PWA standalone di Firefox Android sia <a download> che location.assign aprono about:blank;
-        // nascondiamo questo tasto e lasciamo in primo piano il download via intent:// browser esterno.
-        directLink.style.display = 'none';
-        logPdfExportAction('directLink hidden on Firefox Android standalone PWA');
-      } else {
-        directLink.href = isAndroid ? url : blobUrl;
-        directLink.download = filename;
-        directLink.style.display = 'inline-flex';
-        logPdfExportAction(`directLink.href=${isAndroid ? 'HTTPS_URL' : 'BLOB_URL'}`);
-      }
+      directLink.href = isAndroid ? url : blobUrl;
+      directLink.download = filename;
+      directLink.style.display = 'inline-flex';
     }
   } catch (err) {
     console.warn('PDF export fetch failed:', err);
-    logPdfExportAction(`ERR fetch: ${err && err.message ? err.message : err}`);
-    if (statusEl) statusEl.textContent = `⚠️ Caricamento in-app non riuscito (${err.message}). Usa "Apri nel Browser Esterno" o "Stampa / Salva come PDF".`;
-  }
-}
-
-async function shareExportedPdf() {
-  const ctx = state._pdfExport;
-  if (!ctx || !ctx.file || !navigator.share) return;
-  logPdfExportAction('click: shareExportedPdf');
-  try {
-    await navigator.share({
-      files: [ctx.file],
-      title: ctx.filename
-    });
-    logPdfExportAction('share OK');
-  } catch (err) {
-    logPdfExportAction(`share ERR: ${err && err.name} ${err && err.message}`);
-    if (err && err.name !== 'AbortError') {
-      showToast('Condivisione file non supportata da questo browser');
-    }
+    if (statusEl) statusEl.textContent = `⚠️ Errore preparazione PDF (${err.message}). Prova "Stampa / Salva come PDF".`;
   }
 }
 
 function triggerDirectAndroidDownload(e) {
   const ctx = state._pdfExport;
   if (!ctx) return;
-  const isAndroid = /Android/i.test(navigator.userAgent || '');
-  logPdfExportAction(`click: directLink (isAndroid=${isAndroid})`);
-  if (isAndroid) {
+  if (/Android/i.test(navigator.userAgent || '')) {
     if (e) e.preventDefault();
     const targetUrl = ctx.url;
-    logPdfExportAction(`location.assign -> ${targetUrl}`);
-    setTimeout(() => {
-      window.location.assign(targetUrl);
-    }, 80);
+    closePdfExportModal();
+    window.location.assign(targetUrl);
   }
 }
 
 function printExportedPdf() {
   const fn = state._pdfExport && state._pdfExport.onPrint;
-  logPdfExportAction(`click: printExportedPdf (hasFn=${typeof fn === 'function'})`);
   closePdfExportModal();
   if (typeof fn === 'function') fn();
 }
