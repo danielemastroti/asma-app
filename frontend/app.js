@@ -1588,9 +1588,9 @@ function insertDirectiveAtCursor(textareaId, type) {
       break;
     case 'comment':
       if (selectedText) {
-        insertion = `{c: ${selectedText}}\n`;
+        insertion = `{c: ${selectedText}}`;
       } else {
-        insertion = `{c: Nota per la band}\n`;
+        insertion = `{c: }`;
         cursorOffset = 4;
       }
       break;
