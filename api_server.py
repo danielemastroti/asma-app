@@ -1137,9 +1137,7 @@ def transpose_song(uuid: str, req: TransposeRequest):
         song, req.repertoire_uuid, req.user_email, req.user_name
     )
 
-    doc = AMLParser.parse(song.aml_content)
-    new_doc = AMLParser.transpose_document(doc, semitones=req.semitones)
-    song.aml_content = new_doc.to_aml()
+    song.aml_content = AMLParser.transpose_preserving_format(song.aml_content, semitones=req.semitones)
     if song.key_current and song.key_current != "-":
         try:
             song.key_current = MusicEngine.transpose_chord(song.key_current, req.semitones)
@@ -1350,8 +1348,7 @@ def get_song_pdf_preview(
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
     if transpose != 0:
-        doc_aml = AMLParser.parse(song.aml_content)
-        new_doc_aml = AMLParser.transpose_document(doc_aml, semitones=transpose)
+        transposed_aml = AMLParser.transpose_preserving_format(song.aml_content, semitones=transpose)
         transposed_key = song.key_current
         if transposed_key and transposed_key != "-":
             try:
@@ -1373,7 +1370,7 @@ def get_song_pdf_preview(
             key_current=transposed_key,
             notation_system=song.notation_system,
             tags=list(song.tags) if song.tags else [],
-            aml_content=new_doc_aml.to_aml(),
+            aml_content=transposed_aml,
             shared_notes=song.shared_notes,
             current_revision=song.current_revision,
             created_at=song.created_at,

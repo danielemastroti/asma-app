@@ -196,6 +196,21 @@ ciao | mondo"""
         self.assertEqual(len(lyrics), 1)
         self.assertEqual(lyrics[0].segments[0].text, "ciao | mondo")
 
+    def test_transpose_preserving_format_keeps_plain_chords_and_comments(self):
+        """Transposing a plain-text song must NOT convert it to ChordPro [..] brackets."""
+        raw = (
+            "{key: DO}\n"
+            "                     DO  LA  {c: brass}\n"
+            "Nel blu dipinto di blu\n"
+            "DO | FA | SOL\n"
+        )
+        transposed = AMLParser.transpose_preserving_format(raw, semitones=2)
+        self.assertNotIn("[RE]", transposed)
+        self.assertIn("{key: RE}", transposed)
+        self.assertIn("RE  SI  {c: brass}", transposed)
+        self.assertIn("Nel blu dipinto di blu", transposed)
+        self.assertIn("RE | SOL | LA", transposed)
+
 
 if __name__ == "__main__":
     unittest.main()

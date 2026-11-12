@@ -432,6 +432,136 @@ class AMLParser:
         return AMLDocument(new_nodes)
 
     @classmethod
+    def transpose_preserving_format(
+        cls,
+        aml_text: str,
+        semitones: int,
+        target_system: Optional[str] = None,
+        prefer_flats: bool = False,
+        destination_key: Optional[str] = None
+    ) -> str:
+        """
+        Transposes chords in an AML document while strictly preserving the user's
+        original writing format (plain-text chords above lyrics, grids without outer pipes,
+        inline {c: ...} comments, [Chord] brackets, whitespace, and directives).
+        """
+        if not aml_text or (semitones == 0 and target_system is None):
+            return aml_text
+
+        from asma_core.music_engine import ITALIAN_LOWERCASE_WORDS, MusicEngine
+
+        def _is_raw_chord_line(l: str) -> bool:
+            clean_l = l.strip()
+            if not clean_l or clean_l.startswith(("{", "#", "|")):
+                return False
+            if "[" in clean_l and "]" in clean_l:
+                return False
+            if re.search(r"\b\w+'\w+\b|[.,!?;:]", clean_l):
+                return False
+            tokens = clean_l.split()
+            if not tokens:
+                return False
+            if any(t.islower() and t in ITALIAN_LOWERCASE_WORDS for t in tokens):
+                return False
+            valid_chords = sum(1 for t in tokens if MusicEngine.parse_chord(t.strip("[](),|")))
+            return valid_chords > 0 and (valid_chords / len(tokens)) >= 0.70
+
+        def _tr(tok: str) -> str:
+            return MusicEngine.transpose_chord(
+                tok,
+                semitones=semitones,
+                target_system=target_system,
+                prefer_flats=prefer_flats,
+                destination_key=destination_key,
+            )
+
+        out_lines: List[str] = []
+        for line_with_end in aml_text.splitlines(keepends=True):
+            ending = ""
+            if line_with_end.endswith("\r\n"):
+                ending = "\r\n"
+                raw = line_with_end[:-2]
+            elif line_with_end.endswith(("\n", "\r")):
+                ending = line_with_end[-1]
+                raw = line_with_end[:-1]
+            else:
+                raw = line_with_end
+
+            stripped = raw.strip()
+            if not stripped or stripped.startswith("#"):
+                out_lines.append(line_with_end)
+                continue
+
+            # Standalone directive (only transpose {key: ...} / {tonalita: ...})
+            dir_match = DIRECTIVE_REGEX.match(stripped)
+            if dir_match:
+                tag_name = dir_match.group(1).strip().lower()
+                tag_val = (dir_match.group(2) or "").strip()
+                if tag_name in ("key", "tonalita") and tag_val:
+                    new_key = _tr(tag_val)
+                    raw = re.sub(
+                        r"^(\s*\{(?:key|tonalita)\s*:\s*)([^\}]+)(\}\s*)$",
+                        rf"\g<1>{new_key}\g<3>",
+                        raw,
+                        flags=re.IGNORECASE,
+                    )
+                out_lines.append(raw + ending)
+                continue
+
+            # Separate inline {c: ...} comments so they are never altered
+            comment_spans: List[tuple[int, int]] = [m.span() for m in INLINE_COMMENT_REGEX.finditer(raw)]
+            if comment_spans:
+                # Split around first inline comment (common case: trailing {c: brass})
+                first_c_start = comment_spans[0][0]
+                code_part = raw[:first_c_start]
+                comment_suffix = raw[first_c_start:]
+            else:
+                code_part = raw
+                comment_suffix = ""
+
+            code_stripped = code_part.strip()
+
+            # 1. Bracketed [Chord] tokens
+            if "[" in code_part and "]" in code_part:
+                def _repl_bracket(m: re.Match) -> str:
+                    inner = m.group(1).strip()
+                    if MusicEngine.parse_chord(inner):
+                        return f"[{_tr(inner)}]"
+                    return m.group(0)
+                new_code = CHORD_TOKEN_REGEX.sub(_repl_bracket, code_part)
+                out_lines.append(new_code + comment_suffix + ending)
+                continue
+
+            # 2. Chord grid line (with |)
+            if "|" in code_stripped and len(code_stripped) > 2 and not re.match(r"^[eEaAdDgGbB]\|", code_stripped):
+                grid_tokens = [
+                    t for t in code_stripped.replace("|", " ").split()
+                    if t not in ["/", "%", "-", "|", "NC", "N.C."]
+                ]
+                if grid_tokens and (sum(1 for t in grid_tokens if MusicEngine.parse_chord(t)) / len(grid_tokens)) >= 0.5:
+                    new_code = re.sub(
+                        r"\S+",
+                        lambda m: _tr(m.group(0)) if MusicEngine.parse_chord(m.group(0)) else m.group(0),
+                        code_part,
+                    )
+                    out_lines.append(new_code + comment_suffix + ending)
+                    continue
+
+            # 3. Plain-text chord line (without brackets or pipes)
+            if _is_raw_chord_line(code_part):
+                new_code = re.sub(
+                    r"\S+",
+                    lambda m: _tr(m.group(0)) if MusicEngine.parse_chord(m.group(0).strip("[](),|")) else m.group(0),
+                    code_part,
+                )
+                out_lines.append(new_code + comment_suffix + ending)
+                continue
+
+            out_lines.append(line_with_end)
+
+        return "".join(out_lines)
+
+    @classmethod
     def convert_notation(
         cls,
         doc: AMLDocument,
