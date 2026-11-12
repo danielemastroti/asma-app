@@ -2,13 +2,41 @@
 ASMA Accordi Next Generation - Automated Changelog Engine
 Conforms to SRS Cap. 4.10, 15.13.
 Rule: Single version per day in format AAAA.MM.GG.
+Persistent to Turso Cloud DB + Local JSON Cache.
 """
 
 from __future__ import annotations
 import os
-from datetime import datetime
+import json
+import threading
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 
-CHANGELOG_ENTRIES = [
+INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
+    {
+        "version": "2026.11.12",
+        "date": "12/11/2026",
+        "title": "Protezione Repertorio Ufficiale, Condivisione WhatsApp A4, Toggle Accordi/Testo, Fix iOS Share e Sezioni",
+        "new_features": [
+            "Protezione Rigorosa Repertorio Ufficiale: vietata la modifica diretta dei brani del repertorio ufficiale a tutti gli utenti (incluso l'amministratore). I musicisti creano la propria copia personale nel loro repertorio, apportano le modifiche, le salvano e poi le promuovono a Ufficiale (rimuovendo la copia personale).",
+            "Condivisione A4 su WhatsApp per Scalette e Brani: invio del file PDF A4 pronto per la stampa direttamente su WhatsApp tramite Web Share API nativa (con allegato PDF reale per smartphone e tablet, e fallback web per desktop).",
+            "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa '🎸 Con Accordi' e versione '🎤 Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.",
+            "Modifica Data di Esecuzione Scalette: campo data interattivo (gg/mm/aaaa) modificabile direttamente dall'editor scaletta con salvataggio automatico e sincronizzazione immediata nel database cloud Turso.",
+            "Badge Fine Brano [END] Standard: inserito badge automatico [END] al termine di ogni spartito per i musicisti sul palco (sia nell'anteprima web che nei PDF generati).",
+            "Registro Modifiche Dinamico (Changelog): consultabile liberamente da tutti i componenti della band con raggruppamento rigoroso a singola versione giornaliera e persistenza permanente su database cloud.",
+            "Pannello Backup & Restore DB (Solo Admin): maschera esclusiva per gli amministratori per esportare il dump JSON integrale dell'intero database e changelog o ripristinarlo con un click."
+        ],
+        "improvements": [
+            "Prefetch PDF & Tocco Diretto iOS/iPadOS: precaricamento automatico in memoria dei PDF multi-pagina delle scalette per eliminare l'errore di scadenza del gesto utente di Safari ('user denied permission'), affiancato dal pulsante verde di invio istantaneo.",
+            "Consolidamento Tag di Rollback Git: registrato e protetto su repository remoto il punto di ripristino rollback-point-997c1f5 per garantire rollback istantaneo e sicuro."
+        ],
+        "security": [
+            "Controllo Accessi & Backup Riservato Admin: gli endpoint di backup e restore del database sono protetti da verifica del ruolo amministratore con audit trail di ogni operazione."
+        ],
+        "bug_fixes": [
+            "Risolto Bug Sezioni [INTRO: 1] / [INTRO: I]: corretta l'espressione regolare che scambiava la lettera 'I' di 'Intro:' per un numero romano 'I', garantendo la stampa dell'intestazione pulita [INTRO]."
+        ]
+    },
     {
         "version": "2026.11.09",
         "date": "09/11/2026",
@@ -126,19 +154,188 @@ CHANGELOG_ENTRIES = [
     }
 ]
 
+CHANGELOG_ENTRIES = list(INITIAL_CHANGELOG_ENTRIES)
+
 
 class ChangelogEngine:
-    """Manages application version history and automated changelog generation."""
+    """
+    Manages application version history and automated changelog generation.
+    Strictly groups entries by date: max 1 version per day in format AAAA.MM.GG.
+    Persisted permanently into Turso Cloud DB (band_settings) and local JSON cache.
+    """
+    _lock = threading.Lock()
+    _entries: List[Dict[str, Any]] = []
+    _initialized: bool = False
+    _file_path: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "changelog.json")
+
+    @classmethod
+    def _ensure_loaded(cls) -> None:
+        if cls._initialized:
+            return
+        with cls._lock:
+            if cls._initialized:
+                return
+            cls._entries = cls._load_entries()
+            cls._initialized = True
+
+    @classmethod
+    def _load_entries(cls) -> List[Dict[str, Any]]:
+        # 1. Try loading from Turso Cloud DB
+        try:
+            from asma_core.turso_client import TursoClient
+            turso = TursoClient()
+            if turso.is_configured:
+                raw_json = turso.get_setting("official_changelog")
+                if raw_json:
+                    cloud_entries = json.loads(raw_json)
+                    if isinstance(cloud_entries, list) and len(cloud_entries) > 0:
+                        cls._save_local_file(cloud_entries)
+                        return cls._merge_with_initial(cloud_entries)
+        except Exception:
+            pass
+
+        # 2. Try loading from local file
+        if os.path.exists(cls._file_path):
+            try:
+                with open(cls._file_path, "r", encoding="utf-8") as f:
+                    local_entries = json.load(f)
+                    if isinstance(local_entries, list) and len(local_entries) > 0:
+                        return cls._merge_with_initial(local_entries)
+            except Exception:
+                pass
+
+        # 3. Seed from INITIAL_CHANGELOG_ENTRIES
+        seed = list(INITIAL_CHANGELOG_ENTRIES)
+        cls._save_local_file(seed)
+        cls._sync_to_cloud(seed)
+        return seed
+
+    @classmethod
+    def _merge_with_initial(cls, current: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Ensures that any new hardcoded release entries in INITIAL_CHANGELOG_ENTRIES are merged."""
+        by_ver = {e["version"]: e for e in current}
+        for init in INITIAL_CHANGELOG_ENTRIES:
+            v = init["version"]
+            if v not in by_ver:
+                current.append(init)
+            else:
+                # Merge lists without exact duplicates
+                existing = by_ver[v]
+                for key in ["new_features", "improvements", "security", "bug_fixes"]:
+                    if init.get(key):
+                        cur_list = existing.setdefault(key, [])
+                        for item in init[key]:
+                            if item not in cur_list:
+                                cur_list.append(item)
+        current.sort(key=lambda x: x["version"], reverse=True)
+        return current
+
+    @classmethod
+    def _save_local_file(cls, entries: List[Dict[str, Any]]) -> None:
+        try:
+            os.makedirs(os.path.dirname(cls._file_path), exist_ok=True)
+            with open(cls._file_path, "w", encoding="utf-8") as f:
+                json.dump(entries, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    @classmethod
+    def _sync_to_cloud(cls, entries: List[Dict[str, Any]]) -> None:
+        try:
+            from asma_core.turso_client import TursoClient
+            turso = TursoClient()
+            if turso.is_configured:
+                turso.set_setting("official_changelog", json.dumps(entries, ensure_ascii=False))
+        except Exception:
+            pass
+
+    @classmethod
+    def get_entries(cls) -> List[Dict[str, Any]]:
+        cls._ensure_loaded()
+        return list(cls._entries)
 
     @classmethod
     def get_latest_version(cls) -> str:
-        return CHANGELOG_ENTRIES[0]["version"]
+        cls._ensure_loaded()
+        if cls._entries:
+            return cls._entries[0].get("version", "2.0.0")
+        return "2.0.0"
+
+    @classmethod
+    def record_entry(
+        cls,
+        version: Optional[str] = None,
+        date_str: Optional[str] = None,
+        title: Optional[str] = None,
+        new_features: Optional[List[str]] = None,
+        improvements: Optional[List[str]] = None,
+        bug_fixes: Optional[List[str]] = None,
+        security: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Records or updates a changelog entry.
+        Strictly enforces MAX 1 VERSION PER DAY:
+        If version for that day exists, merges new items into it!
+        """
+        cls._ensure_loaded()
+        now = datetime.now()
+        ver = (version or now.strftime("%Y.%m.%d")).strip()
+        display_date = (date_str or now.strftime("%d/%m/%Y")).strip()
+
+        with cls._lock:
+            entry = next((e for e in cls._entries if e["version"] == ver), None)
+            if not entry:
+                entry = {
+                    "version": ver,
+                    "date": display_date,
+                    "title": title or f"Aggiornamento del {display_date}",
+                    "new_features": [],
+                    "improvements": [],
+                    "security": [],
+                    "bug_fixes": []
+                }
+                cls._entries.insert(0, entry)
+            else:
+                if title:
+                    entry["title"] = title
+                if display_date:
+                    entry["date"] = display_date
+
+            def merge_unique(target_key: str, src_items: Optional[List[str]]):
+                if not src_items:
+                    return
+                existing_list = entry.setdefault(target_key, [])
+                for item in src_items:
+                    clean = item.strip()
+                    if clean and clean not in existing_list:
+                        existing_list.append(clean)
+
+            merge_unique("new_features", new_features)
+            merge_unique("improvements", improvements)
+            merge_unique("security", security)
+            merge_unique("bug_fixes", bug_fixes)
+
+            cls._entries.sort(key=lambda x: x["version"], reverse=True)
+            cls._save_local_file(cls._entries)
+            cls._sync_to_cloud(cls._entries)
+            return dict(entry)
+
+    @classmethod
+    def save_entries(cls, entries: List[Dict[str, Any]]) -> None:
+        """Overwrites changelog entries with provided list (used by Backup/Restore)."""
+        with cls._lock:
+            cls._entries = list(entries)
+            cls._entries.sort(key=lambda x: x.get("version", ""), reverse=True)
+            cls._initialized = True
+            cls._save_local_file(cls._entries)
+            cls._sync_to_cloud(cls._entries)
 
     @classmethod
     def get_changelog_markdown(cls) -> str:
+        cls._ensure_loaded()
         md = ["# Registro delle Modifiche (Changelog Ufficiale)\n"]
-        for entry in CHANGELOG_ENTRIES:
-            md.append(f"## Versione {entry['version']} ({entry['date']}) — {entry['title']}\n")
+        for entry in cls._entries:
+            md.append(f"## Versione {entry['version']} ({entry.get('date', '')}) — {entry.get('title', '')}\n")
             if entry.get("new_features"):
                 md.append("### 🚀 Nuove Funzionalità (New Features)")
                 for item in entry["new_features"]:

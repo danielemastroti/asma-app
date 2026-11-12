@@ -149,11 +149,14 @@ function syncAuthProfileUi() {
 
   const authEmail = (state.authenticatedUserEmail || state.currentUser.email || '').toLowerCase();
   const isAuthAdmin = ['danyposta@gmail.com', 'danyposta@yahoo.it'].includes(authEmail) ||
-                      state.currentUser.role === 'ADMIN' || state.currentUser.role === 'BAND_LEADER';
+                      state.currentUser.role === 'ADMIN' || state.currentUser.role === 'admin' || state.currentUser.role === 'BAND_LEADER';
   const musRow = document.getElementById('setting-musician-row');
   const nonAdminNote = document.getElementById('auth-nonadmin-note');
   if (musRow) musRow.style.display = isAuthAdmin ? 'flex' : 'none';
   if (nonAdminNote) nonAdminNote.style.display = isAuthAdmin ? 'none' : 'block';
+
+  const adminDbCard = document.getElementById('admin-db-card');
+  if (adminDbCard) adminDbCard.style.display = isAuthAdmin ? 'block' : 'none';
 }
 
 function initServiceWorker() {
@@ -4429,4 +4432,220 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, function(m) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
   });
+}
+
+// ----------------------------------------------------------------------------
+// REGISTRO MODIFICHE / CHANGELOG (ACCESSIBILE A TUTTI)
+// ----------------------------------------------------------------------------
+async function openChangelogModal() {
+  const modal = document.getElementById('changelog-modal');
+  const body = document.getElementById('changelog-modal-body');
+  const tagEl = document.getElementById('changelog-latest-tag');
+  if (modal) modal.style.display = 'flex';
+  if (body) body.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">⏳ Caricamento registro novità da database...</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/changelog`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const entries = data.entries || [];
+    if (tagEl) tagEl.textContent = `Versione attiva: ${data.latest_version || '2026.11.12'}`;
+
+    if (!entries.length) {
+      if (body) body.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">Nessuna voce presente nel changelog.</div>';
+      return;
+    }
+
+    let html = '';
+    entries.forEach((entry, idx) => {
+      const isLatest = idx === 0;
+      html += `
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isLatest ? '#38bdf8' : '#334155'}; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 15px; font-weight: 900; color: #38bdf8;">v${escapeHtml(entry.version)}</span>
+              <span style="font-size: 12px; color: #94a3b8;">📅 ${escapeHtml(entry.date || '')}</span>
+            </div>
+            ${isLatest ? '<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">ULTIMA VERSIONE</span>' : ''}
+          </div>
+          <div style="font-size: 14.5px; font-weight: 800; color: #f8fafc; margin-bottom: 12px;">${escapeHtml(entry.title || '')}</div>
+      `;
+
+      if (entry.new_features && entry.new_features.length) {
+        html += `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: 800; color: #22c55e; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+              <span>🚀</span> Nuove Funzionalità
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+              ${entry.new_features.map(f => `<li style="margin-bottom: 4px;">${escapeHtml(f)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (entry.improvements && entry.improvements.length) {
+        html += `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+              <span>⚡</span> Miglioramenti
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+              ${entry.improvements.map(f => `<li style="margin-bottom: 4px;">${escapeHtml(f)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (entry.security && entry.security.length) {
+        html += `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: 800; color: #c084fc; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+              <span>🛡️</span> Sicurezza &amp; Accessi
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+              ${entry.security.map(f => `<li style="margin-bottom: 4px;">${escapeHtml(f)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (entry.bug_fixes && entry.bug_fixes.length) {
+        html += `
+          <div>
+            <div style="font-size: 11px; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+              <span>🐛</span> Correzioni di Bug
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+              ${entry.bug_fixes.map(f => `<li style="margin-bottom: 4px;">${escapeHtml(f)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+    });
+
+    if (body) body.innerHTML = html;
+  } catch (err) {
+    if (body) body.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 24px;">Errore caricamento changelog (${escapeHtml(err.message)})</div>`;
+  }
+}
+
+function closeChangelogModal() {
+  const modal = document.getElementById('changelog-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ----------------------------------------------------------------------------
+// AMMINISTRAZIONE DATABASE: BACKUP & RESTORE (SOLO ADMIN)
+// ----------------------------------------------------------------------------
+async function downloadDatabaseBackup() {
+  const statusEl = document.getElementById('admin-restore-status');
+  if (statusEl) statusEl.innerHTML = '<span style="color:#38bdf8;">⏳ Generazione backup completo del database in corso...</span>';
+
+  try {
+    const email = state.currentUser?.email || '';
+    const name = state.currentUser?.name || 'Admin';
+    const res = await fetch(`${API_BASE}/api/admin/backup?user_email=${encodeURIComponent(email)}&user_name=${encodeURIComponent(name)}`);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const nowStr = new Date().toISOString().slice(0, 10);
+    const filename = `asma_backup_${nowStr}.json`;
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+    if (statusEl) statusEl.innerHTML = '<span style="color:#22c55e; font-weight:700;">✓ Backup scaricato con successo! Conservalo in un luogo sicuro.</span>';
+    showToast('✓ Backup database scaricato!');
+  } catch (err) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠ Errore creazione backup: ${escapeHtml(err.message)}</span>`;
+    showToast(`Errore backup: ${err.message}`);
+  }
+}
+
+function triggerDatabaseRestore() {
+  const fileInput = document.getElementById('admin-restore-file');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  }
+}
+
+async function handleDatabaseRestoreFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('admin-restore-status');
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    let backupData = null;
+    try {
+      backupData = JSON.parse(e.target.result);
+    } catch (parseErr) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444; font-weight:700;">⚠ File non valido: non è un file JSON corretto.</span>';
+      showToast('File backup non valido');
+      return;
+    }
+
+    const confirmed = confirm(
+      "⚠️ ATTENZIONE: Il ripristino sovrascriverà tutti i dati correnti (brani, scalette, repertori, utenti e changelog) con quelli del file di backup.\n\nVuoi procedere con il ripristino del database?"
+    );
+    if (!confirmed) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#94a3b8;">Ripristino annullato dall\'utente.</span>';
+      return;
+    }
+
+    if (statusEl) statusEl.innerHTML = '<span style="color:#38bdf8; font-weight:700;">⏳ Ripristino database e sincronizzazione Turso in corso...</span>';
+
+    try {
+      const email = state.currentUser?.email || '';
+      const name = state.currentUser?.name || 'Admin';
+
+      const res = await fetch(`${API_BASE}/api/admin/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_email: email,
+          user_name: name,
+          backup_data: backupData
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+
+      const result = await res.json();
+      const c = result.counts || {};
+      const msg = `✓ Ripristinati con successo: ${c.songs || 0} brani, ${c.setlists || 0} scalette, ${c.repertoires || 0} repertori, ${c.users || 0} utenti, ${c.changelog || 0} versioni changelog.`;
+
+      if (statusEl) statusEl.innerHTML = `<span style="color:#22c55e; font-weight:700;">${escapeHtml(msg)}</span>`;
+      showToast('✓ Database ripristinato con successo!');
+
+      // Ricarica lo stato dell'app
+      await fetchRepertoires();
+      await fetchSongs();
+      await fetchSetlists();
+      await fetchRegisteredUsers();
+    } catch (err) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠ Errore durante il ripristino: ${escapeHtml(err.message)}</span>`;
+      showToast(`Errore restore: ${err.message}`);
+    }
+  };
+
+  reader.readAsText(file);
 }

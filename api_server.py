@@ -14,6 +14,7 @@ import hmac
 import hashlib
 import base64
 import time
+from datetime import datetime
 from html import escape as html_escape
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
@@ -1928,6 +1929,93 @@ def get_stage_song_payload(uuid: str):
         "aml_content": song.aml_content,
         "sections": sections
     }
+
+
+# -----------------------------------------------------------------------------
+# 7.5. CHANGELOG & ADMIN DATABASE BACKUP / RESTORE
+# -----------------------------------------------------------------------------
+from asma_core.changelog_engine import ChangelogEngine
+from asma_core.backup_engine import BackupEngine
+
+@app.get("/api/changelog")
+def get_changelog():
+    """Returns the official changelog list grouped by date (single version per day). Public to all users."""
+    return {
+        "status": "success",
+        "latest_version": ChangelogEngine.get_latest_version(),
+        "entries": ChangelogEngine.get_entries()
+    }
+
+class ChangelogEntryRequest(BaseModel):
+    user_email: str
+    version: Optional[str] = None
+    date_str: Optional[str] = None
+    title: Optional[str] = None
+    new_features: Optional[List[str]] = None
+    improvements: Optional[List[str]] = None
+    bug_fixes: Optional[List[str]] = None
+    security: Optional[List[str]] = None
+
+@app.post("/api/changelog/entry")
+def record_changelog_entry(req: ChangelogEntryRequest):
+    """Adds or merges entries into the daily changelog (Admin only)."""
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo all'amministratore.")
+    entry = ChangelogEngine.record_entry(
+        version=req.version,
+        date_str=req.date_str,
+        title=req.title,
+        new_features=req.new_features,
+        improvements=req.improvements,
+        bug_fixes=req.bug_fixes,
+        security=req.security
+    )
+    return {"status": "success", "entry": entry}
+
+@app.get("/api/admin/backup")
+def export_database_backup(
+    user_email: str = Query(..., description="Email utente admin"),
+    user_name: Optional[str] = Query("Admin", description="Nome admin")
+):
+    """Exports full database dump (songs, repertoires, setlists, users, preferences, changelog). Admin only."""
+    if not is_admin_email(user_email):
+        raise HTTPException(status_code=403, detail="Accesso negato: operazione riservata all'amministratore.")
+
+    backup_dict = BackupEngine.create_backup(user_email, user_name or "Admin", storage, auth_mgr, pref_mgr)
+    now_clean = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"asma_backup_{now_clean}.json"
+    content = json.dumps(backup_dict, indent=2, ensure_ascii=False)
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+class DatabaseRestoreRequest(BaseModel):
+    user_email: str
+    user_name: Optional[str] = "Admin"
+    backup_data: Dict[str, Any]
+
+@app.post("/api/admin/restore")
+def restore_database_backup(req: DatabaseRestoreRequest):
+    """Restores full database from provided backup dump. Admin only."""
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Accesso negato: operazione riservata all'amministratore.")
+
+    try:
+        res = BackupEngine.restore_backup(
+            backup_dict=req.backup_data,
+            admin_email=req.user_email,
+            admin_name=req.user_name or "Admin",
+            storage=storage,
+            auth_mgr=auth_mgr,
+            pref_mgr=pref_mgr
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Errore durante il ripristino: {str(e)}")
 
 
 # -----------------------------------------------------------------------------
