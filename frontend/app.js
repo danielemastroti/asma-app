@@ -66,6 +66,7 @@ const state = {
 document.addEventListener('DOMContentLoaded', async () => {
   initServiceWorker();
   initNav();
+  initHistoryNavigation();
   initKeyboardAndPedals();
   await loadUsersAndDevices();
   await loadUserPreferences();
@@ -111,7 +112,35 @@ function initNav() {
   }
 }
 
-function switchTab(tabName) {
+function initHistoryNavigation() {
+  try {
+    if (!history.state || !history.state.asmaTab) {
+      history.replaceState({ asmaTab: state.currentTab || 'dashboard' }, '', window.location.href);
+    }
+  } catch (e) {}
+
+  window.addEventListener('popstate', (e) => {
+    const st = e.state || {};
+    const stageModal = document.getElementById('stage-modal');
+    if (stageModal && stageModal.style.display !== 'none' && st.asmaModal !== 'stage') {
+      closeStageModal({ fromPopstate: true });
+    }
+    const pdfModal = document.getElementById('pdf-export-modal');
+    if (pdfModal && pdfModal.style.display !== 'none' && st.asmaModal !== 'pdf-export') {
+      closePdfExportModal({ fromPopstate: true });
+    }
+    if (st.asmaTab && st.asmaTab !== state.currentTab) {
+      switchTab(st.asmaTab, { skipHistory: true });
+    }
+  });
+}
+
+function switchTab(tabName, { skipHistory = false } = {}) {
+  if (!skipHistory && tabName && tabName !== state.currentTab) {
+    try {
+      history.pushState({ asmaTab: tabName }, '', window.location.href);
+    } catch (e) {}
+  }
   state.currentTab = tabName;
   document.querySelectorAll('.nav-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === tabName);
@@ -2361,18 +2390,22 @@ function triggerPdfDownload(url, filename, onPrint = null) {
   }, 1500);
 }
 
-function closePdfExportModal() {
+function closePdfExportModal({ fromPopstate = false } = {}) {
   const modal = document.getElementById('pdf-export-modal');
+  const wasOpen = modal && modal.style.display !== 'none';
   if (modal) modal.style.display = 'none';
   if (state._pdfExport && state._pdfExport.blobUrl) {
     const oldUrl = state._pdfExport.blobUrl;
     setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
   }
   state._pdfExport = null;
+  if (!fromPopstate && wasOpen && history.state && history.state.asmaModal === 'pdf-export') {
+    try { history.back(); } catch (e) {}
+  }
 }
 
 async function openPdfExportModal(url, filename, onPrint = null) {
-  closePdfExportModal();
+  closePdfExportModal({ fromPopstate: true });
   const modal = document.getElementById('pdf-export-modal');
   const nameEl = document.getElementById('pdf-export-filename');
   const statusEl = document.getElementById('pdf-export-status');
@@ -2387,6 +2420,11 @@ async function openPdfExportModal(url, filename, onPrint = null) {
 
   const isAndroid = /Android/i.test(navigator.userAgent || '');
   state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null };
+  try {
+    if (!history.state || history.state.asmaModal !== 'pdf-export') {
+      history.pushState({ asmaTab: state.currentTab, asmaModal: 'pdf-export' }, '', window.location.href);
+    }
+  } catch (e) {}
   modal.style.display = 'flex';
 
   try {
@@ -2419,7 +2457,7 @@ function triggerDirectAndroidDownload(e) {
   if (/Android/i.test(navigator.userAgent || '')) {
     if (e) e.preventDefault();
     const targetUrl = ctx.url;
-    closePdfExportModal();
+    closePdfExportModal({ fromPopstate: true });
     window.location.assign(targetUrl);
   }
 }
@@ -2515,7 +2553,15 @@ async function openStageModal() {
   const stageModal = document.getElementById('stage-modal');
   if (!stageModal || !currentSong) return;
 
+  const wasHidden = stageModal.style.display === 'none' || !stageModal.style.display;
   stageModal.style.display = 'flex';
+  if (wasHidden) {
+    try {
+      if (!history.state || history.state.asmaModal !== 'stage') {
+        history.pushState({ asmaTab: state.currentTab, asmaModal: 'stage' }, '', window.location.href);
+      }
+    } catch (e) {}
+  }
   updateStageHeaderMeta(currentSong);
   updateStageTransposeBadge(currentSong);
 
@@ -2760,7 +2806,7 @@ async function adjustStageFontSize(delta) {
   }
 }
 
-function closeStageModal() {
+function closeStageModal({ fromPopstate = false } = {}) {
   stopAutoscroll();
   if (metronomeTimer) {
     clearInterval(metronomeTimer);
@@ -2769,7 +2815,11 @@ function closeStageModal() {
   isMetronomeActive = false;
   state.isStageActive = false;
   const stageModal = document.getElementById('stage-modal');
+  const wasOpen = stageModal && stageModal.style.display !== 'none';
   if (stageModal) stageModal.style.display = 'none';
+  if (!fromPopstate && wasOpen && history.state && history.state.asmaModal === 'stage') {
+    try { history.back(); } catch (e) {}
+  }
 }
 
 function toggleAutoscroll() {
