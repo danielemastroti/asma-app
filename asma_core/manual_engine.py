@@ -351,7 +351,7 @@ class ManualEngine:
             bullet_style
         ))
         story.append(Paragraph(
-            "Il passaggio tra le due modalità è immediato: basta toccare il badge in testata (<i>'🎤 Casa / Palco'</i>) o aprire "
+            "Il passaggio tra le due modalità è immediato: basta toccare il badge in testata (<i>'Casa / Palco'</i>) o aprire "
             "il popover del profilo musicista in alto a destra.",
             body_style
         ))
@@ -461,30 +461,30 @@ class ManualEngine:
         # =========================================================================
         story.append(Paragraph("Capitolo 6 &bull; Importazione Brani da Fonti Esterne & Scansione Fotocamera", ch_title_style))
         story.append(Paragraph(
-            "Il pulsante <b>'➕ Nuovo / Importa'</b> nella schermata Brani apre una finestra interattiva a 5 schede "
+            "Il pulsante <b>'Nuovo / Importa'</b> nella schermata Brani apre una finestra interattiva a 5 schede "
             "per acquisire rapidamente spartiti da qualunque supporto:",
             body_style
         ))
-        story.append(Paragraph("&bull; <b>🌐 Cerca sul Web:</b> Inserisci titolo e artista: il crawler musicale cerca su portali pubblici di accordi e converte il brano in formato AML strutturato.", bullet_style))
-        story.append(Paragraph("&bull; <b>📷 Fotocamera / Scansione OCR (Gemini Vision AI):</b> Scansione ottica diretta di spartiti cartacei, canzonieri o fogli scritti a mano tramite la fotocamera del dispositivo o caricamento immagini.", bullet_style))
-        story.append(Paragraph("&bull; <b>📋 Incolla Testo:</b> Incolla testo con accordi posti sopra le parole (formato testo tradizionale); il parser fonde testo e accordi in sintassi inline AML <code>[DO]Parola</code> senza errori di allineamento.", bullet_style))
-        story.append(Paragraph("&bull; <b>🔗 Da Link Web:</b> Estrazione diretta di testo e accordi da una pagina web specifica incollandone la URL.", bullet_style))
-        story.append(Paragraph("&bull; <b>✍️ Scrivi AML:</b> Composizione libera direttamente nel formato sorgente della band con assistenza sintattica.", bullet_style))
+        story.append(Paragraph("&bull; <b>Cerca sul Web:</b> Inserisci titolo e artista: il crawler musicale cerca su portali pubblici di accordi e converte il brano in formato AML strutturato.", bullet_style))
+        story.append(Paragraph("&bull; <b>Fotocamera / Scansione OCR (Gemini Vision AI):</b> Scansione ottica diretta di spartiti cartacei, canzonieri o fogli scritti a mano tramite la fotocamera del dispositivo o caricamento immagini.", bullet_style))
+        story.append(Paragraph("&bull; <b>Incolla Testo:</b> Incolla testo con accordi posti sopra le parole (formato testo tradizionale); il parser fonde testo e accordi in sintassi inline AML <code>[DO]Parola</code> senza errori di allineamento.", bullet_style))
+        story.append(Paragraph("&bull; <b>Da Link Web:</b> Estrazione diretta di testo e accordi da una pagina web specifica incollandone la URL.", bullet_style))
+        story.append(Paragraph("&bull; <b>Scrivi AML:</b> Composizione libera direttamente nel formato sorgente della band con assistenza sintattica.", bullet_style))
 
         story.append(Paragraph("<b>Approfondimento: Scansione da Fotocamera / Foto Spartito Cartaceo (OCR AI)</b>", ch_sub_style))
         story.append(Paragraph(
-            "La scheda <b>'📷 Fotocamera / Foto'</b> è una delle funzionalità più potenti di ASMA: consente di digitalizzare in pochi "
+            "La scheda <b>'Fotocamera / Foto'</b> è una delle funzionalità più potenti di ASMA: consente di digitalizzare in pochi "
             "secondi interi spartiti cartacei, spartiti di prova o canzonieri storici senza dover ricopiare testo o accordi a mano.",
             body_style
         ))
         story.append(Paragraph("<b>Procedura Passo-Passo per la Scansione:</b>", ch_sub_style))
         story.append(Paragraph(
-            "1. <b>Accesso alla Scheda:</b> Tocca <i>'➕ Nuovo / Importa'</i> e seleziona il tab <i>'📷 Fotocamera / Foto'</i>.<br/>"
-            "2. <b>Scatto della Foto o Selezione File:</b> Su smartphone o tablet (Android/iOS) tocca <i>'📷 Scatta Foto o Scegli da Galleria'</i>: "
+            "1. <b>Accesso alla Scheda:</b> Tocca <i>'Nuovo / Importa'</i> e seleziona il tab <i>'Fotocamera / Foto'</i>.<br/>"
+            "2. <b>Scatto della Foto o Selezione File:</b> Su smartphone o tablet (Android/iOS) tocca <i>'Scatta Foto o Scegli da Galleria'</i>: "
             "il sistema apre direttamente la fotocamera posteriore del dispositivo per inquadrare lo spartito con buona luce.<br/>"
             "3. <b>Supporto Multi-Pagina:</b> Se il brano si sviluppa su più fogli, puoi scattare o caricare più foto in sequenza. "
             "L'interfaccia mostra le miniature delle pagine caricate (Pagina 1, Pagina 2, ecc.) con possibilità di visualizzarle, riordinarle o rimuovere scatti sfocati.<br/>"
-            "4. <b>Riconoscimento Ottico Intelligente (Gemini Vision OCR):</b> Toccando <i>'✨ Elabora con Vision AI'</i>, "
+            "4. <b>Riconoscimento Ottico Intelligente (Gemini Vision OCR):</b> Toccando <i>'Elabora con Vision AI'</i>, "
             "il motore analizza le immagini scansionate ed estrae automaticamente:<br/>"
             "&nbsp;&nbsp;&bull; <b>Titolo e Artista:</b> Rilevati dall'intestazione del foglio o dal ritornello.<br/>"
             "&nbsp;&nbsp;&bull; <b>Tonalità e BPM:</b> Tonalità musicale rilevata e tempo suggerito.<br/>"
@@ -527,14 +527,14 @@ class ManualEngine:
         story.append(Paragraph("<b>Le 5 Fasi del Flusso di Lavoro:</b>", ch_sub_style))
         story.append(Paragraph(
             "1. <b>Fase 1 — Consultazione Protetta:</b> Quando selezioni un brano dal Repertorio Ufficiale, "
-            "l'interfaccia mostra il badge <code>🔒 Ufficiale Protetto</code>. I campi di modifica diretta sono disattivati: "
+            "l'interfaccia mostra il badge <code> Ufficiale Protetto</code>. I campi di modifica diretta sono disattivati: "
             "puoi visualizzare l'anteprima PDF, stampare su A4, avviare il teleprompter Palco o consultare i consigli live AI, "
             "con la sicurezza assoluta che nessuno spartito comune possa essere modificato accidentalmente.",
             bullet_style
         ))
         story.append(Paragraph(
             "2. <b>Fase 2 — Copia nel Personale (Fork Isolato):</b> Per apportare qualsiasi modifica, tocca il pulsante "
-            "<i>'📋 Copia nel Personale per Modificare'</i>. Il sistema crea istantaneamente un duplicato privato del brano "
+            "<i>' Copia nel Personale per Modificare'</i>. Il sistema crea istantaneamente un duplicato privato del brano "
             "e lo assegna al tuo repertorio personale (legato al tuo account Google).",
             bullet_style
         ))
@@ -542,7 +542,7 @@ class ManualEngine:
             "3. <b>Fase 3 — Modifica & Arrangiamento in Autonomia:</b> Nella tua copia personale si sbloccano tutti gli strumenti di editing:<br/>"
             "&nbsp;&nbsp;&bull; <b>Trasposizione Tonalità:</b> Con i pulsanti <code>b -1</code> e <code># +1</code> puoi trasporre al volo tutti gli accordi del brano e verificare subito la nuova chiave.<br/>"
             "&nbsp;&nbsp;&bull; <b>Direttive Live & Tastiere:</b> Inserisci la direttiva synth <code>{scena: X}</code> per Sentimental, gli stacchi <code>{stacco: strumento}</code> per la ritmica, o crea un Medley concatenato.<br/>"
-            "&nbsp;&nbsp;&bull; <b>Salvataggio su Cloud Turso:</b> Toccando <i>'💾 Salva nel DB'</i> le tue modifiche vengono salvate in modo permanente nel cloud senza che gli altri membri della band vedano versioni parziali o premature.",
+            "&nbsp;&nbsp;&bull; <b>Salvataggio su Cloud Turso:</b> Toccando <i>' Salva nel DB'</i> le tue modifiche vengono salvate in modo permanente nel cloud senza che gli altri membri della band vedano versioni parziali o premature.",
             bullet_style
         ))
         story.append(Paragraph(
@@ -552,7 +552,7 @@ class ManualEngine:
         ))
         story.append(Paragraph(
             "5. <b>Fase 5 — Promozione a Ufficiale con Sovrascrittura Protetta:</b> Quando l'arrangiamento è concordato e approvato da tutta la band, "
-            "nella scheda del brano personale compare il pulsante dorato <b>'⭐ Promuovi a Ufficiale'</b>. Toccandolo:<br/>"
+            "nella scheda del brano personale compare il pulsante dorato <b>'Promuovi a Ufficiale'</b>. Toccandolo:<br/>"
             "&nbsp;&nbsp;&bull; La versione nel Repertorio Ufficiale Band viene automaticamente <b>sovrascritta e aggiornata</b> con il nuovo testo e accordi validati.<br/>"
             "&nbsp;&nbsp;&bull; La copia temporanea nel tuo repertorio personale viene <b>automaticamente rimossa</b> per non lasciare duplicati disallineati.<br/>"
             "&nbsp;&nbsp;&bull; Tutti i tablet della band scaricano all'istante la nuova versione ufficiale sincronizzata.",
@@ -562,11 +562,11 @@ class ManualEngine:
         # Workflow Summary Table
         wf_data = [
             [Paragraph("<b>Fase</b>", body_style), Paragraph("<b>Azione / Pulsante UI</b>", body_style), Paragraph("<b>Effetto sul Sistema</b>", body_style)],
-            [Paragraph("<b>1. Ufficiale</b>", body_style), Paragraph("Visualizzazione brano <code>🔒</code>", body_style), Paragraph("Lettura sicura, modifiche dirette bloccate.", body_style)],
-            [Paragraph("<b>2. Fork</b>", body_style), Paragraph("<i>'📋 Copia nel Personale'</i>", body_style), Paragraph("Crea copia privata nel repertorio personale.", body_style)],
-            [Paragraph("<b>3. Editing</b>", body_style), Paragraph("<i>'✏️ Modifica'</i> &bull; <code>b/#</code> &bull; <i>'💾 Salva'</i>", body_style), Paragraph("Modifica testo, accordi, BPM e direttive in isolamento.", body_style)],
-            [Paragraph("<b>4. Test</b>", body_style), Paragraph("<i>'📄 PDF'</i> &bull; <i>'🎤 Palco'</i>", body_style), Paragraph("Collaudo leggio su tablet e verifica con la band.", body_style)],
-            [Paragraph("<b>5. Rilascio</b>", body_style), Paragraph("<i>'⭐ Promuovi a Ufficiale'</i>", body_style), Paragraph("Sovrascrive l'Ufficiale ed elimina la copia personale.", body_style)]
+            [Paragraph("<b>1. Ufficiale</b>", body_style), Paragraph("Visualizzazione brano (Protetto)", body_style), Paragraph("Lettura sicura, modifiche dirette bloccate.", body_style)],
+            [Paragraph("<b>2. Fork</b>", body_style), Paragraph("<i>'Copia nel Personale'</i>", body_style), Paragraph("Crea copia privata nel repertorio personale.", body_style)],
+            [Paragraph("<b>3. Editing</b>", body_style), Paragraph("<i>'Modifica'</i> &bull; <code>b/#</code> &bull; <i>'Salva'</i>", body_style), Paragraph("Modifica testo, accordi, BPM e direttive in isolamento.", body_style)],
+            [Paragraph("<b>4. Test</b>", body_style), Paragraph("<i>'PDF'</i> &bull; <i>'Palco'</i>", body_style), Paragraph("Collaudo leggio su tablet e verifica con la band.", body_style)],
+            [Paragraph("<b>5. Rilascio</b>", body_style), Paragraph("<i>'Promuovi a Ufficiale'</i>", body_style), Paragraph("Sovrascrive l'Ufficiale ed elimina la copia personale.", body_style)]
         ]
         wf_table = Table(wf_data, colWidths=[24 * mm, 62 * mm, 94 * mm])
         wf_table.setStyle(TableStyle([
@@ -591,40 +591,40 @@ class ManualEngine:
         ))
         flowchart_data = [
             [
-                Paragraph("<font color='#ffd600' size='9.5'><b>🔒 STEP 1: REPERTORIO UFFICIALE BAND (PROTETTO)</b></font><br/>"
+                Paragraph("<font color='#ffd600' size='9.5'><b> STEP 1: REPERTORIO UFFICIALE BAND (PROTETTO)</b></font><br/>"
                           "<font size='8' color='#cbd5e1'>Lo spartito comune è in sola lettura protetta • Nessun rischio di manomissione accidentale prima di un live.<br/>"
-                          "👉 <i>Azione: Tocca il pulsante</i> <b>'📋 Copia nel Personale per Modificare'</b></font>", body_style)
+                          "<i>Azione: Tocca il pulsante</i> <b>'Copia nel Personale per Modificare'</b></font>", body_style)
             ],
             [
-                Paragraph("<font color='#38bdf8' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Fork automatico a latenza zero nel proprio archivio personale Google</font>", caption_style)
+                Paragraph("<font color='#38bdf8' size='11'><b>|</b></font> <font size='8' color='#94a3b8'>Fork automatico a latenza zero nel proprio archivio personale Google</font>", caption_style)
             ],
             [
-                Paragraph("<font color='#38bdf8' size='9.5'><b>👤 STEP 2: FORK AUTOMATICO NEL REPERTORIO PERSONALE</b></font><br/>"
+                Paragraph("<font color='#38bdf8' size='9.5'><b>STEP 2: FORK AUTOMATICO NEL REPERTORIO PERSONALE</b></font><br/>"
                           "<font size='8' color='#cbd5e1'>Viene creato all'istante un duplicato privato del brano assegnato al tuo account personale.<br/>"
-                          "👉 <i>Risultato: Si sbloccano l'Editor AML completo, la trasposizione tonalità e i quick chips.</i></font>", body_style)
+                          "<i>Risultato: Si sbloccano l'Editor AML completo, la trasposizione tonalità e i quick chips.</i></font>", body_style)
             ],
             [
-                Paragraph("<font color='#c084fc' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Editing autonomo a casa o in sala prove senza disturbare gli altri leggii</font>", caption_style)
+                Paragraph("<font color='#c084fc' size='11'><b>|</b></font> <font size='8' color='#94a3b8'>Editing autonomo a casa o in sala prove senza disturbare gli altri leggii</font>", caption_style)
             ],
             [
-                Paragraph("<font color='#c084fc' size='9.5'><b>✏️ STEP 3: MODIFICA AML, TRASPOSIZIONE (b/#) & SALVATAGGIO CLOUD</b></font><br/>"
+                Paragraph("<font color='#c084fc' size='9.5'><b>STEP 3: MODIFICA AML, TRASPOSIZIONE (b/#) & SALVATAGGIO CLOUD</b></font><br/>"
                           "<font size='8' color='#cbd5e1'>• Adatta la tonalità alla voce di Cico con <code>b -1</code> / <code># +1</code><br/>"
                           "• Inserisci direttive tastiere <code>{scena: X}</code> per Sentimental e stacchi <code>{stacco: Tutti}</code><br/>"
-                          "• Salva su database cloud Turso con il pulsante <b>'💾 Salva nel DB'</b></font>", body_style)
+                          "• Salva su database cloud Turso con il pulsante <b>'Salva nel DB'</b></font>", body_style)
             ],
             [
-                Paragraph("<font color='#f59e0b' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Collaudo pratico sul palco o in sala prove</font>", caption_style)
+                Paragraph("<font color='#f59e0b' size='11'><b>|</b></font> <font size='8' color='#94a3b8'>Collaudo pratico sul palco o in sala prove</font>", caption_style)
             ],
             [
-                Paragraph("<font color='#fbbf24' size='9.5'><b>🎶 STEP 4: COLLAUDO IN SALA PROVE CON LA BAND</b></font><br/>"
+                Paragraph("<font color='#fbbf24' size='9.5'><b>STEP 4: COLLAUDO IN SALA PROVE CON LA BAND</b></font><br/>"
                           "<font size='8' color='#cbd5e1'>Verifica lo spartito sul teleprompter a 60fps o genera l'anteprima PDF reale.<br/>"
-                          "👉 <i>I tuoi compagni continuano a visualizzare la versione ufficiale senza alterazioni.</i></font>", body_style)
+                          "<i>I tuoi compagni continuano a visualizzare la versione ufficiale senza alterazioni.</i></font>", body_style)
             ],
             [
-                Paragraph("<font color='#10b981' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Accordo raggiunto $\rightarrow$ tocca <i>'⭐ Promuovi a Ufficiale'</i></font>", caption_style)
+                Paragraph("<font color='#10b981' size='11'><b>|</b></font> <font size='8' color='#94a3b8'>Accordo raggiunto → tocca <i>'Promuovi a Ufficiale'</i></font>", caption_style)
             ],
             [
-                Paragraph("<font color='#34d399' size='9.5'><b>⭐ STEP 5: PROMOZIONE & SINCRONIZZAZIONE GENERALE BAND</b></font><br/>"
+                Paragraph("<font color='#34d399' size='9.5'><b>STEP 5: PROMOZIONE & SINCRONIZZAZIONE GENERALE BAND</b></font><br/>"
                           "<font size='8' color='#cbd5e1'>• La versione nel Repertorio Ufficiale Band viene <b>sovrascritta e aggiornata</b> al nuovo arrangiamento.<br/>"
                           "• La copia personale temporanea viene <b>automaticamente rimossa</b> (zero duplicati o ambiguità).<br/>"
                           "• Tutti i tablet e smartphone del gruppo scaricano istantaneamente la nuova versione ufficiale.</font>", body_style)
@@ -708,7 +708,7 @@ class ManualEngine:
         # GUIDA PRATICA 1: COME SCRIVERE UN BRANO INTERO AUTONOMAMENTE
         story.append(Paragraph("<b>Guida Pratica 1: Come Scrivere un Intero Brano da Zero nell'Editor</b>", ch_sub_style))
         story.append(Paragraph(
-            "Per inserire un brano nuovo, tocca il pulsante <b>'➕ Nuovo / Importa'</b> $\rightarrow$ scheda <b>'Crea Nuovo'</b>. "
+            "Per inserire un brano nuovo, tocca il pulsante <b>'Nuovo / Importa'</b> → scheda <b>'Crea Nuovo'</b>. "
             "Nell'area di testo dell'editor incolla o componi la struttura AML seguendo questo modello completo e funzionante:",
             body_style
         ))
@@ -846,8 +846,9 @@ class ManualEngine:
         story.append(Paragraph("Capitolo 11 &bull; IL CIRCOLO DELLE QUINTE (Armonia & Esempi Pratici per la Band)", ch_title_style))
         story.append(Paragraph(
             "Il <b>Circolo delle Quinte</b> è la bussola armonica fondamentale per ogni musicista. "
-            "In ASMA non è solo una teoria musicale, ma uno <b>strumento visivo e interattivo integrato</b> "
-            "(apribile con un tocco dal pulsante <b>'🎼 Circolo Quinte'</b> nell'Editor, nel Visualizzatore e nelle Scalette) "
+            "All'interno del sito il circolo delle quinte non è solo una teoria musicale, "
+            "ma uno <b>strumento visivo e interattivo integrato</b> "
+            "(apribile con un tocco dal pulsante <b>'Circolo Quinte'</b> nell'Editor, nel Visualizzatore e nelle Scalette) "
             "che risolve i problemi concreti che la band incontra sul palco e in sala prove.",
             body_style
         ))
@@ -982,19 +983,19 @@ class ManualEngine:
         # =========================================================================
         story.append(Paragraph("Capitolo 14 &bull; Suggerimenti Esecuzione Live (AI Gemini Free)", ch_title_style))
         story.append(Paragraph(
-            "Accessibile da qualunque brano tramite il pulsante <b>'💡 Consigli Live'</b>, questa funzionalità "
+            "Accessibile da qualunque brano tramite il pulsante <b>'Consigli Live'</b>, questa funzionalità "
             "fornisce raccomandazioni pratiche ed esecutive per il palco utilizzando l'intelligenza artificiale gratuita "
             "e ultra-leggera Google Gemini (con fallback deterministico offline istantaneo in caso di assenza di connessione).",
             body_style
         ))
         story.append(Paragraph("<b>Consigli Selezionabili per Singolo Musicista o Tutta la Band:</b>", ch_sub_style))
-        story.append(Paragraph("&bull; <b>👥 Tutta la Band:</b> Dinamiche d'insieme, attacchi d'impatto, gestione dei crescendo tra strofa e ritornello, chiusure nette.", bullet_style))
-        story.append(Paragraph("&bull; <b>🎤 Cico (Voce):</b> Intonazione della prima nota, gestione del fiato a BPM elevati, momenti di coinvolgimento del pubblico.", bullet_style))
-        story.append(Paragraph("&bull; <b>🥁 Mingo (Batteria):</b> Groove ritmico, timing dei fill prima dei ritornelli, cassa granitica sulle fondamentali del basso.", bullet_style))
-        story.append(Paragraph("&bull; <b>🎸 Puma (Basso):</b> Incastro cassa-basso con Mingo, linee melodiche nei ponti, stop ritmici negli stacchi.", bullet_style))
-        story.append(Paragraph("&bull; <b>⚡ Red (Chitarra Solista):</b> Gestione overdrive e delay a tempo, riff portanti, espressività nei bending dell'assolo.", bullet_style))
-        story.append(Paragraph("&bull; <b>🎸 Maurino (Chitarra Ritmica):</b> Solidità di plettrata/strumming, accordi aperti vs barré, bilanciamento frequenze con Red.", bullet_style))
-        story.append(Paragraph("&bull; <b>🎹 Sentimental (Tastiere):</b> Selezione della scena corretta ({scena: X}), pad e pianoforte senza sporcare le frequenze basse.", bullet_style))
+        story.append(Paragraph("&bull; <b>Tutta la Band:</b> Dinamiche d'insieme, attacchi d'impatto, gestione dei crescendo tra strofa e ritornello, chiusure nette.", bullet_style))
+        story.append(Paragraph("&bull; <b>Cico (Voce):</b> Intonazione della prima nota, gestione del fiato a BPM elevati, momenti di coinvolgimento del pubblico.", bullet_style))
+        story.append(Paragraph("&bull; <b>Mingo (Batteria):</b> Groove ritmico, timing dei fill prima dei ritornelli, cassa granitica sulle fondamentali del basso.", bullet_style))
+        story.append(Paragraph("&bull; <b>Puma (Basso):</b> Incastro cassa-basso con Mingo, linee melodiche nei ponti, stop ritmici negli stacchi.", bullet_style))
+        story.append(Paragraph("&bull; <b>Red (Chitarra Solista):</b> Gestione overdrive e delay a tempo, riff portanti, espressività nei bending dell'assolo.", bullet_style))
+        story.append(Paragraph("&bull; <b>Maurino (Chitarra Ritmica):</b> Solidità di plettrata/strumming, accordi aperti vs barré, bilanciamento frequenze con Red.", bullet_style))
+        story.append(Paragraph("&bull; <b>Sentimental (Tastiere):</b> Selezione della scena corretta ({scena: X}), pad e pianoforte senza sporcare le frequenze basse.", bullet_style))
 
         # Embedded screenshot: consigli live ai (Screenshot C)
         fig_ai_path = _resolve_asset_path("frontend/assets/manual/fig_consigli_live_ai.jpg")
@@ -1075,14 +1076,14 @@ class ManualEngine:
 
         fig_table_data = [
             [Paragraph("<b>Rif. Figura</b>", body_style), Paragraph("<b>Capitolo</b>", body_style), Paragraph("<b>Descrizione Schermata</b>", body_style), Paragraph("<b>Stato Inclusione</b>", body_style)],
-            [Paragraph("<b>Figura 4.1</b>", body_style), Paragraph("Cap. 4", body_style), Paragraph("Pannello Layout & Impaginazione PDF (colonne, font, margini)", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 5.1</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Griglia Brani con schede repertorio Ufficiale vs Personale", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 5.2</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Modale touch Condividi / Stampa A4 per invio su WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 10.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot A]</b></font>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 11.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 11", body_style), Paragraph("IL CIRCOLO DELLE QUINTE: 12 tonalità, relative minori, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 12.1</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 13.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B2]</b></font>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Dettaglio Scaletta: Modale Condividi / Stampa A4 WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 14.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot C]</b></font>", body_style), Paragraph("Cap. 14", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 4.1</b>", body_style), Paragraph("Cap. 4", body_style), Paragraph("Pannello Layout & Impaginazione PDF (colonne, font, margini)", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 5.1</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Griglia Brani con schede repertorio Ufficiale vs Personale", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 5.2</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Modale touch Condividi / Stampa A4 per invio su WhatsApp", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 10.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot A]</b></font>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 11.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 11", body_style), Paragraph("IL CIRCOLO DELLE QUINTE: 12 tonalità, relative minori, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 12.1</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 13.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B2]</b></font>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Dettaglio Scaletta: Modale Condividi / Stampa A4 WhatsApp", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 14.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot C]</b></font>", body_style), Paragraph("Cap. 14", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>OK Presente</b></font>", body_style)],
         ]
         fig_table = Table(fig_table_data, colWidths=[28 * mm, 20 * mm, 95 * mm, 37 * mm])
         fig_table.setStyle(TableStyle([

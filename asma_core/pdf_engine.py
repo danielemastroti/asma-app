@@ -709,21 +709,28 @@ class PDFEngine:
                             unw.append(it)
                     return unw
 
-                sub_group: List[Flowable] = []
-                for it in fragment_flowables:
-                    if isinstance(it, (ActionFlowable, LCActionFlowable)):
-                        if sub_group:
-                            flat = unwrap(sub_group)
-                            if flat:
-                                flowables.append(KeepTogether(flat))
-                            sub_group = []
-                        flowables.append(it)
-                    else:
-                        sub_group.append(it)
-                if sub_group:
-                    flat = unwrap(sub_group)
+                # Lo spezzone iniziale (1° brano del medley) non deve MAI forzare il salto a pagina 2
+                # lasciando la prima pagina bianca con solo l'intestazione del brano.
+                if medley_fragment_count <= 1:
+                    flat = unwrap(fragment_flowables)
                     if flat:
-                        flowables.append(KeepTogether(flat))
+                        flowables.extend(flat)
+                else:
+                    sub_group: List[Flowable] = []
+                    for it in fragment_flowables:
+                        if isinstance(it, (ActionFlowable, LCActionFlowable)):
+                            if sub_group:
+                                flat = unwrap(sub_group)
+                                if flat:
+                                    flowables.append(KeepTogether(flat))
+                                sub_group = []
+                            flowables.append(it)
+                        else:
+                            sub_group.append(it)
+                    if sub_group:
+                        flat = unwrap(sub_group)
+                        if flat:
+                            flowables.append(KeepTogether(flat))
                 fragment_flowables = []
             in_medley_fragment = False
 
