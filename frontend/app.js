@@ -3480,10 +3480,16 @@ async function renderStageSong(currentSong) {
 
   container.scrollTop = prevScroll;
   scrollAccumulator = prevScroll;
+  container.style.scrollBehavior = 'auto';
 
   container.onscroll = () => {
     if (!state.isAutoscrolling) {
       scrollAccumulator = container.scrollTop;
+    } else {
+      // Sincronizza accumulator se l'utente interagisce manualmente su PC o tablet
+      if (Math.abs(container.scrollTop - scrollAccumulator) > 30) {
+        scrollAccumulator = container.scrollTop;
+      }
     }
   };
 
@@ -3671,6 +3677,7 @@ function startAutoscroll() {
 
   const container = document.getElementById('stage-lyrics');
   if (container) {
+    container.style.scrollBehavior = 'auto';
     scrollAccumulator = container.scrollTop;
   }
   lastScrollTime = performance.now();
@@ -3734,12 +3741,18 @@ function initKeyboardAndPedals() {
 
     if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === '3') {
       const container = document.getElementById('stage-lyrics');
-      if (container) container.scrollTop += 320;
+      if (container) {
+        container.scrollTop += 320;
+        scrollAccumulator = container.scrollTop;
+      }
       e.preventDefault();
     }
     else if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === '1') {
       const container = document.getElementById('stage-lyrics');
-      if (container) container.scrollTop -= 320;
+      if (container) {
+        container.scrollTop -= 320;
+        scrollAccumulator = container.scrollTop;
+      }
       e.preventDefault();
     }
     else if (e.key === ' ' || e.key === 'Enter') {
@@ -3750,6 +3763,17 @@ function initKeyboardAndPedals() {
       closeStageModal();
     }
   });
+
+  // Supporto rotella del mouse su PC durante teleprompter palco
+  window.addEventListener('wheel', (e) => {
+    if (!state.isStageActive) return;
+    const container = document.getElementById('stage-lyrics');
+    if (!container) return;
+    if (state.isAutoscrolling) {
+      scrollAccumulator = Math.max(0, scrollAccumulator + e.deltaY);
+      container.scrollTop = scrollAccumulator;
+    }
+  }, { passive: true });
 
   let touchStartY = 0;
   let touchStartX = 0;
