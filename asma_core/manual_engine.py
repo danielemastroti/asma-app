@@ -444,6 +444,17 @@ class ManualEngine:
             except Exception:
                 pass
 
+        # Embedded screenshot: condividi e stampa A4
+        fig_condividi_path = _resolve_asset_path("frontend/assets/manual/fig_condividi_stampa_a4.png")
+        if fig_condividi_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 757 x 705 -> width 82mm, height 76.3mm
+                story.append(Image(fig_condividi_path, width=82 * mm, height=76.3 * mm))
+                story.append(Paragraph("Figura 5.2: Modale 'Condividi / Stampa A4' con selezione accordi o solo testo, font regolabile, layout a 2 colonne e condivisione rapida su WhatsApp.", caption_style))
+            except Exception:
+                pass
+
         # =========================================================================
         # CAPITOLO 6: IMPORTAZIONE BRANI DA FONTI ESTERNE & SCANSIONE FOTOCAMERA
         # =========================================================================
@@ -629,6 +640,17 @@ class ManualEngine:
             bullet_style
         ))
 
+        # Embedded screenshot: editor medley e direttive
+        fig_editor_path = _resolve_asset_path("frontend/assets/manual/fig_editor_medley_direttive.png")
+        if fig_editor_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 1024 x 316 -> width 155mm, height 47.8mm
+                story.append(Image(fig_editor_path, width=155 * mm, height=47.8 * mm))
+                story.append(Paragraph("Figura 10.1: Editor brano con quick-chips per accordi, spezzoni Medley, setup scena ({scena: 1}) e stacchi musicali ({stacco: Tutti}).", caption_style))
+            except Exception:
+                pass
+
         # =========================================================================
         # CAPITOLO 11: MODALITÀ PALCO (STAGE MODE) & TELEPROMPTER
         # =========================================================================
@@ -660,17 +682,29 @@ class ManualEngine:
         # =========================================================================
         # CAPITOLO 12: GESTIONE SCALETTE LIVE & CIRCOLO DELLE QUINTE
         # =========================================================================
-        story.append(Paragraph("Capitolo 12 &bull; Gestione Scalette Live & Compatibilità Armonica", ch_title_style))
+        story.append(Paragraph("Capitolo 12 &bull; Gestione Scalette Live & Compatibilità Armonica (Circolo Quinte)", ch_title_style))
         story.append(Paragraph(
             "La gestione scalette consente di pianificare concerti con titolo, data, location e ordinamento dei pezzi. "
             "Aggiungendo brani con il pulsante <i>'Inserisci'</i> viene mostrata una notifica toast visiva immediata e "
             "aggiornato il contatore in tempo reale.",
             body_style
         ))
-        story.append(Paragraph("<b>Funzionalità Avanzate Scalette:</b>", ch_sub_style))
-        story.append(Paragraph("&bull; <b>Compatibilità Armonica sul Circolo delle Quinte:</b> Tra ciascuna coppia di brani consecutivi viene calcolata la distanza tonale e la variazione di BPM per garantire transizioni fluide.", bullet_style))
+        story.append(Paragraph("<b>Funzionalità Avanzate Scalette & Armonia:</b>", ch_sub_style))
+        story.append(Paragraph("&bull; <b>Circolo delle Quinte Interattivo:</b> Accessibile con il pulsante <b>'🎼 Circolo Quinte'</b> nell'editor, visualizzatore e scalette. Mostra le 12 tonalità cromatiche, le relative minori, le alterazioni (#/b), le note della scala e gli accordi della famiglia armonica per modulazioni perfette.", bullet_style))
+        story.append(Paragraph("&bull; <b>Indicatori di Transizione Live:</b> Tra ciascuna coppia di brani consecutivi viene calcolata la distanza sul circolo delle quinte (0-6) e il Δ BPM percentuale, con raccomandazione esecutiva colorata (passaggio immediato, modulazione o stacco ritmico).", bullet_style))
         story.append(Paragraph("&bull; <b>Condivisione A4 su WhatsApp:</b> Invio del PDF completo A4 stampabile direttamente sul gruppo WhatsApp della band con un solo tocco.", bullet_style))
         story.append(Paragraph("&bull; <b>Calcolo Durata Live:</b> Somma automatica dei minuti e secondi per rispettare i tempi del locale.", bullet_style))
+
+        # Embedded screenshot: circolo delle quinte
+        fig_circolo_path = _resolve_asset_path("frontend/assets/manual/fig_circolo_quinte.jpg")
+        if fig_circolo_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 1024 x 990 -> width 95mm, height 91.8mm
+                story.append(Image(fig_circolo_path, width=95 * mm, height=91.8 * mm))
+                story.append(Paragraph("Figura 12.1: Strumento interattivo del Circolo delle Quinte con scala, alterazioni (#/b), accordi della famiglia armonica e transizioni consigliate.", caption_style))
+            except Exception:
+                pass
 
         # =========================================================================
         # CAPITOLO 13: SUGGERIMENTI ESECUZIONE LIVE (AI GEMINI FREE)
@@ -690,6 +724,17 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>⚡ Red (Chitarra Solista):</b> Gestione overdrive e delay a tempo, riff portanti, espressività nei bending dell'assolo.", bullet_style))
         story.append(Paragraph("&bull; <b>🎸 Maurino (Chitarra Ritmica):</b> Solidità di plettrata/strumming, accordi aperti vs barré, bilanciamento frequenze con Red.", bullet_style))
         story.append(Paragraph("&bull; <b>🎹 Sentimental (Tastiere):</b> Selezione della scena corretta ({scena: X}), pad e pianoforte senza sporcare le frequenze basse.", bullet_style))
+
+        # Embedded screenshot: consigli live ai
+        fig_ai_path = _resolve_asset_path("frontend/assets/manual/fig_consigli_live_ai.jpg")
+        if fig_ai_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 941 x 1024 -> width 90mm, height 97.9mm
+                story.append(Image(fig_ai_path, width=90 * mm, height=97.9 * mm))
+                story.append(Paragraph("Figura 13.1: Modale Consigli Live AI Gemini con schede dedicate per l'intera band e per ciascun musicista.", caption_style))
+            except Exception:
+                pass
 
         # =========================================================================
         # CAPITOLO 14: AMMINISTRAZIONE, SICUREZZA, CESTINO 30GG & BACKUP
@@ -762,10 +807,11 @@ class ManualEngine:
             [Paragraph("<b>Rif. Figura</b>", body_style), Paragraph("<b>Capitolo</b>", body_style), Paragraph("<b>Descrizione Schermata</b>", body_style), Paragraph("<b>Stato Inclusione</b>", body_style)],
             [Paragraph("<b>Figura 4.1</b>", body_style), Paragraph("Cap. 4", body_style), Paragraph("Pannello Layout & Impaginazione PDF (colonne, font, margini)", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 5.1</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Griglia Brani con schede repertorio Ufficiale vs Personale", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 11.1</b>", body_style), Paragraph("Cap. 11", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Screenshot A</b>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 3} e {stacco: }", body_style), Paragraph("<font color='#d97706'><b>Suggerito</b></font>", body_style)],
-            [Paragraph("<b>Screenshot B</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Dettaglio Scaletta con Circolo Quinte e tasto WhatsApp", body_style), Paragraph("<font color='#d97706'><b>Suggerito</b></font>", body_style)],
-            [Paragraph("<b>Screenshot C</b>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Modale Suggerimenti Live AI con schede per musicista", body_style), Paragraph("<font color='#d97706'><b>Suggerito</b></font>", body_style)],
+            [Paragraph("<b>Figura 5.2</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Modale touch Condividi / Stampa A4 per invio su WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 10.1</b>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 11.1</b>", body_style), Paragraph("Cap. 11", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 12.1</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Circolo delle Quinte interattivo, scala, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 13.1</b>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
         ]
         fig_table = Table(fig_table_data, colWidths=[28 * mm, 20 * mm, 95 * mm, 37 * mm])
         fig_table.setStyle(TableStyle([

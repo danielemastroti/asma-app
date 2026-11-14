@@ -4,6 +4,7 @@
     "date": "14/11/2026",
     "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
     "new_features": [
+      "Integrazione Figure nel Manuale PDF Ufficiale: inserimento nel manuale utente di tutte le schermate grafiche dell'interfaccia (Condividi/Stampa A4 WhatsApp, Editor Medley con direttive Scena e Stacco, Circolo delle Quinte interattivo e Modale Consigli Live AI Gemini per i 6 componenti della band).",
       "Nuova Modalità MEDLEY nell'Editor: supporto a composizioni con molteplici spezzoni di brani indipendenti ({start_of_song: Titolo | Artista | Tonalità} e {end_of_song}), ciascuno con tonalità, introduzione e sezioni proprie, gestione fino a 20 brani, palette a colori alternati vivaci e separatore visivo.",
       "Nuova Direttiva Editor {Scena: } (es. {scena: 3}): setup rapido live per il tastierista con numero o nome preset/tasto synth, disponibile sia per brani singoli che Medley, visualizzato come badge in PDF, Web e Teleprompter Palco con quick chip dedicato.",
       "Nuova Direttiva Editor {Stacco: } (es. {stacco: guitar}, {stacco organo}, {stacco: Tutti}): break/stab strumentale d'insieme o per strumento, reso con badge dedicato e quick chip nell'editor.",
