@@ -106,7 +106,7 @@ class ManualEngine:
             {"num": 3, "title": "Elenco Utenti e Pseudonimi Autorizzati (Band)", "desc": "Componenti della band (Cico, Mingo, Puma, Red, Maurino, Sentimental) e ruoli di sicurezza."},
             {"num": 4, "title": "Preferenze Utente, Profili Hardware & Persistenza Cloud", "desc": "Multi-dispositivo (iPad, MediaPad, MatePad, Pixel, A4), font, colonne, margini e salvataggio Turso."},
             {"num": 5, "title": "Lista Brani, Anteprima PDF, Stampa A4 & Download Dispositivo", "desc": "Ricerca 0ms, schede brani, Repertorio Ufficiale vs Personale, rendering fedele e stampa."},
-            {"num": 6, "title": "Importazione Brani da Fonti Esterne", "desc": "Cerca sul Web, Incolla Testo, ChordPro, URL diretti e Scansione OCR con Gemini Vision AI."},
+            {"num": 6, "title": "Importazione Brani & Scansione da Fotocamera", "desc": "Cerca sul Web, Incolla Testo, ChordPro, URL diretti e Scansione Fotocamera OCR multi-pagina con Gemini Vision AI."},
             {"num": 7, "title": "Creazione Brani Autoprodotti", "desc": "Barra metadati essenziali compatti e repertorio personale protetto."},
             {"num": 8, "title": "Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", "desc": "Protezione del repertorio ufficiale, copia nel personale, modifiche e promozione con sovrascrittura."},
             {"num": 9, "title": "AML (ASMA Markup Language) — Sintassi & Specifiche", "desc": "Direttive, sezioni, accordi inline tra parentesi quadre e griglie armoniche a battute."},
@@ -434,17 +434,49 @@ class ManualEngine:
                 pass
 
         # =========================================================================
-        # CAPITOLO 6: IMPORTAZIONE BRANI DA FONTI ESTERNE
+        # CAPITOLO 6: IMPORTAZIONE BRANI DA FONTI ESTERNE & SCANSIONE FOTOCAMERA
         # =========================================================================
-        story.append(Paragraph("Capitolo 6 &bull; Importazione Brani da Fonti Esterne", ch_title_style))
+        story.append(Paragraph("Capitolo 6 &bull; Importazione Brani da Fonti Esterne & Scansione Fotocamera", ch_title_style))
         story.append(Paragraph(
-            "Il pulsante <b>'➕ Nuovo / Importa'</b> consente di acquisire brani in 4 modalità differenti:",
+            "Il pulsante <b>'➕ Nuovo / Importa'</b> nella schermata Brani apre una finestra interattiva a 5 schede "
+            "per acquisire rapidamente spartiti da qualunque supporto:",
             body_style
         ))
         story.append(Paragraph("&bull; <b>🌐 Cerca sul Web:</b> Inserisci titolo e artista: il crawler musicale cerca su portali pubblici di accordi e converte il brano in formato AML strutturato.", bullet_style))
-        story.append(Paragraph("&bull; <b>📷 Fotocamera / Scansione OCR (Gemini Vision AI):</b> Scatta una o più foto ad uno spartito cartaceo; il motore AI riconosce titolo, artista, BPM, tonalità, sezioni e accordi allineati.", bullet_style))
+        story.append(Paragraph("&bull; <b>📷 Fotocamera / Scansione OCR (Gemini Vision AI):</b> Scansione ottica diretta di spartiti cartacei, canzonieri o fogli scritti a mano tramite la fotocamera del dispositivo o caricamento immagini.", bullet_style))
         story.append(Paragraph("&bull; <b>📋 Incolla Testo:</b> Incolla testo con accordi posti sopra le parole (formato testo tradizionale); il parser fonde testo e accordi in sintassi inline AML <code>[DO]Parola</code> senza errori di allineamento.", bullet_style))
         story.append(Paragraph("&bull; <b>🔗 Da Link Web:</b> Estrazione diretta di testo e accordi da una pagina web specifica incollandone la URL.", bullet_style))
+        story.append(Paragraph("&bull; <b>✍️ Scrivi AML:</b> Composizione libera direttamente nel formato sorgente della band con assistenza sintattica.", bullet_style))
+
+        story.append(Paragraph("<b>Approfondimento: Scansione da Fotocamera / Foto Spartito Cartaceo (OCR AI)</b>", ch_sub_style))
+        story.append(Paragraph(
+            "La scheda <b>'📷 Fotocamera / Foto'</b> è una delle funzionalità più potenti di ASMA: consente di digitalizzare in pochi "
+            "secondi interi spartiti cartacei, spartiti di prova o canzonieri storici senza dover ricopiare testo o accordi a mano.",
+            body_style
+        ))
+        story.append(Paragraph("<b>Procedura Passo-Passo per la Scansione:</b>", ch_sub_style))
+        story.append(Paragraph(
+            "1. <b>Accesso alla Scheda:</b> Tocca <i>'➕ Nuovo / Importa'</i> e seleziona il tab <i>'📷 Fotocamera / Foto'</i>.<br/>"
+            "2. <b>Scatto della Foto o Selezione File:</b> Su smartphone o tablet (Android/iOS) tocca <i>'📷 Scatta Foto o Scegli da Galleria'</i>: "
+            "il sistema apre direttamente la fotocamera posteriore del dispositivo per inquadrare lo spartito con buona luce.<br/>"
+            "3. <b>Supporto Multi-Pagina:</b> Se il brano si sviluppa su più fogli, puoi scattare o caricare più foto in sequenza. "
+            "L'interfaccia mostra le miniature delle pagine caricate (Pagina 1, Pagina 2, ecc.) con possibilità di visualizzarle, riordinarle o rimuovere scatti sfocati.<br/>"
+            "4. <b>Riconoscimento Ottico Intelligente (Gemini Vision OCR):</b> Toccando <i>'✨ Elabora con Vision AI'</i>, "
+            "il motore analizza le immagini scansionate ed estrae automaticamente:<br/>"
+            "&nbsp;&nbsp;&bull; <b>Titolo e Artista:</b> Rilevati dall'intestazione del foglio o dal ritornello.<br/>"
+            "&nbsp;&nbsp;&bull; <b>Tonalità e BPM:</b> Tonalità musicale rilevata e tempo suggerito.<br/>"
+            "&nbsp;&nbsp;&bull; <b>Struttura a Sezioni:</b> Identificazione di [INTRO], [STROFA], [RITORNELLO], [SPECIAL], [SOLO] ed [OUTRO].<br/>"
+            "&nbsp;&nbsp;&bull; <b>Accordi Perfettamente Ancorati:</b> Gli accordi vengono letti e convertiti nella notazione inline AML standard (es. <code>[DO]</code>, <code>[SOL]</code>) posizionati esattamente sopra o dentro la sillaba corretta.<br/>"
+            "5. <b>Revisione & Salvataggio Immediato:</b> Il testo AML generato viene aperto direttamente nell'Editor integrato, "
+            "dove il musicista può verificare il risultato con l'anteprima live, effettuare eventuali micro-aggiustamenti e salvare il brano nel proprio repertorio personale con un solo tocco.",
+            body_style
+        ))
+        story.append(Paragraph(
+            "<i>Nota sulla Chiave API:</i> Per utilizzare la scansione da fotocamera è sufficiente configurare una volta sola la chiave gratuita Google Gemini "
+            "nel pannello <i>Impostazioni &bull; Chiave Google Gemini Vision AI</i>. La chiave viene sincronizzata in cloud per tutta la band.",
+            caption_style
+        ))
+        story.append(Spacer(1, 2 * mm))
 
         # =========================================================================
         # CAPITOLO 7: CREAZIONE BRANI AUTOPRODOTTI
