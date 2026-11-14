@@ -2,14 +2,18 @@
   {
     "version": "2026.11.14",
     "date": "14/11/2026",
-    "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
+    "title": "Suggerimenti Live AI Gemini, Manuale Ufficiale PDF Autocompilante, Medley Multi-Brano e Direttive Scena & Stacco",
     "new_features": [
+      "Suggerimenti Esecuzione Brani con AI Gemini (Modalità Leggera e Free): assistente intelligente per l'esecuzione live dei pezzi con consigli mirati selezionabili per singoli musicisti (Cico: voce solista, Mingo: batteria/groove, Puma: basso/fondamentali, Red: chitarra elettrica solista, Maurino: chitarra ritmica, Sentimental: tastiere/synth/scene) o per Tutta la Band (dinamiche d'insieme, attacchi e finali), con fallback deterministico offline istantaneo a zero latenza.",
+      "Manuale Utente Ufficiale Autocompilato in formato PDF: generatore di documentazione completa (15 capitoli approfonditi con logo band in testata, indice generale, AML, modalità palco 60fps e figure dell'interfaccia) che si autocompila e si aggiorna automaticamente con tutte le nuove funzionalità e il changelog in tempo reale.",
       "Nuova Modalità MEDLEY nell'Editor: supporto a composizioni con molteplici spezzoni di brani indipendenti ({start_of_song: Titolo | Artista | Tonalità} e {end_of_song}), ciascuno con tonalità, introduzione e sezioni proprie, gestione fino a 20 brani, palette a colori alternati vivaci e separatore visivo.",
       "Nuova Direttiva Editor {Scena: } (es. {scena: 3}): setup rapido live per il tastierista con numero o nome preset/tasto synth, disponibile sia per brani singoli che Medley, visualizzato come badge in PDF, Web e Teleprompter Palco con quick chip dedicato.",
       "Nuova Direttiva Editor {Stacco: } (es. {stacco: guitar}, {stacco organo}, {stacco: Tutti}): break/stab strumentale d'insieme o per strumento, reso con badge dedicato e quick chip nell'editor.",
       "Persistenza Cloud Dispositivo Utente: la selezione del dispositivo hardware (iPad, Huawei MediaPad M5, ecc.) viene sincronizzata su database cloud Turso e ripristinata automaticamente ad ogni accesso."
     ],
     "improvements": [
+      "Pulsante Download Manuale PDF: accessibile direttamente dalla testata principale e dal pannello Impostazioni per scaricare la guida ufficiale in formato PDF A4.",
+      "Modale Touch Consigli Live AI: chip veloci per selezionare al volo il ruolo del musicista, card per introduzione, strofe, ritornelli, stacchi, setup strumenti e avvisi critici da non sbagliare sul palco.",
       "Ottimizzazione Barra Superiore su Tablet Huawei (16:10): layout fluido che previene lo sbordo orizzontale su schermi da 800px.",
       "Pulizia Pulsanti Duplicati nella Home Dashboard: rimozione di controlli ridondanti per brani e scalette.",
       "Ottimizzazione RAM Anteprime PDF: rendering JPEG compresso 96 DPI e gestione rigorosa memoria PyMuPDF/GC per prevenire saturazione 512MB su Render",

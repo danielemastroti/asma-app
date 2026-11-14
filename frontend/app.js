@@ -1416,6 +1416,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
         <button class="btn btn-secondary" style="${viewTypeBtnStyle}" onclick="toggleSongViewType()" title="${viewTypeBtnTitle}">${viewTypeBtnText}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
+        <button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="openAiSuggestionsModal('${s.uuid}')" title="Suggerimenti live per musicisti o per l'intera band con AI Gemini Free">💡 Consigli Live</button>
         ${editingActionsHtml}
         <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareA4Modal()" title="Condividi o stampa PDF in formato A4 con font personalizzato su WhatsApp per la band">📤 A4 / WhatsApp</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
@@ -5022,3 +5023,206 @@ async function handleDatabaseRestoreFile(event) {
 
   reader.readAsText(file);
 }
+
+// -----------------------------------------------------------------------------
+// 12. OFFICIAL USER MANUAL DOWNLOAD (AUTO-UPDATING PDF)
+// -----------------------------------------------------------------------------
+function downloadOfficialManualPdf() {
+  showToast('📖 Download Manuale Ufficiale PDF in corso...');
+  const link = document.createElement('a');
+  link.href = `${API_BASE}/api/manual/pdf`;
+  link.download = `manuale_ufficiale_the_new_asma.pdf`;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// -----------------------------------------------------------------------------
+// 13. LIVE PERFORMANCE AI SUGGESTIONS (GEMINI FREE / OFFLINE HEURISTICS)
+// -----------------------------------------------------------------------------
+let currentAiSongUuid = null;
+let currentAiMusician = 'band';
+
+async function openAiSuggestionsModal(songUuid) {
+  currentAiSongUuid = songUuid || state.selectedSong?.uuid;
+  if (!currentAiSongUuid) {
+    showToast('Nessun brano selezionato');
+    return;
+  }
+
+  const modal = document.getElementById('ai-suggestions-modal');
+  if (!modal) return;
+
+  modal.style.display = 'flex';
+  updateAiMusicianChipsUI(currentAiMusician);
+  await loadAiSuggestionsForMusician(currentAiMusician);
+}
+
+function closeAiSuggestionsModal() {
+  const modal = document.getElementById('ai-suggestions-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateAiMusicianChipsUI(activeMusician) {
+  const chips = document.querySelectorAll('.ai-musician-chip');
+  chips.forEach(ch => {
+    const m = ch.getAttribute('data-musician');
+    if (m === activeMusician) {
+      ch.classList.add('active');
+      ch.style.background = '#0284c7';
+      ch.style.borderColor = '#38bdf8';
+      ch.style.color = '#fff';
+      ch.style.fontWeight = '800';
+    } else {
+      ch.classList.remove('active');
+      ch.style.background = '';
+      ch.style.borderColor = '';
+      ch.style.color = '';
+      ch.style.fontWeight = '';
+    }
+  });
+}
+
+async function selectAiMusician(musicianKey) {
+  currentAiMusician = musicianKey || 'band';
+  updateAiMusicianChipsUI(currentAiMusician);
+  await loadAiSuggestionsForMusician(currentAiMusician);
+}
+
+async function refreshCurrentAiSuggestions() {
+  if (!currentAiSongUuid) return;
+  await loadAiSuggestionsForMusician(currentAiMusician, true);
+}
+
+async function loadAiSuggestionsForMusician(musicianKey, forceRefresh = false) {
+  const bodyEl = document.getElementById('ai-sugg-body');
+  const titleEl = document.getElementById('ai-sugg-title');
+  const subEl = document.getElementById('ai-sugg-subtitle');
+  const sourceTagEl = document.getElementById('ai-sugg-source-tag');
+
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div style="text-align: center; color: #94a3b8; padding: 36px 16px;">
+        <div style="font-size: 30px; margin-bottom: 10px;">⏳</div>
+        <div style="font-size: 14px; font-weight: 700; color: #38bdf8;">Elaborazione consigli palco in corso...</div>
+        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Modalità leggera &bull; Consigli dedicati per il musicista</div>
+      </div>
+    `;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${currentAiSongUuid}/ai-suggestions?musician=${encodeURIComponent(musicianKey)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const s = data.suggestions || {};
+    const songTitle = data.title || 'Brano';
+    const songKey = toLatinKey(data.key || 'DO');
+    const songBpm = data.bpm || 120;
+
+    if (titleEl) {
+      titleEl.innerHTML = `💡 Consigli Live: <span style="color:#ffd600;">${escapeHtml(songTitle)}</span>`;
+    }
+    if (subEl) {
+      subEl.innerHTML = `Tonalità: <b>${escapeHtml(songKey)}</b> &bull; Tempo: <b>${songBpm} BPM</b> &bull; Destinatario: <b style="color:#38bdf8;">${escapeHtml(s.musician_name || 'Band')}</b>`;
+    }
+    if (sourceTagEl) {
+      sourceTagEl.innerHTML = `⚡ ${escapeHtml(s.source || 'AI Gemini Free')} &bull; Latenza Zero`;
+    }
+
+    renderAiSuggestionsContent(s);
+  } catch (err) {
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div style="text-align: center; color: #ef4444; padding: 24px;">
+          <div style="font-size: 26px; margin-bottom: 6px;">⚠️</div>
+          <div style="font-weight: 700;">Impossibile recuperare i suggerimenti live</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${escapeHtml(err.message)}</div>
+          <button class="btn btn-secondary" style="margin-top: 14px;" onclick="loadAiSuggestionsForMusician('${musicianKey}')">Riprova</button>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderAiSuggestionsContent(s) {
+  const bodyEl = document.getElementById('ai-sugg-body');
+  if (!bodyEl) return;
+
+  const icon = s.musician_icon || '👥';
+  const name = s.musician_name || 'Tutta la Band';
+  const role = s.musician_role || 'Dinamiche d\'insieme';
+  const summary = s.summary || 'Preparazione per l\'esecuzione live del brano.';
+  const tips = Array.isArray(s.tips) ? s.tips : [];
+  const gear = s.gear_advice || '';
+  const watchout = s.watchout || '';
+
+  let tipsHtml = '';
+  tips.forEach(t => {
+    const secName = escapeHtml(t.section || 'Sezione');
+    const tipText = escapeHtml(t.tip || '');
+    let badgeColor = '#0284c7';
+    if (secName.toLowerCase().includes('intro') || secName.toLowerCase().includes('attacco')) badgeColor = '#0284c7';
+    else if (secName.toLowerCase().includes('ritornello') || secName.toLowerCase().includes('apertura')) badgeColor = '#16a34a';
+    else if (secName.toLowerCase().includes('stacc') || secName.toLowerCase().includes('assol') || secName.toLowerCase().includes('special')) badgeColor = '#dc2626';
+    else if (secName.toLowerCase().includes('final') || secName.toLowerCase().includes('outro')) badgeColor = '#9333ea';
+
+    tipsHtml += `
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="background: ${badgeColor}; color: #fff; font-size: 10.5px; font-weight: 800; padding: 1px 8px; border-radius: 4px; text-transform: uppercase;">
+            ${secName}
+          </span>
+        </div>
+        <div style="font-size: 13px; color: #e2e8f0; line-height: 1.45;">${tipText}</div>
+      </div>
+    `;
+  });
+
+  const gearHtml = gear ? `
+    <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 8px; padding: 12px 14px; margin-top: 10px;">
+      <div style="font-size: 12px; font-weight: 800; color: #22d3ee; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <span>🎛️</span> SETUP STRUMENTO, PRESET &amp; TIMBRI:
+      </div>
+      <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">${escapeHtml(gear)}</div>
+    </div>
+  ` : '';
+
+  const watchoutHtml = watchout ? `
+    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 12px 14px; margin-top: 10px;">
+      <div style="font-size: 12px; font-weight: 800; color: #f87171; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <span>⚠️</span> ATTENZIONE CRITICA DAL VIVO:
+      </div>
+      <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">${escapeHtml(watchout)}</div>
+    </div>
+  ` : '';
+
+  bodyEl.innerHTML = `
+    <!-- Summary Header Card -->
+    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border: 1px solid #0284c7; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <span style="font-size: 28px;">${icon}</span>
+        <div>
+          <div style="font-size: 15px; font-weight: 800; color: #fff;">${escapeHtml(name)}</div>
+          <div style="font-size: 12px; color: #38bdf8;">${escapeHtml(role)}</div>
+        </div>
+      </div>
+      <div style="font-size: 13.5px; color: #cbd5e1; font-style: italic; line-height: 1.4; border-left: 3px solid #38bdf8; padding-left: 10px;">
+        "${escapeHtml(summary)}"
+      </div>
+    </div>
+
+    <!-- Tips List -->
+    <div style="margin-bottom: 8px;">
+      <div style="font-size: 12px; font-weight: 800; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+        📋 Indicazioni Esecutive per il Palco:
+      </div>
+      ${tipsHtml}
+    </div>
+
+    ${gearHtml}
+    ${watchoutHtml}
+  `;
+}
+

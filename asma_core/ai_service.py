@@ -785,4 +785,288 @@ class BandAIService:
 
         raise RuntimeError(f"Errore durante l'elaborazione Vision AI: {last_error}")
 
+    _live_suggestions_cache: Dict[str, Dict[str, Any]] = {}
+
+    BAND_MEMBERS = [
+        {"key": "band", "name": "Tutta la Band", "role": "Intero Gruppo (Dinamiche d'insieme, arrangiamento, stacchi, timing)", "icon": "👥"},
+        {"key": "cico", "name": "Cico", "role": "Cantante (Voce solista, attacchi, dinamica vocale, fiato, intonazione)", "icon": "🎤"},
+        {"key": "mingo", "name": "Mingo", "role": "Batterista (Groove ritmico, timing/BPM, accenti cassa/rullante, stacchi e fill)", "icon": "🥁"},
+        {"key": "puma", "name": "Puma", "role": "Bassista (Incastro ritmico con la cassa di Mingo, note fondamentali, passaggi armonici)", "icon": "🎸"},
+        {"key": "red", "name": "Red", "role": "Chitarra Solista (Effetti, distorsioni/delay, riff portanti, assoli, volume solista)", "icon": "⚡"},
+        {"key": "maurino", "name": "Maurino", "role": "Chitarra Ritmica (Strumming, solidità armonica, accordi aperti vs barré, impasto con Red)", "icon": "🎸"},
+        {"key": "sentimental", "name": "Sentimental", "role": "Tastiere & Synth (Pad di sottofondo, pianoforte, cambio scene {Scena: X}, arricchimento armonico)", "icon": "🎹"}
+    ]
+
+    @classmethod
+    def get_musician_list(cls) -> List[Dict[str, str]]:
+        return cls.BAND_MEMBERS
+
+    @classmethod
+    def generate_live_suggestions(cls, song: Any, musician: str = "band") -> Dict[str, Any]:
+        """
+        Generates tailored live performance advice for a specific band member or the entire band.
+        Uses free, lightweight Google Gemini model (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash).
+        Falls back seamlessly to deterministic heuristic suggestions when offline or no API key is present.
+        Results are cached in-memory per (song.uuid, musician) for 0ms response.
+        """
+        norm_musician = (musician or "band").lower().strip()
+        matched_member = next((m for m in cls.BAND_MEMBERS if m["key"] == norm_musician), cls.BAND_MEMBERS[0])
+        musician_key = matched_member["key"]
+
+        song_id = getattr(song, "uuid", None) or getattr(song, "title", "song")
+        cache_key = f"{song_id}_{musician_key}"
+        if cache_key in cls._live_suggestions_cache:
+            return cls._live_suggestions_cache[cache_key]
+
+        title = getattr(song, "title", "Brano")
+        artist = getattr(song, "artist", "Band")
+        key = getattr(song, "key_current", "DO") or "DO"
+        bpm = getattr(song, "bpm", 120) or 120
+        capo = getattr(song, "capo", 0) or 0
+        aml_content = getattr(song, "aml_content", "") or ""
+
+        # Extract directives from AML to enrich prompt and heuristics
+        scena_matches = re.findall(r"\{scena:\s*([^\}]+)\}", aml_content, re.IGNORECASE)
+        stacco_matches = re.findall(r"\{stacco:?\s*([^\}]+)\}", aml_content, re.IGNORECASE)
+        has_solos = bool(re.search(r"\{(?:solo|assolo)", aml_content, re.IGNORECASE))
+
+        # Check for Gemini API key
+        api_key = cls.get_api_key()
+
+        if api_key:
+            prompt = (
+                f"Sei il direttore musicale e arrangiatore live della band per il brano '{title}' ({artist}).\n"
+                f"DATI MUSICALI DEL BRANO:\n"
+                f"- Tonalità: {key}\n"
+                f"- BPM / Tempo: {bpm}\n"
+                f"- Capotasto: {capo}\n"
+                f"- Direttive sceniche/synth presenti: {', '.join(scena_matches) if scena_matches else 'Nessuna specifica'}\n"
+                f"- Direttive stacchi presenti: {', '.join(stacco_matches) if stacco_matches else 'Nessuno specifico'}\n"
+                f"- Presenza assolo: {'Sì' if has_solos else 'No'}\n\n"
+                f"DESTINATARIO: {matched_member['name']} - Ruolo: {matched_member['role']}\n\n"
+                f"Fornisci consigli tecnici e pratici per l'esecuzione LIVE sul palco di questo pezzo per {matched_member['name']}.\n"
+                f"Sii conciso, musicale, orientato all'esecuzione dal vivo (dinamiche piano/forte, attacchi, timing, stacchi, gestione del suono o preset).\n"
+                f"Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (senza testo introduttivo e senza markdown) con questa struttura:\n"
+                f"{{\n"
+                f'  "summary": "Frase di sintesi sull\'approccio al brano",\n'
+                f'  "tips": [\n'
+                f'    {{"section": "Intro & Attacco", "tip": "consiglio..."}},\n'
+                f'    {{"section": "Strofa & Dinamica", "tip": "consiglio..."}},\n'
+                f'    {{"section": "Ritornello & Apertura", "tip": "consiglio..."}},\n'
+                f'    {{"section": "Momenti Speciali & Stacchi", "tip": "consiglio..."}},\n'
+                f'    {{"section": "Finale & Chiusura", "tip": "consiglio..."}}\n'
+                f'  ],\n'
+                f'  "gear_advice": "Consiglio su strumento/preset/timbro/effetti",\n'
+                f'  "watchout": "Attenzione critica dal vivo (punto da non sbagliare)"\n'
+                f"}}\n"
+            )
+
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 800,
+                    "responseMimeType": "application/json"
+                }
+            }
+
+            models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            for model in models:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=5.0) as resp:
+                        if resp.status == 200:
+                            res_json = json.loads(resp.read().decode("utf-8"))
+                            cands = res_json.get("candidates", [])
+                            if cands:
+                                ptext = cands[0].get("content", {}).get("parts", [])[0].get("text", "")
+                                ptext = re.sub(r"^```(?:json)?\s*", "", ptext, flags=re.IGNORECASE)
+                                ptext = re.sub(r"\s*```$", "", ptext).strip()
+                                parsed = json.loads(ptext)
+                                if "tips" in parsed and "summary" in parsed:
+                                    parsed["musician_key"] = musician_key
+                                    parsed["musician_name"] = matched_member["name"]
+                                    parsed["musician_role"] = matched_member["role"]
+                                    parsed["musician_icon"] = matched_member["icon"]
+                                    parsed["source"] = f"AI Gemini ({model})"
+                                    cls._live_suggestions_cache[cache_key] = parsed
+                                    return parsed
+                except Exception:
+                    continue
+
+        # Deterministic offline heuristic fallback
+        fallback = cls._generate_heuristic_live_suggestions(
+            song_title=title,
+            artist=artist,
+            key=key,
+            bpm=bpm,
+            capo=capo,
+            musician_key=musician_key,
+            matched_member=matched_member,
+            scena_matches=scena_matches,
+            stacco_matches=stacco_matches,
+            has_solos=has_solos
+        )
+        cls._live_suggestions_cache[cache_key] = fallback
+        return fallback
+
+    @classmethod
+    def _generate_heuristic_live_suggestions(
+        cls,
+        song_title: str,
+        artist: str,
+        key: str,
+        bpm: int,
+        capo: int,
+        musician_key: str,
+        matched_member: Dict[str, str],
+        scena_matches: List[str],
+        stacco_matches: List[str],
+        has_solos: bool
+    ) -> Dict[str, Any]:
+        """Deterministic, musical and rock-solid advice generator."""
+        tempo_desc = "lento ed espressivo" if bpm < 85 else ("incalzante e ritmato" if bpm > 130 else "mid-tempo con groove solido")
+        scena_str = f"Scena {scena_matches[0]}" if scena_matches else "Preset standard"
+        stacchi_str = f"Stacco su: {', '.join(stacco_matches)}" if stacco_matches else "Nessuno stacco marcato"
+
+        if musician_key == "cico":
+            return {
+                "musician_key": "cico",
+                "musician_name": "Cico",
+                "musician_role": matched_member["role"],
+                "musician_icon": "🎤",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Voce solista in tonalità {key} a {bpm} BPM ({tempo_desc}). Presenza scenica e intonazione dell'attacco.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Fissa mentalmente la tonica in {key} durante l'intro; entra con voce ferma e decisa esattamente sulla prima battuta cantata."},
+                    {"section": "Strofa & Dinamica", "tip": "Canta con registro intimo e scandisci ogni sillaba; lascia respirare il testo senza anticipare il tempo."},
+                    {"section": "Ritornello & Apertura", "tip": "Apri al massimo la proiezione diaframmatica; alza l'energia scenica e cerca il contatto visivo diretto con il pubblico."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Negli stacchi ({stacchi_str}) sfrutta la pausa per recuperare fiato ed enfatizzare il rientro della strofa successiva."},
+                    {"section": "Finale & Chiusura", "tip": "Tieni la nota finale fino alla battuta di chiusura concordata con Mingo alla batteria; gesto chiaro della mano per l'unisono."}
+                ],
+                "gear_advice": f"Regola il monitor o in-ear per ascoltare chiaramente la chitarra di Maurino e il synth di Sentimental in tonalità {key}.",
+                "watchout": f"A {bpm} BPM non farti trascinare ad accelerare le sillabe; mantieni il fiato regolare soprattutto nei ritornelli."
+            }
+
+        elif musician_key == "mingo":
+            return {
+                "musician_key": "mingo",
+                "musician_name": "Mingo",
+                "musician_role": matched_member["role"],
+                "musician_icon": "🥁",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Groove portante e metronomo vivente a {bpm} BPM ({tempo_desc}). Incastro millimetrico con Puma.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Dai il tempo con 4 colpi netti di bacchette/charleston a {bpm} BPM esatti; ingresso compatto di tutta la band."},
+                    {"section": "Strofa & Dinamica", "tip": "Groove lineare e asciutto (charleston chiuso, rullante a volume contenuto); lascia spazio frequenziale alla voce di Cico."},
+                    {"section": "Ritornello & Apertura", "tip": "Passa al piatto ride o apri leggermente l'hi-hat; dai spinta con accenti incisivi di cassa in 4/4."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Negli stacchi ({stacchi_str}) blocca i piatti con precisione chirurgica; fill di ripartenza compatto senza strappi."},
+                    {"section": "Finale & Chiusura", "tip": "Colpo di rullante e piatto crash secco all'unisono sul segnale visivo di Cico."}
+                ],
+                "gear_advice": f"Verifica il metronomo visivo a {bpm} BPM sul tablet prima del conteggio iniziale; bacchette 5A ben bilanciate.",
+                "watchout": f"Attenzione a non prendere velocità nei passaggi strofa-ritornello; mantieni il groove piantato a {bpm} BPM."
+            }
+
+        elif musician_key == "puma":
+            return {
+                "musician_key": "puma",
+                "musician_name": "Puma",
+                "musician_role": matched_member["role"],
+                "musician_icon": "🎸",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Pilastro armonico e groove in tonalità {key}. Incastro perfetto con la cassa di Mingo.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Piazza subito la fondamentale in {key} con suono rotondo e pieno per dare sicurezza a chitarre e tastiere."},
+                    {"section": "Strofa & Dinamica", "tip": "Suona sulle note basse della cassa di Mingo; mantieni le note staccate o tenute a seconda del respiro del brano."},
+                    {"section": "Ritornello & Apertura", "tip": "Aggiungi passaggi melodici o ottave per dare movimento e spinta emotiva alla linea armonica."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Negli stacchi ({stacchi_str}) muta istantaneamente le corde con il palmo della mano sinistra; silenzio assoluto."},
+                    {"section": "Finale & Chiusura", "tip": f"Chiudi sulla fondamentale {key} e mantieni il sustain fino al completo stop della batteria."}
+                ],
+                "gear_advice": "Basse calde (100-200 Hz) con medi definiti a 800 Hz per bucare il mix senza impastare con la cassa.",
+                "watchout": "Non anticipare le ripartenze dopo le pause ritmiche; guarda gli occhi di Mingo."
+            }
+
+        elif musician_key == "red":
+            return {
+                "musician_key": "red",
+                "musician_name": "Red",
+                "musician_role": matched_member["role"],
+                "musician_icon": "⚡",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Lead guitar e fraseggi tematici in tonalità {key}. Riff d'impatto ed equilibrio col canto.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Attacca con il riff caratteristico o arpeggio pulito in {key}; volume bilanciato per non sovrastare l'ingresso del brano."},
+                    {"section": "Strofa & Dinamica", "tip": "Interventi discreti: fraseggi di risposta alla voce o accordi acuti stoppati per non entrare in conflitto con la voce di Cico."},
+                    {"section": "Ritornello & Apertura", "tip": "Accordi aperti o power-chord con overdrive moderato; apertura spaziale con riverbero o chorus."},
+                    {"section": "Momenti Speciali & Assoli", "tip": f"{'Attiva il boost di volume/overdrive per il solo; bending intonatissimi sulla scala di ' + key if has_solos else 'Focus sugli stacchi armonici e arricchimento sonoro.'}"},
+                    {"section": "Finale & Chiusura", "tip": "Accordo conclusivo vibrato con sustain prolungato fino al cut-off finale."}
+                ],
+                "gear_advice": f"Imposta il delay con tap tempo a {bpm} BPM; pedale boost calibrato a +3dB pronto per l'assolo.",
+                "watchout": "Disattiva tempestivamente il boost del solo prima della strofa successiva per rientrare subito nel mix."
+            }
+
+        elif musician_key == "maurino":
+            return {
+                "musician_key": "maurino",
+                "musician_name": "Maurino",
+                "musician_role": matched_member["role"],
+                "musician_icon": "🎸",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Muro armonico e plettrata ritmica a {bpm} BPM in tonalità {key} (Capo: {capo}°).",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Entra con plettrata precisa a tempo con il charleston di Mingo; posizione accordi {'al tasto ' + str(capo) if capo > 0 else 'aperti' }."},
+                    {"section": "Strofa & Dinamica", "tip": "Strumming leggero o palm-muting per dare pulsazione ritmica senza riempire troppo lo spazio frequenziale."},
+                    {"section": "Ritornello & Apertura", "tip": "Plettrata ampia ed energica su tutte le corde; ritmo deciso e sincronizzato sui quarti."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Negli stacchi ({stacchi_str}) stoppata secca con la mano destra su tutte le corde; stop netto."},
+                    {"section": "Finale & Chiusura", "tip": "Ultima pennata decisa all'ingiù esattamente sul colpo finale di Mingo."}
+                ],
+                "gear_advice": f"Plettro medio per strumming fluido; accordatura rigorosa al capotasto {capo}° se presente.",
+                "watchout": "Mantieni la costanza della pennata senza accelerare sulle variazioni ritmiche della strofa."
+            }
+
+        elif musician_key == "sentimental":
+            return {
+                "musician_key": "sentimental",
+                "musician_name": "Sentimental",
+                "musician_role": matched_member["role"],
+                "musician_icon": "🎹",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Armonia, tappeti synth e timbri per {key}. Setup rapido: {scena_str}.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Imposta subito {scena_str} sul synth/master keyboard; entra con accordo d'atmosfera o intro di pianoforte."},
+                    {"section": "Strofa & Dinamica", "tip": "Tappeto di archi/pad caldo sotto il registro vocale; suona accordi aperti nei registri medio-alti per non invadere il basso."},
+                    {"section": "Ritornello & Apertura", "tip": "Arricchisci con pianoforte acustico brillante o organo Hammond per dare pienezza alla band."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Negli stacchi ({stacchi_str}) segui gli stop d'insieme; rilascia il pedale di sustain per azzerare code sonore."},
+                    {"section": "Finale & Chiusura", "tip": "Accordo conclusivo con pedale di sustain tenuto fino al fade-out naturale o segnale di stop."}
+                ],
+                "gear_advice": f"Controlla il selettore preset per richiamare al volo {scena_str}; regola il pedale d'espressione per i crescendo.",
+                "watchout": "Evita note basse sotto il C3 (Do centrale) con la mano sinistra per non creare risonanze fangose con il basso di Puma."
+            }
+
+        else:  # band
+            return {
+                "musician_key": "band",
+                "musician_name": "Tutta la Band",
+                "musician_role": matched_member["role"],
+                "musician_icon": "👥",
+                "source": "Regole Musicali ASMA Live (Offline/Free)",
+                "summary": f"Arrangiamento live in tonalità {key} a {bpm} BPM ({tempo_desc}). Coordinamento d'insieme e dinamiche palco.",
+                "tips": [
+                    {"section": "Intro & Attacco", "tip": f"Conteggio rigoroso di Mingo a 4/4 ({bpm} BPM); attacco compatto e pulito di tutta la band."},
+                    {"section": "Strofa & Dinamica", "tip": "Dinamica contenuta (mezzo-piano); basso, chitarre e tastiere lasciano assoluto risalto alla voce di Cico."},
+                    {"section": "Ritornello & Apertura", "tip": "Apertura dinamica corale (forte); cori della band aperti nei controcanti ed energia raddoppiata."},
+                    {"section": "Momenti Speciali & Stacchi", "tip": f"Massima concentrazione visiva su Mingo negli stacchi ({stacchi_str}); stop e ripartenze al millisecondo."},
+                    {"section": "Finale & Chiusura", "tip": "Chiusura netta e sincronizzata all'unisono guidata dal gesto di Cico e colpo finale di batteria."}
+                ],
+                "gear_advice": "Bilanciamento volumi spie/mixer di palco: fare attenzione che il livello di chitarre e tastiere non mascheri la voce solista.",
+                "watchout": f"Non farsi prendere dall'adrenalina accelerando il tempo durante il ritornello; riferimento saldo al groove di Mingo e Puma."
+            }
+
+
 

@@ -1979,6 +1979,65 @@ def save_ai_settings(req: AISettingsRequest):
 
 
 # -----------------------------------------------------------------------------
+# 6.8. LIVE PERFORMANCE SUGGESTIONS (GEMINI AI FREE / DETERMINISTIC HEURISTICS)
+# -----------------------------------------------------------------------------
+@app.get("/api/songs/{uuid}/ai-suggestions")
+def get_song_ai_suggestions(
+    uuid: str,
+    musician: str = Query("band", description="Musician identifier: band, cico, mingo, puma, red, maurino, sentimental")
+):
+    """Provides tailored live performance advice for specific musician or whole band."""
+    song = storage.get_song(uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato")
+    from asma_core.ai_service import BandAIService
+    res = BandAIService.generate_live_suggestions(song, musician)
+    return {
+        "status": "success",
+        "uuid": song.uuid,
+        "title": song.title,
+        "artist": song.artist,
+        "key": song.key_current,
+        "bpm": song.bpm,
+        "musicians": BandAIService.get_musician_list(),
+        "suggestions": res
+    }
+
+
+# -----------------------------------------------------------------------------
+# 6.9. OFFICIAL DYNAMIC USER MANUAL (PDF & METADATA)
+# -----------------------------------------------------------------------------
+from asma_core.manual_engine import ManualEngine
+
+@app.get("/api/manual/pdf")
+def download_official_manual_pdf():
+    """Generates and serves the complete auto-updating official PDF user manual."""
+    try:
+        pdf_bytes = ManualEngine.generate_manual_pdf()
+        filename = f"manuale_ufficiale_the_new_asma_{datetime.now().strftime('%Y%m%d')}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore generazione manuale PDF: {str(e)}")
+
+@app.get("/api/manual")
+def get_manual_metadata():
+    """Returns chapters list and markdown structure of the manual."""
+    return {
+        "status": "success",
+        "title": "THE NEW ASMA 2.0 — Manuale Utente Ufficiale",
+        "chapters": ManualEngine.get_chapters_metadata(),
+        "markdown": ManualEngine.get_manual_markdown()
+    }
+
+
+
+# -----------------------------------------------------------------------------
 # 7. LIVE STAGE TELEPROMPTER PAYLOAD
 # -----------------------------------------------------------------------------
 
