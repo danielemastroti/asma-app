@@ -28,9 +28,34 @@ from asma_core.models import Song, DeviceProfile, Setlist, Repertoire
 from asma_core.aml_parser import (
     AMLParser, AMLDocument, DirectiveNode, SectionNode,
     CustomTagNode, ChordLyricLineNode, ChordGridLineNode, CommentNode,
-    EmptyLineNode
+    EmptyLineNode, MedleySongStartNode, MedleySongEndNode
 )
 from asma_core.ai_service import BandAIService
+
+
+# Palette elegante di 20 colori ad alto contrasto per i titoli degli spezzoni Medley
+MEDLEY_COLORS = [
+    "#0284c7",  # 1. Sky Blue
+    "#d97706",  # 2. Warm Amber
+    "#059669",  # 3. Emerald Green
+    "#7c3aed",  # 4. Deep Violet
+    "#e11d48",  # 5. Vivid Rose
+    "#0891b2",  # 6. Deep Cyan
+    "#ea580c",  # 7. Bright Orange
+    "#4f46e5",  # 8. Royal Indigo
+    "#16a34a",  # 9. Grass Green
+    "#db2777",  # 10. Magenta Pink
+    "#2563eb",  # 11. Cobalt Blue
+    "#ca8a04",  # 12. Goldenrod
+    "#0d9488",  # 13. Dark Teal
+    "#9333ea",  # 14. Violet
+    "#dc2626",  # 15. Crimson
+    "#1d4ed8",  # 16. Sapphire
+    "#b45309",  # 17. Ochre
+    "#047857",  # 18. Forest
+    "#6d28d9",  # 19. Iris
+    "#be123c",  # 20. Ruby
+]
 
 
 # Standard custom page sizes (in points, 1 point = 1/72 inch)
@@ -657,6 +682,8 @@ class PDFEngine:
         pending_badge: Optional[Flowable] = None
         last_was_inst_marker = False
         in_tab_block = False
+        medley_fragment_count = 0
+        in_medley_fragment = False
 
         def add_flowable(item: Flowable):
             nonlocal pending_badge
@@ -669,9 +696,85 @@ class PDFEngine:
                 flowables.append(item)
 
         for node in doc.nodes:
-            if isinstance(node, DirectiveNode):
+            if isinstance(node, (DirectiveNode, MedleySongStartNode, MedleySongEndNode)):
                 d_name = node.name.strip().lower()
                 d_val = (node.value or "").strip()
+
+                # Spezzone Medley: Inizio brano
+                if isinstance(node, MedleySongStartNode) or d_name in ["start_of_song", "sos", "start_of_medley", "start_of_medley_song", "soms"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+
+                    medley_fragment_count += 1
+                    in_medley_fragment = True
+
+                    # Riga di separazione visibile tra spezzoni di brano differenti (dal 2° brano in poi o dopo contenuti)
+                    if medley_fragment_count > 1 or flowables:
+                        divider_table = Table([[""]], colWidths=[usable_width], rowHeights=[1.5 * mm])
+                        divider_table.setStyle(TableStyle([
+                            ('LINEBELOW', (0, 0), (-1, -1), 1.5, colors.HexColor("#475569")),
+                            ('TOPPADDING', (0, 0), (-1, -1), 0),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                        ]))
+                        if flowables and not isinstance(flowables[-1], Spacer):
+                            flowables.append(Spacer(1, 4.0 * mm))
+                        flowables.append(divider_table)
+                        flowables.append(Spacer(1, 3.0 * mm))
+
+                    # Estrazione metadati spezzone (Titolo, Artista, Tonalità)
+                    if isinstance(node, MedleySongStartNode):
+                        frag_title = node.title
+                        frag_artist = node.artist
+                        frag_key = node.key
+                    else:
+                        frag_title, frag_artist, frag_key = AMLParser.parse_medley_start_value(d_val)
+
+                    frag_title = frag_title or f"Brano {medley_fragment_count}"
+                    color_hex = MEDLEY_COLORS[(medley_fragment_count - 1) % len(MEDLEY_COLORS)]
+                    from asma_core.music_engine import MusicEngine
+                    ita_key = MusicEngine.convert_notation(frag_key, "ITA") if frag_key else ""
+
+                    meta_parts = []
+                    if frag_artist:
+                        meta_parts.append(escape(frag_artist))
+                    if ita_key:
+                        meta_parts.append(f"Ton: {escape(ita_key)}")
+                    meta_str = " &bull; ".join(meta_parts)
+
+                    title_str = f"<b>{medley_fragment_count}. {escape(frag_title.upper())}</b>"
+                    if meta_str:
+                        col2_w = min(usable_width * 0.45, 80 * mm)
+                        col1_w = usable_width - col2_w
+                        title_p = Paragraph(f"<font color='#FFFFFF' size='{base_lyrics_size * 1.05}'>{title_str}</font>", styles["DocSubtitle"])
+                        meta_p = Paragraph(f"<font color='#F1F5F9' size='{base_lyrics_size * 0.88}'><b>{meta_str}</b></font>", ParagraphStyle('RMeta', parent=styles["DocSubtitle"], alignment=2))
+                        banner = Table([[title_p, meta_p]], colWidths=[col1_w, col2_w])
+                    else:
+                        title_p = Paragraph(f"<font color='#FFFFFF' size='{base_lyrics_size * 1.05}'>{title_str}</font>", styles["DocSubtitle"])
+                        banner = Table([[title_p]], colWidths=[usable_width])
+
+                    banner.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(color_hex)),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3.5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    flowables.append(KeepTogether([banner, Spacer(1, 2.5 * mm)]))
+                    last_was_inst_marker = False
+                    continue
+
+                # Spezzone Medley: Fine brano (direttiva invisibile sul PDF)
+                if isinstance(node, MedleySongEndNode) or d_name in ["end_of_song", "eos", "end_of_medley", "end_of_medley_song", "eoms"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    if flowables and not isinstance(flowables[-1], Spacer):
+                        flowables.append(Spacer(1, 2.0 * mm))
+                    in_medley_fragment = False
+                    continue
+
                 if d_name in ["sot", "start_of_tab", "tab", "tablatura"]:
                     in_tab_block = True
                     continue
@@ -684,6 +787,11 @@ class PDFEngine:
 
                 # Header metadata directives (already rendered in PDF title header)
                 if d_name in ["title", "t", "artist", "a", "key", "tempo", "bpm", "capo", "time"]:
+                    if in_medley_fragment and d_name in ["key", "tonalita"] and d_val:
+                        from asma_core.music_engine import MusicEngine
+                        ita_k = MusicEngine.convert_notation(d_val, "ITA")
+                        comm_p = Paragraph(f"<font color='{c_chord_hex}'><b>[CAMBIO TONALITÀ: {escape(ita_k)}]</b></font>", styles["DocSubtitle"])
+                        add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
                     continue
 
                 # Band notes and comments: {c: ...} or {comment: ...}

@@ -1277,6 +1277,7 @@ function renderSongViewer() {
           <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
           <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
             <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyModal('edit-song-aml')" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Aggiungi spezzone Medley (gestione fino a 20 brani distinti con titolo, artista e tonalità)">🎶 + Spezzone Medley</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
@@ -1628,6 +1629,10 @@ function insertDirectiveAtCursor(textareaId, type) {
   let cursorOffset = 0;
 
   switch (type) {
+    case 'medley':
+    case 'start_of_song':
+      openMedleyModal(textareaId);
+      return;
     case 'chorus':
       if (selectedText) {
         insertion = `{soc}\n${selectedText}\n{eoc}\n`;
@@ -1679,6 +1684,110 @@ function insertDirectiveAtCursor(textareaId, type) {
   const newPos = cursorOffset > 0 ? (start + cursorOffset) : (start + insertion.length);
   textarea.selectionStart = textarea.selectionEnd = newPos;
   textarea.focus();
+}
+
+function openMedleyModal(textareaId = 'edit-song-aml') {
+  const existingModal = document.getElementById('medley-builder-modal');
+  if (existingModal) existingModal.remove();
+
+  const textarea = document.getElementById(textareaId);
+  const currentText = textarea ? textarea.value : '';
+  const matches = currentText.match(/\{(?:start_of_song|sos|start_of_medley)\b/gi) || [];
+  const nextNum = Math.min(matches.length + 1, 20);
+
+  const modalHtml = `
+    <div id="medley-builder-modal" class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 12px; backdrop-filter: blur(4px);">
+      <div class="modal-card" style="background: #0f172a; border: 1px solid #7c3aed; border-radius: 12px; width: 100%; max-width: 480px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 17px; font-weight: 900; color: #c084fc; display: flex; align-items: center; gap: 6px;">
+            <span>🎶</span> Nuovo Spezzone Medley (${nextNum}/20)
+          </h3>
+          <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 8px; font-size: 13px;" onclick="document.getElementById('medley-builder-modal').remove()">✕</button>
+        </div>
+        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 14px 0; line-height: 1.4;">
+          Inserisci un brano indipendente nel tuo Medley con titolo, artista e tonalità dedicati. Sul PDF e a schermo avrà un <b>colore alternato</b> distintivo e una <b>riga di separazione</b>.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Titolo Brano *</label>
+            <input type="text" id="medley-input-title" class="search-input" style="width: 100%; margin-top: 3px;" placeholder="Es. Gloria, Certe Notti, Ti amo..." autofocus>
+          </div>
+          <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Artista (opzionale)</label>
+              <input type="text" id="medley-input-artist" class="search-input" style="width: 100%; margin-top: 3px;" placeholder="Es. Umberto Tozzi">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Tonalità</label>
+              <input type="text" id="medley-input-key" class="search-input" style="width: 100%; margin-top: 3px; font-weight: 800; color: #ffd600;" placeholder="Es. MI, DO...">
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Struttura iniziale dello spezzone</label>
+            <select id="medley-input-structure" class="search-input" style="width: 100%; margin-top: 3px; background: #1e293b; color: #fff;">
+              <option value="standard" selected>Intro + Strofa + Ritornello</option>
+              <option value="chorus_only">Solo Ritornello</option>
+              <option value="intro_chorus">Intro + Ritornello</option>
+              <option value="empty">Vuoto (solo direttive {sos} e {eos})</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('medley-builder-modal').remove()">Annulla</button>
+          <button type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #7c3aed, #9333ea); border-color: #a855f7; font-weight: 800;" onclick="confirmInsertMedleyFragment('${textareaId}')">➕ Inserisci Spezzone</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  setTimeout(() => {
+    const titleInput = document.getElementById('medley-input-title');
+    if (titleInput) titleInput.focus();
+  }, 50);
+}
+
+function confirmInsertMedleyFragment(textareaId) {
+  const titleInput = document.getElementById('medley-input-title');
+  const artistInput = document.getElementById('medley-input-artist');
+  const keyInput = document.getElementById('medley-input-key');
+  const structInput = document.getElementById('medley-input-structure');
+
+  const title = (titleInput?.value || '').trim() || 'Spezzone Medley';
+  const artist = (artistInput?.value || '').trim();
+  const key = (keyInput?.value || '').trim();
+  const struct = structInput?.value || 'standard';
+
+  const parts = [title];
+  if (artist) parts.push(artist);
+  if (key) parts.push(key);
+  const directiveVal = parts.join(' | ');
+
+  let body = '';
+  const keyChord = key || 'DO';
+  if (struct === 'standard') {
+    body = `[INTRO]\n| ${keyChord} | SOL | LAm | FA |\n\n{sov}\n[${keyChord}]Testo della strofa...\n{eov}\n\n{soc}\n[FA]Testo del ritornello... [SOL]\n{eoc}\n`;
+  } else if (struct === 'chorus_only') {
+    body = `{soc}\n[${keyChord}]Testo del ritornello...\n{eoc}\n`;
+  } else if (struct === 'intro_chorus') {
+    body = `[INTRO]\n| ${keyChord} | FA | SOL |\n\n{soc}\n[${keyChord}]Testo del ritornello...\n{eoc}\n`;
+  }
+
+  const snippet = `\n{start_of_song: ${directiveVal}}\n${body}{end_of_song}\n`;
+
+  const textarea = document.getElementById(textareaId);
+  if (textarea) {
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const val = textarea.value;
+    textarea.value = val.substring(0, start) + snippet + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + snippet.length;
+    textarea.focus();
+  }
+
+  document.getElementById('medley-builder-modal')?.remove();
+  showToast(`🎶 Spezzone Medley "${title}" inserito!`);
 }
 
 function toggleEditorLivePreview(textareaId, previewId, btn) {
@@ -2297,6 +2406,7 @@ function parseAmlForWeb(aml, showChords) {
   const lines = aml.split('\n');
   let inSection = false;
   let lastWasInstrumental = false;
+  let medleyCount = 0;
 
   for (let rawLine of lines) {
     const line = rawLine.trimEnd();
@@ -2311,6 +2421,79 @@ function parseAmlForWeb(aml, showChords) {
     if (dirMatch) {
       const tag = dirMatch[1].toLowerCase();
       const val = dirMatch[2] ? dirMatch[2].trim() : '';
+
+      // Spezzone Medley: Inizio brano {start_of_song: Titolo | Artista | Tonalità}
+      if (['start_of_song', 'sos', 'start_of_medley', 'start_of_medley_song', 'soms'].includes(tag)) {
+        if (inSection) {
+          html += '</div>';
+          inSection = false;
+        }
+        medleyCount++;
+        if (medleyCount > 1) {
+          html += `<div class="medley-web-divider" style="margin: 22px 0 16px 0; border-top: 2px dashed rgba(56, 189, 248, 0.4); text-align: center; position: relative;">
+            <span style="position: relative; top: -11px; background: #0f172a; padding: 2px 12px; font-size: 11px; color: #94a3b8; font-weight: 800; border-radius: 4px; border: 1px solid #334155;">✂️ FINE SPEZZONE — CAMBIO BRANO</span>
+          </div>`;
+        }
+        let fragTitle = '';
+        let fragArtist = '';
+        let fragKey = '';
+        if (val.includes('|')) {
+          const parts = val.split('|').map(s => s.trim());
+          fragTitle = parts[0] || ('Brano ' + medleyCount);
+          fragArtist = parts[1] || '';
+          fragKey = parts[2] || '';
+        } else if (val.includes(' - ')) {
+          const parts = val.split(' - ').map(s => s.trim());
+          fragTitle = parts[0] || ('Brano ' + medleyCount);
+          fragArtist = parts[1] || '';
+        } else {
+          fragTitle = val || ('Brano ' + medleyCount);
+        }
+
+        const MEDLEY_COLORS_WEB = [
+          { bg: 'rgba(2, 132, 199, 0.22)', border: '#0284c7', text: '#38bdf8' },
+          { bg: 'rgba(217, 119, 6, 0.22)', border: '#d97706', text: '#fbbf24' },
+          { bg: 'rgba(5, 150, 105, 0.22)', border: '#059669', text: '#34d399' },
+          { bg: 'rgba(124, 58, 237, 0.22)', border: '#7c3aed', text: '#c084fc' },
+          { bg: 'rgba(225, 29, 72, 0.22)', border: '#e11d48', text: '#fb7185' },
+          { bg: 'rgba(8, 145, 178, 0.22)', border: '#0891b2', text: '#22d3ee' },
+          { bg: 'rgba(234, 88, 12, 0.22)', border: '#ea580c', text: '#fb923c' },
+          { bg: 'rgba(79, 70, 229, 0.22)', border: '#4f46e5', text: '#818cf8' },
+          { bg: 'rgba(22, 163, 74, 0.22)', border: '#16a34a', text: '#4ade80' },
+          { bg: 'rgba(219, 39, 119, 0.22)', border: '#db2777', text: '#f472b6' },
+          { bg: 'rgba(37, 99, 235, 0.22)', border: '#2563eb', text: '#60a5fa' },
+          { bg: 'rgba(202, 138, 4, 0.22)', border: '#ca8a04', text: '#facc15' },
+          { bg: 'rgba(13, 148, 136, 0.22)', border: '#0d9488', text: '#2dd4bf' },
+          { bg: 'rgba(147, 51, 234, 0.22)', border: '#9333ea', text: '#d8b4fe' },
+          { bg: 'rgba(220, 38, 38, 0.22)', border: '#dc2626', text: '#f87171' },
+          { bg: 'rgba(30, 64, 175, 0.22)', border: '#1e40af', text: '#93c5fd' },
+          { bg: 'rgba(180, 83, 9, 0.22)', border: '#b45309', text: '#fde047' },
+          { bg: 'rgba(4, 120, 87, 0.22)', border: '#047857', text: '#6ee7b7' },
+          { bg: 'rgba(109, 40, 217, 0.22)', border: '#6d28d9', text: '#ddd6fe' },
+          { bg: 'rgba(190, 18, 60, 0.22)', border: '#be123c', text: '#fda4af' }
+        ];
+        const color = MEDLEY_COLORS_WEB[(medleyCount - 1) % MEDLEY_COLORS_WEB.length];
+        const metaParts = [];
+        if (fragArtist) metaParts.push(`<b>${escapeHtml(fragArtist)}</b>`);
+        if (fragKey) metaParts.push(`Tonalità: <b style="color: #ffd600;">${escapeHtml(toLatinKey(fragKey))}</b>`);
+        const metaStr = metaParts.join(' &bull; ');
+
+        html += `
+        <div class="medley-fragment-banner" style="background: ${color.bg}; border-left: 4px solid ${color.border}; border-top: 1px solid ${color.border}; border-right: 1px solid ${color.border}; border-bottom: 1px solid ${color.border}; border-radius: 6px; padding: 7px 12px; margin: 14px 0 8px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div style="font-weight: 900; font-size: 14.5px; color: ${color.text};">🎵 ${medleyCount}. ${escapeHtml(fragTitle.toUpperCase())}</div>
+          <div style="font-size: 12px; color: #cbd5e1;">${metaStr}</div>
+        </div>`;
+        continue;
+      }
+
+      // Spezzone Medley: Fine brano (direttiva invisibile sul web)
+      if (['end_of_song', 'eos', 'end_of_medley', 'end_of_medley_song', 'eoms'].includes(tag)) {
+        if (inSection) {
+          html += '</div>';
+          inSection = false;
+        }
+        continue;
+      }
 
       // Skip metadata directives already displayed in the main song header
       if (['title', 't', 'artist', 'a', 'key', 'tempo', 'bpm', 'capo', 'time'].includes(tag)) {

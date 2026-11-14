@@ -20,15 +20,52 @@ class ASTNode:
 
 class DirectiveNode(ASTNode):
     """Represents a header directive: {name: value}"""
-    def __init__(self, name: str, value: str):
+    def __init__(self, name: str, value: str = ""):
         self.name = name.strip().lower()
         self.value = value.strip()
 
     def to_aml(self) -> str:
-        return f"{{{self.name}: {self.value}}}"
+        if self.value:
+            return f"{{{self.name}: {self.value}}}"
+        return f"{{{self.name}}}"
 
     def __repr__(self) -> str:
         return f"DirectiveNode({self.name}={self.value})"
+
+
+class MedleySongStartNode(DirectiveNode):
+    """Represents the beginning of a song fragment in a Medley: {start_of_song: Title | Artist | Key}"""
+    def __init__(self, title: str, artist: str = "", key: str = "", raw_value: str = ""):
+        self.title = title.strip()
+        self.artist = artist.strip()
+        self.key = key.strip()
+        parts = [p for p in [self.title, self.artist, self.key] if p]
+        val = " | ".join(parts) if parts else (raw_value.strip() or self.title)
+        super().__init__(name="start_of_song", value=val)
+
+    def to_aml(self) -> str:
+        parts = [self.title]
+        if self.artist:
+            parts.append(self.artist)
+        if self.key:
+            parts.append(self.key)
+        val = " | ".join(parts)
+        return f"{{start_of_song: {val}}}"
+
+    def __repr__(self) -> str:
+        return f"MedleySongStartNode(title='{self.title}', artist='{self.artist}', key='{self.key}')"
+
+
+class MedleySongEndNode(DirectiveNode):
+    """Represents the end of a song fragment in a Medley: {end_of_song}"""
+    def __init__(self):
+        super().__init__(name="end_of_song", value="")
+
+    def to_aml(self) -> str:
+        return "{end_of_song}"
+
+    def __repr__(self) -> str:
+        return "MedleySongEndNode()"
 
 
 class SectionNode(ASTNode):
@@ -186,6 +223,16 @@ class AMLDocument:
                 meta[node.name] = node.value
         return meta
 
+    @property
+    def is_medley(self) -> bool:
+        """Returns True if this document contains one or more medley song fragments."""
+        return any(isinstance(node, MedleySongStartNode) for node in self.nodes)
+
+    @property
+    def medley_fragments(self) -> List[MedleySongStartNode]:
+        """Returns all MedleySongStartNode fragments found in the document."""
+        return [node for node in self.nodes if isinstance(node, MedleySongStartNode)]
+
     def get_directive(self, name: str, default: str = "") -> str:
         return self.metadata.get(name.lower(), default)
 
@@ -197,6 +244,24 @@ class AMLDocument:
 
 class AMLParser:
     """Parser and AST manipulator for ASMA Markup Language."""
+
+    @classmethod
+    def parse_medley_start_value(cls, tag_value: str) -> tuple[str, str, str]:
+        """Parses 'Title | Artist | Key' or 'Title - Artist' into (title, artist, key)."""
+        raw = (tag_value or "").strip()
+        if "|" in raw:
+            parts = [p.strip() for p in raw.split("|")]
+            title = parts[0] if len(parts) > 0 else ""
+            artist = parts[1] if len(parts) > 1 else ""
+            key = parts[2] if len(parts) > 2 else ""
+            return title, artist, key
+        elif " - " in raw:
+            parts = [p.strip() for p in raw.split(" - ")]
+            title = parts[0]
+            artist = parts[1] if len(parts) > 1 else ""
+            return title, artist, ""
+        else:
+            return raw, "", ""
 
     @classmethod
     def parse(cls, aml_text: str) -> AMLDocument:
@@ -245,7 +310,16 @@ class AMLParser:
                 active_sections = get_active_sections()
                 active_custom_tags = get_active_custom_tags()
 
-                if tag_name in active_sections:
+                if tag_name in ["start_of_song", "sos", "start_of_medley", "start_of_medley_song", "soms"]:
+                    t_title, t_artist, t_key = cls.parse_medley_start_value(tag_value)
+                    nodes.append(MedleySongStartNode(t_title, t_artist, t_key, raw_value=tag_value))
+                    idx += 1
+                    continue
+                elif tag_name in ["end_of_song", "eos", "end_of_medley", "end_of_medley_song", "eoms"]:
+                    nodes.append(MedleySongEndNode())
+                    idx += 1
+                    continue
+                elif tag_name in active_sections:
                     nodes.append(SectionNode(tag_name, label=tag_value or None))
                     idx += 1
                     continue
@@ -384,7 +458,23 @@ class AMLParser:
         new_nodes: List[ASTNode] = []
 
         for node in doc.nodes:
-            if isinstance(node, DirectiveNode) and node.name == "key":
+            if isinstance(node, MedleySongStartNode):
+                old_key = node.key
+                new_key = ""
+                if old_key:
+                    new_key = MusicEngine.transpose_chord(
+                        old_key,
+                        semitones=semitones,
+                        target_system=target_system,
+                        prefer_flats=prefer_flats,
+                        destination_key=destination_key
+                    )
+                new_nodes.append(MedleySongStartNode(node.title, node.artist, new_key, raw_value=node.value))
+
+            elif isinstance(node, MedleySongEndNode):
+                new_nodes.append(MedleySongEndNode())
+
+            elif isinstance(node, DirectiveNode) and node.name == "key":
                 # Transpose the key directive
                 old_key = node.value
                 new_key = MusicEngine.transpose_chord(
@@ -499,7 +589,7 @@ class AMLParser:
                 out_lines.append(line_with_end)
                 continue
 
-            # Standalone directive (only transpose {key: ...} / {tonalita: ...})
+            # Standalone directive (transpose {key: ...} / {tonalita: ...} and medley {start_of_song: ... | ... | key})
             dir_match = DIRECTIVE_REGEX.match(stripped)
             if dir_match:
                 tag_name = dir_match.group(1).strip().lower()
@@ -512,6 +602,21 @@ class AMLParser:
                         raw,
                         flags=re.IGNORECASE,
                     )
+                elif tag_name in ("start_of_song", "sos", "start_of_medley", "start_of_medley_song", "soms") and tag_val:
+                    t_title, t_artist, t_key = cls.parse_medley_start_value(tag_val)
+                    if t_key:
+                        new_key = _tr(t_key)
+                        parts = [t_title]
+                        if t_artist:
+                            parts.append(t_artist)
+                        parts.append(new_key)
+                        new_val = " | ".join(parts)
+                        raw = re.sub(
+                            r"^(\s*\{(?:start_of_song|sos|start_of_medley|start_of_medley_song|soms)\s*:\s*)([^\}]+)(\}\s*)$",
+                            rf"\g<1>{new_val}\g<3>",
+                            raw,
+                            flags=re.IGNORECASE,
+                        )
                 out_lines.append(raw + ending)
                 continue
 
