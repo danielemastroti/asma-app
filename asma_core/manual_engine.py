@@ -22,6 +22,17 @@ from reportlab.platypus import (
 from reportlab.pdfgen import canvas
 
 
+def _resolve_asset_path(rel_path: str) -> Optional[str]:
+    """Resolves asset path safely whether running from repo root or subfolders."""
+    if os.path.exists(rel_path):
+        return rel_path
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidate = os.path.join(base_dir, rel_path)
+    if os.path.exists(candidate):
+        return candidate
+    return None
+
+
 class ManualNumberedCanvas(canvas.Canvas):
     """
     Two-pass ReportLab canvas for dynamic total page counting,
@@ -50,8 +61,8 @@ class ManualNumberedCanvas(canvas.Canvas):
         # Running header: starting on page 2 onwards
         if self._pageNumber > 1:
             header_y = page_h - 12 * mm
-            logo_path = "frontend/assets/band_logo.png"
-            if os.path.exists(logo_path):
+            logo_path = _resolve_asset_path("frontend/assets/band_logo.png")
+            if logo_path:
                 try:
                     self.drawImage(
                         logo_path,
@@ -228,11 +239,11 @@ class ManualEngine:
         # =========================================================================
         # COVER PAGE
         # =========================================================================
-        logo_path = "frontend/assets/band_logo.png"
-        if os.path.exists(logo_path):
+        logo_path = _resolve_asset_path("frontend/assets/band_logo.png")
+        if logo_path:
             try:
                 # 1024 x 367 ratio -> width 84mm, height 30.1mm
-                story.append(Image(logo_path, width=84 * mm, height=30.1 * mm, preserveAspectRatio=True))
+                story.append(Image(logo_path, width=84 * mm, height=30.1 * mm))
                 story.append(Spacer(1, 4 * mm))
             except Exception:
                 pass
@@ -396,13 +407,13 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Margine Superiore (mm):</b> Spazio superiore da 0 a 40 mm per posizionare il brano sotto cornici o fotocamere frontali.", bullet_style))
 
         # Embedded screenshot: layout
-        fig_layout_path = "frontend/assets/manual/fig_layout_impaginazione.png"
-        if os.path.exists(fig_layout_path):
+        fig_layout_path = _resolve_asset_path("frontend/assets/manual/fig_layout_impaginazione.png")
+        if fig_layout_path:
             try:
                 story.append(Spacer(1, 2 * mm))
                 # 490 x 442 -> scaled width 80mm, height 72.1mm
-                story.append(Image(fig_layout_path, width=80 * mm, height=72.1 * mm, preserveAspectRatio=True))
-                story.append(Paragraph("Figura 4.1: Pannello touch di configurazione Layout & Impaginazione PDF con sincronizzazione cloud immediata.", caption_style))
+                story.append(Image(fig_layout_path, width=80 * mm, height=72.1 * mm))
+                story.append(Paragraph("Figura 4.1: Pannello touch per Layout e Impaginazione PDF multi-dispositivo.", caption_style))
             except Exception:
                 pass
 
@@ -423,13 +434,13 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Scarica PDF:</b> Genera e scarica il file PDF ottimizzato con il profilo del dispositivo attivo (proporzioni esatte dello schermo).", bullet_style))
 
         # Embedded screenshot: lista brani
-        fig_brani_path = "frontend/assets/manual/fig_repertorio_brani.png"
-        if os.path.exists(fig_brani_path):
+        fig_brani_path = _resolve_asset_path("frontend/assets/manual/fig_repertorio_brani.png")
+        if fig_brani_path:
             try:
                 story.append(Spacer(1, 2 * mm))
                 # 1024 x 491 -> scaled width 150mm, height 71.9mm
-                story.append(Image(fig_brani_path, width=150 * mm, height=71.9 * mm, preserveAspectRatio=True))
-                story.append(Paragraph("Figura 5.1: Schermata Principale con schede di filtro (Tutti, Repertorio Ufficiale, Personale) e griglia brani.", caption_style))
+                story.append(Image(fig_brani_path, width=150 * mm, height=71.9 * mm))
+                story.append(Paragraph("Figura 5.1: Vista Lista Brani con schede repertorio Ufficiale protetto e Personale.", caption_style))
             except Exception:
                 pass
 
@@ -490,17 +501,74 @@ class ManualEngine:
         ))
 
         # =========================================================================
-        # CAPITOLO 8: FLUSSO DI LAVORO PER MODIFICA BRANI ESISTENTI
+        # CAPITOLO 8: FLUSSO DI LAVORO PER MODIFICA BRANI ESISTENTI (UFFICIALE vs PERSONALE)
         # =========================================================================
         story.append(Paragraph("Capitolo 8 &bull; Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", ch_title_style))
         story.append(Paragraph(
-            "Per tutelare l'integrità del repertorio condiviso, <b>nessun utente (incluso l'amministratore) può modificare "
-            "direttamente i brani del Repertorio Ufficiale</b>. Si applica la procedura protetta in 3 fasi:",
+            "Una delle architetture più importanti di ASMA riguarda la <b>protezione del Repertorio Ufficiale della Band</b>. "
+            "In un gruppo musicale, se chiunque potesse modificare direttamente lo spartito comune, un cambio di tonalità o "
+            "una correzione al volo rischierebbero di alterare lo spartito sui tablet di tutti gli altri musicisti proprio "
+            "prima o durante un concerto. Per questo motivo, <b>nessun utente (incluso l'amministratore) può modificare "
+            "direttamente un brano del Repertorio Ufficiale</b>. Si segue il flusso protetto e collaborativo in 5 fasi:",
             body_style
         ))
-        story.append(Paragraph("1. <b>Copia nel Personale:</b> Il musicista tocca <i>'📋 Copia nel Personale per Modificare'</i>. Il sistema crea un fork privato.", bullet_style))
-        story.append(Paragraph("2. <b>Modifica Autonoma:</b> L'utente modifica testo, tonalità, direttive synth o stacchi nel proprio editor senza intaccare la versione comune.", bullet_style))
-        story.append(Paragraph("3. <b>Promozione a Ufficiale:</b> Concordato l'arrangiamento, il tasto <i>'⭐ Promuovi a Ufficiale'</i> sovrascrive la versione comune ed elimina automaticamente la copia personale ridondante.", bullet_style))
+        story.append(Paragraph("<b>Le 5 Fasi del Flusso di Lavoro:</b>", ch_sub_style))
+        story.append(Paragraph(
+            "1. <b>Fase 1 — Consultazione Protetta:</b> Quando selezioni un brano dal Repertorio Ufficiale, "
+            "l'interfaccia mostra il badge <code>🔒 Ufficiale Protetto</code>. I campi di modifica diretta sono disattivati: "
+            "puoi visualizzare l'anteprima PDF, stampare su A4, avviare il teleprompter Palco o consultare i consigli live AI, "
+            "con la sicurezza assoluta che nessuno spartito comune possa essere modificato accidentalmente.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "2. <b>Fase 2 — Copia nel Personale (Fork Isolato):</b> Per apportare qualsiasi modifica, tocca il pulsante "
+            "<i>'📋 Copia nel Personale per Modificare'</i>. Il sistema crea istantaneamente un duplicato privato del brano "
+            "e lo assegna al tuo repertorio personale (legato al tuo account Google).",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "3. <b>Fase 3 — Modifica & Arrangiamento in Autonomia:</b> Nella tua copia personale si sbloccano tutti gli strumenti di editing:<br/>"
+            "&nbsp;&nbsp;&bull; <b>Trasposizione Tonalità:</b> Con i pulsanti <code>♭ -1</code> e <code>♯ +1</code> puoi trasporre al volo tutti gli accordi del brano e verificare subito la nuova chiave.<br/>"
+            "&nbsp;&nbsp;&bull; <b>Direttive Live & Tastiere:</b> Inserisci la direttiva synth <code>{scena: X}</code> per Sentimental, gli stacchi <code>{stacco: strumento}</code> per la ritmica, o crea un Medley concatenato.<br/>"
+            "&nbsp;&nbsp;&bull; <b>Salvataggio su Cloud Turso:</b> Toccando <i>'💾 Salva nel DB'</i> le tue modifiche vengono salvate in modo permanente nel cloud senza che gli altri membri della band vedano versioni parziali o premature.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "4. <b>Fase 4 — Collaudo & Prova con la Band:</b> Prova il nuovo arrangiamento a casa o in sala prove sul tuo tablet, "
+            "verificando la resa in Modalità Palco (60 fps) e nell'anteprima PDF.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "5. <b>Fase 5 — Promozione a Ufficiale con Sovrascrittura Protetta:</b> Quando l'arrangiamento è concordato e approvato da tutta la band, "
+            "nella scheda del brano personale compare il pulsante dorato <b>'⭐ Promuovi a Ufficiale'</b>. Toccandolo:<br/>"
+            "&nbsp;&nbsp;&bull; La versione nel Repertorio Ufficiale Band viene automaticamente <b>sovrascritta e aggiornata</b> con il nuovo testo e accordi validati.<br/>"
+            "&nbsp;&nbsp;&bull; La copia temporanea nel tuo repertorio personale viene <b>automaticamente rimossa</b> per non lasciare duplicati disallineati.<br/>"
+            "&nbsp;&nbsp;&bull; Tutti i tablet della band scaricano all'istante la nuova versione ufficiale sincronizzata.",
+            bullet_style
+        ))
+
+        # Workflow Summary Table
+        wf_data = [
+            [Paragraph("<b>Fase</b>", body_style), Paragraph("<b>Azione / Pulsante UI</b>", body_style), Paragraph("<b>Effetto sul Sistema</b>", body_style)],
+            [Paragraph("<b>1. Ufficiale</b>", body_style), Paragraph("Visualizzazione brano <code>🔒</code>", body_style), Paragraph("Lettura sicura, modifiche dirette bloccate.", body_style)],
+            [Paragraph("<b>2. Fork</b>", body_style), Paragraph("<i>'📋 Copia nel Personale'</i>", body_style), Paragraph("Crea copia privata nel repertorio personale.", body_style)],
+            [Paragraph("<b>3. Editing</b>", body_style), Paragraph("<i>'✏️ Modifica'</i> &bull; <code>♭/♯</code> &bull; <i>'💾 Salva'</i>", body_style), Paragraph("Modifica testo, accordi, BPM e direttive in isolamento.", body_style)],
+            [Paragraph("<b>4. Test</b>", body_style), Paragraph("<i>'📄 PDF'</i> &bull; <i>'🎤 Palco'</i>", body_style), Paragraph("Collaudo leggio su tablet e verifica con la band.", body_style)],
+            [Paragraph("<b>5. Rilascio</b>", body_style), Paragraph("<i>'⭐ Promuovi a Ufficiale'</i>", body_style), Paragraph("Sovrascrive l'Ufficiale ed elimina la copia personale.", body_style)]
+        ]
+        wf_table = Table(wf_data, colWidths=[24 * mm, 62 * mm, 94 * mm])
+        wf_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0284c7")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(Spacer(1, 2 * mm))
+        story.append(wf_table)
+        story.append(Spacer(1, 2 * mm))
 
         story.append(PageBreak())
 
@@ -577,12 +645,12 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Metronomo Audio & Visivo:</b> Click Web Audio API a latenza zero (<1 ms) con indicatore a lampeggio visivo del quarto.", bullet_style))
 
         # Embedded screenshot: palco
-        fig_palco_path = "frontend/assets/manual/fig_modalita_palco.png"
-        if os.path.exists(fig_palco_path):
+        fig_palco_path = _resolve_asset_path("frontend/assets/manual/fig_modalita_palco.png")
+        if fig_palco_path:
             try:
                 story.append(Spacer(1, 2 * mm))
                 # 459 x 1024 -> scaled width 52mm, height 116mm
-                story.append(Image(fig_palco_path, width=52 * mm, height=116 * mm, preserveAspectRatio=True))
+                story.append(Image(fig_palco_path, width=52 * mm, height=116 * mm))
                 story.append(Paragraph("Figura 11.1: Visualizzazione Teleprompter su dispositivo mobile con controlli di velocità e trasposizione.", caption_style))
             except Exception:
                 pass
