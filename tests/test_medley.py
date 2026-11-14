@@ -166,6 +166,54 @@ class TestMedleyFeature(unittest.TestCase):
         self.assertIn("1. CANZONE 1", full_text)
         self.assertIn("20. CANZONE 20", full_text)
 
+    def test_pdf_medley_fragments_kept_together_on_pages(self):
+        """
+        Verifies that when possible, a medley song fragment is kept intact on the same page
+        rather than being split across page boundaries.
+        """
+        import fitz
+        # Frag 1 has ~10 lines, fits comfortably on Page 1 with header
+        frag1_lines = "\n".join([f"[DO]Testo linea {i} del primo spezzone..." for i in range(10)])
+        # Frag 2 has ~25 lines: fits completely on Page 2, but would exceed Page 1 remaining space (~15 lines left)
+        frag2_lines = "\n".join([f"[SOL]Testo linea {i} del secondo spezzone..." for i in range(25)])
+
+        song = Song(
+            uuid="medley-keeptogether-test",
+            title="TEST MEDLEY KEEP TOGETHER",
+            artist="ASMA BAND",
+            key_original="DO",
+            key_current="DO",
+            aml_content=f"""{{start_of_song: Primo Spezzone | Artista 1 | DO}}
+[INTRO]
+| DO | SOL |
+{{sov}}
+{frag1_lines}
+{{eov}}
+{{end_of_song}}
+
+{{start_of_song: Secondo Spezzone | Artista 2 | SOL}}
+[INTRO]
+| SOL | RE |
+{{sov}}
+{frag2_lines}
+{{eov}}
+{{end_of_song}}"""
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, use_cache=False)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        self.assertGreaterEqual(len(doc), 2)
+
+        # Ensure that '2. SECONDO SPEZZONE' starts on Page 2 and is kept together
+        p1_text = doc[0].get_text()
+        p2_text = doc[1].get_text()
+        doc.close()
+
+        self.assertIn("1. PRIMO SPEZZONE", p1_text)
+        self.assertIn("2. SECONDO SPEZZONE", p2_text)
+        # All lines of fragment 2 should be on page 2, not fragmented onto page 1
+        self.assertNotIn("2. SECONDO SPEZZONE", p1_text)
+        self.assertIn("Testo linea 14 del secondo spezzone", p2_text)
+
 
 if __name__ == "__main__":
     unittest.main()

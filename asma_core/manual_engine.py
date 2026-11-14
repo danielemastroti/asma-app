@@ -540,7 +540,7 @@ class ManualEngine:
         ))
         story.append(Paragraph(
             "3. <b>Fase 3 — Modifica & Arrangiamento in Autonomia:</b> Nella tua copia personale si sbloccano tutti gli strumenti di editing:<br/>"
-            "&nbsp;&nbsp;&bull; <b>Trasposizione Tonalità:</b> Con i pulsanti <code>♭ -1</code> e <code>♯ +1</code> puoi trasporre al volo tutti gli accordi del brano e verificare subito la nuova chiave.<br/>"
+            "&nbsp;&nbsp;&bull; <b>Trasposizione Tonalità:</b> Con i pulsanti <code>b -1</code> e <code># +1</code> puoi trasporre al volo tutti gli accordi del brano e verificare subito la nuova chiave.<br/>"
             "&nbsp;&nbsp;&bull; <b>Direttive Live & Tastiere:</b> Inserisci la direttiva synth <code>{scena: X}</code> per Sentimental, gli stacchi <code>{stacco: strumento}</code> per la ritmica, o crea un Medley concatenato.<br/>"
             "&nbsp;&nbsp;&bull; <b>Salvataggio su Cloud Turso:</b> Toccando <i>'💾 Salva nel DB'</i> le tue modifiche vengono salvate in modo permanente nel cloud senza che gli altri membri della band vedano versioni parziali o premature.",
             bullet_style
@@ -564,7 +564,7 @@ class ManualEngine:
             [Paragraph("<b>Fase</b>", body_style), Paragraph("<b>Azione / Pulsante UI</b>", body_style), Paragraph("<b>Effetto sul Sistema</b>", body_style)],
             [Paragraph("<b>1. Ufficiale</b>", body_style), Paragraph("Visualizzazione brano <code>🔒</code>", body_style), Paragraph("Lettura sicura, modifiche dirette bloccate.", body_style)],
             [Paragraph("<b>2. Fork</b>", body_style), Paragraph("<i>'📋 Copia nel Personale'</i>", body_style), Paragraph("Crea copia privata nel repertorio personale.", body_style)],
-            [Paragraph("<b>3. Editing</b>", body_style), Paragraph("<i>'✏️ Modifica'</i> &bull; <code>♭/♯</code> &bull; <i>'💾 Salva'</i>", body_style), Paragraph("Modifica testo, accordi, BPM e direttive in isolamento.", body_style)],
+            [Paragraph("<b>3. Editing</b>", body_style), Paragraph("<i>'✏️ Modifica'</i> &bull; <code>b/#</code> &bull; <i>'💾 Salva'</i>", body_style), Paragraph("Modifica testo, accordi, BPM e direttive in isolamento.", body_style)],
             [Paragraph("<b>4. Test</b>", body_style), Paragraph("<i>'📄 PDF'</i> &bull; <i>'🎤 Palco'</i>", body_style), Paragraph("Collaudo leggio su tablet e verifica con la band.", body_style)],
             [Paragraph("<b>5. Rilascio</b>", body_style), Paragraph("<i>'⭐ Promuovi a Ufficiale'</i>", body_style), Paragraph("Sovrascrive l'Ufficiale ed elimina la copia personale.", body_style)]
         ]
@@ -607,8 +607,8 @@ class ManualEngine:
                 Paragraph("<font color='#c084fc' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Editing autonomo a casa o in sala prove senza disturbare gli altri leggii</font>", caption_style)
             ],
             [
-                Paragraph("<font color='#c084fc' size='9.5'><b>✏️ STEP 3: MODIFICA AML, TRASPOSIZIONE (♭/♯) & SALVATAGGIO CLOUD</b></font><br/>"
-                          "<font size='8' color='#cbd5e1'>• Adatta la tonalità alla voce di Cico con <code>♭ -1</code> / <code>♯ +1</code><br/>"
+                Paragraph("<font color='#c084fc' size='9.5'><b>✏️ STEP 3: MODIFICA AML, TRASPOSIZIONE (b/#) & SALVATAGGIO CLOUD</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>• Adatta la tonalità alla voce di Cico con <code>b -1</code> / <code># +1</code><br/>"
                           "• Inserisci direttive tastiere <code>{scena: X}</code> per Sentimental e stacchi <code>{stacco: Tutti}</code><br/>"
                           "• Salva su database cloud Turso con il pulsante <b>'💾 Salva nel DB'</b></font>", body_style)
             ],
@@ -675,7 +675,7 @@ class ManualEngine:
             [Paragraph("<b>Direttiva / Costrutto</b>", body_style), Paragraph("<b>Sintassi & Esempio</b>", body_style), Paragraph("<b>Ambito & Ruolo</b>", body_style), Paragraph("<b>Effetto su Palco & PDF</b>", body_style)],
             [Paragraph("<b>{title: } / {t: }</b>", body_style), Paragraph("<code>{title: Albachiara}</code>", code_box_style), Paragraph("Metadato principale", body_style), Paragraph("Imposta il titolo del brano nella testata e nell'indice generale.", body_style)],
             [Paragraph("<b>{artist: } / {a: }</b>", body_style), Paragraph("<code>{artist: Vasco Rossi}</code>", code_box_style), Paragraph("Metadato autore", body_style), Paragraph("Mostrato sotto il titolo nel PDF e nel teleprompter.", body_style)],
-            [Paragraph("<b>{key: } / {k: }</b>", body_style), Paragraph("<code>{key: DO}</code>", code_box_style), Paragraph("Tonalità d'impianto", body_style), Paragraph("Riferimento cromatico per le trasposizioni automatiche (♭/♯).", body_style)],
+            [Paragraph("<b>{key: } / {k: }</b>", body_style), Paragraph("<code>{key: DO}</code>", code_box_style), Paragraph("Tonalità d'impianto", body_style), Paragraph("Riferimento cromatico per le trasposizioni automatiche (b/#).", body_style)],
             [Paragraph("<b>{tempo: } / {bpm: }</b>", body_style), Paragraph("<code>{tempo: 68}</code>", code_box_style), Paragraph("Metronomo live", body_style), Paragraph("Velocità in battiti per minuto per click audio e lampeggio visivo.", body_style)],
             [Paragraph("<b>{capo: }</b>", body_style), Paragraph("<code>{capo: 2}</code>", code_box_style), Paragraph("Capotasto chitarra", body_style), Paragraph("Indica a Red e Maurino a quale tasto posizionare il capotasto.", body_style)],
             [Paragraph("<b>{duration: }</b>", body_style), Paragraph("<code>{duration: 3:45}</code>", code_box_style), Paragraph("Durata esecuzione", body_style), Paragraph("Permette il calcolo automatico dei tempi della scaletta concerto.", body_style)],
@@ -855,11 +855,11 @@ class ManualEngine:
         story.append(Paragraph("<b>Cos'è in Parole Semplici: L'Orologio delle 12 Tonalità</b>", ch_sub_style))
         story.append(Paragraph(
             "Immagina il Circolo delle Quinte come il quadrante di un orologio con 12 ore, dove al posto dei numeri ci sono le 12 tonalità musicali:<br/>"
-            "&bull; <b>A ore 12 c'è il DO (C):</b> È la tonalità di partenza neutra, che non ha nessun diesis (♯) e nessun bemolle (♭).<br/>"
-            "&bull; <b>In senso orario (a destra, salendo di una quinta giusta):</b> Ogni ora che avanzi si aggiunge <b>un diesis (♯)</b>: "
-            "SOL (1♯: FA♯) → RE (2♯) → LA (3♯) → MI (4♯) → SI (5♯) → FA♯/SOL♭ (6♯).<br/>"
-            "&bull; <b>In senso antiorario (a sinistra, scendendo di una quinta o salendo di una quarta):</b> Ogni ora che arretri si aggiunge <b>un bemolle (♭)</b>: "
-            "FA (1♭: SI♭) → SI♭ (2♭) → MI♭ (3♭) → LA♭ (4♭) → RE♭ (5♭).",
+            "&bull; <b>A ore 12 c'è il DO (C):</b> È la tonalità di partenza neutra, che non ha nessun diesis (#) e nessun bemolle (b).<br/>"
+            "&bull; <b>In senso orario (a destra, salendo di una quinta giusta):</b> Ogni ora che avanzi si aggiunge <b>un diesis (#)</b>: "
+            "SOL (1#: FA#) → RE (2#) → LA (3#) → MI (4#) → SI (5#) → FA#/SOLb (6#).<br/>"
+            "&bull; <b>In senso antiorario (a sinistra, scendendo di una quinta o salendo di una quarta):</b> Ogni ora che arretri si aggiunge <b>un bemolle (b)</b>: "
+            "FA (1b: SIb) → SIb (2b) → MIb (3b) → LAb (4b) → REb (5b).",
             body_style
         ))
 
@@ -875,9 +875,9 @@ class ManualEngine:
             "<b>2. Le Relative Minori (Il 'Gemello Emotivo' di ogni Accordo Maggiore):</b><br/>"
             "All'interno del cerchio, ogni tonalità maggiore ha una sua 'relativa minore' con cui condivide <b>esattamente le stesse note ed alterazioni</b>:<br/>"
             "&nbsp;&nbsp;&bull; <b>DO Maggiore ↔ LA Minore (LAm)</b> (0 alterazioni)<br/>"
-            "&nbsp;&nbsp;&bull; <b>SOL Maggiore ↔ MI Minore (MIm)</b> (1 diesis: FA♯)<br/>"
-            "&nbsp;&nbsp;&bull; <b>RE Maggiore ↔ SI Minore (SIm)</b> (2 diesis: FA♯, DO♯)<br/>"
-            "&nbsp;&nbsp;&bull; <b>FA Maggiore ↔ RE Minore (REm)</b> (1 bemolle: SI♭)<br/>"
+            "&nbsp;&nbsp;&bull; <b>SOL Maggiore ↔ MI Minore (MIm)</b> (1 diesis: FA#)<br/>"
+            "&nbsp;&nbsp;&bull; <b>RE Maggiore ↔ SI Minore (SIm)</b> (2 diesis: FA#, DO#)<br/>"
+            "&nbsp;&nbsp;&bull; <b>FA Maggiore ↔ RE Minore (REm)</b> (1 bemolle: SIb)<br/>"
             "<i>Applicazione pratica:</i> Se la strofa di un pezzo è intima e malinconica in LAm, aprendo il ritornello in DO Maggiore "
             "crei una meravigliosa esplosione di energia luminosa senza uscire dalla stessa famiglia armonica!",
             bullet_style
@@ -892,7 +892,7 @@ class ManualEngine:
         story.append(Paragraph(
             "<b>4. Trasposizioni Immediate su Misura per la Voce di Cico:</b><br/>"
             "Se un brano in SOL è troppo acuto o troppo faticoso sulle note alte per Cico, abbassarlo di un tono (a FA) o di un semitono "
-            "è facilissimo con i pulsanti <code>♭ -1</code> e <code>♯ +1</code>. Il Circolo delle Quinte garantisce che <b>tutti gli accordi scalino "
+            "è facilissimo con i pulsanti <code>b -1</code> e <code># +1</code>. Il Circolo delle Quinte garantisce che <b>tutti gli accordi scalino "
             "in modo rigorosamente proporzionale</b>: il tastierista (Sentimental), il bassista (Puma) e i chitarristi (Red e Maurino) "
             "vedono gli accordi già corretti e riscritti con le giuste alterazioni (senza confusioni tra diesis e bemolli).",
             bullet_style
@@ -941,11 +941,13 @@ class ManualEngine:
         if fig_palco_path:
             try:
                 story.append(Spacer(1, 2 * mm))
-                # 459 x 1024 -> scaled width 52mm, height 116mm
-                story.append(Image(fig_palco_path, width=52 * mm, height=116 * mm))
-                story.append(Paragraph("Figura 12.1: Visualizzazione Teleprompter su dispositivo mobile con controlli di velocità e trasposizione.", caption_style))
-            except Exception:
-                pass
+                # 1024 x 561 landscape -> scaled width 145mm, height 79.5mm
+                story.append(Image(fig_palco_path, width=145 * mm, height=79.5 * mm))
+                story.append(Spacer(1, 1.5 * mm))
+                story.append(Paragraph("Figura 12.1: Teleprompter notturno OLED ad alto contrasto ('Hanno Ucciso L'Uomo Ragno') con autoscroll fluido 60fps, barre di controllo e accordi in giallo.", caption_style))
+                story.append(Spacer(1, 3 * mm))
+            except Exception as e:
+                logger.warning(f"Impossibile includere screenshot palco: {e}")
 
         story.append(PageBreak())
 

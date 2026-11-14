@@ -679,21 +679,64 @@ class PDFEngine:
         Groups section items into KeepTogether blocks to prevent orphan lines.
         """
         flowables: List[Flowable] = []
+        fragment_flowables: List[Flowable] = []
         pending_badge: Optional[Flowable] = None
         last_was_inst_marker = False
         in_tab_block = False
         medley_fragment_count = 0
         in_medley_fragment = False
 
+        def target_list() -> List[Flowable]:
+            return fragment_flowables if in_medley_fragment else flowables
+
+        def append_item(it: Flowable):
+            target_list().append(it)
+
+        def finalize_medley_fragment():
+            nonlocal fragment_flowables, in_medley_fragment, pending_badge
+            if pending_badge:
+                fragment_flowables.append(pending_badge)
+                pending_badge = None
+            if fragment_flowables:
+                from reportlab.platypus.doctemplate import ActionFlowable, LCActionFlowable
+
+                def unwrap(items: List[Flowable]) -> List[Flowable]:
+                    unw = []
+                    for it in items:
+                        if isinstance(it, KeepTogether):
+                            unw.extend(unwrap(it._content))
+                        else:
+                            unw.append(it)
+                    return unw
+
+                sub_group: List[Flowable] = []
+                for it in fragment_flowables:
+                    if isinstance(it, (ActionFlowable, LCActionFlowable)):
+                        if sub_group:
+                            flat = unwrap(sub_group)
+                            if flat:
+                                flowables.append(KeepTogether(flat))
+                            sub_group = []
+                        flowables.append(it)
+                    else:
+                        sub_group.append(it)
+                if sub_group:
+                    flat = unwrap(sub_group)
+                    if flat:
+                        flowables.append(KeepTogether(flat))
+                fragment_flowables = []
+            in_medley_fragment = False
+
         def add_flowable(item: Flowable):
             nonlocal pending_badge
+            dest = target_list()
             if pending_badge:
                 # Mantiene il badge di sezione unito alla prima riga evitando KeepTogether annidati (che forzano salti pagina indebiti)
                 content = item._content if isinstance(item, KeepTogether) else [item]
-                flowables.append(KeepTogether([pending_badge, Spacer(1, 1.5 * mm)] + content))
+                dest.append(KeepTogether([pending_badge, Spacer(1, 1.5 * mm)] + content))
                 pending_badge = None
             else:
-                flowables.append(item)
+                dest.append(item)
 
         for node in doc.nodes:
             if isinstance(node, (DirectiveNode, MedleySongStartNode, MedleySongEndNode)):
@@ -702,25 +745,29 @@ class PDFEngine:
 
                 # Spezzone Medley: Inizio brano
                 if isinstance(node, MedleySongStartNode) or d_name in ["start_of_song", "sos", "start_of_medley", "start_of_medley_song", "soms"]:
+                    if in_medley_fragment:
+                        finalize_medley_fragment()
+
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
 
                     medley_fragment_count += 1
                     in_medley_fragment = True
 
                     # Riga di separazione visibile tra spezzoni di brano differenti (dal 2° brano in poi o dopo contenuti)
-                    if medley_fragment_count > 1 or flowables:
+                    if medley_fragment_count > 1 or flowables or fragment_flowables:
                         divider_table = Table([[""]], colWidths=[usable_width], rowHeights=[1.5 * mm])
                         divider_table.setStyle(TableStyle([
                             ('LINEBELOW', (0, 0), (-1, -1), 1.5, colors.HexColor("#475569")),
                             ('TOPPADDING', (0, 0), (-1, -1), 0),
                             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                         ]))
-                        if flowables and not isinstance(flowables[-1], Spacer):
-                            flowables.append(Spacer(1, 4.0 * mm))
-                        flowables.append(divider_table)
-                        flowables.append(Spacer(1, 3.0 * mm))
+                        curr_target = target_list()
+                        if curr_target and not isinstance(curr_target[-1], Spacer):
+                            append_item(Spacer(1, 4.0 * mm))
+                        append_item(divider_table)
+                        append_item(Spacer(1, 3.0 * mm))
 
                     # Estrazione metadati spezzone (Titolo, Artista, Tonalità)
                     if isinstance(node, MedleySongStartNode):
@@ -761,18 +808,20 @@ class PDFEngine:
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ]))
-                    flowables.append(KeepTogether([banner, Spacer(1, 2.5 * mm)]))
+                    append_item(banner)
+                    append_item(Spacer(1, 2.5 * mm))
                     last_was_inst_marker = False
                     continue
 
                 # Spezzone Medley: Fine brano (direttiva invisibile sul PDF)
                 if isinstance(node, MedleySongEndNode) or d_name in ["end_of_song", "eos", "end_of_medley", "end_of_medley_song", "eoms"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
-                    if flowables and not isinstance(flowables[-1], Spacer):
-                        flowables.append(Spacer(1, 2.0 * mm))
-                    in_medley_fragment = False
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        append_item(Spacer(1, 2.0 * mm))
+                    finalize_medley_fragment()
                     continue
 
                 if d_name in ["sot", "start_of_tab", "tab", "tablatura"]:
@@ -797,7 +846,7 @@ class PDFEngine:
                 # Band notes and comments: {c: ...} or {comment: ...}
                 if d_name in ["c", "comment", "ci", "cb"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
                     note_text = d_val or "Nota"
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>{escape(note_text)}</i></b></font>", styles["DocSubtitle"])
@@ -808,10 +857,11 @@ class PDFEngine:
                 # Section directives: {soc}, {start_of_chorus}, {sov}, {start_of_verse}, {sob}, {start_of_bridge}
                 if d_name in ["soc", "start_of_chorus", "chorus", "ritornello"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
-                    if flowables and not isinstance(flowables[-1], Spacer):
-                        flowables.append(Spacer(1, 3.5 * mm))
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        append_item(Spacer(1, 3.5 * mm))
                     badge_title = d_val.upper() if d_val else "RITORNELLO"
                     badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
                     p = Paragraph(badge_text, styles["SectionBadge"])
@@ -827,10 +877,11 @@ class PDFEngine:
 
                 if d_name in ["sov", "start_of_verse", "verse", "strofa"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
-                    if flowables and not isinstance(flowables[-1], Spacer):
-                        flowables.append(Spacer(1, 3.5 * mm))
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        append_item(Spacer(1, 3.5 * mm))
                     badge_title = d_val.upper() if d_val else "STROFA"
                     badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
                     p = Paragraph(badge_text, styles["SectionBadge"])
@@ -846,10 +897,11 @@ class PDFEngine:
 
                 if d_name in ["sob", "start_of_bridge", "bridge", "speciale"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
-                    if flowables and not isinstance(flowables[-1], Spacer):
-                        flowables.append(Spacer(1, 3.5 * mm))
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        append_item(Spacer(1, 3.5 * mm))
                     badge_title = d_val.upper() if d_val else "BRIDGE"
                     badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
                     p = Paragraph(badge_text, styles["SectionBadge"])
@@ -865,27 +917,28 @@ class PDFEngine:
 
                 if d_name in ["eoc", "end_of_chorus", "eov", "end_of_verse", "eob", "end_of_bridge"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
-                    if flowables and not isinstance(flowables[-1], Spacer):
-                        flowables.append(Spacer(1, 2.0 * mm))
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        append_item(Spacer(1, 2.0 * mm))
                     continue
 
                 # Column break: {colb} or {column_break}
                 if d_name in ["colb", "column_break", "col_break"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
                     if cols == 2:
-                        flowables.append(FrameBreak())
+                        append_item(FrameBreak())
                     else:
-                        flowables.append(Spacer(1, 4.0 * mm))
+                        append_item(Spacer(1, 4.0 * mm))
                     continue
 
                 # Direttiva Scena Live Tastiere: {scena: ...}
                 if d_name in ["scena", "scene"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
                     scena_val = (d_val or "").strip()
                     badge_title = f"[SCENA: {scena_val.upper()}]" if scena_val else "[SCENA]"
@@ -908,7 +961,7 @@ class PDFEngine:
                 # Direttiva Stacco Strumentale / d'insieme: {stacco: ...}
                 if d_name in ["stacco"]:
                     if pending_badge:
-                        flowables.append(pending_badge)
+                        append_item(pending_badge)
                         pending_badge = None
                     stacco_val = (d_val or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
@@ -946,12 +999,13 @@ class PDFEngine:
                     in_tab_block = False
 
                 if pending_badge:
-                    flowables.append(pending_badge)
+                    append_item(pending_badge)
                     pending_badge = None
 
                 # Separazione spaziale elegante e proporzionata prima di ogni nuova sezione
-                if flowables and not isinstance(flowables[-1], Spacer):
-                    flowables.append(Spacer(1, 3.5 * mm))
+                curr_target = target_list()
+                if curr_target and not isinstance(curr_target[-1], Spacer):
+                    append_item(Spacer(1, 3.5 * mm))
 
                 # Section badge (preserves optional label, e.g. {solo: brass ensemble} -> [SOLO: BRASS ENSEMBLE])
                 label_clean = (node.label or "").strip()
@@ -1203,12 +1257,16 @@ class PDFEngine:
                 if in_tab_block:
                     continue
                 if pending_badge:
-                    flowables.append(pending_badge)
+                    append_item(pending_badge)
                     pending_badge = None
                 # Spaziatura contenuta tra strofe/paragrafi (senza creare vuoti enormi)
-                if flowables and not isinstance(flowables[-1], Spacer):
-                    flowables.append(Spacer(1, 2.0 * mm))
+                curr_target = target_list()
+                if curr_target and not isinstance(curr_target[-1], Spacer):
+                    append_item(Spacer(1, 2.0 * mm))
                 last_was_inst_marker = False
+
+        if in_medley_fragment:
+            finalize_medley_fragment()
 
         if pending_badge:
             flowables.append(pending_badge)
