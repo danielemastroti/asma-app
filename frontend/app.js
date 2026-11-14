@@ -106,6 +106,10 @@ async function checkGoogleAuth() {
         };
         state.authenticatedUserEmail = data.user.email;
         try { localStorage.setItem('asma_user_email', data.user.email); } catch (e) {}
+        if (data.user.active_device) {
+          state.activeDevice = data.user.active_device;
+          try { localStorage.setItem('asma_active_device', data.user.active_device); } catch (e) {}
+        }
         if (gate) gate.style.display = 'none';
         syncAuthProfileUi();
         return true;
@@ -432,6 +436,7 @@ async function loadUsersAndDevices() {
         devSelect.innerHTML = devices.map(d => 
           `<option value="${escapeHtml(d.name)}" ${d.name === state.activeDevice ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
         ).join('');
+        devSelect.value = state.activeDevice;
       }
     }
   } catch (err) {
@@ -439,12 +444,18 @@ async function loadUsersAndDevices() {
   }
 }
 
-async function loadUserPreferences() {
+async function loadUserPreferences(requestedDevice = null) {
   try {
-    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}?device=${encodeURIComponent(state.activeDevice)}`);
+    const devParam = requestedDevice ? `?device=${encodeURIComponent(requestedDevice)}` : '';
+    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}${devParam}`);
     if (res.ok) {
       const prefs = await res.json();
       state.userPrefs = Object.assign(state.userPrefs, prefs);
+      // Sincronizza il dispositivo preferito persistito sul database
+      if (prefs.active_device) {
+        state.activeDevice = prefs.active_device;
+        try { localStorage.setItem('asma_active_device', prefs.active_device); } catch (e) {}
+      }
       // Prioritize local setting on device if explicitly chosen
       const localMode = (() => {
         try { return localStorage.getItem('asma_score_mode'); } catch (e) { return null; }
@@ -461,6 +472,7 @@ async function loadUserPreferences() {
       updateSettingsFormValues();
       updateStageScoreModeButton();
       applyAppModeToUi();
+      renderDashboard();
     }
   } catch (err) {
     console.warn('Preferences load error:', err);
@@ -687,12 +699,14 @@ async function onMusicianChange(email) {
   showToast(`Profilo attivo: ${state.currentUser.name}`);
 }
 
-function onDeviceChange(deviceName) {
+async function onDeviceChange(deviceName) {
   state.activeDevice = deviceName;
   try { localStorage.setItem('asma_active_device', deviceName); } catch (e) {}
-  loadUserPreferences();
+  await loadUserPreferences(deviceName);
+  await autosaveUserPreferences();
   renderDashboard();
-  showToast(`Hardware selezionato: ${deviceName}`);
+  if (state.selectedSong) renderSongViewer();
+  showToast(`Hardware selezionato e salvato: ${deviceName}`);
 }
 
 function setPrefScoreMode(mode) {

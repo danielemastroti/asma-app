@@ -347,6 +347,7 @@ def get_current_auth_user(request: Request):
     u = auth_mgr.get_user_by_email(email) or auth_mgr.authenticate_or_register_google(
         email, name=pseudonym or session_data.get("name", ""), picture_url=session_data.get("picture", "")
     )
+    active_dev = pref_mgr.get_last_active_device(u.email) or pref_mgr.get_user_preference(u.email, "active_device")
     return {
         "authenticated": True,
         "google_configured": google_configured,
@@ -355,6 +356,7 @@ def get_current_auth_user(request: Request):
             "name": pseudonym or u.name,
             "role": u.role.value if hasattr(u.role, "value") else str(u.role),
             "picture": getattr(u, "picture_url", "") or session_data.get("picture", ""),
+            "active_device": active_dev or "Huawei MediaPad M5",
         },
     }
 
@@ -1825,16 +1827,20 @@ def list_devices():
     ]
 
 @app.get("/api/preferences/{email}")
-def get_user_preferences(email: str, device: Optional[str] = "Huawei MediaPad M5"):
+def get_user_preferences(email: str, device: Optional[str] = None):
     """Retrieves synced preferences for user and device category."""
-    prof = resolve_device_profile(device)
-    dev_name = prof.name if prof else (device or "Huawei MediaPad M5")
+    saved_active_dev = pref_mgr.get_last_active_device(email) or pref_mgr.get_user_preference(email, "active_device")
+    req_device = device.strip() if (device and device.strip() and device.strip().lower() not in ("auto", "none", "null")) else None
+    chosen_device = req_device or saved_active_dev or "Huawei MediaPad M5"
+    prof = resolve_device_profile(chosen_device)
+    dev_name = prof.name if prof else chosen_device
     prefs = pref_mgr.get_preferences(email, dev_name)
     app_mode = prefs.get("app_mode") or pref_mgr.get_user_preference(email, "app_mode", default="simplified")
     default_score_mode = "lyrics" if ("cico" in email.lower() or "acicchelli" in email.lower()) else "chords"
     score_mode = prefs.get("score_display_mode") or pref_mgr.get_user_preference(email, "score_display_mode", default=default_score_mode)
     prefs["app_mode"] = app_mode
     prefs["score_display_mode"] = score_mode
+    prefs["active_device"] = dev_name
     # Normalizza i campi colore per compatibilità incrociata Streamlit & PWA
     if "layout_color_text" in prefs and "color_lyrics" not in prefs:
         prefs["color_lyrics"] = prefs["layout_color_text"]
@@ -1880,8 +1886,10 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
     }
     pref_mgr.set_user_preference(email, "app_mode", payload["app_mode"])
     pref_mgr.set_user_preference(email, "score_display_mode", payload["score_display_mode"])
+    pref_mgr.set_user_preference(email, "active_device", dev_name)
+    pref_mgr.set_last_active_device(email, dev_name)
     pref_mgr.save_preferences(email, dev_name, payload)
-    return {"status": "success", "saved": payload}
+    return {"status": "success", "saved": payload, "active_device": dev_name}
 
 
 @app.get("/api/settings/ai")

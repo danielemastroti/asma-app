@@ -110,6 +110,23 @@ class TestApiServer(unittest.TestCase):
         self.assertEqual(get_resp.status_code, 200)
         prefs = get_resp.json()
         self.assertEqual(prefs["score_display_mode"], "lyrics")
+        self.assertEqual(prefs["active_device"], "Huawei MediaPad M5")
+
+        # Select IPad and verify persistence across logins without explicit device query
+        ipad_save = self.client.post(f"/api/preferences/{email}", json={
+            "app_mode": "simplified",
+            "score_display_mode": "chords",
+            "device_name": 'IPad 10.2" (7/8/9 gen) & pro 2019',
+            "layout_font_size": 13.0
+        })
+        self.assertEqual(ipad_save.status_code, 200)
+        self.assertEqual(ipad_save.json()["active_device"], 'IPad 10.2" (7/8/9 gen) & pro 2019')
+
+        # Retrieve preferences without passing ?device= (simulates fresh login on new deploy)
+        relogin_resp = self.client.get(f"/api/preferences/{email}")
+        self.assertEqual(relogin_resp.status_code, 200)
+        relogin_prefs = relogin_resp.json()
+        self.assertEqual(relogin_prefs["active_device"], 'IPad 10.2" (7/8/9 gen) & pro 2019')
 
     def test_07_stage_song_payload(self):
         songs = self.client.get("/api/songs").json()

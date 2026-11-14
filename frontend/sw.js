@@ -1,5 +1,5 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v74';
+const CACHE_NAME = 'asma-pwa-v75';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
