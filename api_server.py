@@ -903,6 +903,12 @@ def list_songs(
                 all_songs = [s for s in all_songs if s["uuid"] in allowed_uids]
             else:
                 all_songs = []
+        elif repertoire_uuid != "__ALL__":
+            # Default: only return songs assigned to at least one active repertoire (eliminates unassigned orphan residues)
+            valid_rep_uids = set()
+            for r in all_reps:
+                valid_rep_uids.update(r.song_uuids)
+            all_songs = [s for s in all_songs if s["uuid"] in valid_rep_uids]
 
         # Include repertoire names for each song
         for s in all_songs:

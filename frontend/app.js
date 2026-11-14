@@ -1300,6 +1300,7 @@ function renderSongViewer() {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px;">
           <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Testo AML (Pronto per il Palco & PDF):</label>
           <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #facc15; border-color: #eab308;" onclick="openCircleOfFifthsModal(document.getElementById('edit-song-key') ? document.getElementById('edit-song-key').value : '')" title="Apri il Circolo delle Quinte per analizzare accordi, tonalità e modulazioni">🎼 Circolo Quinte</button>
             <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleEditorLivePreview('edit-song-aml', 'edit-song-live-preview', this)">👁️ Anteprima Live</button>
           </div>
         </div>
@@ -1329,6 +1330,7 @@ function renderSongViewer() {
           <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
           <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
             <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="openCircleOfFifthsModal(document.getElementById('edit-song-key') ? document.getElementById('edit-song-key').value : '')" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #eab308; font-weight: 800;" title="Apri il Circolo delle Quinte per tonalità e cambi armonici">🎼 Circolo Quinte</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyModal('edit-song-aml')" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Aggiungi spezzone Medley (gestione fino a 20 brani distinti con titolo, artista e tonalità)">🎶 + Spezzone Medley</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'scena')" style="background: rgba(6, 182, 212, 0.18); color: #22d3ee; border: 1px solid #06b6d4; font-weight: 800;" title="Preset / tasto setup per tastierista live (es. {scena: 3})">🎹 {scena: 1}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'stacco')" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-weight: 800;" title="Stacco musicale con strumento o d'insieme (es. {stacco: guitar} o {stacco: Tutti})">⚡ {stacco: Tutti}</button>
@@ -1416,6 +1418,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
         <button class="btn btn-secondary" style="${viewTypeBtnStyle}" onclick="toggleSongViewType()" title="${viewTypeBtnTitle}">${viewTypeBtnText}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
+        <button class="btn btn-secondary" style="color: #facc15; border-color: #eab308; font-weight: 800;" onclick="openCircleOfFifthsModal('${s.key_current || ''}')" title="Apri il Circolo delle Quinte per visualizzare relazioni armoniche e modulazioni">🎼 Circolo Quinte</button>
         <button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="openAiSuggestionsModal('${s.uuid}')" title="Suggerimenti live per musicisti o per l'intera band con AI Gemini Free">💡 Consigli Live</button>
         ${editingActionsHtml}
         <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareA4Modal()" title="Condividi o stampa PDF in formato A4 con font personalizzato su WhatsApp per la band">📤 A4 / WhatsApp</button>
@@ -3931,30 +3934,77 @@ function renderSetlistEditor() {
   const editing = isEditingMode();
   const minutes = Math.floor((s.total_duration_seconds || 0) / 60);
 
-  const itemsHtml = (s.items || []).map((item, idx) => `
-    <div class="setlist-item-row">
-      <div style="font-weight:900; color:#38bdf8; min-width:24px;">${idx + 1}.</div>
-      <div style="flex:1;">
-        <div style="font-weight:700; color:#fff;">${escapeHtml(item.title)}</div>
-        <div style="font-size:12px; color:#94a3b8;">
-          ${escapeHtml(item.artist || '')} &bull; Tonalità: <b style="color:#ffd600;">${toLatinKey(item.key)}</b>
-          &bull; Tempo: <b>${item.bpm} BPM</b> ${item.is_medley ? '<span class="badge" style="background:#7c3aed; color:#fff; font-size:10px; margin-left:6px;">🔗 MEDLEY</span>' : ''}
+  const itemsHtml = (s.items || []).map((item, idx) => {
+    let transitionBadge = '';
+    if (idx > 0) {
+      const prev = s.items[idx - 1];
+      const trans = calculateFifthsTransition(prev.key, prev.bpm, item.key, item.bpm);
+      transitionBadge = `
+        <div style="display:flex; align-items:center; gap:8px; margin: 4px 0 6px 24px; font-size:11.5px; color:${trans.color}; background:rgba(15,23,42,0.85); padding:4px 10px; border-radius:6px; border-left:3px solid ${trans.color};">
+          <span>🎼</span>
+          <span><b>Transizione:</b> ${escapeHtml(trans.label)} &bull; Quinte: <b>${trans.distance}</b> &bull; Δ BPM: <b>${trans.bpmDelta >= 0 ? '+' : ''}${trans.bpmDelta}</b> (${trans.bpmDiffPct}%)</span>
+          <button type="button" class="btn btn-secondary" style="font-size:10px; padding:1px 6px; min-height:20px; margin-left:auto; color:#facc15; border-color:#eab308;" onclick="openCircleOfFifthsModal('${item.key || ''}')">Circolo Quinte ↗</button>
         </div>
+      `;
+    }
+    return `
+      ${transitionBadge}
+      <div class="setlist-item-row">
+        <div style="font-weight:900; color:#38bdf8; min-width:24px;">${idx + 1}.</div>
+        <div style="flex:1;">
+          <div style="font-weight:700; color:#fff;">${escapeHtml(item.title)}</div>
+          <div style="font-size:12px; color:#94a3b8;">
+            ${escapeHtml(item.artist || '')} &bull; Tonalità: <b style="color:#ffd600;">${toLatinKey(item.key)}</b>
+            &bull; Tempo: <b>${item.bpm} BPM</b> ${item.is_medley ? '<span class="badge" style="background:#7c3aed; color:#fff; font-size:10px; margin-left:6px;">🔗 MEDLEY</span>' : ''}
+          </div>
+        </div>
+        ${editing ? `
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta su" onclick="moveSetlistItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta giù" onclick="moveSetlistItem(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="btn btn-secondary" style="min-height:34px; padding:0 8px; font-size:11px;" title="Attiva/disattiva Medley" onclick="toggleSetlistMedley(${idx})">🔗</button>
+          <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0; color:#ef4444;" title="Rimuovi" onclick="removeSetlistItem(${idx})">✕</button>
+        </div>` : ''}
       </div>
-      ${editing ? `
-      <div style="display:flex; gap:6px;">
-        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta su" onclick="moveSetlistItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
-        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0;" title="Sposta giù" onclick="moveSetlistItem(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''}>▼</button>
-        <button class="btn btn-secondary" style="min-height:34px; padding:0 8px; font-size:11px;" title="Attiva/disattiva Medley" onclick="toggleSetlistMedley(${idx})">🔗</button>
-        <button class="btn btn-secondary" style="min-height:34px; width:34px; padding:0; color:#ef4444;" title="Rimuovi" onclick="removeSetlistItem(${idx})">✕</button>
-      </div>` : ''}
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
-  // Song options for "+ Aggiungi Brano"
-  const songOptions = editing ? (state.songs || []).map(song => 
-    `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Tonalità: ${escapeHtml(toLatinKey(song.key_current))}]</option>`
-  ).join('') : '';
+  // Song options for "+ Aggiungi Brano": raggruppati per Ufficiale e Personale, deduplicati
+  let songOptions = '';
+  if (editing) {
+    const officialRep = (state.repertoires || []).find(r => r.is_official);
+    const officialUuids = new Set((officialRep && officialRep.song_uuids) || []);
+
+    const officialSongs = [];
+    const personalSongs = [];
+    const seenUuids = new Set();
+
+    (state.songs || []).forEach(song => {
+      if (!song || !song.uuid || seenUuids.has(song.uuid)) return;
+      seenUuids.add(song.uuid);
+      if (officialUuids.has(song.uuid)) {
+        officialSongs.push(song);
+      } else {
+        personalSongs.push(song);
+      }
+    });
+
+    officialSongs.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    personalSongs.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+    if (officialSongs.length > 0) {
+      songOptions += `<optgroup label="⭐ Repertorio Ufficiale Band (${officialSongs.length})">` +
+        officialSongs.map(song =>
+          `<option value="${song.uuid}">${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Tonalità: ${escapeHtml(toLatinKey(song.key_current))}]</option>`
+        ).join('') + `</optgroup>`;
+    }
+    if (personalSongs.length > 0) {
+      songOptions += `<optgroup label="👤 Repertorio Personale / Copie (${personalSongs.length})">` +
+        personalSongs.map(song =>
+          `<option value="${song.uuid}">[Copia Personale] ${escapeHtml(song.title)} (${escapeHtml(song.artist || 'Band')}) [Tonalità: ${escapeHtml(toLatinKey(song.key_current))}]</option>`
+        ).join('') + `</optgroup>`;
+    }
+  }
 
   const addSongSectionHtml = editing ? `
       <!-- ADD SONG CONTROLS WITH EXPLICIT CONFIRM BUTTON -->
@@ -3986,6 +4036,7 @@ function renderSetlistEditor() {
         </div>
         <div class="viewer-tools">
           <button class="btn btn-primary" onclick="loadAndPlaySetlist('${s.uuid}')">🎤 Avvia Palco</button>
+          <button class="btn btn-secondary" style="color: #facc15; border-color: #eab308; font-weight: 800;" onclick="openCircleOfFifthsModal('')" title="Apri il Circolo delle Quinte per pianificare cambi tonalità e medley">🎼 Circolo Quinte</button>
           <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareSetlistA4Modal('${s.uuid}')" title="Condividi o stampa la scaletta in formato A4 su WhatsApp">📤 A4 / WhatsApp</button>
           <button class="btn btn-secondary" onclick="downloadSetlistPdf('${s.uuid}')">💾 PDF Tablet</button>
           <button class="btn btn-secondary" onclick="printSetlistA4('${s.uuid}')">🖨️ Stampa A4</button>
@@ -5224,5 +5275,177 @@ function renderAiSuggestionsContent(s) {
     ${gearHtml}
     ${watchoutHtml}
   `;
+}
+
+// ============================================================================
+// CIRCOLO DELLE QUINTE INTERATTIVO (ARMONIA, MEDLEY & SCALETTE)
+// ============================================================================
+const CIRCLE_OF_FIFTHS_DATA = [
+  { pos: 0, keyIt: 'DO', keyInt: 'C', relIt: 'LAm', relInt: 'Am', acc: '0 alterazioni', sub: 'FA', dom: 'SOL', notes: 'DO - RE - MI - FA - SOL - LA - SI', chords: ['DO', 'FA', 'SOL', 'LAm', 'REm', 'MIm'], color: '#38bdf8' },
+  { pos: 1, keyIt: 'SOL', keyInt: 'G', relIt: 'MIm', relInt: 'Em', acc: '1 ♯ (FA♯)', sub: 'DO', dom: 'RE', notes: 'SOL - LA - SI - DO - RE - MI - FA♯', chords: ['SOL', 'DO', 'RE', 'MIm', 'LAm', 'SIm'], color: '#22c55e' },
+  { pos: 2, keyIt: 'RE', keyInt: 'D', relIt: 'SIm', relInt: 'Bm', acc: '2 ♯ (FA♯, DO♯)', sub: 'SOL', dom: 'LA', notes: 'RE - MI - FA♯ - SOL - LA - SI - DO♯', chords: ['RE', 'SOL', 'LA', 'SIm', 'MIm', 'FA♯m'], color: '#10b981' },
+  { pos: 3, keyIt: 'LA', keyInt: 'A', relIt: 'FA♯m', relInt: 'F#m', acc: '3 ♯ (FA♯, DO♯, SOL♯)', sub: 'RE', dom: 'MI', notes: 'LA - SI - DO♯ - RE - MI - FA♯ - SOL♯', chords: ['LA', 'RE', 'MI', 'FA♯m', 'SIm', 'DO♯m'], color: '#eab308' },
+  { pos: 4, keyIt: 'MI', keyInt: 'E', relIt: 'DO♯m', relInt: 'C#m', acc: '4 ♯ (FA♯, DO♯, SOL♯, RE♯)', sub: 'LA', dom: 'SI', notes: 'MI - FA♯ - SOL♯ - LA - SI - DO♯ - RE♯', chords: ['MI', 'LA', 'SI', 'DO♯m', 'FA♯m', 'SOL♯m'], color: '#f97316' },
+  { pos: 5, keyIt: 'SI', keyInt: 'B', relIt: 'SOL♯m', relInt: 'G#m', acc: '5 ♯ (FA♯, DO♯, SOL♯, RE♯, LA♯)', sub: 'MI', dom: 'FA♯', notes: 'SI - DO♯ - RE♯ - MI - FA♯ - SOL♯ - LA♯', chords: ['SI', 'MI', 'FA♯', 'SOL♯m', 'DO♯m', 'RE♯m'], color: '#ef4444' },
+  { pos: 6, keyIt: 'FA♯ / SOL♭', keyInt: 'F# / Gb', relIt: 'RE♯m / MI♭m', relInt: 'D#m / Ebm', acc: '6 ♯ / 6 ♭', sub: 'SI', dom: 'DO♯ / RE♭', notes: 'FA♯ - SOL♯ - LA♯ - SI - DO♯ - RE♯ - MI♯', chords: ['FA♯', 'SI', 'DO♯', 'RE♯m', 'SOL♯m', 'LA♯m'], color: '#d946ef' },
+  { pos: 7, keyIt: 'RE♭ / DO♯', keyInt: 'Db / C#', relIt: 'SI♭m', relInt: 'Bbm', acc: '5 ♭ (SI♭, MI♭, LA♭, RE♭, SOL♭)', sub: 'SOL♭', dom: 'LA♭', notes: 'RE♭ - MI♭ - FA - SOL♭ - LA♭ - SI♭ - DO', chords: ['RE♭', 'SOL♭', 'LA♭', 'SI♭m', 'MI♭m', 'FAm'], color: '#ec4899' },
+  { pos: 8, keyIt: 'LA♭', keyInt: 'Ab', relIt: 'FAm', relInt: 'Fm', acc: '4 ♭ (SI♭, MI♭, LA♭, RE♭)', sub: 'RE♭', dom: 'MI♭', notes: 'LA♭ - SI♭ - DO - RE♭ - MI♭ - FA - SOL', chords: ['LA♭', 'RE♭', 'MI♭', 'FAm', 'SI♭m', 'DOm'], color: '#a855f7' },
+  { pos: 9, keyIt: 'MI♭', keyInt: 'Eb', relIt: 'DOm', relInt: 'Cm', acc: '3 ♭ (SI♭, MI♭, LA♭)', sub: 'LA♭', dom: 'SI♭', notes: 'MI♭ - FA - SOL - LA♭ - SI♭ - DO - RE', chords: ['MI♭', 'LA♭', 'SI♭', 'DOm', 'FAm', 'SOLm'], color: '#6366f1' },
+  { pos: 10, keyIt: 'SI♭', keyInt: 'Bb', relIt: 'SOLm', relInt: 'Gm', acc: '2 ♭ (SI♭, MI♭)', sub: 'MI♭', dom: 'FA', notes: 'SI♭ - DO - RE - MI♭ - FA - SOL - LA', chords: ['SI♭', 'MI♭', 'FA', 'SOLm', 'DOm', 'REm'], color: '#0ea5e9' },
+  { pos: 11, keyIt: 'FA', keyInt: 'F', relIt: 'REm', relInt: 'Dm', acc: '1 ♭ (SI♭)', sub: 'SI♭', dom: 'DO', notes: 'FA - SOL - LA - SI♭ - DO - RE - MI', chords: ['FA', 'SI♭', 'DO', 'REm', 'SOLm', 'LAm'], color: '#06b6d4' }
+];
+
+let circleSelectedPos = 0;
+
+function normalizeKeyToFifthsPos(key) {
+  if (!key) return 0;
+  const k = String(key).trim().toUpperCase();
+  if (k.startsWith('DO#') || k.startsWith('C#') || k.startsWith('REB') || k.startsWith('DB')) return 7;
+  if (k.startsWith('DO') || k.startsWith('C')) return 0;
+  if (k.startsWith('RE#') || k.startsWith('D#') || k.startsWith('MIB') || k.startsWith('EB')) return 9;
+  if (k.startsWith('RE') || k.startsWith('D')) return 2;
+  if (k.startsWith('MI#') || k.startsWith('E#') || k.startsWith('FA') || k.startsWith('F')) {
+    if (k.startsWith('FA#') || k.startsWith('F#')) return 6;
+    return 11;
+  }
+  if (k.startsWith('MI') || k.startsWith('E')) return 4;
+  if (k.startsWith('SOL#') || k.startsWith('G#') || k.startsWith('LAB') || k.startsWith('AB')) return 8;
+  if (k.startsWith('SOL') || k.startsWith('G')) return 1;
+  if (k.startsWith('LA#') || k.startsWith('A#') || k.startsWith('SIB') || k.startsWith('BB')) return 10;
+  if (k.startsWith('LA') || k.startsWith('A')) return 3;
+  if (k.startsWith('SI') || k.startsWith('B')) return 5;
+  return 0;
+}
+
+function calculateFifthsTransition(keyA, bpmA, keyB, bpmB) {
+  const posA = normalizeKeyToFifthsPos(keyA);
+  const posB = normalizeKeyToFifthsPos(keyB);
+  const rawDist = Math.abs(posA - posB);
+  const distance = Math.min(rawDist, 12 - rawDist);
+  
+  const bA = parseInt(bpmA) || 120;
+  const bB = parseInt(bpmB) || 120;
+  const maxBpm = Math.max(bA, bB, 1);
+  const bpmDelta = bB - bA;
+  const bpmDiffPct = Math.round((Math.abs(bpmDelta) / maxBpm) * 100);
+
+  let label = '';
+  let color = '#22c55e';
+
+  if (distance === 0) {
+    label = 'Stessa Tonalità (Passaggio Immediato Perfetto)';
+    color = '#22c55e';
+  } else if (distance === 1) {
+    label = 'Tonalità Vicina (Transizione Fluida / Relativa / Dominante)';
+    color = '#38bdf8';
+  } else if (distance === 2) {
+    label = 'Modulazione di 1 Tono (Slancio / Tipico ritornello)';
+    color = '#facc15';
+  } else {
+    label = `Salto di ${distance} quinte (Consigliata modulazione o pausa ritmica)`;
+    color = '#f87171';
+  }
+
+  return { distance, bpmDelta, bpmDiffPct, label, color };
+}
+
+function openCircleOfFifthsModal(initialKey = '') {
+  const modal = document.getElementById('circle-of-fifths-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  if (initialKey && initialKey !== 'VARIE') {
+    circleSelectedPos = normalizeKeyToFifthsPos(initialKey);
+  } else {
+    circleSelectedPos = 0;
+  }
+  renderCircleOfFifthsGrid();
+  selectCircleKey(circleSelectedPos);
+}
+
+function closeCircleOfFifthsModal() {
+  const modal = document.getElementById('circle-of-fifths-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderCircleOfFifthsGrid() {
+  const grid = document.getElementById('circle-keys-grid');
+  if (!grid) return;
+
+  grid.innerHTML = CIRCLE_OF_FIFTHS_DATA.map(d => {
+    const isSelected = d.pos === circleSelectedPos;
+    return `
+      <div onclick="selectCircleKey(${d.pos})" style="cursor: pointer; background: ${isSelected ? 'rgba(234, 179, 8, 0.22)' : '#0f172a'}; border: 2px solid ${isSelected ? '#eab308' : '#334155'}; border-radius: 8px; padding: 10px; transition: all 0.15s ease; box-shadow: ${isSelected ? '0 0 14px rgba(234, 179, 8, 0.35)' : 'none'};">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 17px; font-weight: 900; color: ${isSelected ? '#facc15' : '#fff'};">${escapeHtml(d.keyIt)}</span>
+          <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">(${escapeHtml(d.keyInt)})</span>
+        </div>
+        <div style="font-size: 12px; color: #38bdf8; margin-top: 2px;">Relativa: <b>${escapeHtml(d.relIt)}</b> <span style="font-size:10px; color:#94a3b8;">(${escapeHtml(d.relInt)})</span></div>
+        <div style="font-size: 11px; color: #eab308; margin-top: 4px; font-weight: 600;">${escapeHtml(d.acc)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectCircleKey(pos) {
+  circleSelectedPos = pos;
+  renderCircleOfFifthsGrid();
+
+  const data = CIRCLE_OF_FIFTHS_DATA.find(d => d.pos === pos);
+  const detailEl = document.getElementById('circle-key-detail-content');
+  if (!data || !detailEl) return;
+
+  const prevPos = (pos - 1 + 12) % 12;
+  const nextPos = (pos + 1) % 12;
+  const prevKey = CIRCLE_OF_FIFTHS_DATA[prevPos];
+  const nextKey = CIRCLE_OF_FIFTHS_DATA[nextPos];
+
+  const canApplyToEditor = !!document.getElementById('edit-song-key');
+
+  detailEl.innerHTML = `
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+      <div>
+        <span style="font-size: 20px; font-weight: 900; color: #facc15;">${escapeHtml(data.keyIt)} / ${escapeHtml(data.keyInt)} Maggiore</span>
+        <span style="font-size: 14px; color: #94a3b8; margin-left: 8px;">(Relativa Minore: <b style="color: #38bdf8;">${escapeHtml(data.relIt)} / ${escapeHtml(data.relInt)}</b>)</span>
+      </div>
+      ${canApplyToEditor ? `
+        <button type="button" class="btn btn-primary" style="font-size: 11.5px; padding: 4px 12px; font-weight: 800;" onclick="applyCircleKeyToEditor('${data.keyIt}')">
+          ✏️ Usa questa Tonalità nell'Editor
+        </button>
+      ` : ''}
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+      <div style="background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800;">Scale & Alterazioni</div>
+        <div style="font-size: 13px; color: #ffd600; font-weight: 700; margin-top: 3px;">${escapeHtml(data.acc)}</div>
+        <div style="font-size: 11px; color: #cbd5e1; margin-top: 3px;">Note: ${escapeHtml(data.notes)}</div>
+      </div>
+
+      <div style="background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800;">Accordi della Famiglia Armonica</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+          ${data.chords.map(c => `<span style="background: #0f172a; border: 1px solid #0284c7; color: #38bdf8; font-weight: 800; font-size: 12px; padding: 2px 7px; border-radius: 4px;">${escapeHtml(c)}</span>`).join('')}
+        </div>
+      </div>
+
+      <div style="background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800;">Transizioni & Medley Diretti (Distanza 1)</div>
+        <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;">
+          &bull; Sottodominante (IV): <b style="color: #38bdf8;">${escapeHtml(prevKey.keyIt)}</b> (antiorario)<br/>
+          &bull; Dominante (V): <b style="color: #22c55e;">${escapeHtml(nextKey.keyIt)}</b> (orario)
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function applyCircleKeyToEditor(keyName) {
+  const keyInput = document.getElementById('edit-song-key');
+  if (keyInput) {
+    keyInput.value = keyName;
+    showToast(`Tonalità impostata a ${keyName} nell'editor ✓`);
+    closeCircleOfFifthsModal();
+  }
 }
 
