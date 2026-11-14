@@ -695,7 +695,7 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Condivisione A4 su WhatsApp:</b> Invio del PDF completo A4 stampabile direttamente sul gruppo WhatsApp della band con un solo tocco.", bullet_style))
         story.append(Paragraph("&bull; <b>Calcolo Durata Live:</b> Somma automatica dei minuti e secondi per rispettare i tempi del locale.", bullet_style))
 
-        # Embedded screenshot: circolo delle quinte
+        # Embedded screenshot: circolo delle quinte (Screenshot B1)
         fig_circolo_path = _resolve_asset_path("frontend/assets/manual/fig_circolo_quinte.jpg")
         if fig_circolo_path:
             try:
@@ -703,6 +703,17 @@ class ManualEngine:
                 # 1024 x 990 -> width 95mm, height 91.8mm
                 story.append(Image(fig_circolo_path, width=95 * mm, height=91.8 * mm))
                 story.append(Paragraph("Figura 12.1: Strumento interattivo del Circolo delle Quinte con scala, alterazioni (#/b), accordi della famiglia armonica e transizioni consigliate.", caption_style))
+            except Exception:
+                pass
+
+        # Embedded screenshot: modale condivisione A4 WhatsApp (Screenshot B2)
+        fig_condividi_path = _resolve_asset_path("frontend/assets/manual/fig_condividi_stampa_a4.png")
+        if fig_condividi_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 757 x 705 -> width 78mm, height 72.6mm
+                story.append(Image(fig_condividi_path, width=78 * mm, height=72.6 * mm))
+                story.append(Paragraph("Figura 12.2: Modale di condivisione e stampa A4 su WhatsApp per inviare istantaneamente scalette e spartiti alla band.", caption_style))
             except Exception:
                 pass
 
@@ -808,10 +819,11 @@ class ManualEngine:
             [Paragraph("<b>Figura 4.1</b>", body_style), Paragraph("Cap. 4", body_style), Paragraph("Pannello Layout & Impaginazione PDF (colonne, font, margini)", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 5.1</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Griglia Brani con schede repertorio Ufficiale vs Personale", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 5.2</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Modale touch Condividi / Stampa A4 per invio su WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 10.1</b>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 10.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot A]</b></font>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 11.1</b>", body_style), Paragraph("Cap. 11", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 12.1</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Circolo delle Quinte interattivo, scala, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 13.1</b>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 12.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Circolo delle Quinte interattivo, scala, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 12.2</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Dettaglio Scaletta: Modale Condividi / Stampa A4 WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 13.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot C]</b></font>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
         ]
         fig_table = Table(fig_table_data, colWidths=[28 * mm, 20 * mm, 95 * mm, 37 * mm])
         fig_table.setStyle(TableStyle([
