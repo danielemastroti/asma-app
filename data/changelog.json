@@ -1,5 +1,24 @@
 [
   {
+    "version": "2026.11.14",
+    "date": "14/11/2026",
+    "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
+    "new_features": [
+      "Nuova Modalità MEDLEY nell'Editor: supporto a composizioni con molteplici spezzoni di brani indipendenti ({start_of_song: Titolo | Artista | Tonalità} e {end_of_song}), ciascuno con tonalità, introduzione e sezioni proprie, gestione fino a 20 brani, palette a colori alternati vivaci e separatore visivo.",
+      "Nuova Direttiva Editor {Scena: } (es. {scena: 3}): setup rapido live per il tastierista con numero o nome preset/tasto synth, disponibile sia per brani singoli che Medley, visualizzato come badge in PDF, Web e Teleprompter Palco con quick chip dedicato.",
+      "Nuova Direttiva Editor {Stacco: } (es. {stacco: guitar}, {stacco organo}, {stacco: Tutti}): break/stab strumentale d'insieme o per strumento, reso con badge dedicato e quick chip nell'editor.",
+      "Persistenza Cloud Dispositivo Utente: la selezione del dispositivo hardware (iPad, Huawei MediaPad M5, ecc.) viene sincronizzata su database cloud Turso e ripristinata automaticamente ad ogni accesso."
+    ],
+    "improvements": [
+      "Ottimizzazione Barra Superiore su Tablet Huawei (16:10): layout fluido che previene lo sbordo orizzontale su schermi da 800px.",
+      "Pulizia Pulsanti Duplicati nella Home Dashboard: rimozione di controlli ridondanti per brani e scalette."
+    ],
+    "security": [],
+    "bug_fixes": [
+      "Ripristino Teleprompter in Modalità Palco: risolto il problema per cui il teleprompter non era più accessibile ed era visibile solo il PDF; reimpostata la vista live a Teleprompter Notte ad alto contrasto con autoscroll 60fps, scala font A+/A- e doppio switcher [Teleprompter / PDF] in alto e in basso."
+    ]
+  },
+  {
     "version": "2026.11.12",
     "date": "12/11/2026",
     "title": "Release Test",

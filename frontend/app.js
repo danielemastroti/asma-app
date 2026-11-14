@@ -35,7 +35,7 @@ const state = {
   usersList: [],
   devicesList: [],
   songViewType: (() => { try { return localStorage.getItem('asma_song_view_type') || 'pdf'; } catch (e) { return 'pdf'; } })(),
-  stageViewType: (() => { try { return localStorage.getItem('asma_stage_view_type') || 'pdf'; } catch (e) { return 'pdf'; } })(),
+  stageViewType: (() => { try { return localStorage.getItem('asma_stage_view_type') || 'prompter'; } catch (e) { return 'prompter'; } })(),
   userPrefs: {
     layout_font_size: 12.0,
     layout_font_size_chords: 13.0,
@@ -1292,6 +1292,8 @@ function renderSongViewer() {
           <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
             <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
             <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyModal('edit-song-aml')" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Aggiungi spezzone Medley (gestione fino a 20 brani distinti con titolo, artista e tonalità)">🎶 + Spezzone Medley</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'scena')" style="background: rgba(6, 182, 212, 0.18); color: #22d3ee; border: 1px solid #06b6d4; font-weight: 800;" title="Preset / tasto setup per tastierista live (es. {scena: 3})">🎹 {scena: 1}</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'stacco')" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-weight: 800;" title="Stacco musicale con strumento o d'insieme (es. {stacco: guitar} o {stacco: Tutti})">⚡ {stacco: Tutti}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
@@ -1647,6 +1649,22 @@ function insertDirectiveAtCursor(textareaId, type) {
     case 'start_of_song':
       openMedleyModal(textareaId);
       return;
+    case 'scena':
+      if (selectedText) {
+        insertion = `{scena: ${selectedText}}\n`;
+      } else {
+        insertion = `{scena: 1}\n`;
+        cursorOffset = 8;
+      }
+      break;
+    case 'stacco':
+      if (selectedText) {
+        insertion = `{stacco: ${selectedText}}\n`;
+      } else {
+        insertion = `{stacco: Tutti}\n`;
+        cursorOffset = 9;
+      }
+      break;
     case 'chorus':
       if (selectedText) {
         insertion = `{soc}\n${selectedText}\n{eoc}\n`;
@@ -2431,7 +2449,7 @@ function parseAmlForWeb(aml, showChords) {
     }
 
     // 1. Detect Directives ({tag} or {tag: value})
-    const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$/);
+    const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?:[:\s]\s*([^\}]+))?\}$/);
     if (dirMatch) {
       const tag = dirMatch[1].toLowerCase();
       const val = dirMatch[2] ? dirMatch[2].trim() : '';
@@ -2563,6 +2581,20 @@ function parseAmlForWeb(aml, showChords) {
         continue;
       }
 
+      // Direttiva Scena Live Tastiere: {scena: 3} oppure {scena 3}
+      if (['scena', 'scene'].includes(tag)) {
+        const scenaText = val ? `SCENA: ${escapeHtml(val.toUpperCase())}` : 'SCENA';
+        html += `<div class="aml-scene-badge" style="display:inline-block; background:rgba(6,182,212,0.18); color:#06b6d4; border:1px solid #06b6d4; border-radius:5px; padding:2px 8px; font-weight:800; margin:6px 0; font-size:13px; letter-spacing:0.5px;">🎹 ${scenaText}</div>`;
+        continue;
+      }
+
+      // Direttiva Stacco Musicale / Strumento: {stacco: guitar} oppure {stacco organo} oppure {stacco}
+      if (['stacco'].includes(tag)) {
+        const staccoText = val ? `STACCO: ${escapeHtml(val.toUpperCase())}` : 'STACCO';
+        html += `<div class="aml-stacco-badge" style="display:inline-block; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid #ef4444; border-radius:5px; padding:2px 8px; font-weight:800; margin:6px 0; font-size:13px; letter-spacing:0.5px;">⚡ ${staccoText}</div>`;
+        continue;
+      }
+
       if (val) {
         html += `<div style="font-size: 11.5px; color: #94a3b8; margin: 4px 0;"><b>[${escapeHtml(tag.toUpperCase())}]:</b> ${escapeHtml(val)}</div>`;
       }
@@ -2584,13 +2616,16 @@ function parseAmlForWeb(aml, showChords) {
     if (sectionTitle) {
       if (inSection) html += '</div>';
       const isSoloSec = sectionTitle.startsWith('SOLO') || sectionTitle.startsWith('ASSOLO');
+      const isStaccoSec = sectionTitle.startsWith('STACCO');
       if (isSoloSec) {
         html += `<div class="aml-section"><div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">[${escapeHtml(sectionTitle)}]</div>`;
+      } else if (isStaccoSec) {
+        html += `<div class="aml-section"><div style="display: inline-block; background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">⚡ [${escapeHtml(sectionTitle)}]</div>`;
       } else {
         html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
       }
       inSection = true;
-      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || isSoloSec;
+      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || isSoloSec || isStaccoSec;
       continue;
     }
 
@@ -3442,15 +3477,34 @@ function toggleStageViewType() {
 
 function updateStageViewButton() {
   const btn = document.getElementById('stage-view-btn');
+  const topBtn = document.getElementById('stage-header-view-btn');
+  const isPdf = state.stageViewType === 'pdf';
+
   if (btn) {
-    if (state.stageViewType === 'pdf') {
-      btn.textContent = '📄 Spartito PDF';
+    if (isPdf) {
+      btn.innerHTML = '📄 Spartito PDF';
       btn.style.color = '#38bdf8';
       btn.style.borderColor = '#38bdf8';
+      btn.title = 'Attualmente su Spartito PDF reale. Clicca per passare al Teleprompter testo.';
     } else {
-      btn.textContent = '🎤 Teleprompter';
+      btn.innerHTML = '🎤 Teleprompter';
       btn.style.color = '#ffd600';
       btn.style.borderColor = '#ffd600';
+      btn.title = 'Attualmente su Teleprompter testo notte. Clicca per passare allo Spartito PDF.';
+    }
+  }
+
+  if (topBtn) {
+    if (isPdf) {
+      topBtn.innerHTML = '🎤 Passa a Teleprompter';
+      topBtn.style.color = '#ffd600';
+      topBtn.style.borderColor = '#ffd600';
+      topBtn.title = 'Passa a Teleprompter testo (sfondo scuro ad alto contrasto)';
+    } else {
+      topBtn.innerHTML = '📄 Passa a Spartito PDF';
+      topBtn.style.color = '#38bdf8';
+      topBtn.style.borderColor = '#38bdf8';
+      topBtn.title = 'Passa a visualizzazione Spartito PDF originale';
     }
   }
 }

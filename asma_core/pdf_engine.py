@@ -882,6 +882,52 @@ class PDFEngine:
                         flowables.append(Spacer(1, 4.0 * mm))
                     continue
 
+                # Direttiva Scena Live Tastiere: {scena: ...}
+                if d_name in ["scena", "scene"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    scena_val = (d_val or "").strip()
+                    badge_title = f"[SCENA: {scena_val.upper()}]" if scena_val else "[SCENA]"
+                    sb = styles["SectionBadge"]
+                    p_scena = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('ScenaBadgeDir', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
+                    badge_w = min(usable_width, text_w + 16.0)
+                    badge_table = Table([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#0891B2")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    last_was_inst_marker = False
+                    continue
+
+                # Direttiva Stacco Strumentale / d'insieme: {stacco: ...}
+                if d_name in ["stacco"]:
+                    if pending_badge:
+                        flowables.append(pending_badge)
+                        pending_badge = None
+                    stacco_val = (d_val or "").strip()
+                    badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
+                    sb = styles["SectionBadge"]
+                    p_stacco = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('StaccoBadgeDir', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
+                    badge_w = min(usable_width, text_w + 16.0)
+                    badge_table = Table([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    last_was_inst_marker = True
+                    continue
+
                 # Any other directive with value (e.g. custom tag)
                 if d_val:
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b>[{d_name.upper()}]:</b> {escape(d_val)}</font>", styles["DocSubtitle"])
@@ -936,6 +982,20 @@ class PDFEngine:
                     badge_table = Table([[p_end]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                elif sec_name in ["stacco"]:
+                    sb = styles["SectionBadge"]
+                    stacco_text = f"[{badge_title}]"
+                    p_stacco = Paragraph(f"<b>{escape(stacco_text)}</b>", ParagraphStyle('StaccoBadgeSec', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(stacco_text, sb.fontName, base_lyrics_size * 0.85)
+                    badge_w = min(usable_width, text_w + 16.0)
+                    badge_table = Table([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
@@ -1072,6 +1132,47 @@ class PDFEngine:
                 tag_label = node.tag_type.strip().lower()
                 if in_tab_block or tag_label in ["tab", "tablatura", "sot", "eot"] or cls.is_guitar_tab_line(node.content or ""):
                     continue
+
+                # Direttiva Scena Live Tastiere in CustomTag
+                if tag_label in ["scena", "scene"]:
+                    scena_val = (node.content or "").strip()
+                    badge_title = f"[SCENA: {scena_val.upper()}]" if scena_val else "[SCENA]"
+                    sb = styles["SectionBadge"]
+                    p_scena = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('ScenaBadgeCust', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
+                    badge_w = min(usable_width, text_w + 16.0)
+                    badge_table = Table([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#0891B2")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    last_was_inst_marker = False
+                    continue
+
+                # Direttiva Stacco in CustomTag
+                if tag_label in ["stacco"]:
+                    stacco_val = (node.content or "").strip()
+                    badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
+                    sb = styles["SectionBadge"]
+                    p_stacco = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('StaccoBadgeCust', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
+                    badge_w = min(usable_width, text_w + 16.0)
+                    badge_table = Table([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    last_was_inst_marker = True
+                    continue
+
                 # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
                 tag_label = node.tag_type.strip().lower()
                 is_solo = any(k in tag_label for k in ["solo", "assolo", "instrumental", "guitar", "chitarra", "piano", "sax", "stacco"])

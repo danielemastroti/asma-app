@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=16.6">
+  <link rel="stylesheet" href="/style.css?v=16.7">
 </head>
 <body>
 
@@ -353,6 +353,9 @@ girano in centro sfiorando i novanta"></textarea>
             <!-- RIGA 2: DIRETTIVE SEZIONI, NOTE & COLONNE -->
             <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
               <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyModal('new-song-aml')" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Aggiungi spezzone Medley (gestione fino a 20 brani distinti con titolo, artista e tonalità)">🎶 + Spezzone Medley</button>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'scena')" style="background: rgba(6, 182, 212, 0.18); color: #22d3ee; border: 1px solid #06b6d4; font-weight: 800;" title="Preset / tasto setup per tastierista live (es. {scena: 3})">🎹 {scena: 1}</button>
+              <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'stacco')" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-weight: 800;" title="Stacco musicale con strumento o d'insieme (es. {stacco: guitar} o {stacco: Tutti})">⚡ {stacco: Tutti}</button>
               <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
               <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'verse')" title="Racchiudi o inserisci strofa">{sov} Strofa {eov}</button>
               <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('new-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
@@ -667,6 +670,7 @@ girano in centro sfiorando i novanta"></textarea>
         <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+        <button id="stage-header-view-btn" class="btn btn-secondary" style="min-height: 38px; padding: 4px 11px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleStageViewType()" title="Passa da Teleprompter testo a Spartito PDF reale">📄 Passa a Spartito PDF</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
         <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
         <button class="btn btn-danger" style="min-height: 38px; padding: 4px 14px; font-weight: 900;" onclick="closeStageModal()">✕ Esci</button>
@@ -873,6 +877,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=16.6"></script>
+  <script src="/app.js?v=16.7"></script>
 </body>
 </html>

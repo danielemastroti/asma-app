@@ -179,7 +179,7 @@ class EmptyLineNode(ASTNode):
 
 
 # Regular expressions for line parsing
-DIRECTIVE_REGEX = re.compile(r"^\{([a-zA-Z0-9_-]+)(?::\s*([^\}]+))?\}$")
+DIRECTIVE_REGEX = re.compile(r"^\{([a-zA-Z0-9_-]+)(?:[:\s]\s*([^\}]+))?\}$")
 INLINE_COMMENT_REGEX = re.compile(r"\{(?:c|comment|ci|cb)\s*:\s*([^\}]+)\}", re.IGNORECASE)
 CHORD_TOKEN_REGEX = re.compile(r"\[([^\]]+)\]")
 GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
@@ -187,10 +187,10 @@ GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
 KNOWN_SECTIONS = {
     "intro", "verse", "chorus", "bridge", "solo", "outro",
     "coda", "interlude", "pre-chorus", "medley_start", "medley_transition",
-    "strofa", "ritornello", "assolo", "finale", "end", "fine"
+    "strofa", "ritornello", "assolo", "finale", "end", "fine", "stacco"
 }
 
-KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria"}
+KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria", "scena", "scene"}
 
 
 def get_active_sections() -> Set[str]:
