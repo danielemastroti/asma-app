@@ -56,31 +56,21 @@ class BandAIService:
             if val and not val.startswith("AIzaSy_YOUR_OPTIONAL"):
                 return val
 
-        # Streamlit runtime secrets
-        try:
-            import streamlit as st
-            if hasattr(st, "secrets"):
-                if "ai" in st.secrets and "gemini_api_key" in st.secrets["ai"]:
-                    k = str(st.secrets["ai"]["gemini_api_key"]).strip()
-                    if k and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
-                        return k
-                if "gemini_api_key" in st.secrets:
-                    k = str(st.secrets["gemini_api_key"]).strip()
-                    if k and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
-                        return k
-        except Exception:
-            pass
-
-        # Direct .streamlit/secrets.toml reading
+        # Local secrets file
         try:
             import tomllib
-            secrets_path = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
-            if os.path.exists(secrets_path):
-                with open(secrets_path, "rb") as f:
-                    data = tomllib.load(f)
-                    k = data.get("ai", {}).get("gemini_api_key") or data.get("gemini_api_key")
-                    if k and isinstance(k, str) and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
-                        return k.strip()
+            candidate_paths = [
+                os.path.join(os.getcwd(), "config", "secrets.toml"),
+                os.path.join(os.getcwd(), ".secrets.toml"),
+                os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
+            ]
+            for secrets_path in candidate_paths:
+                if os.path.exists(secrets_path):
+                    with open(secrets_path, "rb") as f:
+                        data = tomllib.load(f)
+                        k = data.get("ai", {}).get("gemini_api_key") or data.get("gemini_api_key")
+                        if k and isinstance(k, str) and not k.startswith("AIzaSy_YOUR_OPTIONAL"):
+                            return k.strip()
         except Exception:
             pass
 

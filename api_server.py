@@ -236,19 +236,26 @@ def _get_google_oauth_config() -> tuple[str, str]:
     if cid and csec:
         return cid, csec
 
-    secrets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".streamlit", "secrets.toml")
-    if os.path.exists(secrets_path):
-        try:
-            import tomllib
-            with open(secrets_path, "rb") as f:
-                data = tomllib.load(f)
-            for section in ("auth", "google_auth"):
-                sec = data.get(section, {})
-                if isinstance(sec, dict):
-                    cid = cid or str(sec.get("client_id", "")).strip()
-                    csec = csec or str(sec.get("client_secret", "")).strip()
-        except Exception:
-            pass
+    candidate_paths = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "secrets.toml"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), ".secrets.toml"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), ".streamlit", "secrets.toml")
+    ]
+    for secrets_path in candidate_paths:
+        if os.path.exists(secrets_path):
+            try:
+                import tomllib
+                with open(secrets_path, "rb") as f:
+                    data = tomllib.load(f)
+                for section in ("auth", "google_auth"):
+                    sec = data.get(section, {})
+                    if isinstance(sec, dict):
+                        cid = cid or str(sec.get("client_id", "")).strip()
+                        csec = csec or str(sec.get("client_secret", "")).strip()
+                if cid and csec:
+                    break
+            except Exception:
+                pass
     return cid, csec
 
 

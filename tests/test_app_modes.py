@@ -33,25 +33,21 @@ class TestAppModes(unittest.TestCase):
         self.assertEqual(fresh.get_user_preference(email, "app_mode"), "simplified")
 
     def test_simplified_menu_items_has_no_duplicate_logout(self):
-        """Verifies simplified menu contains only the 5 core sections without duplicate logout."""
-        with open("app.py", "r", encoding="utf-8") as f:
+        """Verifies PWA navbar contains core sections and single header logout button."""
+        with open("frontend/index.html", "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn('"📖 Manuale & Changelog"', content)
-        # Verify that SIMPLIFIED_MENU_ITEMS does not have "🚪 Logout"
-        simp_def = content.split("SIMPLIFIED_MENU_ITEMS = [")[1].split("]")[0]
-        self.assertNotIn("Logout", simp_def)
-        # Should have 5 items
-        items = [line.strip() for line in simp_def.splitlines() if line.strip() and not line.strip().startswith("#")]
-        self.assertEqual(len(items), 5)
+        header = content.split('<header class="app-header">')[1].split('</header>')[0]
+        self.assertEqual(header.count('onclick="logoutGoogle()"'), 1)
 
     def test_simplified_mode_repertoire_selector_present(self):
-        """Verifies simplified mode includes repertoire filtering and selection."""
-        with open("app.py", "r", encoding="utf-8") as f:
+        """Verifies simplified mode includes repertoire filtering in PWA."""
+        with open("frontend/index.html", "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn('simp_repertoire_filter', content)
-        self.assertIn('📁 Seleziona Repertorio:', content)
-        self.assertIn('🌐 Tutti i Repertori', content)
-        self.assertIn('st.session_state["selected_repertoire_uuid"] = selected_rep_uuid', content)
+        self.assertIn('repertoire-chips', content)
+        with open("frontend/app.js", "r", encoding="utf-8") as f:
+            js = f.read()
+        self.assertIn('renderRepertoireChips', js)
+        self.assertIn('setAppMode', js)
 
 
 

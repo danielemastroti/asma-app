@@ -26,8 +26,11 @@ wheels/
 venv/
 ENV/
 
-# Streamlit Local Secrets (Private Credentials)
-.streamlit/secrets.toml
+# Application Local Secrets (Private Credentials)
+config/secrets.toml
+.secrets.toml
+.streamlit/
+.env
 
 # IDE
 .vscode/

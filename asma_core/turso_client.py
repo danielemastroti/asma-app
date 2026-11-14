@@ -18,7 +18,7 @@ class TursoClient:
     """
     Client for Turso / LibSQL Cloud SQLite database.
     Operates over HTTP Hrana protocol for maximum reliability across
-    local Windows, Linux, and Streamlit Community Cloud without WebSocket overhead.
+    local Windows, Linux, and Cloud Deployment without WebSocket overhead.
     """
     _instance: Optional[TursoClient] = None
 
@@ -50,26 +50,21 @@ class TursoClient:
             if val and not val.startswith("YOUR_"):
                 return val.strip()
 
-        # 2. Streamlit runtime secrets
-        try:
-            import streamlit as st
-            if hasattr(st, "secrets") and "turso" in st.secrets:
-                val = st.secrets["turso"].get(key)
-                if val and not str(val).startswith("YOUR_"):
-                    return str(val).strip()
-        except Exception:
-            pass
-
-        # 3. Direct .streamlit/secrets.toml reading
+        # 2. Local secrets file (config/secrets.toml, .secrets.toml, or legacy .streamlit/secrets.toml)
         try:
             import tomllib
-            secrets_path = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
-            if os.path.exists(secrets_path):
-                with open(secrets_path, "rb") as f:
-                    data = tomllib.load(f)
-                    val = data.get("turso", {}).get(key)
-                    if val and not str(val).startswith("YOUR_"):
-                        return str(val).strip()
+            candidate_paths = [
+                os.path.join(os.getcwd(), "config", "secrets.toml"),
+                os.path.join(os.getcwd(), ".secrets.toml"),
+                os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
+            ]
+            for secrets_path in candidate_paths:
+                if os.path.exists(secrets_path):
+                    with open(secrets_path, "rb") as f:
+                        data = tomllib.load(f)
+                        val = data.get("turso", {}).get(key)
+                        if val and not str(val).startswith("YOUR_"):
+                            return str(val).strip()
         except Exception:
             pass
 
@@ -81,7 +76,7 @@ class TursoClient:
 
     def _get_connection(self) -> libsql_client.ClientSync:
         if not self.is_configured:
-            raise RuntimeError("Turso client non configurato. Verifica .streamlit/secrets.toml [turso].")
+            raise RuntimeError("Turso client non configurato. Verifica config/secrets.toml [turso] o le variabili TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.")
         return libsql_client.create_client_sync(url=self.http_url, auth_token=self.token)
 
     def init_schema(self) -> Tuple[bool, str]:

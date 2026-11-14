@@ -47,7 +47,7 @@ Le trasposizioni coprono l'intero spettro cromatico da <b>-12 a +12 semitoni</b>
 <br/>&bull; <b>Avvio On-Demand dell'Autoscroll:</b> All'apertura di un brano o scaletta, lo scorrimento automatico NON parte mai da solo. Il musicista ha tutto il tempo di posizionarsi e avviare lo scorrimento toccando il grande pulsante 'AVVIO' o premendo il pedale Bluetooth.
 <br/>&bull; <b>Scorrimento Fluido a 60 fps & Tap-to-Pause:</b> Regolabile da 10 a 120 px/secondo. Toccando lo spartito in qualsiasi punto lo scorrimento si mette istantaneamente in pausa per consentire modifiche o annotazioni al volo.
 <br/>&bull; <b>Pedaliere Bluetooth HID:</b> Supporto nativo per AirTurn, PageFlip e BlueTurn (PageUp/Down, frecce su/giù, tasti 1 e 2).
-<br/>&bull; <b>Interfaccia Clean Palco:</b> Tutti i loghi fluttuanti esterni e barre di servizio (Streamlit/GitHub) vengono soppressi per garantire una schermata pulita a pieno schermo.
+<br/>&bull; <b>Interfaccia Clean Palco:</b> Schermata pulita a pieno schermo priva di distrazioni visive per la massima concentrazione durante il live.
 <br/>&bull; <b>Keep Screen Awake:</b> Impedisce lo spegnimento o il blocco dello schermo del dispositivo durante l'esibizione.
 <br/>&bull; <b>Metronomo Web Audio API:</b> Click audio ad alta precisione e latenza zero (< 1 ms) con lampeggio visivo del quarto."""
     },
