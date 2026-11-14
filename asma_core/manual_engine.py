@@ -119,15 +119,16 @@ class ManualEngine:
             {"num": 5, "title": "Lista Brani, Anteprima PDF, Stampa A4 & Download Dispositivo", "desc": "Ricerca 0ms, schede brani, Repertorio Ufficiale vs Personale, rendering fedele e stampa."},
             {"num": 6, "title": "Importazione Brani & Scansione da Fotocamera", "desc": "Cerca sul Web, Incolla Testo, ChordPro, URL diretti e Scansione Fotocamera OCR multi-pagina con Gemini Vision AI."},
             {"num": 7, "title": "Creazione Brani Autoprodotti", "desc": "Barra metadati essenziali compatti e repertorio personale protetto."},
-            {"num": 8, "title": "Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", "desc": "Protezione del repertorio ufficiale, copia nel personale, modifiche e promozione con sovrascrittura."},
-            {"num": 9, "title": "AML (ASMA Markup Language) — Sintassi & Specifiche", "desc": "Direttive, sezioni, accordi inline tra parentesi quadre e griglie armoniche a battute."},
+            {"num": 8, "title": "Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", "desc": "Protezione del repertorio ufficiale, copia nel personale, schema grafico di flusso e promozione con sovrascrittura."},
+            {"num": 9, "title": "AML (ASMA Markup Language) — Sintassi, Direttive & Guida Autonoma", "desc": "Tabella completa di tutte le direttive, esempi pratici per scrivere un intero brano da zero o un medley autonomamente."},
             {"num": 10, "title": "Modalità Editing, Nuove Direttive Scena/Stacco & Medley", "desc": "Direttiva {Scena: X} per tastiere, {stacco: strumento}, e Medley continui fino a 20 brani con colori alternati."},
-            {"num": 11, "title": "Modalità Palco (Stage Mode) & Teleprompter 60fps", "desc": "Autoscroll fluido a 60fps, avvio on-demand, tap-to-pause, contrasto notturno OLED, pedaliere HID e metronomo."},
-            {"num": 12, "title": "Gestione Scalette Live & Compatibilità Armonica", "desc": "Composizione scalette, Circolo delle Quinte, variazioni BPM, durata totale e condivisione A4 WhatsApp."},
-            {"num": 13, "title": "Suggerimenti Esecuzione Live (AI Gemini Free)", "desc": "Consigli su misura per Cico, Mingo, Puma, Red, Maurino, Sentimental e per l'intera band, con fallback offline."},
-            {"num": 14, "title": "Amministrazione, Sicurezza, Cestino 30gg & Backup DB", "desc": "Cestino con ripristino entro 30 giorni, backup integrale JSON, restore con un clic e audit trail."},
-            {"num": 15, "title": "Changelog Dinamico & Cronologia Novità (In Tempo Reale)", "desc": "Cronologia delle release e nuove funzionalità compilata automaticamente da data/changelog.json."},
-            {"num": 16, "title": "Appendice: Figure Grafiche & Richiesta Screenshot", "desc": "Riepilogo figure incluse e lista degli screenshot d'interfaccia consigliati per le future edizioni."}
+            {"num": 11, "title": "IL CIRCOLO DELLE QUINTE (Armonia & Esempi Pratici per la Band)", "desc": "Guida semplice per musicisti: l'orologio delle tonalità, relative minori, modulazioni, trasposizioni per la voce e transizioni live per scalette e medley."},
+            {"num": 12, "title": "Modalità Palco (Stage Mode) & Teleprompter 60fps", "desc": "Autoscroll fluido a 60fps, avvio on-demand, tap-to-pause, contrasto notturno OLED, pedaliere HID e metronomo."},
+            {"num": 13, "title": "Gestione Scalette Live & Condivisione WhatsApp", "desc": "Composizione scalette, variazioni BPM, durata totale e condivisione A4 WhatsApp."},
+            {"num": 14, "title": "Suggerimenti Esecuzione Live (AI Gemini Free)", "desc": "Consigli su misura per Cico, Mingo, Puma, Red, Maurino, Sentimental e per l'intera band, con fallback offline."},
+            {"num": 15, "title": "Amministrazione, Sicurezza, Cestino 30gg & Backup DB", "desc": "Cestino con ripristino entro 30 giorni, backup integrale JSON, restore con un clic e audit trail."},
+            {"num": 16, "title": "Changelog Dinamico & Cronologia Novità (In Tempo Reale)", "desc": "Cronologia delle release e nuove funzionalità compilata automaticamente da data/changelog.json."},
+            {"num": 17, "title": "Appendice: Figure Grafiche & Riepilogo Screenshot", "desc": "Riepilogo delle 8 figure grafiche incluse nel manuale."}
         ]
 
     @classmethod
@@ -579,46 +580,232 @@ class ManualEngine:
         ]))
         story.append(Spacer(1, 2 * mm))
         story.append(wf_table)
+        story.append(Spacer(1, 3 * mm))
+
+        # Schema Grafico di Flusso per la Modifica di un Brano Ufficiale
+        story.append(Paragraph("<b>Schema Grafico di Flusso (Ciclo di Vita e Promozione del Brano):</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Il diagramma sottostante sintetizza visivamente come un musicista passa dal brano ufficiale protetto "
+            "alla propria versione personale di lavoro, fino alla promozione approvata con la band:",
+            body_style
+        ))
+        flowchart_data = [
+            [
+                Paragraph("<font color='#ffd600' size='9.5'><b>🔒 STEP 1: REPERTORIO UFFICIALE BAND (PROTETTO)</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>Lo spartito comune è in sola lettura protetta • Nessun rischio di manomissione accidentale prima di un live.<br/>"
+                          "👉 <i>Azione: Tocca il pulsante</i> <b>'📋 Copia nel Personale per Modificare'</b></font>", body_style)
+            ],
+            [
+                Paragraph("<font color='#38bdf8' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Fork automatico a latenza zero nel proprio archivio personale Google</font>", caption_style)
+            ],
+            [
+                Paragraph("<font color='#38bdf8' size='9.5'><b>👤 STEP 2: FORK AUTOMATICO NEL REPERTORIO PERSONALE</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>Viene creato all'istante un duplicato privato del brano assegnato al tuo account personale.<br/>"
+                          "👉 <i>Risultato: Si sbloccano l'Editor AML completo, la trasposizione tonalità e i quick chips.</i></font>", body_style)
+            ],
+            [
+                Paragraph("<font color='#c084fc' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Editing autonomo a casa o in sala prove senza disturbare gli altri leggii</font>", caption_style)
+            ],
+            [
+                Paragraph("<font color='#c084fc' size='9.5'><b>✏️ STEP 3: MODIFICA AML, TRASPOSIZIONE (♭/♯) & SALVATAGGIO CLOUD</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>• Adatta la tonalità alla voce di Cico con <code>♭ -1</code> / <code>♯ +1</code><br/>"
+                          "• Inserisci direttive tastiere <code>{scena: X}</code> per Sentimental e stacchi <code>{stacco: Tutti}</code><br/>"
+                          "• Salva su database cloud Turso con il pulsante <b>'💾 Salva nel DB'</b></font>", body_style)
+            ],
+            [
+                Paragraph("<font color='#f59e0b' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Collaudo pratico sul palco o in sala prove</font>", caption_style)
+            ],
+            [
+                Paragraph("<font color='#fbbf24' size='9.5'><b>🎶 STEP 4: COLLAUDO IN SALA PROVE CON LA BAND</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>Verifica lo spartito sul teleprompter a 60fps o genera l'anteprima PDF reale.<br/>"
+                          "👉 <i>I tuoi compagni continuano a visualizzare la versione ufficiale senza alterazioni.</i></font>", body_style)
+            ],
+            [
+                Paragraph("<font color='#10b981' size='11'><b>▼</b></font> <font size='8' color='#94a3b8'>Accordo raggiunto $\rightarrow$ tocca <i>'⭐ Promuovi a Ufficiale'</i></font>", caption_style)
+            ],
+            [
+                Paragraph("<font color='#34d399' size='9.5'><b>⭐ STEP 5: PROMOZIONE & SINCRONIZZAZIONE GENERALE BAND</b></font><br/>"
+                          "<font size='8' color='#cbd5e1'>• La versione nel Repertorio Ufficiale Band viene <b>sovrascritta e aggiornata</b> al nuovo arrangiamento.<br/>"
+                          "• La copia personale temporanea viene <b>automaticamente rimossa</b> (zero duplicati o ambiguità).<br/>"
+                          "• Tutti i tablet e smartphone del gruppo scaricano istantaneamente la nuova versione ufficiale.</font>", body_style)
+            ]
+        ]
+        flowchart_table = Table(flowchart_data, colWidths=[180 * mm])
+        flowchart_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor("#0f172a")),
+            ('BOX', (0, 0), (0, 0), 1, colors.HexColor("#ffd600")),
+            ('BACKGROUND', (0, 2), (0, 2), colors.HexColor("#0c4a6e")),
+            ('BOX', (0, 2), (0, 2), 1, colors.HexColor("#38bdf8")),
+            ('BACKGROUND', (0, 4), (0, 4), colors.HexColor("#4c1d95")),
+            ('BOX', (0, 4), (0, 4), 1, colors.HexColor("#c084fc")),
+            ('BACKGROUND', (0, 6), (0, 6), colors.HexColor("#78350f")),
+            ('BOX', (0, 6), (0, 6), 1, colors.HexColor("#f59e0b")),
+            ('BACKGROUND', (0, 8), (0, 8), colors.HexColor("#064e3b")),
+            ('BOX', (0, 8), (0, 8), 1, colors.HexColor("#10b981")),
+            ('ALIGN', (0, 1), (0, 1), 'CENTER'),
+            ('ALIGN', (0, 3), (0, 3), 'CENTER'),
+            ('ALIGN', (0, 5), (0, 5), 'CENTER'),
+            ('ALIGN', (0, 7), (0, 7), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ]))
         story.append(Spacer(1, 2 * mm))
+        story.append(flowchart_table)
+        story.append(Spacer(1, 3 * mm))
 
         story.append(PageBreak())
 
         # =========================================================================
-        # CAPITOLO 9: AML (ASMA MARKUP LANGUAGE) — SINTASSI & SPECIFICHE
+        # CAPITOLO 9: AML (ASMA MARKUP LANGUAGE) — SINTASSI, DIRETTIVE & GUIDA AUTONOMA
         # =========================================================================
-        story.append(Paragraph("Capitolo 9 &bull; AML (ASMA Markup Language) — Sintassi & Specifiche", ch_title_style))
+        story.append(Paragraph("Capitolo 9 &bull; AML (ASMA Markup Language) — Sintassi, Direttive & Guida Autonoma", ch_title_style))
         story.append(Paragraph(
-            "AML è il linguaggio nativo del sistema. Sintassi riassuntiva dei costrutti standard:",
+            "<b>AML (ASMA Markup Language)</b> è il linguaggio nativo e universale della piattaforma. "
+            "Rappresenta l'unica fonte di verità (<i>Single Source of Truth</i>) da cui il sistema genera in tempo reale "
+            "lo spartito Web, la visualizzazione Teleprompter Palco a 60 fps, lo spartito PDF stampato per il leggio e il click del metronomo. "
+            "In questo capitolo vengono illustrate <b>tutte le direttive disponibili</b> e due guide pratiche passo-passo "
+            "che consentono a qualsiasi musicista della band di scrivere autonomamente un brano completo o un Medley da zero.",
             body_style
         ))
+        story.append(Paragraph("<b>Tabella Completa di Tutte le Direttive Presenti in ASMA AML:</b>", ch_sub_style))
 
         aml_syntax_data = [
-            [Paragraph("<b>Costrutto AML</b>", body_style), Paragraph("<b>Esempio Pratico</b>", body_style), Paragraph("<b>Effetto su Spartito & Palco</b>", body_style)],
-            [Paragraph("<b>Direttive Metadati</b>", body_style), Paragraph("<code>{title: Albachiara}<br/>{key: DO}<br/>{tempo: 68}</code>", code_box_style), Paragraph("Imposta titolo, tonalità e tempo BPM per il metronomo.", body_style)],
-            [Paragraph("<b>Sezioni Brano</b>", body_style), Paragraph("<code>{intro}<br/>{verse}<br/>{chorus}<br/>{bridge}<br/>{outro}</code>", code_box_style), Paragraph("Crea intestazioni visive con stacco grafico pulito e spaziatura.", body_style)],
-            [Paragraph("<b>Accordi Inline</b>", body_style), Paragraph("<code>[DO]Respiri piano per [SOL]non far rumore</code>", code_box_style), Paragraph("Accordo ancorato alla sillaba esatta, trasponibile automaticamente.", body_style)],
-            [Paragraph("<b>Griglia a Battute</b>", body_style), Paragraph("<code>| DO | SOL | LAm | FA |</code>", code_box_style), Paragraph("Griglia armonica tabellare per introduzioni e parti strumentali.", body_style)],
-            [Paragraph("<b>Interruzione Colonna</b>", body_style), Paragraph("<code>{colb}</code>", code_box_style), Paragraph("Forza il testo a passare alla seconda colonna nel layout a 2 colonne.", body_style)]
+            [Paragraph("<b>Direttiva / Costrutto</b>", body_style), Paragraph("<b>Sintassi & Esempio</b>", body_style), Paragraph("<b>Ambito & Ruolo</b>", body_style), Paragraph("<b>Effetto su Palco & PDF</b>", body_style)],
+            [Paragraph("<b>{title: } / {t: }</b>", body_style), Paragraph("<code>{title: Albachiara}</code>", code_box_style), Paragraph("Metadato principale", body_style), Paragraph("Imposta il titolo del brano nella testata e nell'indice generale.", body_style)],
+            [Paragraph("<b>{artist: } / {a: }</b>", body_style), Paragraph("<code>{artist: Vasco Rossi}</code>", code_box_style), Paragraph("Metadato autore", body_style), Paragraph("Mostrato sotto il titolo nel PDF e nel teleprompter.", body_style)],
+            [Paragraph("<b>{key: } / {k: }</b>", body_style), Paragraph("<code>{key: DO}</code>", code_box_style), Paragraph("Tonalità d'impianto", body_style), Paragraph("Riferimento cromatico per le trasposizioni automatiche (♭/♯).", body_style)],
+            [Paragraph("<b>{tempo: } / {bpm: }</b>", body_style), Paragraph("<code>{tempo: 68}</code>", code_box_style), Paragraph("Metronomo live", body_style), Paragraph("Velocità in battiti per minuto per click audio e lampeggio visivo.", body_style)],
+            [Paragraph("<b>{capo: }</b>", body_style), Paragraph("<code>{capo: 2}</code>", code_box_style), Paragraph("Capotasto chitarra", body_style), Paragraph("Indica a Red e Maurino a quale tasto posizionare il capotasto.", body_style)],
+            [Paragraph("<b>{duration: }</b>", body_style), Paragraph("<code>{duration: 3:45}</code>", code_box_style), Paragraph("Durata esecuzione", body_style), Paragraph("Permette il calcolo automatico dei tempi della scaletta concerto.", body_style)],
+            [Paragraph("<b>{sov} ... {eov}</b>", body_style), Paragraph("<code>{sov}<br/>Testo strofa...<br/>{eov}</code>", code_box_style), Paragraph("Delimitatore Strofa", body_style), Paragraph("<i>Start/End of Verse</i>: raggruppa la strofa con spaziatura coerente.", body_style)],
+            [Paragraph("<b>{soc} ... {eoc}</b>", body_style), Paragraph("<code>{soc}<br/>Testo ritornello...<br/>{eoc}</code>", code_box_style), Paragraph("Delimitatore Ritornello", body_style), Paragraph("<i>Start/End of Chorus</i>: evidenzia visivamente il ritornello nel PDF e palco.", body_style)],
+            [Paragraph("<b>{sob} ... {eob}</b>", body_style), Paragraph("<code>{sob}<br/>Ponte / Special...<br/>{eob}</code>", code_box_style), Paragraph("Delimitatore Bridge", body_style), Paragraph("<i>Start/End of Bridge</i>: isola la sezione di stacco armonico prima dell'assolo.", body_style)],
+            [Paragraph("<b>Etichette Sezione</b>", body_style), Paragraph("<code>[INTRO]<br/>[STROFA] [RIT]<br/>[OUTRO] [END]</code>", code_box_style), Paragraph("Header visivi veloci", body_style), Paragraph("Badge colorati con bordo ad alto contrasto per colpo d'occhio immediato.", body_style)],
+            [Paragraph("<b>{solo: }</b>", body_style), Paragraph("<code>{solo: Chitarra Red}</code>", code_box_style), Paragraph("Assolo strumentale", body_style), Paragraph("Badge verde brillante con strumento solista indicato chiaramente.", body_style)],
+            [Paragraph("<b>{c: } / {comment: }</b>", body_style), Paragraph("<code>{c: Rallentare sul finale}</code>", code_box_style), Paragraph("Note di palco / Regia", body_style), Paragraph("Box corsivo evidenziato in grigio per indicazioni esecutive ai musicisti.", body_style)],
+            [Paragraph("<b>{scena: }</b>", body_style), Paragraph("<code>{scena: 3}<br/>{scena: Piano + Pad}</code>", code_box_style), Paragraph("Preset Tastiere / Synth", body_style), Paragraph("Badge ciano dedicato per Sentimental: indica numero preset o tasto synth.", body_style)],
+            [Paragraph("<b>{stacco: }</b>", body_style), Paragraph("<code>{stacco: Tutti}<br/>{stacco: guitar}</code>", code_box_style), Paragraph("Stacco / Break ritmico", body_style), Paragraph("Badge rosso brillante ad alto contrasto per coordinare stop e ripartenze.", body_style)],
+            [Paragraph("<b>{colb}</b>", body_style), Paragraph("<code>{colb}</code>", code_box_style), Paragraph("Salto Colonna", body_style), Paragraph("<i>Column Break</i>: forza il testo a passare alla 2ª colonna (layout 2 colonne).", body_style)],
+            [Paragraph("<b>Accordi Inline</b>", body_style), Paragraph("<code>[DO]Respiri [SOL]piano</code>", code_box_style), Paragraph("Accordo su sillaba", body_style), Paragraph("Accordo oro agganciato esattamente sopra la sillaba, trasponibile con 1 tap.", body_style)],
+            [Paragraph("<b>Griglia a Battute</b>", body_style), Paragraph("<code>| DO | SOL | LAm | FA |</code>", code_box_style), Paragraph("Griglia armonica", body_style), Paragraph("Ideale per introduzioni e parti strumentali ritmiche con stanghette di battuta.", body_style)],
+            [Paragraph("<b>Spezzoni Medley</b>", body_style), Paragraph("<code>{start_of_song: ...}<br/>...<br/>{end_of_song}</code>", code_box_style), Paragraph("Medley concatenati", body_style), Paragraph("Definisce spezzoni con tonalità propria e palette a colori vivaci alternati.", body_style)]
         ]
-        aml_table = Table(aml_syntax_data, colWidths=[40 * mm, 65 * mm, 75 * mm])
+        aml_table = Table(aml_syntax_data, colWidths=[36 * mm, 46 * mm, 42 * mm, 56 * mm])
         aml_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0284c7")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
             ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
         story.append(aml_table)
+        story.append(Spacer(1, 3 * mm))
+
+        # GUIDA PRATICA 1: COME SCRIVERE UN BRANO INTERO AUTONOMAMENTE
+        story.append(Paragraph("<b>Guida Pratica 1: Come Scrivere un Intero Brano da Zero nell'Editor</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Per inserire un brano nuovo, tocca il pulsante <b>'➕ Nuovo / Importa'</b> $\rightarrow$ scheda <b>'Crea Nuovo'</b>. "
+            "Nell'area di testo dell'editor incolla o componi la struttura AML seguendo questo modello completo e funzionante:",
+            body_style
+        ))
+        sample_song_aml = (
+            "{title: ALBACHIARA}\n"
+            "{artist: Vasco Rossi}\n"
+            "{key: DO}\n"
+            "{tempo: 68}\n"
+            "{capo: 0}\n\n"
+            "[INTRO]\n"
+            "| DO | SOL | LAm | FA | (x2)\n\n"
+            "{sov}\n"
+            "[DO] Respiri piano per [SOL]non far rumore\n"
+            "[LAm] Ti addormenti di sera e [FA]ti risvegli col sole\n"
+            "[DO] Sei chiara come un'alba, [SOL]sei fresca come l'aria\n"
+            "{eov}\n\n"
+            "{soc}\n"
+            "[FA] E con la faccia pulita [SOL]cammini per strada\n"
+            "[DO] Mangiando una mela coi [LAm]libri di scuola\n"
+            "[FA] Ti piace studiare, [SOL]non te ne devi vergognare\n"
+            "{eoc}\n\n"
+            "{colb}\n\n"
+            "{sob}\n"
+            "{stacco: Tutti}\n"
+            "[LAm] E quando guardi con quegli [MIm]occhi grandi\n"
+            "[FA] Forse un po' troppo sinceri, [SOL]sinceri...\n"
+            "{eob}\n\n"
+            "{solo: Chitarra Red}\n"
+            "| FA | SOL | DO | LAm |\n\n"
+            "{c: Rallentando finale guidato dal gesto di Cico}\n"
+            "[OUTRO]\n"
+            "| DO | SOL | FA | DO |\n"
+            "[END]"
+        )
+        sample_song_table = Table([[Paragraph(f"<pre>{sample_song_aml.replace('\n', '<br/>')}</pre>", code_box_style)]], colWidths=[180 * mm])
+        sample_song_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#0284c7")),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        story.append(sample_song_table)
+        story.append(Spacer(1, 3 * mm))
+
+        # GUIDA PRATICA 2: COME COMPORRE UN MEDLEY MULTI-BRANO AUTONOMAMENTE
+        story.append(Paragraph("<b>Guida Pratica 2: Come Comporre un Medley Multi-Brano Autonomamente</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Un Medley è una sequenza ininterrotta di spezzoni di brani diversi (fino a 20 brani distinti). "
+            "Ciascun brano viene racchiuso tra <code>{start_of_song: Titolo | Artista | Tonalità}</code> ed <code>{end_of_song}</code>. "
+            "Il sistema assegna a ogni spezzone un colore vivace alternato, gestisce tonalità e cambi scena in modo indipendente "
+            "e permette il salto rapido tra i brani:",
+            body_style
+        ))
+        sample_medley_aml = (
+            "{title: MEDLEY BATTISTI}\n"
+            "{artist: Lucio Battisti}\n"
+            "{key: VARIE}\n"
+            "{tempo: 120}\n\n"
+            "{start_of_song: IL TEMPO DI MORIRE | LUCIO BATTISTI | LA}\n"
+            "[INTRO]\n"
+            "| LA | RE | SI | SOL | RE | LA | MI |\n\n"
+            "{sov}\n"
+            "[LA] Motocicletta 10 HP\n"
+            "[RE] Tutta cromata è tua se dici sì\n"
+            "{eov}\n"
+            "{end_of_song}\n\n"
+            "{start_of_song: DIECI RAGAZZE | LUCIO BATTISTI | SOL}\n"
+            "{scena: 2}\n"
+            "{stacco: Batteria Mingo}\n"
+            "[INTRO]\n"
+            "| SOL | DO | RE | SOL |\n\n"
+            "{soc}\n"
+            "[SOL] Dieci ragazze per me [DO]posson bastare\n"
+            "[RE] Dieci ragazze per me [SOL]io vorrei con me\n"
+            "{eoc}\n"
+            "{end_of_song}"
+        )
+        sample_medley_table = Table([[Paragraph(f"<pre>{sample_medley_aml.replace('\n', '<br/>')}</pre>", code_box_style)]], colWidths=[180 * mm])
+        sample_medley_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#a855f7")),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        story.append(sample_medley_table)
         story.append(Spacer(1, 4 * mm))
 
         # =========================================================================
         # CAPITOLO 10: MODALITÀ EDITING, DIRETTIVE SCENA/STACCO & MEDLEY
         # =========================================================================
-        story.append(Paragraph("Capitolo 10 &bull; Nuove Direttive Scena/Stacco & Modalità Medley", ch_title_style))
+        story.append(Paragraph("Capitolo 10 &bull; Modalità Editing, Nuove Direttive Scena/Stacco & Medley", ch_title_style))
         story.append(Paragraph(
-            "L'editor mette a disposizione nuove direttive avanzate per la massima efficacia live:",
+            "L'editor di ASMA mette a disposizione controlli touch dedicati per rendere l'arrangiamento live immediato:",
             body_style
         ))
         story.append(Paragraph(
@@ -640,21 +827,104 @@ class ManualEngine:
             bullet_style
         ))
 
-        # Embedded screenshot: editor medley e direttive
+        # Embedded screenshot: editor medley e direttive (Screenshot A)
         fig_editor_path = _resolve_asset_path("frontend/assets/manual/fig_editor_medley_direttive.png")
         if fig_editor_path:
             try:
                 story.append(Spacer(1, 2 * mm))
                 # 1024 x 316 -> width 155mm, height 47.8mm
                 story.append(Image(fig_editor_path, width=155 * mm, height=47.8 * mm))
-                story.append(Paragraph("Figura 10.1: Editor brano con quick-chips per accordi, spezzoni Medley, setup scena ({scena: 1}) e stacchi musicali ({stacco: Tutti}).", caption_style))
+                story.append(Paragraph("Figura 10.1 [Screenshot A]: Editor brano con quick-chips per accordi, spezzoni Medley, setup scena ({scena: 1}) e stacchi musicali ({stacco: Tutti}).", caption_style))
             except Exception:
                 pass
 
+        story.append(PageBreak())
+
         # =========================================================================
-        # CAPITOLO 11: MODALITÀ PALCO (STAGE MODE) & TELEPROMPTER
+        # CAPITOLO 11: IL CIRCOLO DELLE QUINTE (ARMONIA & ESEMPI PRATICI PER LA BAND)
         # =========================================================================
-        story.append(Paragraph("Capitolo 11 &bull; Modalità Palco (Stage Mode) & Teleprompter 60fps", ch_title_style))
+        story.append(Paragraph("Capitolo 11 &bull; IL CIRCOLO DELLE QUINTE (Armonia & Esempi Pratici per la Band)", ch_title_style))
+        story.append(Paragraph(
+            "Il <b>Circolo delle Quinte</b> è la bussola armonica fondamentale per ogni musicista. "
+            "In ASMA non è solo una teoria musicale, ma uno <b>strumento visivo e interattivo integrato</b> "
+            "(apribile con un tocco dal pulsante <b>'🎼 Circolo Quinte'</b> nell'Editor, nel Visualizzatore e nelle Scalette) "
+            "che risolve i problemi concreti che la band incontra sul palco e in sala prove.",
+            body_style
+        ))
+
+        story.append(Paragraph("<b>Cos'è in Parole Semplici: L'Orologio delle 12 Tonalità</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Immagina il Circolo delle Quinte come il quadrante di un orologio con 12 ore, dove al posto dei numeri ci sono le 12 tonalità musicali:<br/>"
+            "&bull; <b>A ore 12 c'è il DO (C):</b> È la tonalità di partenza neutra, che non ha nessun diesis (♯) e nessun bemolle (♭).<br/>"
+            "&bull; <b>In senso orario (a destra, salendo di una quinta giusta):</b> Ogni ora che avanzi si aggiunge <b>un diesis (♯)</b>: "
+            "SOL (1♯: FA♯) → RE (2♯) → LA (3♯) → MI (4♯) → SI (5♯) → FA♯/SOL♭ (6♯).<br/>"
+            "&bull; <b>In senso antiorario (a sinistra, scendendo di una quinta o salendo di una quarta):</b> Ogni ora che arretri si aggiunge <b>un bemolle (♭)</b>: "
+            "FA (1♭: SI♭) → SI♭ (2♭) → MI♭ (3♭) → LA♭ (4♭) → RE♭ (5♭).",
+            body_style
+        ))
+
+        story.append(Paragraph("<b>I 5 Casi Pratici di Utilità Reale per la Nostra Band:</b>", ch_sub_style))
+        story.append(Paragraph(
+            "<b>1. Tonalità Vicine = Transizioni Naturali e Morbide:</b><br/>"
+            "Due tonalità vicine sull'orologio (ad esempio <b>DO</b> e <b>SOL</b>, oppure <b>DO</b> e <b>FA</b>) hanno quasi tutte le note in comune "
+            "(6 note su 7 sono identiche!). Passare da un brano in DO a uno in SOL durante un concerto o all'interno di un medley "
+            "risulta immediato, piacevole e totalmente naturale all'orecchio del pubblico.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "<b>2. Le Relative Minori (Il 'Gemello Emotivo' di ogni Accordo Maggiore):</b><br/>"
+            "All'interno del cerchio, ogni tonalità maggiore ha una sua 'relativa minore' con cui condivide <b>esattamente le stesse note ed alterazioni</b>:<br/>"
+            "&nbsp;&nbsp;&bull; <b>DO Maggiore ↔ LA Minore (LAm)</b> (0 alterazioni)<br/>"
+            "&nbsp;&nbsp;&bull; <b>SOL Maggiore ↔ MI Minore (MIm)</b> (1 diesis: FA♯)<br/>"
+            "&nbsp;&nbsp;&bull; <b>RE Maggiore ↔ SI Minore (SIm)</b> (2 diesis: FA♯, DO♯)<br/>"
+            "&nbsp;&nbsp;&bull; <b>FA Maggiore ↔ RE Minore (REm)</b> (1 bemolle: SI♭)<br/>"
+            "<i>Applicazione pratica:</i> Se la strofa di un pezzo è intima e malinconica in LAm, aprendo il ritornello in DO Maggiore "
+            "crei una meravigliosa esplosione di energia luminosa senza uscire dalla stessa famiglia armonica!",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "<b>3. La Modulazione d'Energia (Salita di 1 Tono nel Ritornello Finale):</b><br/>"
+            "Nel classico pop-rock, per dare una scarica di adrenalina all'ultimo ritornello prima della chiusura, la band spesso "
+            "modula salendo di un tono intero (es. da DO a RE, oppure da SOL a LA). Sul cerchio delle quinte, questa mossa corrisponde "
+            "esattamente a <b>2 passi orari (Distanza 2)</b>: l'orecchio percepisce una spinta epica verso l'alto senza disorientarsi.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "<b>4. Trasposizioni Immediate su Misura per la Voce di Cico:</b><br/>"
+            "Se un brano in SOL è troppo acuto o troppo faticoso sulle note alte per Cico, abbassarlo di un tono (a FA) o di un semitono "
+            "è facilissimo con i pulsanti <code>♭ -1</code> e <code>♯ +1</code>. Il Circolo delle Quinte garantisce che <b>tutti gli accordi scalino "
+            "in modo rigorosamente proporzionale</b>: il tastierista (Sentimental), il bassista (Puma) e i chitarristi (Red e Maurino) "
+            "vedono gli accordi già corretti e riscritti con le giuste alterazioni (senza confusioni tra diesis e bemolli).",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "<b>5. Composizione Scalette e Medley Senza 'Salti nel Vuoto':</b><br/>"
+            "Nelle scalette di ASMA, tra ogni brano consecutivo appare un badge automatico che legge la distanza sul Circolo delle Quinte:<br/>"
+            "&nbsp;&nbsp;&bull; <font color='#10b981'><b>Distanza 0 (Stessa tonalità):</b></font> Passaggio immediato perfetto, attacco diretto al millisecondo.<br/>"
+            "&nbsp;&nbsp;&bull; <font color='#0284c7'><b>Distanza 1 (Tonalità vicina / Subdominante / Dominante):</b></font> Transizione fluida e naturale.<br/>"
+            "&nbsp;&nbsp;&bull; <font color='#f59e0b'><b>Distanza 2 (Salto di 1 tono intero):</b></font> Modulazione d'energia tipica di slancio.<br/>"
+            "&nbsp;&nbsp;&bull; <font color='#ef4444'><b>Distanza > 2 (Salto marcato):</b></font> Attenzione: scale molto diverse. Inserire uno <b>stacco ritmico</b> "
+            "<code>{stacco: Tutti}</code>, una pausa o un break di batteria di Mingo per resettare l'orecchio prima di ripartire.",
+            bullet_style
+        ))
+
+        # Embedded screenshot: circolo delle quinte (Screenshot B)
+        fig_circolo_path = _resolve_asset_path("frontend/assets/manual/fig_circolo_quinte.jpg")
+        if fig_circolo_path:
+            try:
+                story.append(Spacer(1, 2 * mm))
+                # 1024 x 990 -> width 95mm, height 91.8mm
+                story.append(Image(fig_circolo_path, width=95 * mm, height=91.8 * mm))
+                story.append(Paragraph("Figura 11.1 [Screenshot B]: Strumento interattivo del Circolo delle Quinte in ASMA con 12 tonalità, relative minori, alterazioni (#/b), accordi della famiglia armonica e transizioni consigliate.", caption_style))
+            except Exception:
+                pass
+
+        story.append(PageBreak())
+
+        # =========================================================================
+        # CAPITOLO 12: MODALITÀ PALCO (STAGE MODE) & TELEPROMPTER
+        # =========================================================================
+        story.append(Paragraph("Capitolo 12 &bull; Modalità Palco (Stage Mode) & Teleprompter 60fps", ch_title_style))
         story.append(Paragraph(
             "La <b>Modalità Palco</b> trasforma qualsiasi smartphone, tablet o laptop in un teleprompter musicale professionale:",
             body_style
@@ -673,38 +943,26 @@ class ManualEngine:
                 story.append(Spacer(1, 2 * mm))
                 # 459 x 1024 -> scaled width 52mm, height 116mm
                 story.append(Image(fig_palco_path, width=52 * mm, height=116 * mm))
-                story.append(Paragraph("Figura 11.1: Visualizzazione Teleprompter su dispositivo mobile con controlli di velocità e trasposizione.", caption_style))
+                story.append(Paragraph("Figura 12.1: Visualizzazione Teleprompter su dispositivo mobile con controlli di velocità e trasposizione.", caption_style))
             except Exception:
                 pass
 
         story.append(PageBreak())
 
         # =========================================================================
-        # CAPITOLO 12: GESTIONE SCALETTE LIVE & CIRCOLO DELLE QUINTE
+        # CAPITOLO 13: GESTIONE SCALETTE LIVE & CONDIVISIONE WHATSAPP
         # =========================================================================
-        story.append(Paragraph("Capitolo 12 &bull; Gestione Scalette Live & Compatibilità Armonica (Circolo Quinte)", ch_title_style))
+        story.append(Paragraph("Capitolo 13 &bull; Gestione Scalette Live & Condivisione WhatsApp", ch_title_style))
         story.append(Paragraph(
             "La gestione scalette consente di pianificare concerti con titolo, data, location e ordinamento dei pezzi. "
             "Aggiungendo brani con il pulsante <i>'Inserisci'</i> viene mostrata una notifica toast visiva immediata e "
             "aggiornato il contatore in tempo reale.",
             body_style
         ))
-        story.append(Paragraph("<b>Funzionalità Avanzate Scalette & Armonia:</b>", ch_sub_style))
-        story.append(Paragraph("&bull; <b>Circolo delle Quinte Interattivo:</b> Accessibile con il pulsante <b>'🎼 Circolo Quinte'</b> nell'editor, visualizzatore e scalette. Mostra le 12 tonalità cromatiche, le relative minori, le alterazioni (#/b), le note della scala e gli accordi della famiglia armonica per modulazioni perfette.", bullet_style))
+        story.append(Paragraph("<b>Funzionalità Avanzate Scalette:</b>", ch_sub_style))
         story.append(Paragraph("&bull; <b>Indicatori di Transizione Live:</b> Tra ciascuna coppia di brani consecutivi viene calcolata la distanza sul circolo delle quinte (0-6) e il Δ BPM percentuale, con raccomandazione esecutiva colorata (passaggio immediato, modulazione o stacco ritmico).", bullet_style))
         story.append(Paragraph("&bull; <b>Condivisione A4 su WhatsApp:</b> Invio del PDF completo A4 stampabile direttamente sul gruppo WhatsApp della band con un solo tocco.", bullet_style))
         story.append(Paragraph("&bull; <b>Calcolo Durata Live:</b> Somma automatica dei minuti e secondi per rispettare i tempi del locale.", bullet_style))
-
-        # Embedded screenshot: circolo delle quinte (Screenshot B1)
-        fig_circolo_path = _resolve_asset_path("frontend/assets/manual/fig_circolo_quinte.jpg")
-        if fig_circolo_path:
-            try:
-                story.append(Spacer(1, 2 * mm))
-                # 1024 x 990 -> width 95mm, height 91.8mm
-                story.append(Image(fig_circolo_path, width=95 * mm, height=91.8 * mm))
-                story.append(Paragraph("Figura 12.1: Strumento interattivo del Circolo delle Quinte con scala, alterazioni (#/b), accordi della famiglia armonica e transizioni consigliate.", caption_style))
-            except Exception:
-                pass
 
         # Embedded screenshot: modale condivisione A4 WhatsApp (Screenshot B2)
         fig_condividi_path = _resolve_asset_path("frontend/assets/manual/fig_condividi_stampa_a4.png")
@@ -713,14 +971,14 @@ class ManualEngine:
                 story.append(Spacer(1, 2 * mm))
                 # 757 x 705 -> width 78mm, height 72.6mm
                 story.append(Image(fig_condividi_path, width=78 * mm, height=72.6 * mm))
-                story.append(Paragraph("Figura 12.2: Modale di condivisione e stampa A4 su WhatsApp per inviare istantaneamente scalette e spartiti alla band.", caption_style))
+                story.append(Paragraph("Figura 13.1 [Screenshot B2]: Modale di condivisione e stampa A4 su WhatsApp per inviare istantaneamente scalette e spartiti alla band.", caption_style))
             except Exception:
                 pass
 
         # =========================================================================
-        # CAPITOLO 13: SUGGERIMENTI ESECUZIONE LIVE (AI GEMINI FREE)
+        # CAPITOLO 14: SUGGERIMENTI ESECUZIONE LIVE (AI GEMINI FREE)
         # =========================================================================
-        story.append(Paragraph("Capitolo 13 &bull; Suggerimenti Esecuzione Live (AI Gemini Free)", ch_title_style))
+        story.append(Paragraph("Capitolo 14 &bull; Suggerimenti Esecuzione Live (AI Gemini Free)", ch_title_style))
         story.append(Paragraph(
             "Accessibile da qualunque brano tramite il pulsante <b>'💡 Consigli Live'</b>, questa funzionalità "
             "fornisce raccomandazioni pratiche ed esecutive per il palco utilizzando l'intelligenza artificiale gratuita "
@@ -736,21 +994,21 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>🎸 Maurino (Chitarra Ritmica):</b> Solidità di plettrata/strumming, accordi aperti vs barré, bilanciamento frequenze con Red.", bullet_style))
         story.append(Paragraph("&bull; <b>🎹 Sentimental (Tastiere):</b> Selezione della scena corretta ({scena: X}), pad e pianoforte senza sporcare le frequenze basse.", bullet_style))
 
-        # Embedded screenshot: consigli live ai
+        # Embedded screenshot: consigli live ai (Screenshot C)
         fig_ai_path = _resolve_asset_path("frontend/assets/manual/fig_consigli_live_ai.jpg")
         if fig_ai_path:
             try:
                 story.append(Spacer(1, 2 * mm))
                 # 941 x 1024 -> width 90mm, height 97.9mm
                 story.append(Image(fig_ai_path, width=90 * mm, height=97.9 * mm))
-                story.append(Paragraph("Figura 13.1: Modale Consigli Live AI Gemini con schede dedicate per l'intera band e per ciascun musicista.", caption_style))
+                story.append(Paragraph("Figura 14.1 [Screenshot C]: Modale Consigli Live AI Gemini con schede dedicate per l'intera band e per ciascun musicista.", caption_style))
             except Exception:
                 pass
 
         # =========================================================================
-        # CAPITOLO 14: AMMINISTRAZIONE, SICUREZZA, CESTINO 30GG & BACKUP
+        # CAPITOLO 15: AMMINISTRAZIONE, SICUREZZA, CESTINO 30GG & BACKUP
         # =========================================================================
-        story.append(Paragraph("Capitolo 14 &bull; Amministrazione, Sicurezza, Cestino 30gg & Backup DB", ch_title_style))
+        story.append(Paragraph("Capitolo 15 &bull; Amministrazione, Sicurezza, Cestino 30gg & Backup DB", ch_title_style))
         story.append(Paragraph(
             "Gli amministratori dispongono di strumenti completi per la protezione dell'archivio:",
             body_style
@@ -763,9 +1021,9 @@ class ManualEngine:
         story.append(PageBreak())
 
         # =========================================================================
-        # CAPITOLO 15: CHANGELOG DINAMICO & CRONOLOGIA NOVITÀ (AUTOCOMPILATO)
+        # CAPITOLO 16: CHANGELOG DINAMICO & CRONOLOGIA NOVITÀ (AUTOCOMPILATO)
         # =========================================================================
-        story.append(Paragraph("Capitolo 15 &bull; Changelog Dinamico & Cronologia Novità (In Tempo Reale)", ch_title_style))
+        story.append(Paragraph("Capitolo 16 &bull; Changelog Dinamico & Cronologia Novità (In Tempo Reale)", ch_title_style))
         story.append(Paragraph(
             "<i>Questo capitolo viene autocompilato dinamicamente in tempo reale leggendo direttamente "
             "da <code>data/changelog.json</code>. Ogni nuova release, bug fix o implementazione registrata "
@@ -803,14 +1061,13 @@ class ManualEngine:
                 story.append(Spacer(1, 2 * mm))
 
         # =========================================================================
-        # CAPITOLO 16 / APPENDICE: FIGURE GRAFICHE & RICHIESTA SCREENSHOT
+        # CAPITOLO 17 / APPENDICE: FIGURE GRAFICHE & RIEPILOGO SCREENSHOT
         # =========================================================================
         story.append(Spacer(1, 4 * mm))
-        story.append(Paragraph("Appendice &bull; Guida alle Figure Grafiche & Screenshot Consigliati", ch_title_style))
+        story.append(Paragraph("Appendice &bull; Guida alle Figure Grafiche & Riepilogo Screenshot", ch_title_style))
         story.append(Paragraph(
             "Per mantenere la documentazione visivamente chiara e immediata per tutti i componenti della band, "
-            "il manuale integra figure esplicative dell'interfaccia. Di seguito il riepilogo delle figure incluse e "
-            "l'elenco degli screenshot consigliati da catturare dall'applicazione:",
+            "il manuale integra figure esplicative dell'interfaccia. Di seguito il riepilogo delle figure incluse:",
             body_style
         ))
 
@@ -820,10 +1077,10 @@ class ManualEngine:
             [Paragraph("<b>Figura 5.1</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Griglia Brani con schede repertorio Ufficiale vs Personale", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 5.2</b>", body_style), Paragraph("Cap. 5", body_style), Paragraph("Modale touch Condividi / Stampa A4 per invio su WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
             [Paragraph("<b>Figura 10.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot A]</b></font>", body_style), Paragraph("Cap. 10", body_style), Paragraph("Editor AML con direttive Medley, {scena: 1} e {stacco: Tutti}", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 11.1</b>", body_style), Paragraph("Cap. 11", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 12.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Circolo delle Quinte interattivo, scala, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 12.2</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Dettaglio Scaletta: Modale Condividi / Stampa A4 WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
-            [Paragraph("<b>Figura 13.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot C]</b></font>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 11.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B]</b></font>", body_style), Paragraph("Cap. 11", body_style), Paragraph("IL CIRCOLO DELLE QUINTE: 12 tonalità, relative minori, alterazioni e accordi", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 12.1</b>", body_style), Paragraph("Cap. 12", body_style), Paragraph("Teleprompter Palco notturno con controlli scorrimento 60fps", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 13.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot B2]</b></font>", body_style), Paragraph("Cap. 13", body_style), Paragraph("Dettaglio Scaletta: Modale Condividi / Stampa A4 WhatsApp", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
+            [Paragraph("<b>Figura 14.1</b><br/><font size='7' color='#0284c7'><b>[Screenshot C]</b></font>", body_style), Paragraph("Cap. 14", body_style), Paragraph("Modale Suggerimenti Live AI con schede per singolo musicista", body_style), Paragraph("<font color='#059669'><b>✓ Presente</b></font>", body_style)],
         ]
         fig_table = Table(fig_table_data, colWidths=[28 * mm, 20 * mm, 95 * mm, 37 * mm])
         fig_table.setStyle(TableStyle([

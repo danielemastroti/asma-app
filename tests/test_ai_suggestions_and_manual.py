@@ -84,7 +84,7 @@ class TestAISuggestionsAndManual(unittest.TestCase):
 
     def test_manual_chapters_metadata(self):
         chapters = ManualEngine.get_chapters_metadata()
-        self.assertEqual(len(chapters), 16)
+        self.assertEqual(len(chapters), 17)
         titles = [c["title"] for c in chapters]
         self.assertTrue(any("Introduzione" in t for t in titles))
         self.assertTrue(any("Login" in t for t in titles))
@@ -96,6 +96,7 @@ class TestAISuggestionsAndManual(unittest.TestCase):
         self.assertTrue(any("Flusso di Lavoro" in t for t in titles))
         self.assertTrue(any("AML" in t for t in titles))
         self.assertTrue(any("Medley" in t for t in titles))
+        self.assertTrue(any("circolo delle quinte" in t.lower() for t in titles))
         self.assertTrue(any("Palco" in t for t in titles))
         self.assertTrue(any("Scalette" in t for t in titles))
         self.assertTrue(any("Suggerimenti Esecuzione Live" in t for t in titles))
@@ -133,7 +134,7 @@ class TestAISuggestionsAndManual(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data["status"], "success")
-        self.assertEqual(len(data["chapters"]), 16)
+        self.assertEqual(len(data["chapters"]), 17)
 
 
 if __name__ == "__main__":

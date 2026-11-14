@@ -4,7 +4,11 @@
     "date": "14/11/2026",
     "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
     "new_features": [
-      "Integrazione Figure nel Manuale PDF Ufficiale: inserimento nel manuale utente di tutte le schermate grafiche dell'interfaccia (Condividi/Stampa A4 WhatsApp, Editor Medley con direttive Scena e Stacco, Circolo delle Quinte interattivo e Modale Consigli Live AI Gemini per i 6 componenti della band).",
+      "Manuale Utente PDF Auto-Aggiornante (17 Capitoli): generazione su richiesta e download del manuale ufficiale PDF con logo band, indice cliccabile, changelog dinamico in tempo reale e 8 figure grafiche dell'interfaccia.",
+      "Capitolo Dedicato IL CIRCOLO DELLE QUINTE: spiegazione semplice e pratica per la band con l'orologio delle 12 tonalità, relative minori per strofe/ritornelli, modulazioni d'energia, trasposizioni vocali per Cico e transizioni armoniche per scalette e medley.",
+      "Guida Autonoma AML & Template Completi: tabella esaustiva di tutte le direttive AML ({sov}, {soc}, {sob}, {solo}, {stacco}, {scena}, {colb}), template completo per brano da zero (Albachiara) e guida alla scrittura autonoma di Medley continui.",
+      "Schema Grafico di Flusso per la Modifica Brani: diagramma visivo del ciclo di vita da Repertorio Ufficiale a Fork Personale, collaudo band e promozione con sovrascrittura.",
+      "Suggerimenti Esecuzione Live AI (Gemini Free & Offline): indicazioni esecutive per l'intero gruppo o per singolo musicista (Cico: voce, Mingo: batteria, Puma: basso, Red: chitarra solista, Maurino: chitarra ritmica, Sentimental: tastiere) con fallback euristico istantaneo a latenza zero.",
       "Nuova Modalità MEDLEY nell'Editor: supporto a composizioni con molteplici spezzoni di brani indipendenti ({start_of_song: Titolo | Artista | Tonalità} e {end_of_song}), ciascuno con tonalità, introduzione e sezioni proprie, gestione fino a 20 brani, palette a colori alternati vivaci e separatore visivo.",
       "Nuova Direttiva Editor {Scena: } (es. {scena: 3}): setup rapido live per il tastierista con numero o nome preset/tasto synth, disponibile sia per brani singoli che Medley, visualizzato come badge in PDF, Web e Teleprompter Palco con quick chip dedicato.",
       "Nuova Direttiva Editor {Stacco: } (es. {stacco: guitar}, {stacco organo}, {stacco: Tutti}): break/stab strumentale d'insieme o per strumento, reso con badge dedicato e quick chip nell'editor.",
