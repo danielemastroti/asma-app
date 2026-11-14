@@ -866,15 +866,20 @@ function selectRepertoire(repUuid) {
   if (state.selectedSong) {
     const stillInFiltered = filtered.find(s => s.uuid === state.selectedSong.uuid);
     if (!stillInFiltered) {
-      state.selectedSong = null;
-      renderSongViewer();
       const titleMatch = prevTitle
         ? filtered.find(s => (s.title || '').trim().toUpperCase() === prevTitle)
         : null;
       if (titleMatch) {
         selectSong(titleMatch.uuid);
+      } else if (filtered.length > 0) {
+        selectSong(filtered[0].uuid);
+      } else {
+        state.selectedSong = null;
+        renderSongViewer();
       }
     }
+  } else if (filtered.length > 0) {
+    selectSong(filtered[0].uuid);
   }
 }
 
@@ -1210,15 +1215,9 @@ function toggleScoreMode() {
 function renderSongViewer() {
   const container = document.getElementById('song-viewer');
   if (!container) return;
-  if (state.selectedSong && state.activeRepertoire && state.activeRepertoire !== '__ALL__') {
-    const activeRep = (state.repertoires || []).find(r => r.uuid === state.activeRepertoire);
-    if (activeRep && Array.isArray(activeRep.song_uuids) && !activeRep.song_uuids.includes(state.selectedSong.uuid)) {
-      state.selectedSong = null;
-    }
-  }
   if (!state.selectedSong) {
     state.isEditingSong = false;
-    container.innerHTML = '';
+    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 24px 16px; font-size: 13px;">🎵 Tocca un brano dalla lista sopra per visualizzarne lo spartito o teleprompter</div>`;
     return;
   }
 
@@ -1438,6 +1437,9 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
     if (res.ok) {
       const data = await res.json();
       if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+        if (!data.pages || data.pages.length === 0) {
+          throw new Error('Nessuna pagina generata');
+        }
         container.innerHTML = `
           <div class="pdf-pages-container">
             ${data.pages.map((b64, idx) => `
@@ -4721,8 +4723,8 @@ async function saveGeminiApiKey() {
 // UTILITY
 // ----------------------------------------------------------------------------
 function escapeHtml(text) {
-  if (!text) return '';
-  return text.replace(/[&<>"']/g, function(m) {
+  if (text === null || text === undefined) return '';
+  return String(text).replace(/[&<>"']/g, function(m) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
   });
 }

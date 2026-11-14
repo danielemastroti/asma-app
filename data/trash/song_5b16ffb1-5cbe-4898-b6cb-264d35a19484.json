@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-14T15:11:51.622939+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "5b16ffb1-5cbe-4898-b6cb-264d35a19484",
+  "data": {
+    "uuid": "5b16ffb1-5cbe-4898-b6cb-264d35a19484",
+    "title": "Temp Transpose Song",
+    "artist": "Band",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "SOL",
+    "key_current": "LAb",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "{title: Temp Transpose Song}\n{key: SOL#}\n\n[SOL#]Vespe [DO#]special",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 2,
+    "created_at": "2026-11-14T15:11:48.957654+00:00",
+    "updated_at": "2026-11-14T15:11:48.971180+00:00"
+  }
+}

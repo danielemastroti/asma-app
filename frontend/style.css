@@ -359,6 +359,9 @@ body {
   padding: 16px;
   margin-top: 12px;
 }
+.song-viewer:empty {
+  display: none;
+}
 
 .viewer-header {
   display: flex;

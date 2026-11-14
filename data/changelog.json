@@ -18,7 +18,8 @@
     "security": [],
     "bug_fixes": [
       "Ripristino Teleprompter in Modalità Palco: risolto il problema per cui il teleprompter non era più accessibile ed era visibile solo il PDF; reimpostata la vista live a Teleprompter Notte ad alto contrasto con autoscroll 60fps, scala font A+/A- e doppio switcher [Teleprompter / PDF] in alto e in basso.",
-      "Persistenza Layout e Dispositivo: garantita conservazione di 1 colonna e font 13.0 per iPad e dispositivi hardware anche dopo nuovi deploy e login"
+      "Persistenza Layout e Dispositivo: garantita conservazione di 1 colonna e font 13.0 per iPad e dispositivi hardware anche dopo nuovi deploy e login",
+      "Ripristino Visualizzatore Brani & Anteprima PDF: eliminato il controllo restrittivo che svuotava il visualizzatore e annullava il brano selezionato; garantita la selezione automatica del primo brano al cambio repertorio e aggiornato il Service Worker a v77 per invalidare cache browser stale"
     ]
   },
   {
