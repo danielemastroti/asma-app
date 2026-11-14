@@ -252,24 +252,34 @@ class PreferencesManager:
     def get_preferences(self, user_email: str, device_name: str) -> Dict[str, Any]:
         """
         Retrieves all layout & typography preferences for a specific (user, device) pair.
-        Checks local cache first, then Turso Cloud DB, and only defaults if neither has records.
+        Checks Turso Cloud DB first, then local cache, and only defaults if neither has records.
         Guarantees that all required layout keys are always fully populated.
         """
         email_clean = user_email.lower().strip()
         required_layout_keys = {"layout_font_size", "layout_font_size_chords", "layout_columns", "layout_margin_lateral"}
-        with self._mutex:
-            user_data = self._cache.get(email_clean, {})
-            dev_data = user_data.get("devices", {}).get(device_name)
-            if dev_data and required_layout_keys.issubset(dev_data.keys()):
-                return dict(dev_data)
 
-        # Direct Turso fallback before seeding hardware defaults
+        # 1. Direct Turso Cloud DB check FIRST to guarantee fresh cloud-synced state
         cloud_rec = None
         if self.turso.is_configured:
             try:
                 cloud_rec = self.turso.fetch_user_device_preference(email_clean, device_name)
             except Exception:
                 cloud_rec = None
+
+        if cloud_rec and required_layout_keys.issubset(cloud_rec.keys()):
+            with self._mutex:
+                if email_clean not in self._cache:
+                    self._cache[email_clean] = {"last_active_device": device_name, "devices": {}, "user_prefs": {}}
+                self._cache[email_clean]["devices"][device_name] = dict(cloud_rec)
+                self._save_cache()
+            return dict(cloud_rec)
+
+        # 2. Local cache check
+        with self._mutex:
+            user_data = self._cache.get(email_clean, {})
+            dev_data = user_data.get("devices", {}).get(device_name)
+            if dev_data and required_layout_keys.issubset(dev_data.keys()):
+                return dict(dev_data)
 
         dev_mgr = DeviceManager()
         base_dev = dev_mgr.get_device_by_name(device_name)
@@ -343,6 +353,7 @@ class PreferencesManager:
                 self._cache[email_clean]["user_prefs"]["app_mode"] = updated_prefs["app_mode"]
             if "score_display_mode" in updated_prefs:
                 self._cache[email_clean]["user_prefs"]["score_display_mode"] = updated_prefs["score_display_mode"]
+            self._cache[email_clean]["user_prefs"]["active_device"] = device_name
             self._save_cache()
 
         # 2. Push to Turso Cloud immediately with the full merged preferences

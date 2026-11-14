@@ -21,8 +21,7 @@
       "Persistenza Layout e Dispositivo: garantita conservazione di 1 colonna e font 13.0 per iPad e dispositivi hardware anche dopo nuovi deploy e login",
       "Ripristino Visualizzatore Brani & Anteprima PDF: eliminato il controllo restrittivo che svuotava il visualizzatore e annullava il brano selezionato; garantita la selezione automatica del primo brano al cambio repertorio e aggiornato il Service Worker a v77 per invalidare cache browser stale",
       "Risolto Teleprompter Nero in Modalità Palco: corretto errore ReferenceError amlText in parseAmlForWeb che interrompeva il rendering del testo notturno ad alto contrasto lasciando la schermata nera",
-      "Fallback Resiliente Testo Palco: inserito blocco protettivo try/catch con visualizzazione immediata del testo anche in caso di anomalie formattazione",
-      "Risolto Blocco Scorrimento Teleprompter su PC Desktop: rimosso il conflitto generato da 'scroll-behavior: smooth' in CSS che abortiva ad ogni frame a 60 FPS il movimento dello scroll nei browser desktop (Chrome, Edge, Firefox), aggiunta sincronizzazione istantanea con la rotella del mouse (wheel) e garantito padding ergonomico (60vh) per consentire lo scorrimento fluido di qualsiasi brano anche su monitor ad alta risoluzione"
+      "Fallback Resiliente Testo Palco: inserito blocco protettivo try/catch con visualizzazione immediata del testo anche in caso di anomalie formattazione"
     ]
   },
   {

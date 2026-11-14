@@ -805,7 +805,8 @@ class TursoClient:
                        color_chords, color_aml, zoom_level, is_last_active,
                        app_mode, score_display_mode, extra_json, updated_at
                 FROM user_device_preferences
-                WHERE email = ?;
+                WHERE email = ?
+                ORDER BY is_last_active DESC, updated_at DESC;
                 """
                 res = client.execute(sql, [email.lower().strip()])
             else:
@@ -814,7 +815,8 @@ class TursoClient:
                        margin_lateral_mm, margin_top_mm, margin_bottom_mm, color_text,
                        color_chords, color_aml, zoom_level, is_last_active,
                        app_mode, score_display_mode, extra_json, updated_at
-                FROM user_device_preferences;
+                FROM user_device_preferences
+                ORDER BY is_last_active DESC, updated_at DESC;
                 """
                 res = client.execute(sql)
             client.close()

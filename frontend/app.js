@@ -31,26 +31,38 @@ const state = {
   selectedSetlist: null,
   scoreMode: savedScoreMode || 'lyrics', // Default to 'lyrics' for Cico/singer
   currentUser: { email: savedUserEmail || 'acicchelli65@gmail.com', name: 'Cico', role: 'BAND_MEMBER' },
-  activeDevice: savedDevice || 'Huawei MediaPad M5',
+  activeDevice: savedDevice || (() => {
+    try {
+      const cp = localStorage.getItem('asma_user_prefs');
+      return cp ? JSON.parse(cp).active_device : null;
+    } catch (e) { return null; }
+  })() || null,
   usersList: [],
   devicesList: [],
   songViewType: (() => { try { return localStorage.getItem('asma_song_view_type') || 'pdf'; } catch (e) { return 'pdf'; } })(),
   stageViewType: (() => { try { return localStorage.getItem('asma_stage_view_type') || 'prompter'; } catch (e) { return 'prompter'; } })(),
-  userPrefs: {
-    layout_font_size: 12.0,
-    layout_font_size_chords: 13.0,
-    layout_columns: 1,
-    layout_margin_lateral: 10.0,
-    layout_margin_top: 10.0,
-    color_lyrics: '#111111',
-    color_chords: '#B71C1C',
-    color_aml_markup: '#4A148C',
-    stage_color_lyrics: '#FFFFFF',
-    stage_color_chords: '#FFD600',
-    stage_color_aml_markup: '#38BDF8',
-    score_display_mode: savedScoreMode || 'lyrics',
-    app_mode: (savedAppMode === 'editing' || savedAppMode === 'simplified') ? savedAppMode : 'simplified'
-  },
+  userPrefs: (() => {
+    const base = {
+      layout_font_size: 12.0,
+      layout_font_size_chords: 13.0,
+      layout_columns: 1,
+      layout_margin_lateral: 10.0,
+      layout_margin_top: 10.0,
+      color_lyrics: '#111111',
+      color_chords: '#B71C1C',
+      color_aml_markup: '#4A148C',
+      stage_color_lyrics: '#FFFFFF',
+      stage_color_chords: '#FFD600',
+      stage_color_aml_markup: '#38BDF8',
+      score_display_mode: savedScoreMode || 'lyrics',
+      app_mode: (savedAppMode === 'editing' || savedAppMode === 'simplified') ? savedAppMode : 'simplified'
+    };
+    try {
+      const cp = localStorage.getItem('asma_user_prefs');
+      if (cp) Object.assign(base, JSON.parse(cp));
+    } catch (e) {}
+    return base;
+  })(),
   // Live Stage State
   isStageActive: false,
   isAutoscrolling: false,
@@ -450,19 +462,24 @@ async function loadUsersAndDevices() {
 async function loadUserPreferences(requestedDevice = null) {
   try {
     const savedDev = (() => { try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; } })();
-    const targetDevice = requestedDevice || state.activeDevice || savedDev;
+    const targetDevice = requestedDevice || savedDev || state.activeDevice || null;
     const devParam = targetDevice ? `?device=${encodeURIComponent(targetDevice)}` : '';
-    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}${devParam}`);
+    const email = (state.currentUser && state.currentUser.email) || localStorage.getItem('asma_user_email') || 'danyposta@gmail.com';
+    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(email)}${devParam}`);
     if (res.ok) {
       const prefs = await res.json();
       state.userPrefs = Object.assign(state.userPrefs, prefs);
-      // Mantieni sempre il dispositivo hardware di questo client
-      if (targetDevice) {
-        state.activeDevice = targetDevice;
-        try { localStorage.setItem('asma_active_device', targetDevice); } catch (e) {}
-      } else if (prefs.active_device) {
-        state.activeDevice = prefs.active_device;
-        try { localStorage.setItem('asma_active_device', prefs.active_device); } catch (e) {}
+      try { localStorage.setItem('asma_user_prefs', JSON.stringify(state.userPrefs)); } catch (e) {}
+
+      // Mantieni e sincronizza sempre il dispositivo hardware reale
+      const effectiveDev = prefs.active_device || targetDevice;
+      if (effectiveDev) {
+        state.activeDevice = effectiveDev;
+        try { localStorage.setItem('asma_active_device', effectiveDev); } catch (e) {}
+      }
+      const devSelect = document.getElementById('setting-device-select');
+      if (devSelect && state.activeDevice) {
+        devSelect.value = state.activeDevice;
       }
       // Prioritize local setting on device if explicitly chosen
       const localMode = (() => {
@@ -668,17 +685,31 @@ async function autosaveUserPreferences() {
   applyPreferencesToDom();
   updateSettingsFormValues();
 
+  // Salva subito in localStorage per persistenza 0ms locale
   try {
+    localStorage.setItem('asma_user_prefs', JSON.stringify(state.userPrefs));
+    if (state.activeDevice) {
+      localStorage.setItem('asma_active_device', state.activeDevice);
+    }
+  } catch (e) {}
+
+  try {
+    const email = (state.currentUser && state.currentUser.email) || localStorage.getItem('asma_user_email') || 'danyposta@gmail.com';
     const payload = Object.assign({}, state.userPrefs, {
       device_name: state.activeDevice,
       score_display_mode: state.scoreMode
     });
-    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}`, {
+    const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(email)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data && data.active_device) {
+        state.activeDevice = data.active_device;
+        try { localStorage.setItem('asma_active_device', data.active_device); } catch (e) {}
+      }
       showToast(`Preferenze salvate nel cloud Turso ✓`);
     }
   } catch (err) {
@@ -3625,7 +3656,7 @@ async function adjustStageFontSize(delta) {
     state.userPrefs.layout_font_size = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size || 12) + step));
     state.userPrefs.layout_font_size_chords = Math.max(8, Math.min(28, (state.userPrefs.layout_font_size_chords || 13) + step));
     updateSettingsFormValues();
-    applyPreferences();
+    applyPreferencesToDom();
     autosaveUserPreferences();
     showToast(`Font Spartito PDF: Testo ${state.userPrefs.layout_font_size}pt • Accordi ${state.userPrefs.layout_font_size_chords}pt`);
     const currentSong = state.stageSongs[state.stageIndex];

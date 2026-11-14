@@ -1220,7 +1220,7 @@ def resolve_user_pseudonym(email: Optional[Any] = None, fallback_name: Optional[
 
 
 def resolve_device_profile(device_name: Optional[Any]) -> DeviceProfile:
-    """Finds exact or fuzzy matched device profile, supporting common aliases."""
+    """Finds exact or fuzzy matched device profile, supporting common aliases and punctuation variations."""
     if not device_name or not isinstance(device_name, str):
         device_str = getattr(device_name, "default", None) if device_name else None
         if not isinstance(device_str, str):
@@ -1228,14 +1228,59 @@ def resolve_device_profile(device_name: Optional[Any]) -> DeviceProfile:
     else:
         device_str = device_name
 
+    # 1. Exact match
     prof = device_mgr.get_device_by_name(device_str)
     if prof:
         return prof
     d_clean = device_str.strip().lower()
-    if "a4" in d_clean:
+
+    # 2. Direct keyword / alias mapping
+    if "a4" in d_clean or "stampabile" in d_clean:
         prof = device_mgr.get_device_by_name("Foglio a 4 stampabile")
         if prof:
             return prof
+    if "ipad" in d_clean:
+        prof = device_mgr.get_device_by_name('IPad 10.2" (7/8/9 gen) & pro 2019')
+        if prof:
+            return prof
+    if "matepad" in d_clean:
+        prof = device_mgr.get_device_by_name('Huawei MatePad / Tablet (10.4"/11")')
+        if prof:
+            return prof
+    if "mediapad" in d_clean or "m5" in d_clean:
+        prof = device_mgr.get_device_by_name("Huawei MediaPad M5")
+        if prof:
+            return prof
+    if "pixel" in d_clean:
+        prof = device_mgr.get_device_by_name("Pixel 8 pro")
+        if prof:
+            return prof
+    if "samsung" in d_clean or "galaxy" in d_clean:
+        prof = device_mgr.get_device_by_name("Samsung Galaxy tab s7,s8,s9 & A9+")
+        if prof:
+            return prof
+    if "xiaomi" in d_clean:
+        prof = device_mgr.get_device_by_name("Xiaomi pad 8 pro")
+        if prof:
+            return prof
+    if "iphone" in d_clean:
+        prof = device_mgr.get_device_by_name("Iphone smartphone generico")
+        if prof:
+            return prof
+    if "oppo" in d_clean:
+        prof = device_mgr.get_device_by_name("oppo find x5")
+        if prof:
+            return prof
+
+    # 3. Normalized alphanumeric matching (stripping quotes, slashes, spaces)
+    norm_query = re.sub(r'[^a-z0-9]', '', d_clean)
+    if norm_query:
+        for d in device_mgr.list_devices():
+            norm_d = re.sub(r'[^a-z0-9]', '', d.name.lower())
+            if norm_query in norm_d or norm_d in norm_query:
+                return d
+
+    # 4. Standard substring check
     for d in device_mgr.list_devices():
         if d_clean in d.name.lower() or d.name.lower() in d_clean:
             return d
