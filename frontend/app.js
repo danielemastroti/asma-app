@@ -1308,7 +1308,12 @@ function renderSongViewer() {
   const hasChords = state.scoreMode === 'chords';
   const modeLabel = hasChords ? '🎸 Accordi: ON' : '🎤 Solo Testo';
   const colsLabel = state.userPrefs.layout_columns === 2 ? '2 Colonne' : '1 Colonna';
-  const viewTypeLabel = state.songViewType === 'pdf' ? '📄 Spartito PDF' : '📝 Testo Web';
+  const isPdf = state.songViewType === 'pdf';
+  const viewTypeBtnStyle = isPdf
+    ? 'color: #38bdf8; border-color: #38bdf8; font-weight: 800;'
+    : 'color: #ffd600; border-color: #ffd600; font-weight: 800; background: rgba(255, 214, 0, 0.1);';
+  const viewTypeBtnText = isPdf ? '📄 Vista: PDF' : '📝 Vista: Testo (Tocca per PDF)';
+  const viewTypeBtnTitle = isPdf ? 'Stai visualizzando lo Spartito PDF reale. Tocca per passare al Testo Web.' : 'Stai visualizzando il Testo Web. Tocca per tornare allo Spartito PDF reale.';
 
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
@@ -1354,7 +1359,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', 1)" title="Ingrandisci dimensione caratteri">A+</button>
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
         <button class="btn btn-secondary" onclick="toggleColumns()">${colsLabel}</button>
-        <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="toggleSongViewType()" title="Passa tra vista Spartito PDF reale e Testo Web">${viewTypeLabel}</button>
+        <button class="btn btn-secondary" style="${viewTypeBtnStyle}" onclick="toggleSongViewType()" title="${viewTypeBtnTitle}">${viewTypeBtnText}</button>
         <button class="btn btn-primary" onclick="startSingleSongStage()">🎤 Palco</button>
         ${editingActionsHtml}
         <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareA4Modal()" title="Condividi o stampa PDF in formato A4 con font personalizzato su WhatsApp per la band">📤 A4 / WhatsApp</button>
@@ -1379,6 +1384,10 @@ function renderSongViewer() {
     const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
     container.innerHTML = `
       ${headerHtml}
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; flex-wrap: wrap; gap: 6px;">
+        <span>📝 Modalità <b>Testo Web</b> attiva</span>
+        <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="setSongViewType('pdf')">📄 Torna a Spartito PDF</button>
+      </div>
       <div class="lyrics-container" id="printable-lyrics">
         ${formattedHtml}
       </div>
@@ -1386,7 +1395,7 @@ function renderSongViewer() {
   }
 }
 
-async function loadSongPdfPreview(songUuid) {
+async function loadSongPdfPreview(songUuid, retryCount = 0) {
   const hasChords = state.scoreMode === 'chords';
   const container = document.getElementById('printable-lyrics');
   if (!container) return;
@@ -1394,7 +1403,13 @@ async function loadSongPdfPreview(songUuid) {
   try {
     const p = state.userPrefs;
     const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
-    const res = await fetch(url);
+    
+    // Timeout a 12s per gestire risvegli o latenze
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
       if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
@@ -1410,11 +1425,28 @@ async function loadSongPdfPreview(songUuid) {
         `;
       }
     } else {
-      container.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Impossibile caricare l'anteprima PDF. <button class="btn btn-secondary" style="margin-left:8px;" onclick="setSongViewType('web')">Passa a Vista Testo</button></div>`;
+      throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    console.error('PDF preview error:', err);
-    container.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Errore connessione anteprima PDF. <button class="btn btn-secondary" style="margin-left:8px;" onclick="setSongViewType('web')">Passa a Vista Testo</button></div>`;
+    console.warn('PDF preview error:', err);
+    if (retryCount < 1 && state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+      // 1 tentativo di riprova automatica dopo 1.2s per gestire cold-start
+      setTimeout(() => loadSongPdfPreview(songUuid, retryCount + 1), 1200);
+      return;
+    }
+    if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+      container.innerHTML = `
+        <div style="padding: 24px 16px; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; margin: 16px 0;">
+          <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">Impossibile caricare l'anteprima PDF</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Il server cloud potrebbe essere in fase di risveglio o la connessione è rallentata.</div>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" style="font-weight: 800; min-height: 36px; padding: 4px 14px;" onclick="loadSongPdfPreview('${songUuid}', 0)">🔄 Riprova Caricamento PDF</button>
+            <button class="btn btn-secondary" style="min-height: 36px; padding: 4px 14px;" onclick="setSongViewType('web')">Passa a Vista Testo</button>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 

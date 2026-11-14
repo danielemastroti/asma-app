@@ -225,6 +225,10 @@ class PDFEngine:
         buffer.close()
 
         if use_cache:
+            if len(cls._cache) >= 25:
+                # Evict oldest keys to keep memory tightly controlled
+                for k in list(cls._cache.keys())[:10]:
+                    cls._cache.pop(k, None)
             cls._cache[cache_key] = pdf_bytes
 
         return pdf_bytes

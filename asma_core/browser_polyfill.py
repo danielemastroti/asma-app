@@ -237,31 +237,5 @@ POLYFILL_SCRIPT = f"""<!-- ASMA Polyfill v3.1 No-Remove & Safe DOM Reconciliatio
 
 
 def ensure_streamlit_index_patched() -> bool:
-    """
-    Ensures that the active Streamlit static index.html has ES2023 polyfills and
-    mobile dropdown virtual keyboard suppression injected into its <head>.
-    """
-    try:
-        import streamlit
-        index_path = pathlib.Path(streamlit.__file__).parent / "static" / "index.html"
-        if not index_path.exists():
-            return False
-
-        content = index_path.read_text(encoding="utf-8")
-        if "ASMA Polyfill v3.1 No-Remove & Safe DOM Reconciliation Guard" in content:
-            return True
-
-        needle = "<head>"
-        if needle in content:
-            cleaned = re.sub(r'<!-- ASMA (?:Legacy Tablet|Polyfill).*?-->\s*<script>.*?</script>', '', content, flags=re.DOTALL)
-            new_content = cleaned.replace(needle, f"{needle}\n    {POLYFILL_SCRIPT}")
-            index_path.write_text(new_content, encoding="utf-8")
-            return True
-        return False
-    except Exception as e:
-        logging.warning("Could not patch streamlit index.html with polyfills/mobile guard: %s", e)
-        return False
-
-
-# Automatically verify patch on import
-ensure_streamlit_index_patched()
+    """Legacy helper maintained for backward compatibility (no-op in FastAPI + PWA)."""
+    return False

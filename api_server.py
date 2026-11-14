@@ -1475,17 +1475,24 @@ def get_song_pdf_preview(
             "pages": cached_pages
         }
 
+    import gc
     pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=(transpose == 0), user_name=pseudonym)
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     pages_b64 = []
-    for page in doc:
-        pix = page.get_pixmap(dpi=125)
-        png_data = pix.tobytes("png")
-        b64 = "data:image/png;base64," + base64.b64encode(png_data).decode("ascii")
-        pages_b64.append(b64)
+    try:
+        for page in doc:
+            pix = page.get_pixmap(dpi=115)
+            png_data = pix.tobytes("png")
+            b64 = "data:image/png;base64," + base64.b64encode(png_data).decode("ascii")
+            pages_b64.append(b64)
+    finally:
+        doc.close()
 
-    if len(_pdf_pages_cache) > 100:
-        _pdf_pages_cache.clear()
+    if len(_pdf_pages_cache) >= 20:
+        for k in list(_pdf_pages_cache.keys())[:10]:
+            _pdf_pages_cache.pop(k, None)
+        gc.collect()
+
     _pdf_pages_cache[cache_key] = pages_b64
 
     return {
