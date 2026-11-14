@@ -1,52 +1,95 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.14 (14/11/2026) — Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo
+
+### Nuove Funzionalità (New Features)
+- Nuova Modalità MEDLEY nell'Editor: supporto a composizioni con molteplici spezzoni di brani indipendenti ({start_of_song: Titolo | Artista | Tonalità} e {end_of_song}), ciascuno con tonalità, introduzione e sezioni proprie, gestione fino a 20 brani, palette a colori alternati vivaci e separatore visivo.
+- Nuova Direttiva Editor {Scena: } (es. {scena: 3}): setup rapido live per il tastierista con numero o nome preset/tasto synth, disponibile sia per brani singoli che Medley, visualizzato come badge in PDF, Web e Teleprompter Palco con quick chip dedicato.
+- Nuova Direttiva Editor {Stacco: } (es. {stacco: guitar}, {stacco organo}, {stacco: Tutti}): break/stab strumentale d'insieme o per strumento, reso con badge dedicato e quick chip nell'editor.
+- Persistenza Cloud Dispositivo Utente: la selezione del dispositivo hardware (iPad, Huawei MediaPad M5, ecc.) viene sincronizzata su database cloud Turso e ripristinata automaticamente ad ogni accesso.
+
+### Miglioramenti (Improvements)
+- Ottimizzazione Barra Superiore su Tablet Huawei (16:10): layout fluido che previene lo sbordo orizzontale su schermi da 800px.
+- Pulizia Pulsanti Duplicati nella Home Dashboard: rimozione di controlli ridondanti per brani e scalette.
+- Ottimizzazione RAM Anteprime PDF: rendering JPEG compresso 96 DPI e gestione rigorosa memoria PyMuPDF/GC per prevenire saturazione 512MB su Render
+- Cache Pagine PDF Alleggerita: limite memoria dinamica a 6 voci massime con rilascio immediato buffer
+
+### Correzioni di Bug (Bug Fixes)
+- Ripristino Teleprompter in Modalità Palco: risolto il problema per cui il teleprompter non era più accessibile ed era visibile solo il PDF; reimpostata la vista live a Teleprompter Notte ad alto contrasto con autoscroll 60fps, scala font A+/A- e doppio switcher [Teleprompter / PDF] in alto e in basso.
+- Persistenza Layout e Dispositivo: garantita conservazione di 1 colonna e font 13.0 per iPad e dispositivi hardware anche dopo nuovi deploy e login
+- Ripristino Visualizzatore Brani & Anteprima PDF: eliminato il controllo restrittivo che svuotava il visualizzatore e annullava il brano selezionato; garantita la selezione automatica del primo brano al cambio repertorio e aggiornato il Service Worker a v77 per invalidare cache browser stale
+- Risolto Teleprompter Nero in Modalità Palco: corretto errore ReferenceError amlText in parseAmlForWeb che interrompeva il rendering del testo notturno ad alto contrasto lasciando la schermata nera
+- Fallback Resiliente Testo Palco: inserito blocco protettivo try/catch con visualizzazione immediata del testo anche in caso di anomalie formattazione
+
+## Versione 2026.11.12 (12/11/2026) — Release Test
+
+### Nuove Funzionalità (New Features)
+- Protezione Rigorosa Repertorio Ufficiale: vietata la modifica diretta dei brani del repertorio ufficiale a tutti gli utenti (incluso l'amministratore). I musicisti creano la propria copia personale nel loro repertorio, apportano le modifiche, le salvano e poi le promuovono a Ufficiale (rimuovendo la copia personale).
+- Condivisione A4 su WhatsApp per Scalette e Brani: invio del file PDF A4 pronto per la stampa direttamente su WhatsApp tramite Web Share API nativa (con allegato PDF reale per smartphone e tablet, e fallback web per desktop).
+- Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa ' Con Accordi' e versione ' Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.
+- Modifica Data di Esecuzione Scalette: campo data interattivo (gg/mm/aaaa) modificabile direttamente dall'editor scaletta con salvataggio automatico e sincronizzazione immediata nel database cloud Turso.
+- Badge Fine Brano [END] Standard: inserito badge automatico [END] al termine di ogni spartito per i musicisti sul palco (sia nell'anteprima web che nei PDF generati).
+- Registro Modifiche Dinamico (Changelog): consultabile liberamente da tutti i componenti della band con raggruppamento rigoroso a singola versione giornaliera e persistenza permanente su database cloud.
+- Pannello Backup & Restore DB (Solo Admin): maschera esclusiva per gli amministratori per esportare il dump JSON integrale dell'intero database e changelog o ripristinarlo con un click.
+- Feature Alfa
+- Feature Beta
+- Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa 'Con Accordi' e versione 'Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.
+
+### Miglioramenti (Improvements)
+- Prefetch PDF & Tocco Diretto iOS/iPadOS: precaricamento automatico in memoria dei PDF multi-pagina delle scalette per eliminare l'errore di scadenza del gesto utente di Safari ('user denied permission'), affiancato dal pulsante verde di invio istantaneo.
+- Consolidamento Tag di Rollback Git: registrato e protetto su repository remoto il punto di ripristino rollback-point-997c1f5 per garantire rollback istantaneo e sicuro.
+
+### Sicurezza (Security)
+- Controllo Accessi & Backup Riservato Admin: gli endpoint di backup e restore del database sono protetti da verifica del ruolo amministratore con audit trail di ogni operazione.
+
+### Correzioni di Bug (Bug Fixes)
+- Risolto Bug Sezioni [INTRO: 1] / [INTRO: I]: corretta l'espressione regolare che scambiava la lettera 'I' di 'Intro:' per un numero romano 'I', garantendo la stampa dell'intestazione pulita [INTRO].
+- Fix Alfa
+- Fix Beta
+
 ## Versione 2026.11.09 (09/11/2026) — Doppia Modalità di Accesso (Semplificata vs Editing), Persistenza Cloud Turso e Clean UI
 
-### 🚀 Nuove Funzionalità (New Features)
+### Nuove Funzionalità (New Features)
 - Doppia Modalità di Accesso (Editing vs Semplificata): selezione diretta alla pagina di login tra 'Modalità Semplificata' (live e concerto) e 'Modalità Editing' (gestione completa). I permessi del profilo utente (ADMIN, BAND_MEMBER, VIEWER) rimangono rigorosamente inalterati.
 - Nuovo Menu Semplificato su Singola Riga: menu essenziale con funzioni base: Home, Brani, Scalette, Palco, Guida e Logout. Niente menu contestuali o schermate di configurazione inutilizzate prima di un concerto.
-- Menu Brani Semplificato (NO EDIT): interfaccia pulita e immediata priva di tasti, controlli o elenchi a discesa di editing. Include la consultazione del brano, l'anteprima reale delle pagine PDF formattate per il dispositivo, il salvataggio PDF (con accordi / solo testo), l'invio diretto alla stampante A4, l'avvio della Modalità Palco e l'esportazione nei formati musicali (MobileSheets, SongBook Pro, ChordPro, OnSong).
+- Menu Brani Semplificato (NO EDIT): interfaccia pulita e immediata priva di tasti, controlli o elenchi a discesa di editing. Include la consultazione del brano, l'anteprima reale delle pagine PDF formattate per il dispositivo, il salvataggio PDF (con accordi / solo testo), l'invio diretto alla stampante A4, l'avvio della Modalità Palco e l'esportazione.
 - Modalità Editing Brani 100% Inalterata: l'accesso completo in modalità Editing preserva inalterate tutte le funzionalità preesistenti di editor AML, trasposizione, gestione lock e cronologia revisioni.
-
-- Preferenza Spartito Personale (Solo Testo vs Testo+Accordi): ogni musicista può configurare nel proprio profilo il formato predefinito di visualizzazione spartito. La preferenza viene memorizzata permanentemente su Turso Cloud DB, caricata ad ogni login e applicata automaticamente come default nell'anteprima PDF. Rimane sempre garantita per tutti i componenti della band la possibilità di stampare o salvare in qualsiasi momento sia la versione con accordi che la versione solo testo.
-- Persistenza Cloud Turso DB per Preferenze Utente & Dispositivo: memorizzazione sincrona e permanente a database per ogni singola coppia (utente, dispositivo). Vengono salvate le dimensioni dei font (testo e accordi), colonne PDF, margini laterali, colori personalizzati (testo, accordi, AML) e zoom dell'interfaccia, garantendo la disponibilità immediata a ogni nuovo login o riavvio dell'applicazione.
+- Preferenza Spartito Personale (Solo Testo vs Testo+Accordi): ogni musicista può configurare nel proprio profilo il formato predefinito di visualizzazione spartito, salvato su Turso Cloud DB e applicato come default.
+- Persistenza Cloud Turso DB per Preferenze Utente & Dispositivo: memorizzazione sincrona e permanente a database per ogni singola coppia (utente, dispositivo).
 - Autoscroll Palco On-Demand: in Modalità Palco (Live Stage), lo scorrimento automatico non si avvia più da solo all'apertura del brano, ma parte unicamente quando il musicista tocca il pulsante 'AVVIO' o attiva il pedale Bluetooth.
-- Feedback Visivo Inserimento Brani in Scaletta: notifica immediata (toast a scomparsa) e aggiornamento dinamico del conteggio brani quando si preme il grande tasto 'Inserisci' in scaletta.
 
-### ⚡ Miglioramenti (Improvements)
-- Sorgente AML Compatta nei Brani: ristrutturazione completa dei metadati in una griglia orizzontale su 6 colonne (Titolo, Tonalità, Artista, BPM, Genere, Capotasto), eliminando lo spreco di spazio verticale e migliorando la leggibilità immediata.
-- Brand Header Pulito con LED Online Inline: sostituito il badge esteso 'ONLINE' con un discreto punto LED verde a 6px inline accanto al titolo 'THE New ASMA', eliminando alla radice qualsiasi rischio di sovrapposizione con il pulsante profilo utente ('👤 Cico') su ogni schermo tablet e smartphone.
-- Sincronizzazione Navigazione a Doppia Riga: sincronizzati i menu a pills di primo e secondo livello con callback reattivi, eliminando il loop di refresh e lo sfarfallio della pagina.
-- Ottimizzazione Zoom Tablet (Huawei): zoom dell'interfaccia applicato esclusivamente al contenitore primario ([data-testid='stAppViewContainer']), eliminando la riduzione cubica a cascata e preservando la larghezza intera del display.
+### Miglioramenti (Improvements)
+- Fix Glitch Tag Script: rimosso il frammento di codice watchdog che appariva come testo grezzo in cima allo schermo su alcuni tablet Android / Huawei.
+- Switcher rapido di modalità nel Profilo Musicista: possibilità di passare istantaneamente tra Modalità Semplificata e Modalità Editing in qualsiasi momento senza dover ripetere il login.
+- Brand Header Pulito e Senza Sovrapposizioni: rimosso qualsiasi elemento superfluo o badge dall'header del brand, garantendo che il logo, 'THE New ASMA' e il LED di stato online abbiano spaziatura perfetta.
 
-### 🛡️ Sicurezza (Security)
-- Pulizia definitiva credenziali e account dummy predefiniti (daniele@band.org, marco.chitarra@band.org, ospite@band.org) dal registro utenti e dal database cloud.
-- Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live (compresa la 'Scaletta Live Band 2026' con 46 brani), al sicuro da reset del container effimero di Streamlit Cloud.
+### Sicurezza (Security)
+- Pulizia definitiva credenziali e account dummy predefiniti dal registro utenti e dal database cloud.
+- Sincronizzazione bidirezionale protetta con Turso Cloud DB per le scalette live, al sicuro da reset del container effimero di Streamlit Cloud.
 
-### 🐛 Correzioni di Bug (Bug Fixes)
-- Header Spartito PDF (Logo & Info Cantante): risolto difetto visivo in testata dove il logo della band risultava miniaturizzato (18x7mm) e la dicitura 'Solo Testo (Cantante)' veniva spezzata verticalmente su 4 righe ('■ Solo Testo ( Cantan te)') con carattere non renderizzabile. Ora il logo della band è perfettamente proporzionato e centrato a destra (30x10.7mm), mentre artista, autore e indicazione di spartito ('Solo Testo (Cantante)' o 'Key / Capo') sono disposti elegantemente a sinistra con spaziatura naturale senza interruzioni di riga anomale.
-- Selezione e Filtro Repertorio in Modalità Semplificata ('📝 Brani'): introdotto il selettore del repertorio di lavoro affiancato al selettore brani ('📁 Seleziona Repertorio' e '🎵 Seleziona Brano da consultare'). In precedenza la vista semplificata mostrava esclusivamente l'archivio globale indistinto; ora il musicista può filtrare istantaneamente i brani per specifico repertorio (con conteggio brani e indicazione visiva dei repertori nel banner informativo) o consultare l'intero archivio globale ('🌐 Tutti i Repertori'). Mantenuta la sincronizzazione con la Modalità Palco.
-- Risolto difetto click triplo sui pulsanti e pills di navigazione ("devi schiacciare i tasti tre volte"): rimosso l'azzeramento forzato incondizionato delle chiavi di sessione (`top_nav_pills_simp`, `top_nav_pills_r1`, `top_nav_pills_r2`) immediatamente prima delle chiamate `st.pills`, che sovrascriveva l'interazione touch dell'utente ripristinando il vecchio valore. Introdotta sincronizzazione selettiva che scatta unicamente in caso di cambio menu esterno, garantendo che ogni tocco sul display del tablet o click da mouse risponda al primo colpo istantaneamente.
-- Risolto bug generazione PDF a 2 colonne con selezione a 1 colonna: corretta la mancata invalidazione della cache nei callback del popover di layout (`_on_columns_change`, `_on_font_size_change`, ecc.), aggiunta la pulizia immediata di `PDFEngine._cache` e dei buffer `buf_`, invocazione di `st.rerun()` ed estensione delle chiavi dei pulsanti di download (`key=dl_..._{columns}_{fl}_{fc}`) per forzare il refresh immediato del payload PDF scaricabile su Streamlit.
-- Ottimizzazione reattività touch e pulizia thread JS mobile: eliminato il timer periodico `setInterval(..., 300)` da `browser_polyfill.py` che saturava la CPU sui tablet Android/Huawei provocando touch lenti o mancati, e protetta l'iniezione in `index.html` con versione blindata contro vecchi residui di manipolazione DOM.
+### Correzioni di Bug (Bug Fixes)
+- Blindatura Anti-Crash React 18 su Tablet Huawei ('Node.removeChild'): integrato scudo di riconciliazione DOM per Node.prototype.removeChild e insertBefore unito al tag notranslate, eliminando alla radice l'errore 'The node to be removed is not a child of this node' durante il passaggio alla Modalità Palco o cambio vista.
+- Priorità Tablet al Login e Unificazione Preferenze Utente nel DB: eliminata definitivamente la tabella client_preferences. Tutte le 9 preferenze utente (Modalità, Visualizzazione Predefinita, Dispositivo, Testo, Accordi, Colonne 1/2, Margini, Colori, Zoom) sono ora sincronizzate in user_device_preferences. Ad ogni login viene data priorità rigorosa al tablet del musicista.
+- Risolto difetto click triplo sui tasti di navigazione: eliminata la sovrascrittura automatica delle chiavi di sessione dei widget di navigazione ad ogni ciclo di render. Ora ogni tocco su tablet e click su PC risponde all'istante al primo click senza richiedere pressioni ripetute.
+- Risolto bug generazione PDF a 2 colonne quando impostata 1 colonna: integrata l'invalidazione istantanea della cache dei PDF e chiavi univoche versionate per i pulsanti di download, garantendo la rigenerazione immediata con il numero corretto di colonne.
+- Ottimizzazione CPU mobile ed eliminazione polling JS continuo: rimosso il setInterval a 300ms che rallentava i tablet Android/Huawei e protetta la patch di index.html contro vecchi residui di manipolazione DOM.
 - Risolto Crash Bianco in Modalità Palco ('Node.removeChild'): rimossa la rimozione diretta di nodi DOM gestiti da React nei watchdog di stile, garantendo la transizione fluida e sicura alla Modalità Palco senza interruzioni di rendering.
-- Correzione Dispositivo Cico e Priorità Profili Turso DB: corretto il riconoscimento hardware dei tablet Huawei (in precedenza scambiati per smartphone a causa della dicitura 'Mobile Safari' nell'user-agent) e blindata la priorità assoluta ai profili registrati nel database cloud (Foglio A4 da PC, Huawei MatePad da tablet), eliminando alla radice l'assegnazione accidentale di Pixel 8 pro.
-- Ottimizzazione Prestazioni 'Brani' e Anteprima PDF: introdotto caching istantaneo (@st.cache_data) per rendering pagine PDF, pulsanti di stampa A4 e compilazione documenti musicali, abbattendo il tempo di apertura e selezione brano da 5 secondi a meno di 150ms.
-- Unico Tasto Logout e Correzione Flusso di Disconnessione: eliminato qualsiasi tasto duplicato di logout (rimosso dai menu secondari e dal profilo popover); mantenuto un unico tasto '🚪 Logout' nella barra superiore con callback on_click dedicato e flag di disconnessione di sessione, garantendo logout immediato e funzionante.
-- Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header brand ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('👤 Cico') su tablet e smartphone.
+- Correzione Dispositivo Cico e Priorità Profili Turso DB: corretto il riconoscimento hardware dei tablet Huawei e blindata la priorità assoluta ai profili registrati nel database cloud (Foglio A4 da PC, Huawei MatePad da tablet), eliminando alla radice l'assegnazione accidentale di Pixel 8 pro.
+- Ottimizzazione Prestazioni 'Brani' e Anteprima PDF: introdotto caching istantaneo (@st.cache_data) per rendering pagine PDF, pulsanti di stampa A4 e compilazione documenti musicali, abbattendo il tempo di apertura e selezione brano a meno di 150ms.
+- Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto ' Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.
+- Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista (' Cico') su tablet e smartphone.
 - Ottimizzazione Velocità Logon e Logout: rimossa la chiamata di sincronizzazione cloud remota bloccante all'accesso sessione (lo storage è già istantaneo in-memory e SQLite), velocizzando il login e la navigazione ad apertura immediata (<100ms).
-- Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta "Foglio a 4 stampabile" da PC, al nuovo login dallo stesso PC ritrova fedelmente "Foglio a 4 stampabile" con tutti i settaggi di testo, accordi, margini, colonne e colori, senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).
-- Eliminazione residuo script visualizzato su tablet Huawei: rimossa chiamata deprecata a st.markdown contenente codice di polyfill, garantendo schermate perfettamente pulite senza testi grezzi sotto la barra di navigazione.
-- Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback o widget non inizializzati di azzerare i valori salvati a database.
-- Correzione sparizione editor e anteprima nei Brani: aggiunta sincronizzazione esplicita delle chiavi univoche (UUID) per l'area di testo AML, i commenti di revisione e i pulsanti di sblocco/salvataggio, garantendo rendering stabile su ogni cambio brano.
-- Correzione errore critico di avvio su Streamlit Cloud: rimosso parametro incompatibile 'toolbarMode' in .streamlit/config.toml che causava il blocco del container e la schermata 'Oh no. Error running app.'.
-- Correzione AttributeError su MusicEngine.detect_notation_system: aggiunto il metodo di rilevamento notazione italiana/internazionale durante la modifica degli attributi di tonalità e capotasto.
-- Eliminazione continua e forzata dei badge fluttuanti di Streamlit Cloud e GitHub (identicon e tasto 'Manage app' con corona rossa): iniettato watchdog JavaScript continuo (300ms) e fogli di stile anti-badge applicati a livello di root, parent e top DOM.
-- Risolto disallineamento durante il ripristino di scalette live con tombstone pruning.
+- Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta 'Foglio a 4 stampabile' da PC, al nuovo login dallo stesso PC ritrova 'Foglio a 4 stampabile' con tutti i settaggi (font, accordi, margini, colonne, colori), senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).
+- Risolto glitch visivo di tag JS grezzo iniettato via markdown nella parte superiore della vista principale.
+- Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback di azzerare i valori a database.
+- Correzione sparizione editor e anteprima nei Brani: aggiunta sincronizzazione esplicita delle chiavi univoche (UUID) per l'area di testo AML e pulsanti di sblocco/salvataggio.
+- Correzione AttributeError su MusicEngine.detect_notation_system durante la modifica degli attributi di tonalità e capotasto.
+- Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto 'Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.
+- Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('Cico') su tablet e smartphone.
 
 ## Versione 2026.11.08 (08/11/2026) — Sincronizzazione Cloud Persistente, Spaziatura Accordi, Controlli Palco e Unicità Repertori
 
-### 🚀 Nuove Funzionalità (New Features)
+### Nuove Funzionalità (New Features)
 - Sincronizzazione Cloud Persistente bidirezionale (GitHub Gist) per scalette, brani e repertori: garanzia assoluta contro la perdita di dati dopo riavvii o nuovi deploy su Streamlit Cloud.
 - Idratazione automatica all'avvio: il server recupera istantaneamente le 12 scalette della band e tutti i 41 brani ufficiali con schema dual-compatible.
 - Controlli completi Modalità Palco (Live Stage): aggiunti pulsanti touch e scorciatoie pedali Bluetooth per cambio pagina (Pag Giù / Pag Su), navigazione brani (Prec / Succ), play/pausa e regolatore velocità autoscroll a 60fps.
@@ -54,19 +97,20 @@
 - Consulente arrangiamento AI multi-strumento con suggerimenti specifici per Tastiera, Voce, Chitarra ritmica, Chitarra elettrica, Basso, Batteria e Globale.
 - Suggerimenti preset, scene memory e super knob Yamaha Montage dedicati ai tastieristi.
 
-### ⚡ Miglioramenti (Improvements)
-- Layout scalette ottimizzato: pulsanti sposta brano ('⬆️', '⬇️') ed elimina ('❌') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.
+### Miglioramenti (Improvements)
+- Layout scalette ottimizzato: pulsanti sposta brano ('Su', 'Giu') ed elimina ('Elimina') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.
 - Unicità rigorosa dei repertori: divieto assoluto di creare o rinominare repertori con nomi duplicati (case-insensitive), con notifica immediata d'errore.
 - Cancellazione repertori fittizi o vuoti duplicati dal database.
 - Selettore profili utente e simulazione ruoli riservato esclusivamente agli utenti Admin.
 - Rimozione voce ridondante 'Logout' dai sottomenu orizzontali.
+- Layout scalette ottimizzato: pulsanti sposta brano ('Su', 'Giu') ed elimina ('Elimina') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.
 
-### 🛡️ Sicurezza (Security)
+### Sicurezza (Security)
 - Autenticazione Google OAuth reale e obbligatoria per tutti gli accessi: digitazione email autorizzata con login_hint e reindirizzamento diretto a Google per la verifica di sicurezza dell'identità (nessun bypass consentito).
 - Risoluzione errore 400 redirect_uri_mismatch: allineamento e normalizzazione automatica dell'URI di reindirizzamento su '/oauth2callback' in perfetta corrispondenza con la configurazione di Google Cloud Console.
 - Protezione area riservata band: solo gli account autenticati con successo dai server Google e registrati nella lista ufficiale musicisti possono accedere.
 
-### 🐛 Correzioni di Bug (Bug Fixes)
+### Correzioni di Bug (Bug Fixes)
 - Motore PDF: risolto incollamento accordi consecutivi (anti-gluing es. 'FADO' -> 'FA  DO', 'SIb/FADO/MI' -> 'SIb/FA  DO/MI  RE7/9+') con spaziatura minima garantita.
 - Motore PDF: rimossa sillabazione accidentale a metà parola nei testi dei brani.
 - Motore PDF: garantito margine inferiore di sicurezza anti-sovrapposizione (minimo 15 mm) rispetto al piè di pagina.
@@ -76,7 +120,7 @@
 - Risolto AttributeError all'avvio: eliminato importlib.reload legacy in app.py con ripristino dell'importazione nativa e pulita di StorageManager.
 - Accesso diretto automatico: se l'utente ha già effettuato l'autenticazione Google sul browser, accede direttamente all'applicazione senza passare dalla schermata di login.
 - Risoluzione Errore Google 403 (Robottino 'Non disponi dell'autorizzazione necessaria'): rimossa navigazione iframe tramite meta-refresh e implementato reindirizzamento top-level (window.top) con pulsante diretto target='_top' per consentire a Google Accounts di aprirsi all'esterno del frame di Streamlit.
-- Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante '🎸 Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.
+- Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante ' Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.
 - Motore PDF: rimossa la tabella a celle colorate per le sequenze di accordi (griglie armoniche); ora renderizzate in linea con separatore '|' pulito (es. 'LA | DO | FA | SOL') conforme alla specifica utente.
 - Parser AML e Motore Musicale: aggiunto riconoscimento nativo dell'accordo 'SOL4+' e suffissi '4+', con trasposizione corretta e unione automatica delle righe di accordi tradizionali posizionate sopra il testo (es. 'SOL'/'Vespe', 'SOL4+'/'anni').
 - Anteprima PDF: risolto disallineamento della cache di sessione del preview e bug sintattico in app.py con aggiornamento istantaneo del ridimensionamento font degli accordi.
@@ -85,10 +129,11 @@
 - Deduplicazione e Unicità Repertori: rimossi tutti i brani doppi dai repertori, unificati i codici brano canonici e imposto il controllo rigoroso anti-duplicato (case-insensitive) sullo stesso repertorio.
 - Titoli Brani in UPPERCASE: formattati tutti i titoli dei brani ufficiali in lettere maiuscole per una leggibilità perfetta su display di palco e repertorio.
 - Protezione Cestino e Persistenza post-Deploy: rimosso data/trash/ dal .gitignore e implementato il registro Tombstone permanente. Gli elementi cancellati (scalette, brani, repertori) non riappaiono mai più nei menu a discesa né dopo un deploy né dopo un riavvio, rimanendo recuperabili esclusivamente dall'Admin nel Cestino.
+- Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante 'Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.
 
 ## Versione 2026.11.05 (05/11/2026) — Rilascio Ufficiale ASMA Accordi 2.0 (Next Generation)
 
-### 🚀 Nuove Funzionalità (New Features)
+### Nuove Funzionalità (New Features)
 - Architettura a due livelli: SQLite in-memory (< 2ms) e storage partizionato JSON.
 - Formato ufficiale AML (ASMA Markup Language) come Single Source of Truth.
 - Motore musicale deterministico (Zero-AI) con trasposizioni cromatiche -12/+12 semitoni e circolo delle quinte.
@@ -98,16 +143,16 @@
 - Esportatore ed importatore per MobileSheets, SongBookPro, OnSong, ChordPro e Offline Live Pack ZIP.
 - Web Importer per estrazione automatica di spartiti da portali italiani e internazionali.
 
-### ⚡ Miglioramenti (Improvements)
+### Miglioramenti (Improvements)
 - Sistema di lock editing concorrente con heartbeat di sessione a 60 minuti e sblocco forzato Admin.
 - Cestino con conservazione per 30 giorni e ripristino istantaneo di brani, repertori e scalette.
 - Endpoint di salute /health per prevenire lo sleep mode del cloud tramite UptimeRobot.
 - Manuale utente auto-aggiornante online e PDF stampabile.
 
-### 🛡️ Sicurezza (Security)
+### Sicurezza (Security)
 - Registro Audit Trail immutabile append-only per il tracciamento di tutte le modifiche critiche.
 - Protezione contro l'inattività di sessione e isolamento dei dati sensibili.
 
-### 🐛 Correzioni di Bug (Bug Fixes)
+### Correzioni di Bug (Bug Fixes)
 - Risolto disallineamento sillabico durante l'importazione da spartiti tradizionali con accordi sopra il testo.
 - Risolta ambiguità interpretativa per accordi italiani complessi (DO7+, LA-, DO+).

@@ -132,13 +132,91 @@ class ManualEngine:
         ]
 
     @classmethod
+    def sanitize_pdf_text(cls, text: str) -> str:
+        """
+        Strips or converts any characters not supported by standard PDF Helvetica
+        (emojis, special symbols, etc.) to guarantee 100% clean rendering with zero black squares.
+        """
+        if not text:
+            return ""
+        replacements = {
+            '♯': '#',
+            '♭': 'b',
+            '✓': 'OK',
+            '▼': '|',
+            '▲': '^',
+            '❌': '[X]',
+            '⭐': '',
+            '🔒': '',
+            '🔓': '',
+            '📋': '',
+            '✏️': '',
+            '✏': '',
+            '💾': '',
+            '📄': '',
+            '🎤': '',
+            '🎸': '',
+            '🎹': '',
+            '🥁': '',
+            '🎼': '',
+            '🎶': '',
+            '🎵': '',
+            '👉': '',
+            '👤': '',
+            '👥': '',
+            '💡': '',
+            '📷': '',
+            '🔗': '',
+            '⚡': '',
+            '✨': '',
+            '➕': '+',
+            '🚪': '',
+            '⬆': '^',
+            '⬇': 'v',
+            '\ufe0f': '',
+        }
+        for k, v in replacements.items():
+            text = text.replace(k, v)
+
+        text = text.replace("' ", "'").replace(" '", "'")
+
+        # Drop any remaining emojis or high Unicode characters (> 0x2500, except allowed dashes/bullets/arrows)
+        cleaned_chars = []
+        for c in text:
+            cp = ord(c)
+            if cp < 128:
+                cleaned_chars.append(c)
+            elif cp in [0x00AA, 0x00BA]:
+                cleaned_chars.append(c)
+            elif 0x00C0 <= cp <= 0x00FF:
+                cleaned_chars.append(c)
+            elif cp in [0x2014, 0x2022, 0x2192, 0x2194]:
+                cleaned_chars.append(c)
+            else:
+                continue
+        return "".join(cleaned_chars)
+
+    @classmethod
     def load_changelog_entries(cls) -> List[Dict[str, Any]]:
         """Reads latest changelog directly from data/changelog.json for 100% dynamic documentation."""
         changelog_path = os.path.join(os.getcwd(), "data", "changelog.json")
         if os.path.exists(changelog_path):
             try:
                 with open(changelog_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    raw_entries = json.load(f)
+                clean_entries = []
+                for entry in raw_entries:
+                    clean_entry = {
+                        "version": cls.sanitize_pdf_text(entry.get("version", "")),
+                        "date": cls.sanitize_pdf_text(entry.get("date", "")),
+                        "title": cls.sanitize_pdf_text(entry.get("title", "")),
+                        "new_features": [cls.sanitize_pdf_text(x) for x in entry.get("new_features", [])],
+                        "improvements": [cls.sanitize_pdf_text(x) for x in entry.get("improvements", [])],
+                        "security": [cls.sanitize_pdf_text(x) for x in entry.get("security", [])],
+                        "bug_fixes": [cls.sanitize_pdf_text(x) for x in entry.get("bug_fixes", [])],
+                    }
+                    clean_entries.append(clean_entry)
+                return clean_entries
             except Exception:
                 pass
         return []

@@ -20,7 +20,7 @@ INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
         "new_features": [
             "Protezione Rigorosa Repertorio Ufficiale: vietata la modifica diretta dei brani del repertorio ufficiale a tutti gli utenti (incluso l'amministratore). I musicisti creano la propria copia personale nel loro repertorio, apportano le modifiche, le salvano e poi le promuovono a Ufficiale (rimuovendo la copia personale).",
             "Condivisione A4 su WhatsApp per Scalette e Brani: invio del file PDF A4 pronto per la stampa direttamente su WhatsApp tramite Web Share API nativa (con allegato PDF reale per smartphone e tablet, e fallback web per desktop).",
-            "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa '🎸 Con Accordi' e versione '🎤 Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.",
+            "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa 'Con Accordi' e versione 'Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.",
             "Modifica Data di Esecuzione Scalette: campo data interattivo (gg/mm/aaaa) modificabile direttamente dall'editor scaletta con salvataggio automatico e sincronizzazione immediata nel database cloud Turso.",
             "Badge Fine Brano [END] Standard: inserito badge automatico [END] al termine di ogni spartito per i musicisti sul palco (sia nell'anteprima web che nei PDF generati).",
             "Registro Modifiche Dinamico (Changelog): consultabile liberamente da tutti i componenti della band con raggruppamento rigoroso a singola versione giornaliera e persistenza permanente su database cloud.",
@@ -68,8 +68,8 @@ INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
             "Risolto Crash Bianco in Modalità Palco ('Node.removeChild'): rimossa la rimozione diretta di nodi DOM gestiti da React nei watchdog di stile, garantendo la transizione fluida e sicura alla Modalità Palco senza interruzioni di rendering.",
             "Correzione Dispositivo Cico e Priorità Profili Turso DB: corretto il riconoscimento hardware dei tablet Huawei e blindata la priorità assoluta ai profili registrati nel database cloud (Foglio A4 da PC, Huawei MatePad da tablet), eliminando alla radice l'assegnazione accidentale di Pixel 8 pro.",
             "Ottimizzazione Prestazioni 'Brani' e Anteprima PDF: introdotto caching istantaneo (@st.cache_data) per rendering pagine PDF, pulsanti di stampa A4 e compilazione documenti musicali, abbattendo il tempo di apertura e selezione brano a meno di 150ms.",
-            "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto '🚪 Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
-            "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('👤 Cico') su tablet e smartphone.",
+            "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto 'Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
+            "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('Cico') su tablet e smartphone.",
             "Ottimizzazione Velocità Logon e Logout: rimossa la chiamata di sincronizzazione cloud remota bloccante all'accesso sessione (lo storage è già istantaneo in-memory e SQLite), velocizzando il login e la navigazione ad apertura immediata (<100ms).",
             "Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta 'Foglio a 4 stampabile' da PC, al nuovo login dallo stesso PC ritrova 'Foglio a 4 stampabile' con tutti i settaggi (font, accordi, margini, colonne, colori), senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).",
             "Risolto glitch visivo di tag JS grezzo iniettato via markdown nella parte superiore della vista principale.",
@@ -91,7 +91,7 @@ INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
             "Suggerimenti preset, scene memory e super knob Yamaha Montage dedicati ai tastieristi."
         ],
         "improvements": [
-            "Layout scalette ottimizzato: pulsanti sposta brano ('⬆️', '⬇️') ed elimina ('❌') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.",
+            "Layout scalette ottimizzato: pulsanti sposta brano ('Su', 'Giu') ed elimina ('Elimina') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.",
             "Unicità rigorosa dei repertori: divieto assoluto di creare o rinominare repertori con nomi duplicati (case-insensitive), con notifica immediata d'errore.",
             "Cancellazione repertori fittizi o vuoti duplicati dal database.",
             "Selettore profili utente e simulazione ruoli riservato esclusivamente agli utenti Admin.",
@@ -112,7 +112,7 @@ INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
             "Risolto AttributeError all'avvio: eliminato importlib.reload legacy in app.py con ripristino dell'importazione nativa e pulita di StorageManager.",
             "Accesso diretto automatico: se l'utente ha già effettuato l'autenticazione Google sul browser, accede direttamente all'applicazione senza passare dalla schermata di login.",
             "Risoluzione Errore Google 403 (Robottino 'Non disponi dell'autorizzazione necessaria'): rimossa navigazione iframe tramite meta-refresh e implementato reindirizzamento top-level (window.top) con pulsante diretto target='_top' per consentire a Google Accounts di aprirsi all'esterno del frame di Streamlit.",
-            "Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante '🎸 Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.",
+            "Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante 'Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.",
             "Motore PDF: rimossa la tabella a celle colorate per le sequenze di accordi (griglie armoniche); ora renderizzate in linea con separatore '|' pulito (es. 'LA | DO | FA | SOL') conforme alla specifica utente.",
             "Parser AML e Motore Musicale: aggiunto riconoscimento nativo dell'accordo 'SOL4+' e suffissi '4+', con trasposizione corretta e unione automatica delle righe di accordi tradizionali posizionate sopra il testo (es. 'SOL'/'Vespe', 'SOL4+'/'anni').",
             "Anteprima PDF: risolto disallineamento della cache di sessione del preview e bug sintattico in app.py con aggiornamento istantaneo del ridimensionamento font degli accordi.",
@@ -337,22 +337,22 @@ class ChangelogEngine:
         for entry in cls._entries:
             md.append(f"## Versione {entry['version']} ({entry.get('date', '')}) — {entry.get('title', '')}\n")
             if entry.get("new_features"):
-                md.append("### 🚀 Nuove Funzionalità (New Features)")
+                md.append("### Nuove Funzionalità (New Features)")
                 for item in entry["new_features"]:
                     md.append(f"- {item}")
                 md.append("")
             if entry.get("improvements"):
-                md.append("### ⚡ Miglioramenti (Improvements)")
+                md.append("### Miglioramenti (Improvements)")
                 for item in entry["improvements"]:
                     md.append(f"- {item}")
                 md.append("")
             if entry.get("security"):
-                md.append("### 🛡️ Sicurezza (Security)")
+                md.append("### Sicurezza (Security)")
                 for item in entry["security"]:
                     md.append(f"- {item}")
                 md.append("")
             if entry.get("bug_fixes"):
-                md.append("### 🐛 Correzioni di Bug (Bug Fixes)")
+                md.append("### Correzioni di Bug (Bug Fixes)")
                 for item in entry["bug_fixes"]:
                     md.append(f"- {item}")
                 md.append("")
