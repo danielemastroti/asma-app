@@ -1,6 +1,6 @@
 {
   "danyposta@gmail.com": {
-    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+    "last_active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
     "devices": {
       "Huawei MatePad": {
         "layout_font_size": 18.0,
@@ -36,76 +36,92 @@
         "stage_color_aml_markup": "#38BDF8"
       },
       "Huawei MatePad / Tablet (10.4\"/11\")": {
-        "layout_font_size": 20.5,
-        "layout_font_size_chords": 22.0,
-        "layout_columns": 2,
-        "layout_margin_lateral": 14.0,
-        "layout_margin_top": 8.0,
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 10.0,
         "layout_margin_bottom": 8.0,
-        "layout_color_text": "#222222",
-        "layout_color_chords": "#FF0000",
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
         "app_mode": "simplified",
         "score_display_mode": "chords",
-        "updated_at": "2026-11-09 11:48:20"
+        "updated_at": "2026-11-09 11:48:20",
+        "active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8"
       },
       "Foglio a 4 stampabile": {
         "layout_font_size": 12.0,
         "layout_font_size_chords": 13.0,
         "layout_columns": 1,
         "layout_margin_lateral": 10.0,
-        "layout_margin_top": 8.0,
+        "layout_margin_top": 12.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "app_mode": "simplified",
+        "app_mode": "editing",
         "score_display_mode": "chords",
-        "updated_at": "2026-11-09 11:33:49"
+        "updated_at": "2026-11-09 11:33:49",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8"
       },
       "Huawei MediaPad M5": {
-        "layout_font_size": 13.5,
-        "layout_font_size_chords": 13.5,
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
         "layout_columns": 1,
-        "layout_margin_lateral": 4.0,
-        "layout_margin_top": 8.0,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 10.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
-        "layout_color_chords": "#6df452",
+        "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-09 23:11:43",
         "color_lyrics": "#111111",
-        "color_aml_markup": "#4A148C"
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8"
       },
       "IPad 10.2\" (7/8/9 gen) & pro 2019": {
-        "layout_font_size": 14.0,
-        "layout_font_size_chords": 15.0,
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
         "layout_columns": 1,
         "layout_margin_lateral": 10.0,
-        "layout_margin_top": 30.0,
-        "layout_margin_bottom": 10.0,
-        "layout_color_text": "#060061",
+        "layout_margin_top": 10.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
         "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-10 09:55:00",
-        "color_lyrics": "#060061",
+        "color_lyrics": "#111111",
         "color_aml_markup": "#4A148C",
         "stage_color_lyrics": "#FFFFFF",
         "stage_color_chords": "#FFD600",
-        "stage_color_aml_markup": "#38BDF8"
+        "stage_color_aml_markup": "#38BDF8",
+        "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019"
       }
     },
     "user_prefs": {
       "app_mode": "simplified",
-      "score_display_mode": "chords"
+      "score_display_mode": "chords",
+      "last_device_tablet": "IPad 10.2\" (7/8/9 gen) & pro 2019"
     }
   },
   "maurobovolenta4@gmail.com": {
@@ -133,14 +149,14 @@
     }
   },
   "acicchelli65@gmail.com": {
-    "last_active_device": "Foglio a 4 stampabile",
+    "last_active_device": "Huawei MediaPad M5",
     "devices": {
       "Huawei MatePad / Tablet (10.4\"/11\")": {
-        "layout_font_size": 20.0,
-        "layout_font_size_chords": 22.0,
-        "layout_columns": 2,
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
         "layout_margin_lateral": 10.0,
-        "layout_margin_top": 8.0,
+        "layout_margin_top": 10.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",
@@ -148,7 +164,9 @@
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
         "score_display_mode": "chords",
-        "updated_at": "2026-11-09 09:46:45"
+        "updated_at": "2026-11-09 09:46:45",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C"
       },
       "Foglio a 4 stampabile": {
         "layout_font_size": 12.0,
@@ -161,24 +179,44 @@
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "app_mode": "simplified",
-        "score_display_mode": "chords",
+        "app_mode": "editing",
+        "score_display_mode": "lyrics",
         "updated_at": "2026-11-09 11:31:14"
       },
       "Huawei MediaPad M5": {
-        "layout_font_size": 21.5,
-        "layout_font_size_chords": 9.5,
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
         "layout_columns": 1,
-        "layout_margin_lateral": 4.0,
-        "layout_margin_top": 8.0,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 10.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
-        "score_display_mode": "lyrics",
+        "score_display_mode": "chords",
         "updated_at": "2026-11-09 19:25:05",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8"
+      },
+      "IPad 10.2\" (7/8/9 gen) & pro 2019": {
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 10.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "app_mode": "simplified",
+        "score_display_mode": "chords",
+        "updated_at": "2026-11-11 15:54:59",
         "color_lyrics": "#111111",
         "color_aml_markup": "#4A148C",
         "stage_color_lyrics": "#FFFFFF",
@@ -188,7 +226,8 @@
     },
     "user_prefs": {
       "app_mode": "simplified",
-      "score_display_mode": "chords"
+      "score_display_mode": "chords",
+      "last_device_tablet": "IPad 10.2\" (7/8/9 gen) & pro 2019"
     }
   },
   "testuser@band.it": {
@@ -318,7 +357,7 @@
     }
   },
   "test_musician@band.org": {
-    "last_active_device": "Huawei MediaPad M5",
+    "last_active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
     "devices": {
       "Huawei MediaPad M5": {
         "layout_font_size": 14.0,
@@ -332,7 +371,7 @@
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
-        "score_display_mode": "lyrics",
+        "score_display_mode": "chords",
         "updated_at": "2026-11-09 17:45:39",
         "layout_margin_left": 10.0,
         "color_lyrics": "#111111",
@@ -340,12 +379,37 @@
         "stage_color_lyrics": "#FFFFFF",
         "stage_color_chords": "#FFD600",
         "stage_color_aml_markup": "#38BDF8",
+        "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
+        "color_chords": "#B71C1C"
+      },
+      "IPad 10.2\" (7/8/9 gen) & pro 2019": {
+        "layout_font_size": 13.0,
+        "layout_font_size_chords": 13.0,
+        "layout_columns": 1,
+        "layout_margin_lateral": 10.0,
+        "layout_margin_top": 10.0,
+        "layout_margin_bottom": 8.0,
+        "layout_color_text": "#111111",
+        "layout_color_chords": "#B71C1C",
+        "layout_color_aml": "#4A148C",
+        "ui_zoom_level": 1.0,
+        "app_mode": "simplified",
+        "score_display_mode": "chords",
+        "updated_at": "2026-11-14 14:04:55",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8",
+        "active_device": "Huawei MediaPad M5",
         "color_chords": "#B71C1C"
       }
     },
     "user_prefs": {
       "app_mode": "simplified",
-      "score_display_mode": "lyrics"
+      "score_display_mode": "chords",
+      "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
+      "last_device_tablet": "IPad 10.2\" (7/8/9 gen) & pro 2019"
     }
   },
   "cico@band.org": {
@@ -363,9 +427,18 @@
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
         "app_mode": "simplified",
-        "score_display_mode": "chords"
+        "score_display_mode": "chords",
+        "updated_at": "2026-11-12 11:02:33",
+        "color_lyrics": "#111111",
+        "color_aml_markup": "#4A148C",
+        "stage_color_lyrics": "#FFFFFF",
+        "stage_color_chords": "#FFD600",
+        "stage_color_aml_markup": "#38BDF8"
       }
     },
-    "user_prefs": {}
+    "user_prefs": {
+      "app_mode": "simplified",
+      "score_display_mode": "chords"
+    }
   }
 }

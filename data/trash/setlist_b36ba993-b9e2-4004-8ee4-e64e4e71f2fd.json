@@ -1,0 +1,23 @@
+{
+  "deleted_at": "2026-11-14T14:47:22.275265+00:00",
+  "entity_type": "SETLIST",
+  "entity_uuid": "b36ba993-b9e2-4004-8ee4-e64e4e71f2fd",
+  "data": {
+    "uuid": "b36ba993-b9e2-4004-8ee4-e64e4e71f2fd",
+    "title": "__TEMP_TEST_SETLIST__",
+    "date": "",
+    "description": "",
+    "items": [
+      {
+        "song_uuid": "50_special_bebdbb",
+        "is_medley": false,
+        "medley_group_id": null,
+        "custom_key": null,
+        "custom_bpm": null,
+        "notes": ""
+      }
+    ],
+    "created_at": "2026-11-14T14:47:21.807438+00:00",
+    "updated_at": "2026-11-14T14:47:22.112924+00:00"
+  }
+}

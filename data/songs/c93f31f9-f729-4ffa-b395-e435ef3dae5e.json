@@ -1,0 +1,28 @@
+{
+  "uuid": "c93f31f9-f729-4ffa-b395-e435ef3dae5e",
+  "title": "A LUCA (PICCOLA BAND)",
+  "artist": "Chicchelli Avanzi Ventura",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "C",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{verse}\n[DO]              [MIm]             LAm\nUna vita sta per comincia[RE]\n[DO]              [MIm]             LAm\ned io sono semp[RE] quello che\n[FA]                            [MIm]\nnon si vuol rassegna[RE]\n[FA]                     [RE]\nad ammette[RE] che\n[DO]            [SOLm]             [DO]\nla sua storia potrà cambia[RE]\n\n{verse}\n[DO]            [MIm]             LAm\nE allora mi sforzo di vede[RE]\n[DO]              [MIm]                  LAm\nil mon[DO] che cambia intorno a me\n[FA]                       [MIm]\ne continua s suona[RE]\n[FA]                              [RE]\ncone la mia piccola band\n[DO]            [SOLm]             [DO]\ned allora comincio a sogna[RE]\n\n{chorus}\n[DO]                        [SOLm]\nSpazi immensi e verdi\n[FA]                  [DO]\nper gioca[RE] e poi\n[DO]       [SOLm]            [FA]\ncieli aperti in cui vola[RE]\n[DO]                        [SOLm]\nniente muri oscuri\n[FA]                  [DO]\nda abbatte[RE] mai\n[DO]       [SOLm]            [FA]\nne confini da olt[RE]passa[RE]\n\n{verse}\n[DO]            [MIm]        LAm\nE ti diranno tante cose\n[DO]              [MIm]                  LAm\nsu come sono [FA]tto e sul perchè\n[FA]                       [MIm]\nma non [FA]rti f[RE]ga[RE]\n[FA]                [RE]\ne ragiona da te\n[DO]            [SOLm]             [DO]\n[DO]po tu mi potrai giudica[RE]\n\n{verse}\n[DO]            [MIm]             LAm\nE avrai tutto un mon[DO] da affronta[RE]\n[DO]              [MIm]                  LAm\nma ti ogni tanto pensa a me\n[FA]                       [MIm]\nche continuo a suona[RE]\n[FA]                              [RE]\ncon la mia piccola band\n[DO]            [SOLm]             [DO]\ne con loro continuo a sogna[RE]\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-10T10:03:22.132865+00:00",
+  "updated_at": "2026-11-10T10:03:22.132882+00:00"
+}

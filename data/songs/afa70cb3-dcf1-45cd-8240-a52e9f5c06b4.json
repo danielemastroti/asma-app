@@ -1,0 +1,28 @@
+{
+  "uuid": "afa70cb3-dcf1-45cd-8240-a52e9f5c06b4",
+  "title": "UNIQUE TEST SONG XYZ",
+  "artist": "",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "C",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "[C]test",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-11T17:29:38.819721+00:00",
+  "updated_at": "2026-11-11T17:29:38.819721+00:00"
+}

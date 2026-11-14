@@ -1,0 +1,28 @@
+{
+  "uuid": "5f488163-0a3b-4333-a9e3-716faa6be749",
+  "title": "A LUCA (PICCOLA BAND)",
+  "artist": "Chicchelli Avanzi Ventura",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "C",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{verse}\nDO              MIm             LAm\nUna vita sta per cominciare\nDO              MIm             LAm\ned io sono sempre quello che\nFA                            MIm\nnon si vuol rassegnare\nFA                     RE\nad ammettere che\nDO            SOL             DO\nla sua storia potrà cambiare\n\n{verse}\nDO            MIm             LAm\nE allora mi sforzo di vedere\nDO              MIm                  LAm\nil mondo che cambia intorno a me\nFA                       MIm\ne continua s suonare\nFA                              RE\ncone la mia piccola band\nDO            SOL             DO\ned allora comincio a sognare\n\n{chorus}\nDO                        SOL\nSpazi immensi e verdi\nFA                  DO\nper giocare e poi\nDO       SOL            FA\ncieli aperti in cui volare\nDO                        SOL\nniente muri oscuri\nFA                  DO\nda abbattere mai\nDO       SOL            FA\nne confini da oltrepassare\n\n{verse}\nDO            MIm        LAm\nE ti diranno tante cose\nDO              MIm                  LAm\nsu come sono fatto e sul perchè\nFA                       MIm\nma non farti fregare\nFA                RE\ne ragiona da te\nDO            SOL             DO\ndopo tu mi potrai giudicare\n\n{verse}\nDO            MIm             LAm\nE avrai tutto un mondo da affrontare\nDO              MIm                  LAm\nma ti ogni tanto pensa a me\nFA                       MIm\nche continuo a suonare\nFA                              RE\ncon la mia piccola band\nDO            SOL             DO\ne con loro continuo a sognare\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-10T09:59:02.171781+00:00",
+  "updated_at": "2026-11-10T09:59:02.171800+00:00"
+}

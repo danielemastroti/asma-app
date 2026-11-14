@@ -1,0 +1,28 @@
+{
+  "uuid": "989e0c2c-c6c8-40e3-a144-c5b6875f2365",
+  "title": "MEDLEY BATTISTI",
+  "artist": "Lucio Battisti",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "VARIE",
+  "key_current": "VARIE",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{start_of_song: IL TEMPO DI MORIRE | LUCIO BATTISTI | LA}\n[INTRO]\n| LA | RE | SI | SOL | RE | LA | MI |\n\n{sov}\nMotoci[LA]cletta, [RE]   [LA]\ndieci H. [LA]P.   [RE]   [LA]\ntutta [LA]cromata,[RE]   [LA]\ne' tua se dici [MI]si,   [LA]   [MI]\nmi costa una [LA]vita, [RE]   [LA]\nper niente la [RE]darei, [SOL]    [RE]\nma ho il cuore [MI]malato,[RE]\ne so' che mori[LA]rei  [RE]   [LA]\n{eov}\n{soc}\nNon dire [LA]no,  [RE]   [LA]\nNon dire [LA]no,  [RE]   [LA]\nNon dire [LA]no,  [RE]   [LA]\nNon dire [MI]no,   [LA]   [MI]\n{eoc}\n{sov}\nLo so' che ami un [LA]altro [RE]   [LA]\nma che ci posso [RE]fare [SOL]    [RE]\nio sono un dispe[MI]rato [RE]\nperchè ti voglio [LA]amare,[RE]   [LA]\n{eov}\n{soc}\nNon dire [LA]no,  [RE]   [LA]\nNon dire [LA]no,  [RE]   [LA]\n{eoc}\n{sov}\nprendi tutto quello che [MI]ho!   [LA]   [MI]\nmi basta il tempo di [LA]morire,[RE]   [LA]\nfra le tue braccia [RE]cosi', [SOL]    [RE]\ndomani puoi dimenti[MI]care domani, ma [RE]adesso,\nadesso dimmi di [LA]si.  [RE]   [LA]\n{eov}\n{end_of_song}\n\n{start_of_song: EPPUR MI SON SCORDATO DI TE | LUCIO BATTISTI | LA}\n[INTRO]\n{c: INSERIRE ACCORDI INTRO}\n{sov}\n[LA]Eppur mi son scordato di [DO#m]te\ncome ho [FA#m]fatto non so [FA]\n[LA]Una ragione vera non [DO#m]c'è\nlei era [FA#m]bella lo so  [FA]\nUn [LA]tuffo dove l'acqua è più [DO#m]blu niente di [DO#]più\n{eov}\n{soc}\nMa [FA#m]che disperazione nasce da una distrazione\ne' solo un [RE]gioco non un [MI]fuoco\nNon [FA#m]piangere salame dai capelli verde rame\nè solo un [RE]gioco e non un [MI]fuoco\nLo sai che [LA]t'amo io ti [SI7]amo vera[DO#7]mente\n{eoc}\n{sob}\n[FA#m]che disperazione nasce da \nuna distrazione  nasce da una distrazione\n[RE]che disperazione nasce da\nuna distrazione nasce da \nUn [LA]tuffo dove l'acqua è più [DO#m]blu niente di [DO#]più\n{eob}\n{soc}\nMa [FA#m]che disperazione nasce da una distrazione\ne' solo un [RE]e non un [MI]fuoco\nNon [FA#m]piangere salame dai capelli verde rame\nè solo un [RE]gioco e non un [MI]fuoco\nLo sai che [LA]t'amo io ti [SI7]amo vera[DO#7]mente\n{eoc}\n{end_of_song}\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 3,
+  "created_at": "2026-11-13T13:02:07.891817+00:00",
+  "updated_at": "2026-11-14T13:56:09.749627+00:00"
+}

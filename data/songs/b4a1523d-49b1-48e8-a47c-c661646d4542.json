@@ -1,0 +1,28 @@
+{
+  "uuid": "b4a1523d-49b1-48e8-a47c-c661646d4542",
+  "title": "MEDLEY ROCK",
+  "artist": "VARI",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "varie",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{c: PINK PROJECT (iniziare con elicottero)}\n{solo: Scena1}\n\nDm | Bb | G | Dm\n\n{c: THE WALL}\n\n| Dm |\n{sov}\nDm Dm Dm\nDm Dm Dm\n{eov}\n{soc}\nG Dm\nF C Dm\nG Dm\nF C Dm\n{eoc}\n\n\n\n\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 8,
+  "created_at": "2026-11-13T09:36:13.864144+00:00",
+  "updated_at": "2026-11-13T09:43:21.994950+00:00"
+}

@@ -1,0 +1,30 @@
+{
+  "uuid": "95cd69d0-5500-41e2-b08e-4e45ae3a37c9",
+  "title": "A LUCA(PICCOLA BAND)",
+  "artist": "Cicchelli Avanzi Ventura",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "DO",
+  "key_current": "DO",
+  "notation_system": "INT",
+  "tags": [
+    "autoprodotto"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: A Luca (Piccola Band)}\n{artist: Cicchelli Avanzi Ventura}\n{key: DO}\n\n{title: A LUCA(PICCOLA BAND)}\n{artist: Cicchelli Avanzi Ventura}\n{key: DO}\n\n{verse}\n[DO]Una vita sta per [MIm]cominciare[LAm]\n[DO]ed io sono sempr[MIm]e quello che[LAm]\n[DO]non si vuol rassegnare[MIm]\n[FA]ad ammettere che[RE]\n[DO]la sua storia [SOL]potrà cambiare[DO]\n\n{verse}\n[DO]E allora mi [MIm]sforzo di vedere[LAm]\n[DO]il mondo che [MIm]cambia intorno a me[LAm]\n[DO]e continua s suonare[MIm]\n[FA]cone la mia piccola band[RE]\n[DO]ed allora comi[SOL]ncio a sognare[DO]\n\n{chorus}\n[DO]Spazi immensi e verdi[SOL]\n[FA]per giocare e poi[DO]\n[DO]cieli [SOL]aperti in cui vola[FA]re\n[DO]niente muri oscuri[SOL]\n[FA]da abbattere mai[DO]\n[DO]ne confin[SOL]i da oltrepassa[FA]re\n\n{verse}\n[DO]E ti diranno [MIm]tante cose[LAm]\n[DO]su come sono [MIm]fatto e sul perchè[LAm]\n[DO]ma non farti fregare[MIm]\n[FA]e ragiona da te[RE]\n[DO]dopo tu mi [SOL]potrai giudicare[DO]\n\n{verse}\n[DO]E avrai tutto [MIm]un mondo da affr[LAm]ontare\n[DO]ma ti ogni tanto [MIm]pensa a me[LAm]\n[DO]che continuo a suonare[MIm]\n[FA]con la mia piccola band[RE]\n[DO]e con loro [SOL]continuo a sognare [DO]\n\n{solo: guitar}\nDO | MIm | LAm \nDO | MIm | LAm \nFA | MIm\nFA | RE\nDO | SOL | DO\n\n{chorus}\n[DO]Spazi immensi e verdi[SOL]\n[FA]per giocare e poi[DO]\n[DO]cieli [SOL]aperti in cui vola[FA]re\n[DO]niente muri oscuri[SOL]\n[FA]da abbattere mai[DO]\n[DO]ne confin[SOL]i da oltrepassa[FA]re\n\n{solo: guitar}\nDO | MIm | LAm \nDO | MIm | LAm \nFA | MIm\nFA | RE\nDO | SOL | DO\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-09T22:34:39.074911+00:00",
+  "updated_at": "2026-11-13T10:45:07.875615+00:00"
+}

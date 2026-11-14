@@ -1,0 +1,28 @@
+{
+  "uuid": "6475047d-28a4-42b3-8c42-105e9e683553",
+  "title": "IO HO IN MENTE TE",
+  "artist": "Equipe 84",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 141,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "RE",
+  "key_current": "FA#",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: IO HO IN MENTE TE}\n{artist: Equipe 84}\n{key: FA#}\n\nApro gli occhi e ti [FA#]penso [SI]\ned ho in [DO#]mente [FA#]te  [SI]     [DO#]\n[SI]ed ho in [LA#m]mente [SI]te   [DO#]\n\nIo cammino per le [FA#]strade [SI]\nma ho in [DO#]mente [FA#]te  [SI]    [DO#]\n[SI]ed ho in [LA#m]mente [SI]te   [DO#]\n\nOgni [FA#]mattina uò [SI]uò\n[DO#]ed ogni [FA#]sera uò [SI]uò\n[DO#]ed ogni [FA#]notte [MI]te   [DO#]\n\nIo lavoro più [FA#]forte [SI]\nma ho in [DO#]mente [FA#]te [LA#]    [SI]    [DO#]\n[SI]ma ho in [LA#m]mente [SI]te   [DO#]\n\nOgni [FA#]mattina uò [SI]uò\n[DO#]ed ogni [FA#]sera uò [SI]uò\n[DO#]ed ogni [FA#]notte [MI]te   [RE#]\n\nCos'ho nella [SOL#]testa [DO#]\nche cos'[RE#]ho nelle [SOL#]sca--[DO#]--r[RE#]pe\n[DO#]no, non [DOm]so cos'[DO#]è   [RE#]\n\nHo voglia di [SOL#]andare uò [DO#]uò\ndi [RE#]andarmene [SOL#]via, uò [DO#]uò\nnon [RE#]voglio [SOL#]pensar\nma [FAm]poi ti [RE#][DO#]penso\n\nApro gli occhi e ti [SOL#]penso [DO#]\nma ho in [RE#]mente [SOL#]te  [DO]     [DO#]    [RE#]\n[DO#]ed ho in [DOm]mente [FA#]te    [RE#]\n\nEd ogni [SOL#]mattina uò [DO#]uò\n[RE#]ed ogni [SOL#]sera uò [DO#]uò\n[RE#]ed ogni [SOL#]notte [FA#]te     [RE#]\n\n[SOL#]    [DO#]   [RE#]    [SOL#]    [DO#]   [RE#]    [SOL#]\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-12T22:49:29.816807+00:00",
+  "updated_at": "2026-11-13T09:29:37.514203+00:00"
+}

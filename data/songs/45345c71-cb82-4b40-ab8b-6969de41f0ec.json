@@ -1,0 +1,30 @@
+{
+  "uuid": "45345c71-cb82-4b40-ab8b-6969de41f0ec",
+  "title": "PROUD MARY",
+  "artist": "Creedence Clearwater Revival",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 121,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "DO",
+  "key_current": "DO",
+  "notation_system": "INT",
+  "tags": [
+    "importato-web"
+  ],
+  "shared_notes": "",
+  "aml_content": "{title: PROUD MARY}\n{artist: Creedence Clearwater Revival}\n{key: DO}\n\n[INTRO]\n| DO | LA | DO | LA | DO | LA | SOL | FA | RE |\n{solo: brass ensemble}\n\n{sov}\nRE                      DO   SOL    RE {c: brass}\nLeft a good job in the city,\nWorkin' for the man ev'ry night and day,\nAnd I never lost one minute of sleepin',\n                               SOL  SOL#  LA {c: brass}\nWorryin' 'bout the way things might have been\n{eov}\n{sob}\n                     LA  LA#  SIm {c: brass}\nBig wheel keep on turnin',\nProud Mary keep on burnin',\n{eob}\n{soc}\nRE\nRollin', rollin', rollin' on the river\n| DO | LA | DO | LA | DO | LA | SOL | FA | RE |\n{solo: brass ensemble}\n{eoc}\n\n{sov}\nRE                           DO  SOL    RE {c: brass}\nCleaned a lot of plates in Memphis,\nPumped a lot of 'pane down in New Orleans,\nBut I never saw the good side of the city,\n                                   SOL  SOL#  LA {c: brass}\n'Til I hitched a ride on a river boat queen\n{eov}\n{sob}\n                  LA  LA#  SIm {c: brass}\nBig wheel keep on turnin',\nProud Mary keep on burnin',\n{eob}\n{soc}\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river\n{eoc}\n| DO | LA | DO | LA | DO | LA | SOL | FA | RE |\n{solo: brass ensemble}\n\n{sov}\nRE                         DO  SOL    RE {c: brass}\nIf you come down to the river,\nBet you gonna find some people who live\nYou don't have to worry 'cause you have no money,\n                                  SOL  SOL#  LA\nPeople on the river are happy to give\n{eov}\n{sob}\nLA                       LA  LA#  SIm {c: brass}\nBig wheel keep on turnin',\nProud Mary keep on burnin',\n{eob}\n{soc}\nRE\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river...\n{eoc}\n[OUTRO]\n| DO | LA | DO | LA | DO | LA | SOL | FA | RE |\n{solo: brass ensemble}\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 1,
+  "created_at": "2026-11-09T22:34:39.077911+00:00",
+  "updated_at": "2026-11-13T09:15:10.316066+00:00"
+}

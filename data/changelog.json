@@ -11,11 +11,14 @@
     ],
     "improvements": [
       "Ottimizzazione Barra Superiore su Tablet Huawei (16:10): layout fluido che previene lo sbordo orizzontale su schermi da 800px.",
-      "Pulizia Pulsanti Duplicati nella Home Dashboard: rimozione di controlli ridondanti per brani e scalette."
+      "Pulizia Pulsanti Duplicati nella Home Dashboard: rimozione di controlli ridondanti per brani e scalette.",
+      "Ottimizzazione RAM Anteprime PDF: rendering JPEG compresso 96 DPI e gestione rigorosa memoria PyMuPDF/GC per prevenire saturazione 512MB su Render",
+      "Cache Pagine PDF Alleggerita: limite memoria dinamica a 6 voci massime con rilascio immediato buffer"
     ],
     "security": [],
     "bug_fixes": [
-      "Ripristino Teleprompter in Modalità Palco: risolto il problema per cui il teleprompter non era più accessibile ed era visibile solo il PDF; reimpostata la vista live a Teleprompter Notte ad alto contrasto con autoscroll 60fps, scala font A+/A- e doppio switcher [Teleprompter / PDF] in alto e in basso."
+      "Ripristino Teleprompter in Modalità Palco: risolto il problema per cui il teleprompter non era più accessibile ed era visibile solo il PDF; reimpostata la vista live a Teleprompter Notte ad alto contrasto con autoscroll 60fps, scala font A+/A- e doppio switcher [Teleprompter / PDF] in alto e in basso.",
+      "Persistenza Layout e Dispositivo: garantita conservazione di 1 colonna e font 13.0 per iPad e dispositivi hardware anche dopo nuovi deploy e login"
     ]
   },
   {

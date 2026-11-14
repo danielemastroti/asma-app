@@ -1,0 +1,28 @@
+{
+  "uuid": "e6ea4e0a-abfb-4c05-a70c-e67c42195c59",
+  "title": "Temp Transpose Song",
+  "artist": "Band",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "SOL",
+  "key_current": "LAb",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: Temp Transpose Song}\n{key: LAb}\n\n[LAb]Vespe [DO#]special",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-09T22:39:52.845761+00:00",
+  "updated_at": "2026-11-09T22:39:52.855762+00:00"
+}

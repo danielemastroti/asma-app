@@ -1,0 +1,28 @@
+{
+  "uuid": "f4c63957-869d-4641-98a1-1fde2a804cfc",
+  "title": "SVALUTATION",
+  "artist": "Adriano Celentano",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "RE#",
+  "key_current": "MIb",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: SVALUTATION}\n{artist: Adriano Celentano}\n{key: MIb}\n\n\nEh la [RE#m]benzina ogni giorno costa sempre di piu`\n\ne la lira cede e precipita giu`\nsvalu[SI]tation, svalu[RE#m]tation\n\nCambiando i governi niente cambia lassu`\n\nc'e` un buco nello Stato dove i soldi van giu`\nsvalu[DOm]tation, svalu[RE#m]tation\n\nIo amore mio non capisco perche`\n\ncerco per le ferie un posto al mare e non c'e`\nsvalu[SI]tation, svalu[RE#m]tation\n\nCon il salario di un mese compri solo un caffe`\n\ngli stadi son gremiti ma la gente dov'e`\nsvalu[SI7]tation, svalu[RE#m]tation\n\n[RE#]Mah, siamo in crisi [DO#]ma\nsenza andare in [SI]la`\nl'America e` [LA#7]qua\n\nIn auto[RE#m]mobile a destra da trent'anni si va\n\nora contromano vanno in tanti si sa\nche scont[SI7]ration, che scont[RE#m]ration\n\nCon la nuova banca dei sequestri che c'e`\n\nditemi il valore della vita qual e`\nsvalu[DOm]tation, svalu[RE#m]tation\n\nIo amore mio non capisco perche`\n\ntu vuoi fare il gallo poi fai l'uovo per me\nsul [SI7]lettation, sul [RE#m]lettation\n\nNessuno che ci insegna a non uccidere c'e`\n\nsi vive piu` di armi che di pane perche`\nassassi[SI7]nation, assassi[RE#m]nation\n\n[RE#]Ma quest'Italia [DO#]qua\nse lo vuole [SI]sa\nche ce la [LA#m]fara`\n[RE#]e il sistema [DO#]c'e`\nquando pensi a [SI]te\n\npensa...\n[RE#]   anche un po' per [RE#]me   [SOL#]      [LA#]     [RE#]\n\n",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-13T15:21:33.196425+00:00",
+  "updated_at": "2026-11-13T15:22:24.791428+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "deleted_at": "2026-11-14T14:47:22.443429+00:00",
+  "entity_type": "SONG",
+  "entity_uuid": "73134477-38e7-4332-8261-3d3167b6210d",
+  "data": {
+    "uuid": "73134477-38e7-4332-8261-3d3167b6210d",
+    "title": "TEST UNDO SONG",
+    "artist": "Band",
+    "author": "",
+    "genre": "",
+    "year": null,
+    "duration_seconds": 0,
+    "bpm": 120,
+    "time_signature": "4/4",
+    "capo": 0,
+    "key_original": "G",
+    "key_current": "G",
+    "notation_system": "INT",
+    "tags": [],
+    "shared_notes": "",
+    "aml_content": "[SOL]Test",
+    "lock_status": {
+      "is_locked": false,
+      "locked_by_email": null,
+      "locked_by_name": null,
+      "locked_at": null,
+      "session_id": null
+    },
+    "current_revision": 1,
+    "created_at": "2026-11-14T14:47:22.369308+00:00",
+    "updated_at": "2026-11-14T14:47:22.375308+00:00"
+  }
+}

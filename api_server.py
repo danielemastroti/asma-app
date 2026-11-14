@@ -1180,13 +1180,17 @@ def transpose_song(uuid: str, req: TransposeRequest):
 # 4. PDF GENERATION & PRINT ENDPOINTS
 # -----------------------------------------------------------------------------
 
-def resolve_user_pseudonym(email: Optional[str] = None, fallback_name: Optional[str] = None) -> str:
+def resolve_user_pseudonym(email: Optional[Any] = None, fallback_name: Optional[Any] = None) -> str:
     """Resolves the musician's pseudonym (e.g. Cico, Sentimental, Maurino) based on email or name."""
-    if fallback_name and fallback_name.strip():
+    if fallback_name is not None and not isinstance(fallback_name, str):
+        fallback_name = getattr(fallback_name, "default", None)
+    if fallback_name and isinstance(fallback_name, str) and fallback_name.strip():
         clean = re.sub(r'\(.*?\)', '', fallback_name).strip()
         if clean:
             return clean
-    if not email:
+    if email is not None and not isinstance(email, str):
+        email = getattr(email, "default", None)
+    if not email or not isinstance(email, str):
         return ""
     email_clean = email.strip().lower()
     users_path = os.path.join(os.path.dirname(__file__), "data", "users.json")
@@ -1215,14 +1219,19 @@ def resolve_user_pseudonym(email: Optional[str] = None, fallback_name: Optional[
     return local.capitalize()
 
 
-def resolve_device_profile(device_name: Optional[str]) -> DeviceProfile:
+def resolve_device_profile(device_name: Optional[Any]) -> DeviceProfile:
     """Finds exact or fuzzy matched device profile, supporting common aliases."""
-    if not device_name:
-        return device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name="Huawei MediaPad M5")
-    prof = device_mgr.get_device_by_name(device_name)
+    if not device_name or not isinstance(device_name, str):
+        device_str = getattr(device_name, "default", None) if device_name else None
+        if not isinstance(device_str, str):
+            device_str = "Huawei MediaPad M5"
+    else:
+        device_str = device_name
+
+    prof = device_mgr.get_device_by_name(device_str)
     if prof:
         return prof
-    d_clean = device_name.strip().lower()
+    d_clean = device_str.strip().lower()
     if "a4" in d_clean:
         prof = device_mgr.get_device_by_name("Foglio a 4 stampabile")
         if prof:
@@ -1230,7 +1239,7 @@ def resolve_device_profile(device_name: Optional[str]) -> DeviceProfile:
     for d in device_mgr.list_devices():
         if d_clean in d.name.lower() or d.name.lower() in d_clean:
             return d
-    return device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name=device_name)
+    return device_mgr.get_device_by_name("Huawei MediaPad M5") or DeviceProfile(name=device_str)
 
 
 @app.get("/api/songs/{uuid}/pdf")
@@ -1370,17 +1379,19 @@ def get_song_pdf_preview(
     """
     import base64
     import pymupdf
+    import gc
 
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
 
-    if transpose != 0:
-        transposed_aml = AMLParser.transpose_preserving_format(song.aml_content, semitones=transpose)
+    transpose_val = int(transpose) if (isinstance(transpose, int) or (isinstance(transpose, str) and transpose.lstrip('-+').isdigit())) else 0
+    if transpose_val != 0:
+        transposed_aml = AMLParser.transpose_preserving_format(song.aml_content, semitones=transpose_val)
         transposed_key = song.key_current
         if transposed_key and transposed_key != "-":
             try:
-                transposed_key = MusicEngine.transpose_chord(transposed_key, transpose)
+                transposed_key = MusicEngine.transpose_chord(transposed_key, transpose_val)
             except Exception:
                 pass
         song = Song(
@@ -1425,8 +1436,9 @@ def get_song_pdf_preview(
         color_aml_markup=getattr(base_prof, "color_aml_markup", "#4A148C")
     )
 
-    if email:
-        user_prefs = pref_mgr.get_preferences(email, prof.name)
+    email_clean = email.strip() if (isinstance(email, str) and email.strip()) else None
+    if email_clean:
+        user_prefs = pref_mgr.get_preferences(email_clean, prof.name)
         if user_prefs:
             if "layout_font_size" in user_prefs:
                 prof.font_size_lyrics = float(user_prefs["layout_font_size"])
@@ -1453,23 +1465,29 @@ def get_song_pdf_preview(
             elif "layout_color_aml" in user_prefs:
                 prof.color_aml_markup = user_prefs["layout_color_aml"]
 
-    if columns is not None:
-        prof.columns = columns
-    if font_size is not None:
-        prof.font_size_lyrics = font_size
-    if font_size_chords is not None:
-        prof.font_size_chords = font_size_chords
-    if margin_lateral is not None:
-        prof.margin_left_mm = margin_lateral
-        prof.margin_right_mm = margin_lateral
-    if margin_top is not None:
-        prof.margin_top_mm = margin_top
+    col_val = columns if isinstance(columns, int) else None
+    if col_val is not None:
+        prof.columns = col_val
+    font_val = font_size if isinstance(font_size, (int, float)) else None
+    if font_val is not None:
+        prof.font_size_lyrics = float(font_val)
+    font_chords_val = font_size_chords if isinstance(font_size_chords, (int, float)) else None
+    if font_chords_val is not None:
+        prof.font_size_chords = float(font_chords_val)
+    margin_lat_val = margin_lateral if isinstance(margin_lateral, (int, float)) else None
+    if margin_lat_val is not None:
+        prof.margin_left_mm = float(margin_lat_val)
+        prof.margin_right_mm = float(margin_lat_val)
+    margin_top_val = margin_top if isinstance(margin_top, (int, float)) else None
+    if margin_top_val is not None:
+        prof.margin_top_mm = float(margin_top_val)
 
-    pseudonym = resolve_user_pseudonym(email, user_name)
+    chords_val = chords if isinstance(chords, bool) else (getattr(chords, "default", True) is not False)
+    pseudonym = resolve_user_pseudonym(email_clean, user_name)
     cache_key = (
-        f"{song.uuid}_{song.updated_at}_{transpose}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
+        f"{song.uuid}_{song.updated_at}_{transpose_val}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
         f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
-        f"{prof.color_aml_markup}_{chords}_{pseudonym}"
+        f"{prof.color_aml_markup}_{chords_val}_{pseudonym}"
     )
 
     if cache_key in _pdf_pages_cache:
@@ -1479,28 +1497,30 @@ def get_song_pdf_preview(
             "title": song.title,
             "total_pages": len(cached_pages),
             "device": prof.name,
-            "chords": chords,
+            "chords": chords_val,
             "columns": prof.columns,
             "pages": cached_pages
         }
 
-    import gc
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=(transpose == 0), user_name=pseudonym)
+    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords_val, use_cache=(transpose_val == 0), user_name=pseudonym)
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     pages_b64 = []
     try:
         for page in doc:
-            pix = page.get_pixmap(dpi=115)
-            png_data = pix.tobytes("png")
-            b64 = "data:image/png;base64," + base64.b64encode(png_data).decode("ascii")
+            pix = page.get_pixmap(dpi=96)
+            jpg_data = pix.tobytes("jpeg", jpg_quality=82)
+            b64 = "data:image/jpeg;base64," + base64.b64encode(jpg_data).decode("ascii")
             pages_b64.append(b64)
+            del pix
     finally:
         doc.close()
+        del doc
+        del pdf_bytes
 
-    if len(_pdf_pages_cache) >= 20:
-        for k in list(_pdf_pages_cache.keys())[:10]:
+    if len(_pdf_pages_cache) >= 6:
+        for k in list(_pdf_pages_cache.keys())[:3]:
             _pdf_pages_cache.pop(k, None)
-        gc.collect()
+    gc.collect()
 
     _pdf_pages_cache[cache_key] = pages_b64
 

@@ -47,12 +47,17 @@
       "040676a2-9f1c-472f-9824-ca498ba1029e",
       "95cd69d0-5500-41e2-b08e-4e45ae3a37c9",
       "e395e256-4783-4f9e-81ff-e40c1bc7db1b",
-      "45345c71-cb82-4b40-ab8b-6969de41f0ec"
+      "45345c71-cb82-4b40-ab8b-6969de41f0ec",
+      "45f363f6-02d1-4bb8-94e1-66ee7f991017",
+      "33b2dd80-4176-4ffe-9a53-25bd6c42abc2",
+      "ab115237-08dc-4227-a9ce-c7e701658510",
+      "5967dad6-f9d6-497c-a389-065233bc7e13",
+      "6475047d-28a4-42b3-8c42-105e9e683553"
     ],
     "is_official": true,
     "owner_email": null,
     "created_at": "2026-11-08T23:26:25.986656+00:00",
-    "updated_at": "2026-11-11T17:11:07.177682+00:00"
+    "updated_at": "2026-11-14T14:47:22.393308+00:00"
   },
   {
     "uuid": "db7aa827-bf49-447c-9599-aa24a66190c5",
@@ -60,12 +65,18 @@
     "description": "Repertorio personale di Daniele (Tastiera)",
     "song_uuids": [
       "cf948606-f687-443e-b332-e8550ad6e891",
-      "9720c8a3-2b8b-4740-a636-417f8783a065"
+      "8f1e4be9-d90b-4d2d-a39f-27f9098789d0",
+      "b4a1523d-49b1-48e8-a47c-c661646d4542",
+      "989e0c2c-c6c8-40e3-a144-c5b6875f2365",
+      "f4c63957-869d-4641-98a1-1fde2a804cfc",
+      "f861495f-edf9-4e66-ae23-8fc3ecf1e351",
+      "eabd6ea6-78cb-4a31-b205-bf6076da505d",
+      "41168143-f444-4a74-9569-a4e0b44d9f36"
     ],
     "is_official": false,
     "owner_email": "danyposta@gmail.com",
     "created_at": "2026-11-09T16:17:28.148112+00:00",
-    "updated_at": "2026-11-10T17:15:54.399800+00:00"
+    "updated_at": "2026-11-13T17:13:23.212047+00:00"
   },
   {
     "uuid": "maurino-personal-rep-uuid",
@@ -81,13 +92,20 @@
     "uuid": "cico-personal-rep-uuid",
     "name": "Cico",
     "description": "Repertorio personale di Cico (Voce)",
-    "song_uuids": [
-      "3d93688e-eab5-4a56-9f8c-d2db4982ae45",
-      "6c01ad65-2b1f-4e64-9708-843cb5d2876b"
-    ],
+    "song_uuids": [],
     "is_official": false,
     "owner_email": "acicchelli65@gmail.com",
     "created_at": "2026-11-10T17:15:54.399800+00:00",
     "updated_at": "2026-11-11T17:09:28.519736+00:00"
+  },
+  {
+    "uuid": "4fc75a77-b4a8-44c7-a9b0-e28cc817aedc",
+    "name": "Daniele.mastroti",
+    "description": "Repertorio personale di Daniele.mastroti",
+    "song_uuids": [],
+    "is_official": false,
+    "owner_email": "daniele.mastroti@gmail.com",
+    "created_at": "2026-11-11T18:37:25.250833+00:00",
+    "updated_at": "2026-11-11T18:37:25.251245+00:00"
   }
 ]

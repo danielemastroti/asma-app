@@ -106,7 +106,10 @@ async function checkGoogleAuth() {
         };
         state.authenticatedUserEmail = data.user.email;
         try { localStorage.setItem('asma_user_email', data.user.email); } catch (e) {}
-        if (data.user.active_device) {
+        const savedDev = (() => { try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; } })();
+        if (savedDev) {
+          state.activeDevice = savedDev;
+        } else if (data.user && data.user.active_device) {
           state.activeDevice = data.user.active_device;
           try { localStorage.setItem('asma_active_device', data.user.active_device); } catch (e) {}
         }
@@ -446,13 +449,18 @@ async function loadUsersAndDevices() {
 
 async function loadUserPreferences(requestedDevice = null) {
   try {
-    const devParam = requestedDevice ? `?device=${encodeURIComponent(requestedDevice)}` : '';
+    const savedDev = (() => { try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; } })();
+    const targetDevice = requestedDevice || state.activeDevice || savedDev;
+    const devParam = targetDevice ? `?device=${encodeURIComponent(targetDevice)}` : '';
     const res = await fetch(`${API_BASE}/api/preferences/${encodeURIComponent(state.currentUser.email)}${devParam}`);
     if (res.ok) {
       const prefs = await res.json();
       state.userPrefs = Object.assign(state.userPrefs, prefs);
-      // Sincronizza il dispositivo preferito persistito sul database
-      if (prefs.active_device) {
+      // Mantieni sempre il dispositivo hardware di questo client
+      if (targetDevice) {
+        state.activeDevice = targetDevice;
+        try { localStorage.setItem('asma_active_device', targetDevice); } catch (e) {}
+      } else if (prefs.active_device) {
         state.activeDevice = prefs.active_device;
         try { localStorage.setItem('asma_active_device', prefs.active_device); } catch (e) {}
       }

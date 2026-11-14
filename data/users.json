@@ -3,7 +3,7 @@
     "email": "acicchelli65@gmail.com",
     "name": "Cico",
     "role": "BAND_MEMBER",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Cico",
+    "picture_url": "https://lh3.googleusercontent.com/a/ACg8ocKlsuOzm1AaBktmS0EcVgFEQAAQUjib98M_36fr5apLlWaTCA=s96-c",
     "is_active": true,
     "provider": "google"
   },
@@ -43,7 +43,7 @@
     "email": "danyposta@gmail.com",
     "name": "Sentimental",
     "role": "ADMIN",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Sentimental",
+    "picture_url": "https://lh3.googleusercontent.com/a/ACg8ocKWL5CLb5BKfKdpmdDhDAxoTmwToFNMlVfm37ZCR4CLxtvaggE=s96-c",
     "is_active": true,
     "provider": "google"
   }
