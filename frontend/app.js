@@ -1405,17 +1405,27 @@ function renderSongViewer() {
     `;
     loadSongPdfPreview(s.uuid);
   } else {
-    const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
-    container.innerHTML = `
-      ${headerHtml}
-      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; flex-wrap: wrap; gap: 6px;">
-        <span>📝 Modalità <b>Testo Web</b> attiva</span>
-        <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="setSongViewType('pdf')">📄 Torna a Spartito PDF</button>
-      </div>
-      <div class="lyrics-container" id="printable-lyrics">
-        ${formattedHtml}
-      </div>
-    `;
+    try {
+      const formattedHtml = parseAmlForWeb(s.aml_content, hasChords);
+      container.innerHTML = `
+        ${headerHtml}
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; flex-wrap: wrap; gap: 6px;">
+          <span>📝 Modalità <b>Testo Web</b> attiva</span>
+          <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11.5px; color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="setSongViewType('pdf')">📄 Torna a Spartito PDF</button>
+        </div>
+        <div class="lyrics-container" id="printable-lyrics">
+          ${formattedHtml}
+        </div>
+      `;
+    } catch (err) {
+      console.error('Error rendering web lyrics view:', err);
+      container.innerHTML = `
+        ${headerHtml}
+        <div class="lyrics-container" id="printable-lyrics">
+          <pre style="white-space: pre-wrap; font-family: monospace;">${escapeHtml(s.aml_content || '')}</pre>
+        </div>
+      `;
+    }
   }
 }
 
@@ -2719,7 +2729,7 @@ function parseAmlForWeb(aml, showChords) {
   if (inSection) html += '</div>';
 
   // Inserisci un badge [END] di default alla fine del brano se non già presente
-  const trimmedAml = (amlText || '').trim();
+  const trimmedAml = (aml || '').trim();
   const alreadyHasEnd = /\[\s*(?:END|FINE)\s*\]\s*$/i.test(trimmedAml) || /\{\s*(?:end|fine)\s*\}\s*$/i.test(trimmedAml);
   if (!alreadyHasEnd && trimmedAml.length > 0) {
     html += '<div class="aml-section"><div class="aml-tag-header" style="color: var(--stage-aml-color, #38bdf8); font-weight: 900;">[END]</div></div>';
@@ -3439,11 +3449,19 @@ async function renderStageSong(currentSong) {
           </div>
         `;
       } else {
-        container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+        try {
+          container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+        } catch (e) {
+          container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
+        }
       }
     } catch (err) {
       console.error('Stage PDF preview error:', err);
-      container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+      try {
+        container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+      } catch (e) {
+        container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
+      }
     }
   } else {
     try {
@@ -3452,7 +3470,12 @@ async function renderStageSong(currentSong) {
         container.style.fontSize = `${savedStageSize}px`;
       }
     } catch (e) {}
-    container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+    try {
+      container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+    } catch (parseErr) {
+      console.error('Error rendering stage teleprompter:', parseErr);
+      container.innerHTML = `<div style="padding: 20px; color: #ef4444;">Errore visualizzazione teleprompter: ${escapeHtml(parseErr.message)}<pre style="color: #fff; margin-top: 10px;">${escapeHtml(currentSong.aml_content || '')}</pre></div>`;
+    }
   }
 
   container.scrollTop = prevScroll;
