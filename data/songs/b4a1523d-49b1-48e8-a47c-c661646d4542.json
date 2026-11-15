@@ -14,7 +14,7 @@
   "notation_system": "INT",
   "tags": [],
   "shared_notes": "",
-  "aml_content": "{c: PINK PROJECT (iniziare con elicottero)}\n{solo: Scena1}\n\nDm | Bb | G | Dm\n\n{c: THE WALL}\n\n| Dm |\n{sov}\nDm Dm Dm\nDm Dm Dm\n{eov}\n{soc}\nG Dm\nF C Dm\nG Dm\nF C Dm\n{eoc}\n\n\n\n\n",
+  "aml_content": "{start_of_song: THE WALL (intro)| PINK PROJECT}\n{c:elicottero}\n{scena: 1 synth}\nDm | Bb | G | Dm\n{end_of_song}\n{start_of_song: THE WALL | PINK PROJECT}\n{scena: 3}\n[INTRO]\n| Dm |\n{sov}\n| Dm | Dm | Dm |\n| Dm | Dm | Dm |\n{eov}\n{soc}\n| G | Dm | \n| F | C | Dm |\n| F | C | Dm |\n{eoc}\n{end_of_song}\n\n{start_of_song: WITH OR WITHOUT YOU | U2 | D}\n{scena: 2}\n[INTRO]\n| D | A | Bm | G |\n| D | A | Bm | G |\n\n{c: la tastiera emette un fischio con F# sul cantato}\n{soc}\n| D | A | Bm |\n| G | D | A | Bm | G\n| D | A | Bm |\n| G | D | A | Bm | G\n{eoc}\n{end_of_song}\n{start_of_song: DON'T YOU | Simple Mind | D}\n{scena: 3 pianoforte}\n[INTRO]\n| D | Em | D | Em\n| C | D |\n{soc}\n| E | D | A | D |\n| E | D | A | D |\n{eoc}\n\n{start_of_song: I WANT YOU BREAK FREE | Queen | E}\n{scena: 3 pianoforte}\n[INTRO]\n| E |\n{sov}\n| E | E | E | A | E | \n| B | A | E  | \n{eov}\n{sob}\n| B | A | \n| B | A | \n| C#m |  \n| F# | F# | \n| A | B | C#m | B | \n| A | B | C#m | B | \n| A | B | E | \n{eob}\n{c: Attendere finale guitar}\n\n{start_of_song: FINAL COUNTDOWN | EUROPE | Em}\n{scena: 4 synth}\n[INTRO]\n| Em | C | Am | D | Em | \n| Em | C | Am | D | Em | D | C | B | B7\n{c: chiudere con E finale}\n\n\n\n\n\n\n",
   "lock_status": {
     "is_locked": false,
     "locked_by_email": null,
@@ -22,7 +22,7 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 8,
+  "current_revision": 10,
   "created_at": "2026-11-13T09:36:13.864144+00:00",
-  "updated_at": "2026-11-13T09:43:21.994950+00:00"
+  "updated_at": "2026-11-14T22:54:55.979957+00:00"
 }

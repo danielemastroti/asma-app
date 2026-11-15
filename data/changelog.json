@@ -9,6 +9,7 @@
       "Selettore Musicista nella Stampa & Condivisione A4: aggiunto menu a tendina dedicato nella modale A4 per selezionare il musicista effettivo (Puma, Cico, Maurino, Red, Mingo, Sentimental), garantendo che sullo spartito stampato o condiviso compaia sempre lo pseudonimo corretto del componente che esegue la stampa."
     ],
     "improvements": [
+      "Barra Comandi Palco Spostata in Alto: eliminata la barra flottante sul fondo dello schermo che copriva parzialmente le ultime righe di testo e accordi; tutti i controlli (Play/Pausa, Velocità, Metronomo, Font A+/A-, Trasposizione, Cambio Vista e Modalità) sono ora posizionati in alto sotto l'intestazione, lasciando la parte inferiore del display completamente libera e sgombra al 100%.",
       "Badge Numerati per Pagine PDF su Palco: visualizzazione chiara dell'indice di pagina (es. 'Pag. 1 / 2') su ciascuna pagina PDF in modalità Palco per monitorare a colpo d'occhio l'avanzamento.",
       "Notifiche Toast di Cambio Pagina: feedback visivo immediato a comparsa ad ogni cambio pagina durante l'esibizione.",
       "Pulsanti Avanzamento Brano Separati in Scaletta Palco: aggiunti tasti dedicati [⏮⏮ Brano] e [Brano ⏭⏭] per saltare all'inizio o alla fine del brano precedente/successivo all'interno della scaletta."

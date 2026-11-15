@@ -1,0 +1,28 @@
+{
+  "uuid": "test-ai-manual-uuid",
+  "title": "Albachiara",
+  "artist": "Vasco Rossi",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 68,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "C",
+  "key_current": "DO",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: Albachiara}\n{artist: Vasco Rossi}\n{key: DO}\n{scena: 3}\n{stacco: guitar}\n[INTRO]\n| DO | SOL | LAm | FA |\n[STROFA]\n[DO]Respiri piano per [SOL]non far rumore\n{solo: Red}\n[OUTRO]\n[DO]Respiri piano... [END]",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 54,
+  "created_at": "2026-11-15T10:20:39.874484+00:00",
+  "updated_at": "2026-11-15T10:20:39.874484+00:00"
+}

@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="/assets/band_logo.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=17.1">
+  <link rel="stylesheet" href="/style.css?v=17.2">
 </head>
 <body>
 
@@ -698,15 +698,12 @@ girano in centro sfiorando i novanta"></textarea>
       </div>
     </div>
 
-    <!-- MAIN SCROLLING CONTENT -->
-    <div id="stage-lyrics" class="stage-content" onclick="toggleAutoscroll()">
-      <!-- Teleprompter lines -->
-    </div>
-
-    <!-- BOTTOM FLOATING CONTROLS (ERGONOMIC FOR LEGGIO) -->
+    <!-- TOP PERFORMANCE CONTROLS BAR (SPEED, METRONOME, FONT, TRANSPOSE, PLAY/PAUSE) -->
     <div class="stage-controls">
-      <!-- Left Pill: Speed, Font Size & Metronome -->
       <div class="stage-control-panel">
+        <button id="btn-stage-toggle" class="btn-stage-circle" style="background-color: #10b981; color: #fff;" onclick="toggleAutoscroll()" title="Avvia / Ferma scorrimento automatico">
+          ▶️
+        </button>
         <div id="stage-metronome-dot" class="stage-metronome-dot" title="Metronomo visivo (tocca per accendere/spegnere)" onclick="toggleMetronome()"></div>
         <div class="stepper" style="gap: 4px;">
           <button class="btn btn-secondary" style="min-height:30px; width:30px; padding:0; border-radius:50%;" onclick="adjustStageScrollSpeed(-5)" title="Rallenta">🐢</button>
@@ -721,14 +718,14 @@ girano in centro sfiorando i novanta"></textarea>
         <span id="stage-transpose-badge" style="color:#ffd600; font-weight:800; font-size:11px; min-width:34px; text-align:center;" title="Tonalità temporanea sul palco">Orig.</span>
         <button class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#ffd600;" onclick="transposeStageLive(1)" title="Alza tonalità al volo solo per questa esecuzione (non modifica il brano)">♯ +1</button>
         <div class="stage-divider"></div>
-        <button id="stage-view-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#38bdf8; border-color:#38bdf8;" onclick="toggleStageViewType()" title="Passa da Spartito PDF reale a Teleprompter testo">📄 Spartito PDF</button>
         <button id="stage-mode-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800;" onclick="toggleStageScoreMode()" title="Cambia modalità: Solo Testo / Testo + Accordi">🎤 Solo Testo</button>
+        <button id="stage-view-btn" class="btn btn-secondary" style="min-height:30px; padding:0 8px; font-size:11px; font-weight:800; color:#38bdf8; border-color:#38bdf8;" onclick="toggleStageViewType()" title="Passa da Spartito PDF reale a Teleprompter testo">📄 Spartito PDF</button>
       </div>
+    </div>
 
-      <!-- Right: Big Play/Pause Toggle -->
-      <button id="btn-stage-toggle" class="btn-stage-circle" style="background-color: #10b981;" onclick="toggleAutoscroll()">
-        ▶️
-      </button>
+    <!-- MAIN SCROLLING CONTENT (FULL REMAINING HEIGHT, UNOBSTRUCTED) -->
+    <div id="stage-lyrics" class="stage-content" onclick="toggleAutoscroll()">
+      <!-- Teleprompter lines -->
     </div>
   </div>
 
@@ -1000,6 +997,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=18.4"></script>
+  <script src="/app.js?v=18.5"></script>
 </body>
 </html>

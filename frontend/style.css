@@ -770,7 +770,7 @@ body {
 .stage-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 20px 60vh 20px;
+  padding: 16px 20px 40px 20px;
   font-family: var(--font-mono);
   font-size: 22px;
   line-height: 1.4;
@@ -867,7 +867,7 @@ body {
   align-items: center;
   gap: 16px;
   width: 100%;
-  padding: 2px 0 140px 0;
+  padding: 2px 0 40px 0;
 }
 
 .stage-pdf-page {
@@ -886,35 +886,33 @@ body {
 }
 
 .stage-controls {
-  position: fixed;
-  bottom: 12px;
-  left: 10px;
-  right: 10px;
-  max-width: calc(100vw - 20px);
+  position: static;
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom: 1px solid #334155;
+  padding: 6px 14px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+  justify-content: flex-start;
+  align-items: center;
   gap: 8px;
-  pointer-events: none;
-  z-index: 10000;
+  flex-wrap: wrap;
+  z-index: 100;
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 .stage-control-panel {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
-  max-width: calc(100% - 62px);
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid #334155;
-  border-radius: 18px;
-  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   pointer-events: auto;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  box-shadow: none;
 }
 
 .stage-divider {
@@ -991,15 +989,17 @@ body {
 
 .btn-stage-circle {
   flex: 0 0 auto;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  font-size: 20px;
-  display: flex;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 900;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.8);
+  border: 1px solid #34d399;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   cursor: pointer;
   pointer-events: auto;
 }
