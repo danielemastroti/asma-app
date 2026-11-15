@@ -690,8 +690,10 @@ girano in centro sfiorando i novanta"></textarea>
       </div>
       <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
         <button id="stage-header-view-btn" class="btn btn-secondary" style="min-height: 38px; padding: 4px 11px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleStageViewType()" title="Passa da Teleprompter testo a Spartito PDF reale">📄 Passa a Spartito PDF</button>
-        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stagePrevSong()">⏮️ Prec</button>
-        <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="stageNextSong()">Succ ⏭️</button>
+        <button id="stage-btn-prev-song" class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px; font-size: 11.5px; display: none;" onclick="stagePrevSong()" title="Salta al brano precedente della scaletta">⏮⏮ Brano</button>
+        <button id="stage-btn-prev" class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 700;" onclick="stagePrevPage()" title="Pagina precedente (o brano prec.)">⏮️ Prec</button>
+        <button id="stage-btn-next" class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 700;" onclick="stageNextPage()" title="Pagina successiva (o brano succ.)">Succ ⏭️</button>
+        <button id="stage-btn-next-song" class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px; font-size: 11.5px; display: none;" onclick="stageNextSong()" title="Salta al brano successivo della scaletta">Brano ⏭⏭</button>
         <button class="btn btn-danger" style="min-height: 38px; padding: 4px 14px; font-weight: 900;" onclick="closeStageModal()">✕ Esci</button>
       </div>
     </div>
@@ -783,15 +785,16 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="pdf-export-modal" class="stage-fullscreen" style="display: none; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center; padding: 16px;">
     <div style="background: var(--bg-surface-elevated); border: 1px solid var(--accent-cyan); border-radius: 12px; max-width: 440px; width: 100%; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 style="font-size: 17px; font-weight: 800; color: #fff; margin: 0;">💾 Salva PDF</h3>
+        <h3 style="font-size: 17px; font-weight: 800; color: #fff; margin: 0;">💾 Salva / Apri PDF</h3>
         <button class="btn btn-secondary" style="min-height: 32px; width: 32px; padding: 0;" onclick="closePdfExportModal()">✕</button>
       </div>
       <div id="pdf-export-filename" style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 6px; word-break: break-all;"></div>
       <div id="pdf-export-status" style="font-size: 12.5px; color: #cbd5e1; margin-bottom: 14px;">⏳ Preparazione file PDF in corso...</div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <a id="pdf-export-direct-link" class="btn btn-primary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 800;" href="#" onclick="triggerDirectAndroidDownload(event)">⬇️ Scarica Diretto</a>
-        <button id="pdf-export-print-btn" class="btn btn-secondary" style="display: none; width: 100%; font-weight: 700;" onclick="printExportedPdf()">🖨️ Stampa / Salva come PDF</button>
+        <button id="pdf-export-share-btn" class="btn btn-success" style="display: none; width: 100%; font-weight: 800; min-height: 42px;" onclick="shareExportedPdf()">📲 Apri / Condividi PDF</button>
+        <a id="pdf-export-direct-link" class="btn btn-primary" style="display: none; width: 100%; text-align: center; text-decoration: none; font-weight: 800; min-height: 40px; align-items: center; justify-content: center;" href="#" download onclick="triggerDirectAndroidDownload(event)">⬇️ Salva nei Download</a>
+        <button id="pdf-export-print-btn" class="btn btn-secondary" style="display: none; width: 100%; font-weight: 700; min-height: 38px;" onclick="printExportedPdf()">🖨️ Stampa / Salva come PDF</button>
       </div>
     </div>
   </div>
@@ -807,6 +810,19 @@ girano in centro sfiorando i novanta"></textarea>
       </div>
 
       <div id="share-a4-song-title" style="font-size: 15px; font-weight: 800; color: #38bdf8; margin-bottom: 12px;"></div>
+
+      <!-- SELETTORE MUSICISTA / DESTINATARIO STAMPA -->
+      <div style="margin-bottom: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px; border: 1px solid #334155;">
+        <label style="font-size: 11px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 4px;">Musicista (stampato sullo spartito):</label>
+        <select id="share-a4-musician-select" class="search-input" style="width: 100%; font-weight: 800; color: #ffd600;" onchange="onShareA4MusicianChanged(this.value)">
+          <option value="Puma">🎸 Puma (Basso)</option>
+          <option value="Cico">🎤 Cico (Voce)</option>
+          <option value="Maurino">🎸 Maurino (Chitarra ritmica)</option>
+          <option value="Red">🎸 Red (Chitarra solista)</option>
+          <option value="Mingo">🥁 Mingo (Batteria)</option>
+          <option value="Sentimental">🎹 Sentimental (Tastiere)</option>
+        </select>
+      </div>
 
       <!-- SELETTORE VERSIONE: CON ACCORDI / SOLO TESTO -->
       <div style="margin-bottom: 14px;">
@@ -984,6 +1000,6 @@ girano in centro sfiorando i novanta"></textarea>
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Client Application Script -->
-  <script src="/app.js?v=18.0"></script>
+  <script src="/app.js?v=18.4"></script>
 </body>
 </html>

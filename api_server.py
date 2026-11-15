@@ -1385,7 +1385,13 @@ def get_song_pdf(
         prof.device_type = "printable_a4"
 
     pseudonym = resolve_user_pseudonym(email, user_name)
-    pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=chords, use_cache=not (a4 or autoprint), user_name=pseudonym)
+    pdf_bytes = PDFEngine.generate_song_pdf(
+        song,
+        profile=prof,
+        include_chords=chords,
+        use_cache=not (a4 or autoprint or download or bool(user_name)),
+        user_name=pseudonym
+    )
 
     if autoprint:
         try:

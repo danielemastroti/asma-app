@@ -52,12 +52,13 @@
       "33b2dd80-4176-4ffe-9a53-25bd6c42abc2",
       "ab115237-08dc-4227-a9ce-c7e701658510",
       "5967dad6-f9d6-497c-a389-065233bc7e13",
-      "6475047d-28a4-42b3-8c42-105e9e683553"
+      "6475047d-28a4-42b3-8c42-105e9e683553",
+      "989e0c2c-c6c8-40e3-a144-c5b6875f2365"
     ],
     "is_official": true,
     "owner_email": null,
     "created_at": "2026-11-08T23:26:25.986656+00:00",
-    "updated_at": "2026-11-14T18:07:36.396687+00:00"
+    "updated_at": "2026-11-15T00:33:54.629255+00:00"
   },
   {
     "uuid": "db7aa827-bf49-447c-9599-aa24a66190c5",
@@ -67,16 +68,17 @@
       "cf948606-f687-443e-b332-e8550ad6e891",
       "8f1e4be9-d90b-4d2d-a39f-27f9098789d0",
       "b4a1523d-49b1-48e8-a47c-c661646d4542",
-      "989e0c2c-c6c8-40e3-a144-c5b6875f2365",
       "f4c63957-869d-4641-98a1-1fde2a804cfc",
       "f861495f-edf9-4e66-ae23-8fc3ecf1e351",
       "eabd6ea6-78cb-4a31-b205-bf6076da505d",
-      "41168143-f444-4a74-9569-a4e0b44d9f36"
+      "41168143-f444-4a74-9569-a4e0b44d9f36",
+      "7eb424e4-b04d-4482-9e23-515a98bc28b8",
+      "2e07857a-6108-4e74-8372-8ce5914bf22e"
     ],
     "is_official": false,
     "owner_email": "danyposta@gmail.com",
     "created_at": "2026-11-09T16:17:28.148112+00:00",
-    "updated_at": "2026-11-13T17:13:23.212047+00:00"
+    "updated_at": "2026-11-15T09:28:56.825927+00:00"
   },
   {
     "uuid": "maurino-personal-rep-uuid",
@@ -107,5 +109,25 @@
     "owner_email": "daniele.mastroti@gmail.com",
     "created_at": "2026-11-11T18:37:25.250833+00:00",
     "updated_at": "2026-11-11T18:37:25.251245+00:00"
+  },
+  {
+    "uuid": "7529bc15-7dc3-44a0-b6d6-f1e1811fda38",
+    "name": "Puma",
+    "description": "Repertorio personale di Puma",
+    "song_uuids": [],
+    "is_official": false,
+    "owner_email": "titholola@gmail.com",
+    "created_at": "2026-11-15T10:31:08.423415+00:00",
+    "updated_at": "2026-11-15T10:31:08.423963+00:00"
+  },
+  {
+    "uuid": "3ef8e225-df74-4465-8115-2a77db8285f5",
+    "name": "Red",
+    "description": "Repertorio personale di Red",
+    "song_uuids": [],
+    "is_official": false,
+    "owner_email": "marcoerario2@gmail.com",
+    "created_at": "2026-11-15T10:32:34.793583+00:00",
+    "updated_at": "2026-11-15T10:32:34.793960+00:00"
   }
 ]

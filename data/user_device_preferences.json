@@ -1,6 +1,6 @@
 {
   "danyposta@gmail.com": {
-    "last_active_device": "Pixel 8 pro",
+    "last_active_device": "Huawei MatePad / Tablet (10.4\"/11\")",
     "devices": {
       "Huawei MatePad": {
         "layout_font_size": 18.0,
@@ -16,7 +16,7 @@
         "updated_at": "2026-11-09 07:53:08"
       },
       "Pixel 8 pro": {
-        "layout_font_size": 10.5,
+        "layout_font_size": 9.5,
         "layout_font_size_chords": 10.0,
         "layout_columns": 1,
         "layout_margin_lateral": 10.0,
@@ -26,7 +26,7 @@
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "app_mode": "simplified",
+        "app_mode": "editing",
         "score_display_mode": "chords",
         "updated_at": "2026-11-09 09:27:57",
         "color_lyrics": "#111111",
@@ -47,10 +47,10 @@
         "layout_color_chords": "#FF0000",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "app_mode": "simplified",
+        "app_mode": "editing",
         "score_display_mode": "chords",
         "updated_at": "2026-11-09 11:48:20",
-        "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
+        "active_device": "Pixel 8 pro",
         "color_lyrics": "#111111",
         "color_aml_markup": "#4A148C",
         "stage_color_lyrics": "#FFFFFF",
@@ -99,16 +99,16 @@
       },
       "IPad 10.2\" (7/8/9 gen) & pro 2019": {
         "layout_font_size": 13.0,
-        "layout_font_size_chords": 13.0,
+        "layout_font_size_chords": 12.0,
         "layout_columns": 1,
         "layout_margin_lateral": 10.0,
-        "layout_margin_top": 10.0,
+        "layout_margin_top": 18.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "app_mode": "editing",
+        "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-10 09:55:00",
         "color_lyrics": "#111111",
@@ -196,7 +196,7 @@
         "layout_font_size_chords": 16.0,
         "layout_columns": 1,
         "layout_margin_lateral": 6.0,
-        "layout_margin_top": 6.0,
+        "layout_margin_top": 10.0,
         "layout_margin_bottom": 8.0,
         "layout_color_text": "#111111",
         "layout_color_chords": "#B71C1C",

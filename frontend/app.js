@@ -12,6 +12,9 @@ const savedScoreMode = (() => {
 const savedUserEmail = (() => {
   try { return localStorage.getItem('asma_user_email'); } catch (e) { return null; }
 })();
+const savedUserName = (() => {
+  try { return localStorage.getItem('asma_user_name'); } catch (e) { return null; }
+})();
 const savedDevice = (() => {
   try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; }
 })();
@@ -30,7 +33,7 @@ const state = {
   setlists: [],
   selectedSetlist: null,
   scoreMode: savedScoreMode || 'lyrics', // Default to 'lyrics' for Cico/singer
-  currentUser: { email: savedUserEmail || 'acicchelli65@gmail.com', name: 'Cico', role: 'BAND_MEMBER' },
+  currentUser: { email: savedUserEmail || 'acicchelli65@gmail.com', name: savedUserName || 'Cico', role: 'BAND_MEMBER' },
   activeDevice: savedDevice || (() => {
     try {
       const cp = localStorage.getItem('asma_user_prefs');
@@ -110,9 +113,10 @@ async function checkGoogleAuth() {
     if (res.ok) {
       const data = await res.json();
       if (data && data.authenticated && data.user && data.user.email) {
+        const savedMusName = localStorage.getItem('asma_user_name');
         state.currentUser = {
           email: data.user.email,
-          name: data.user.name || data.user.email.split('@')[0],
+          name: savedMusName || data.user.name || data.user.email.split('@')[0],
           role: data.user.role || 'BAND_MEMBER',
           picture: data.user.picture || ''
         };
@@ -171,8 +175,8 @@ function syncAuthProfileUi() {
                       state.currentUser.role === 'ADMIN' || state.currentUser.role === 'admin' || state.currentUser.role === 'BAND_LEADER';
   const musRow = document.getElementById('setting-musician-row');
   const nonAdminNote = document.getElementById('auth-nonadmin-note');
-  if (musRow) musRow.style.display = isAuthAdmin ? 'flex' : 'none';
-  if (nonAdminNote) nonAdminNote.style.display = isAuthAdmin ? 'none' : 'block';
+  if (musRow) musRow.style.display = 'flex';
+  if (nonAdminNote) nonAdminNote.style.display = 'none';
 
   const adminDbCard = document.getElementById('admin-db-card');
   if (adminDbCard) adminDbCard.style.display = isAuthAdmin ? 'block' : 'none';
@@ -723,8 +727,10 @@ async function onMusicianChange(email) {
   const user = (state.usersList || []).find(u => u.email.toLowerCase() === email.toLowerCase());
   state.currentUser.name = user ? user.name : (email.split('@')[0]);
   state.currentUser.role = user ? user.role : 'BAND_MEMBER';
+  try { localStorage.setItem('asma_user_name', state.currentUser.name); } catch (e) {}
   const nameSpan = document.getElementById('current-user-name');
   if (nameSpan) nameSpan.textContent = state.currentUser.name;
+  showToast(`Profilo attivo: ${state.currentUser.name}`);
 
   // Non-admins must never have activeRepertoire as __ALL__
   const isAdmin = isCurrentUserAdmin();
@@ -2778,11 +2784,13 @@ function parseAmlForWeb(aml, showChords) {
  */
 function buildPdfQueryParams(hasChords, extra = {}) {
   const p = state.userPrefs || {};
+  const currentMusician = state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma';
+  const currentEmail = state.currentUser?.email || localStorage.getItem('asma_user_email') || '';
   const params = new URLSearchParams({
     chords: hasChords ? 'true' : 'false',
     device: state.activeDevice || 'Default',
-    email: state.currentUser?.email || '',
-    user_name: state.currentUser?.name || '',
+    email: currentEmail,
+    user_name: currentMusician,
     columns: String(p.layout_columns || 1),
     font_size: String(p.layout_font_size || 12),
     font_size_chords: String(p.layout_font_size_chords || 13),
@@ -2840,15 +2848,16 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   const nameEl = document.getElementById('pdf-export-filename');
   const statusEl = document.getElementById('pdf-export-status');
   const directLink = document.getElementById('pdf-export-direct-link');
+  const shareBtn = document.getElementById('pdf-export-share-btn');
   const printBtn = document.getElementById('pdf-export-print-btn');
 
   if (!modal) return;
   if (nameEl) nameEl.textContent = filename;
   if (statusEl) statusEl.textContent = '⏳ Preparazione file PDF dal server...';
   if (directLink) directLink.style.display = 'none';
+  if (shareBtn) shareBtn.style.display = 'none';
   if (printBtn) printBtn.style.display = onPrint ? 'inline-flex' : 'none';
 
-  const isAndroid = /Android/i.test(navigator.userAgent || '');
   state._pdfExport = { url, filename, onPrint, blob: null, blobUrl: null };
   try {
     if (!history.state || history.state.asmaModal !== 'pdf-export') {
@@ -2870,8 +2879,19 @@ async function openPdfExportModal(url, filename, onPrint = null) {
     const kb = Math.max(1, Math.round(blob.size / 1024));
     if (statusEl) statusEl.textContent = `✅ File pronto (${kb} KB). Scegli come procedere:`;
 
+    if (shareBtn && typeof navigator.share === 'function') {
+      try {
+        const testFile = new File([blob], filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [testFile] })) {
+          shareBtn.style.display = 'inline-flex';
+        }
+      } catch (e) {
+        shareBtn.style.display = 'inline-flex';
+      }
+    }
+
     if (directLink) {
-      directLink.href = isAndroid ? url : blobUrl;
+      directLink.href = blobUrl;
       directLink.download = filename;
       directLink.style.display = 'inline-flex';
     }
@@ -2881,14 +2901,68 @@ async function openPdfExportModal(url, filename, onPrint = null) {
   }
 }
 
+async function shareExportedPdf() {
+  const ctx = state._pdfExport;
+  if (!ctx || !ctx.blob) return;
+  const dlName = ctx.filename || 'spartito.pdf';
+  try {
+    const file = new File([ctx.blob], dlName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: dlName,
+        text: `Spartito ${dlName} generato da ASMA 2.0`
+      });
+      closePdfExportModal();
+      return;
+    } else if (typeof navigator.share === 'function') {
+      await navigator.share({
+        title: dlName,
+        url: window.location.href
+      });
+      closePdfExportModal();
+      return;
+    }
+  } catch (err) {
+    if (err && err.name !== 'AbortError') {
+      console.warn('Web Share API error:', err);
+      showToast('Condivisione non supportata, usa "Salva nei Download"');
+    }
+  }
+}
+
 function triggerDirectAndroidDownload(e) {
   const ctx = state._pdfExport;
   if (!ctx) return;
-  if (/Android/i.test(navigator.userAgent || '')) {
-    if (e) e.preventDefault();
-    const targetUrl = ctx.url;
-    closePdfExportModal({ fromPopstate: true });
-    window.location.assign(targetUrl);
+  if (e) {
+    try { e.preventDefault(); } catch (err) {}
+  }
+  const blobUrl = ctx.blobUrl || (ctx.blob ? URL.createObjectURL(ctx.blob) : null);
+  const dlName = ctx.filename || 'spartito.pdf';
+  if (blobUrl) {
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = dlName;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      showToast(`Download di "${dlName}" avviato`);
+      closePdfExportModal();
+    }, 300);
+  } else if (ctx.url) {
+    const a = document.createElement('a');
+    a.href = ctx.url;
+    a.download = dlName;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      closePdfExportModal();
+    }, 300);
   }
 }
 
@@ -2908,6 +2982,15 @@ function downloadPdf() {
 }
 
 async function printDirectA4(url) {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+  if (isStandalone || isMobile) {
+    const cleanTitle = (state.selectedSong?.title || 'spartito').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    openPdfExportModal(url, `${cleanTitle}_A4.pdf`, null);
+    return;
+  }
+
   showToast('Invio alla coda di stampa in corso...');
 
   let printFrame = document.getElementById('asma-direct-print-frame');
@@ -2956,7 +3039,9 @@ function printA4() {
   if (!state.selectedSong) return;
   const p = state.userPrefs || {};
   const hasChords = state.scoreMode === 'chords';
-  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
+  const currentMusician = state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma';
+  const currentEmail = state.currentUser?.email || localStorage.getItem('asma_user_email') || '';
+  const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice || 'A4')}&email=${encodeURIComponent(currentEmail)}&user_name=${encodeURIComponent(currentMusician)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&a4=true&autoprint=true`;
   printDirectA4(url);
 }
 
@@ -2983,7 +3068,9 @@ function getA4CurrentUrlKey() {
   const targetUuid = shareA4State.targetUuid;
   const hasChords = shareA4State.scoreMode === 'chords';
   const twoCols = !!(document.getElementById('share-a4-two-cols')?.checked);
-  return `${isSetlist ? 'setlist' : 'song'}_${targetUuid}_${shareA4State.fontSizeLyrics}_${shareA4State.fontSizeChords}_${hasChords}_${twoCols}`;
+  const musSelect = document.getElementById('share-a4-musician-select');
+  const chosenMusician = musSelect ? musSelect.value : (state.currentUser?.name || localStorage.getItem('asma_user_name') || '');
+  return `${isSetlist ? 'setlist' : 'song'}_${targetUuid}_${shareA4State.fontSizeLyrics}_${shareA4State.fontSizeChords}_${hasChords}_${twoCols}_${chosenMusician}`;
 }
 
 function resetShareA4Button() {
@@ -2996,6 +3083,22 @@ function resetShareA4Button() {
     btnShare.style.boxShadow = 'none';
     btnShare.innerHTML = '<span style="font-size: 18px;">💬</span> Condividi su WhatsApp (Band)';
   }
+}
+
+function onShareA4MusicianChanged(val) {
+  if (!val) return;
+  state.currentUser.name = val;
+  try { localStorage.setItem('asma_user_name', val); } catch (e) {}
+  const matched = (state.usersList || []).find(u => u.name && u.name.toLowerCase() === val.toLowerCase());
+  if (matched) {
+    state.currentUser.email = matched.email;
+    try { localStorage.setItem('asma_user_email', matched.email); } catch (e) {}
+  }
+  const nameSpan = document.getElementById('current-user-name');
+  if (nameSpan) nameSpan.textContent = val;
+  const musSelectSetting = document.getElementById('setting-musician-select');
+  if (musSelectSetting && matched) musSelectSetting.value = matched.email;
+  onShareA4OptionsChanged();
 }
 
 function onShareA4OptionsChanged() {
@@ -3031,6 +3134,10 @@ async function prefetchA4Pdf() {
 
   const twoColsInput = document.getElementById('share-a4-two-cols');
   const twoCols = twoColsInput ? twoColsInput.checked : false;
+  const musSelect = document.getElementById('share-a4-musician-select');
+  const chosenMusician = musSelect ? musSelect.value : (state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma');
+  const matchedUser = (state.usersList || []).find(u => u.name && u.name.toLowerCase() === chosenMusician.toLowerCase());
+  const chosenEmail = (matchedUser && matchedUser.email) || state.currentUser?.email || localStorage.getItem('asma_user_email') || '';
 
   const qs = new URLSearchParams({
     device: 'A4',
@@ -3039,8 +3146,8 @@ async function prefetchA4Pdf() {
     columns: twoCols ? '2' : '1',
     font_size: String(shareA4State.fontSizeLyrics),
     font_size_chords: String(shareA4State.fontSizeChords),
-    user_name: state.currentUser?.name || '',
-    email: state.currentUser?.email || '',
+    user_name: chosenMusician,
+    email: chosenEmail,
     download: 'true'
   }).toString();
 
@@ -3142,6 +3249,10 @@ function openShareA4Modal() {
   resetShareA4Button();
 
   if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 standard pronto per stampa e condivisione';
+  const musSelect = document.getElementById('share-a4-musician-select');
+  if (musSelect) {
+    musSelect.value = state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma';
+  }
   if (modal) modal.style.display = 'flex';
   scheduleA4Prefetch(100);
 }
@@ -3180,6 +3291,10 @@ function openShareSetlistA4Modal(uuid) {
   resetShareA4Button();
 
   if (statusEl) statusEl.textContent = '📄 Formato: Foglio A4 per intera scaletta con copertina e indice';
+  const musSelect = document.getElementById('share-a4-musician-select');
+  if (musSelect) {
+    musSelect.value = state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma';
+  }
   if (modal) modal.style.display = 'flex';
   scheduleA4Prefetch(100);
 }
@@ -3218,6 +3333,10 @@ async function executeShareA4(action = 'whatsapp') {
   const btnShare = document.getElementById('share-a4-whatsapp-btn');
   const twoColsInput = document.getElementById('share-a4-two-cols');
   const twoCols = twoColsInput ? twoColsInput.checked : false;
+  const musSelect = document.getElementById('share-a4-musician-select');
+  const chosenMusician = musSelect ? musSelect.value : (state.currentUser?.name || localStorage.getItem('asma_user_name') || 'Puma');
+  const matchedUser = (state.usersList || []).find(u => u.name && u.name.toLowerCase() === chosenMusician.toLowerCase());
+  const chosenEmail = (matchedUser && matchedUser.email) || state.currentUser?.email || localStorage.getItem('asma_user_email') || '';
 
   const qs = new URLSearchParams({
     device: 'A4',
@@ -3226,8 +3345,8 @@ async function executeShareA4(action = 'whatsapp') {
     columns: twoCols ? '2' : '1',
     font_size: String(shareA4State.fontSizeLyrics),
     font_size_chords: String(shareA4State.fontSizeChords),
-    user_name: state.currentUser?.name || '',
-    email: state.currentUser?.email || '',
+    user_name: chosenMusician,
+    email: chosenEmail,
     download: 'true'
   }).toString();
 
@@ -3376,10 +3495,10 @@ function startSingleSongStage() {
     _stageDelta: 0
   }];
   state.stageIndex = 0;
-  openStageModal();
+  openStageModal({ resetScroll: true });
 }
 
-async function openStageModal() {
+async function openStageModal({ resetScroll = true, scrollToBottom = false } = {}) {
   state.isStageActive = true;
   state.isAutoscrolling = false;
 
@@ -3399,18 +3518,33 @@ async function openStageModal() {
   updateStageHeaderMeta(currentSong);
   updateStageTransposeBadge(currentSong);
 
-  await renderStageSong(currentSong);
+  await renderStageSong(currentSong, { resetScroll, scrollToBottom });
 }
 
 function updateStageHeaderMeta(currentSong) {
   const titleEl = document.getElementById('stage-song-title');
   const metaEl = document.getElementById('stage-song-meta');
-  if (titleEl) titleEl.textContent = currentSong.title;
+  const isMultiSong = state.stageSongs && state.stageSongs.length > 1;
+
+  if (titleEl) {
+    if (isMultiSong) {
+      titleEl.textContent = `[${state.stageIndex + 1}/${state.stageSongs.length}] ${currentSong.title}`;
+    } else {
+      titleEl.textContent = currentSong.title;
+    }
+  }
+
   if (metaEl) {
     const delta = currentSong._stageDelta || 0;
     const shiftTag = delta !== 0 ? ` (${delta > 0 ? '+' : ''}${delta} st al volo)` : '';
-    metaEl.textContent = `${currentSong.artist || 'Band'} • Tonalità: ${toLatinKey(currentSong.key_current)}${shiftTag} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
+    const prefix = isMultiSong ? `Brano ${state.stageIndex + 1} di ${state.stageSongs.length} • ` : '';
+    metaEl.textContent = `${prefix}${currentSong.artist || 'Band'} • Tonalità: ${toLatinKey(currentSong.key_current)}${shiftTag} • ${currentSong.bpm || 120} BPM • Capo: ${currentSong.capo || 0}°`;
   }
+
+  const prevSongBtn = document.getElementById('stage-btn-prev-song');
+  const nextSongBtn = document.getElementById('stage-btn-next-song');
+  if (prevSongBtn) prevSongBtn.style.display = isMultiSong ? 'inline-block' : 'none';
+  if (nextSongBtn) nextSongBtn.style.display = isMultiSong ? 'inline-block' : 'none';
 }
 
 function updateStageTransposeBadge(currentSong) {
@@ -3453,7 +3587,7 @@ async function transposeStageLive(semitones) {
   showToast(label);
 }
 
-async function renderStageSong(currentSong) {
+async function renderStageSong(currentSong, { resetScroll = false, scrollToBottom = false } = {}) {
   const container = document.getElementById('stage-lyrics');
   if (!container || !currentSong) return;
 
@@ -3462,7 +3596,7 @@ async function renderStageSong(currentSong) {
   updateStageHeaderMeta(currentSong);
   updateStageTransposeBadge(currentSong);
 
-  const prevScroll = container.scrollTop || 0;
+  const prevScroll = resetScroll ? 0 : (container.scrollTop || 0);
 
   if (state.stageViewType === 'pdf') {
     container.innerHTML = `<div style="text-align:center; padding:50px 16px; color:#94a3b8;"><div style="font-size:32px; margin-bottom:10px;">⏳</div>Caricamento spartito PDF per il palco...</div>`;
@@ -3477,18 +3611,41 @@ async function renderStageSong(currentSong) {
         container.innerHTML = `
           <div class="stage-pdf-container">
             ${data.pages.map((b64, idx) => `
-              <div class="stage-pdf-page">
+              <div class="stage-pdf-page" id="stage-pdf-page-${idx}" data-page-index="${idx}" style="position: relative;">
                 <img src="${b64}" alt="Pagina ${idx + 1} di ${data.total_pages}" />
+                ${data.total_pages > 1 ? `
+                  <div style="position: absolute; top: 10px; right: 12px; background: rgba(15, 23, 42, 0.85); color: #ffd600; font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); pointer-events: none; border: 1px solid rgba(255, 214, 0, 0.4);">
+                    Pag. ${idx + 1} / ${data.total_pages}
+                  </div>
+                ` : ''}
               </div>
             `).join('')}
           </div>
         `;
+        if (scrollToBottom) {
+          setTimeout(() => {
+            const pages = container.querySelectorAll('.stage-pdf-page');
+            if (pages.length > 0) {
+              const lastPage = pages[pages.length - 1];
+              const containerRect = container.getBoundingClientRect();
+              const pageRect = lastPage.getBoundingClientRect();
+              const target = Math.max(0, container.scrollTop + (pageRect.top - containerRect.top) - 6);
+              container.scrollTop = target;
+              scrollAccumulator = target;
+            }
+          }, 40);
+        } else {
+          container.scrollTop = prevScroll;
+          scrollAccumulator = prevScroll;
+        }
       } else {
         try {
           container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
         } catch (e) {
           container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
         }
+        container.scrollTop = prevScroll;
+        scrollAccumulator = prevScroll;
       }
     } catch (err) {
       console.error('Stage PDF preview error:', err);
@@ -3497,6 +3654,8 @@ async function renderStageSong(currentSong) {
       } catch (e) {
         container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
       }
+      container.scrollTop = prevScroll;
+      scrollAccumulator = prevScroll;
     }
   } else {
     try {
@@ -3511,10 +3670,19 @@ async function renderStageSong(currentSong) {
       console.error('Error rendering stage teleprompter:', parseErr);
       container.innerHTML = `<div style="padding: 20px; color: #ef4444;">Errore visualizzazione teleprompter: ${escapeHtml(parseErr.message)}<pre style="color: #fff; margin-top: 10px;">${escapeHtml(currentSong.aml_content || '')}</pre></div>`;
     }
+
+    if (scrollToBottom) {
+      setTimeout(() => {
+        const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+        container.scrollTop = maxScroll;
+        scrollAccumulator = maxScroll;
+      }, 40);
+    } else {
+      container.scrollTop = prevScroll;
+      scrollAccumulator = prevScroll;
+    }
   }
 
-  container.scrollTop = prevScroll;
-  scrollAccumulator = prevScroll;
   container.style.scrollBehavior = 'auto';
 
   container.onscroll = () => {
@@ -3752,18 +3920,166 @@ function stopAutoscroll() {
   }
 }
 
-function stageNextSong() {
-  if (state.stageIndex < state.stageSongs.length - 1) {
-    state.stageIndex++;
-    openStageModal();
-    showToast(`Brano ${state.stageIndex + 1} di ${state.stageSongs.length}`);
+function applyStageScroll(container, target) {
+  scrollAccumulator = target;
+  try {
+    container.scrollTo({ top: target, behavior: 'smooth' });
+  } catch (e) {
+    container.scrollTop = target;
   }
 }
 
-function stagePrevSong() {
+function stageNextPage() {
+  const container = document.getElementById('stage-lyrics');
+  if (!container) return;
+
+  const clientH = container.clientHeight || window.innerHeight;
+  const scrollH = container.scrollHeight;
+  const currentScroll = container.scrollTop;
+  const maxScroll = Math.max(0, scrollH - clientH);
+
+  // Se siamo già arrivati in fondo allo spartito (entro 25px dal fondo)
+  if (currentScroll >= maxScroll - 25) {
+    if (state.stageIndex < state.stageSongs.length - 1) {
+      stageNextSong();
+    } else {
+      showToast('📄 Sei all\'ultima pagina');
+    }
+    return;
+  }
+
+  if (state.stageViewType === 'pdf') {
+    const pages = Array.from(container.querySelectorAll('.stage-pdf-page'));
+    const totalPages = pages.length;
+
+    if (totalPages > 1) {
+      const cRect = container.getBoundingClientRect();
+      
+      // Trova la pagina attualmente visibile
+      let currentIdx = 0;
+      for (let i = 0; i < pages.length; i++) {
+        const pRect = pages[i].getBoundingClientRect();
+        if (pRect.bottom - cRect.top > 80) {
+          currentIdx = i;
+          break;
+        }
+      }
+
+      const curPage = pages[currentIdx];
+      const curPageRect = curPage.getBoundingClientRect();
+      const curPageBottomRel = curPageRect.bottom - cRect.top;
+
+      // Se la pagina corrente ha ancora contenuto nascosto in basso oltre lo schermo
+      if (curPageBottomRel > clientH + 40) {
+        const step = Math.floor(clientH * 0.85);
+        const target = Math.min(maxScroll, currentScroll + step);
+        applyStageScroll(container, target);
+        showToast(`📄 Pagina ${currentIdx + 1} di ${totalPages}`);
+        return;
+      }
+
+      // Altrimenti salta alla pagina successiva
+      if (currentIdx + 1 < totalPages) {
+        const nextPage = pages[currentIdx + 1];
+        const nextRelTop = nextPage.getBoundingClientRect().top - cRect.top;
+        const target = Math.min(maxScroll, Math.max(0, currentScroll + nextRelTop - 4));
+        applyStageScroll(container, target);
+        showToast(`📄 Pagina ${currentIdx + 2} di ${totalPages}`);
+        return;
+      }
+    }
+  }
+
+  // Modalità Teleprompter o fallback PDF pagina singola:
+  // Avanza di una schermata (85% dell'altezza visibile)
+  const step = Math.max(200, Math.floor(clientH * 0.85));
+  const target = Math.min(maxScroll, currentScroll + step);
+  applyStageScroll(container, target);
+  showToast('📄 Pagina successiva');
+}
+
+function stagePrevPage() {
+  const container = document.getElementById('stage-lyrics');
+  if (!container) return;
+
+  const clientH = container.clientHeight || window.innerHeight;
+  const currentScroll = container.scrollTop;
+
+  // Se siamo già in cima allo spartito (entro 25px dalla cima)
+  if (currentScroll <= 25) {
+    if (state.stageIndex > 0) {
+      stagePrevSong({ scrollToBottom: true });
+    } else {
+      showToast('📄 Sei all\'inizio dello spartito');
+    }
+    return;
+  }
+
+  if (state.stageViewType === 'pdf') {
+    const pages = Array.from(container.querySelectorAll('.stage-pdf-page'));
+    const totalPages = pages.length;
+
+    if (totalPages > 1) {
+      const cRect = container.getBoundingClientRect();
+
+      let currentIdx = 0;
+      for (let i = 0; i < pages.length; i++) {
+        const pRect = pages[i].getBoundingClientRect();
+        if (pRect.bottom - cRect.top > 80) {
+          currentIdx = i;
+          break;
+        }
+      }
+
+      const curPage = pages[currentIdx];
+      const curPageTopRel = curPage.getBoundingClientRect().top - cRect.top;
+
+      // Se siamo dentro la pagina corrente ma non alla sua sommità
+      if (curPageTopRel < -40) {
+        const step = Math.floor(clientH * 0.85);
+        const target = Math.max(0, Math.max(currentScroll + curPageTopRel, currentScroll - step));
+        applyStageScroll(container, target);
+        showToast(`📄 Pagina ${currentIdx + 1} di ${totalPages}`);
+        return;
+      }
+
+      // Altrimenti salta alla pagina precedente
+      if (currentIdx > 0) {
+        const prevPage = pages[currentIdx - 1];
+        const prevRelTop = prevPage.getBoundingClientRect().top - cRect.top;
+        const target = Math.max(0, currentScroll + prevRelTop - 4);
+        applyStageScroll(container, target);
+        showToast(`📄 Pagina ${currentIdx} di ${totalPages}`);
+        return;
+      }
+    }
+  }
+
+  // Modalità Teleprompter o fallback PDF pagina singola:
+  // Risali di una schermata (85% dell'altezza visibile)
+  const step = Math.max(200, Math.floor(clientH * 0.85));
+  const target = Math.max(0, currentScroll - step);
+  applyStageScroll(container, target);
+  showToast('📄 Pagina precedente');
+}
+
+function stageNextSong() {
+  if (state.stageIndex < state.stageSongs.length - 1) {
+    state.stageIndex++;
+    openStageModal({ resetScroll: true });
+    showToast(`Brano ${state.stageIndex + 1} di ${state.stageSongs.length}: ${state.stageSongs[state.stageIndex].title}`);
+  } else {
+    showToast('Ultimo brano della scaletta');
+  }
+}
+
+function stagePrevSong({ scrollToBottom = false } = {}) {
   if (state.stageIndex > 0) {
     state.stageIndex--;
-    openStageModal();
+    openStageModal({ resetScroll: !scrollToBottom, scrollToBottom });
+    showToast(`Brano ${state.stageIndex + 1} di ${state.stageSongs.length}: ${state.stageSongs[state.stageIndex].title}`);
+  } else {
+    showToast('Primo brano della scaletta');
   }
 }
 
@@ -3774,20 +4090,12 @@ function initKeyboardAndPedals() {
   window.addEventListener('keydown', (e) => {
     if (!state.isStageActive) return;
 
-    if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === '3') {
-      const container = document.getElementById('stage-lyrics');
-      if (container) {
-        container.scrollTop += 320;
-        scrollAccumulator = container.scrollTop;
-      }
+    if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === '3') {
+      stageNextPage();
       e.preventDefault();
     }
-    else if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === '1') {
-      const container = document.getElementById('stage-lyrics');
-      if (container) {
-        container.scrollTop -= 320;
-        scrollAccumulator = container.scrollTop;
-      }
+    else if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === '1') {
+      stagePrevPage();
       e.preventDefault();
     }
     else if (e.key === ' ' || e.key === 'Enter') {
@@ -3826,9 +4134,9 @@ function initKeyboardAndPedals() {
 
     if (Math.abs(diffX) > 80 && Math.abs(diffY) < 50) {
       if (diffX < 0) {
-        stageNextSong();
+        stageNextPage();
       } else {
-        stagePrevSong();
+        stagePrevPage();
       }
     }
   });
