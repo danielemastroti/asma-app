@@ -54,7 +54,7 @@ class TestRepertoireScoping(unittest.TestCase):
         promote_res = self.client.post('/api/repertoires/promote-song', json={'song_uuid': test_song['uuid']})
         self.assertEqual(promote_res.status_code, 200, promote_res.text)
 
-        # 5. Test Soft Delete & Restore
+        # 5. Test Soft Delete & Restore with Admin Protection
         song_create_res = self.client.post('/api/songs', json={
             'title': 'TEST UNDO SONG',
             'artist': 'Band',
@@ -62,14 +62,20 @@ class TestRepertoireScoping(unittest.TestCase):
             'aml_content': '[SOL]Test'
         })
         del_song_uuid = song_create_res.json()['song']['uuid']
-        del_res = self.client.delete(f'/api/songs/{del_song_uuid}')
+
+        # Non-admin musician cannot delete song belonging to Official Repertoire
+        del_forbidden = self.client.delete(f'/api/songs/{del_song_uuid}?user_email=acicchelli65@gmail.com')
+        self.assertEqual(del_forbidden.status_code, 403, "Non-admin must get 403 when deleting official song")
+
+        # Admin can delete song from Official Repertoire
+        del_res = self.client.delete(f'/api/songs/{del_song_uuid}?user_email=danyposta@gmail.com')
         self.assertEqual(del_res.status_code, 200)
         restore_res = self.client.post(f'/api/songs/{del_song_uuid}/restore')
         self.assertEqual(restore_res.status_code, 200)
         self.assertEqual(restore_res.json()['song']['title'], 'TEST UNDO SONG')
 
-        # Cleanup test song
-        self.client.delete(f'/api/songs/{del_song_uuid}')
+        # Cleanup test song (as admin)
+        self.client.delete(f'/api/songs/{del_song_uuid}?user_email=danyposta@gmail.com')
 
 def run_tests():
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestRepertoireScoping)

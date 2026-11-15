@@ -1392,9 +1392,12 @@ function renderSongViewer() {
   let editingActionsHtml = '';
   if (editing) {
     if (isInOfficial) {
+      const adminDeleteBtn = (typeof isCurrentUserAdmin === 'function' && isCurrentUserAdmin()) ? `
+        <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano dal Repertorio Ufficiale Band (Richiede conferma Admin)">🗑️ Elimina dall'Ufficiale</button>` : '';
       editingActionsHtml = `
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
-        <button class="btn btn-primary" style="font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8;" onclick="forkSongToPersonalAndEdit('${s.uuid}')" title="Copia questo brano nel tuo repertorio personale per poterlo modificare liberamente">📋 Copia nel Personale per Modificare</button>`;
+        <button class="btn btn-primary" style="font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8;" onclick="forkSongToPersonalAndEdit('${s.uuid}')" title="Copia questo brano nel tuo repertorio personale per poterlo modificare liberamente">📋 Copia nel Personale per Modificare</button>
+        ${adminDeleteBtn}`;
     } else {
       editingActionsHtml = `
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
@@ -4821,14 +4824,21 @@ async function deleteSongWithUndo(uuid) {
   if (!requireEditingMode()) return;
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(uuid);
-  if (isInOfficial && (!state.activeRepertoire || state.activeRepertoire === officialRep.uuid || state.activeRepertoire === '__ALL__')) {
-    showToast('⚠️ I brani del Repertorio Ufficiale non possono essere eliminati direttamente.');
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  const isTargetingOfficial = isInOfficial && (!state.activeRepertoire || (officialRep && state.activeRepertoire === officialRep.uuid) || state.activeRepertoire === '__ALL__');
+
+  if (isTargetingOfficial && !isAdmin) {
+    showToast('⚠️ I brani del Repertorio Ufficiale possono essere eliminati solo dall\'Amministratore.');
     return;
   }
   const song = (state.songs || []).find(s => s.uuid === uuid) || state.selectedSong;
   if (!song) return;
 
-  if (!confirm(`Vuoi spostare "${song.title}" nel cestino protetto? Potrai ripristinarlo in qualsiasi momento.`)) {
+  const confirmMsg = isTargetingOfficial
+    ? `⚠️ CONFERMA ELIMINAZIONE DA REPERTORIO UFFICIALE (ADMIN)\n\nSei sicuro di voler eliminare il brano "${song.title}" dal Repertorio Ufficiale Band?\n\nIl brano verrà rimosso per tutti i membri della band e archiviato nel cestino protetto.\n\nConfermi l'eliminazione?`
+    : `Vuoi spostare "${song.title}" nel cestino protetto? Potrai ripristinarlo in qualsiasi momento.`;
+
+  if (!confirm(confirmMsg)) {
     return;
   }
 

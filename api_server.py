@@ -1059,13 +1059,28 @@ def update_song(uuid: str, req: SongUpdateRequest):
 @app.delete("/api/songs/{uuid}")
 def delete_song(
     uuid: str,
-    user_email: str = "cico@band.org",
-    user_name: str = "Cico",
+    user_email: str = "danyposta@gmail.com",
+    user_name: str = "Admin",
     repertoire_uuid: Optional[str] = None,
 ):
-    """Soft deletes song into trash, or detaches from repertoire_uuid if shared across repertoires."""
+    """Soft deletes song into trash, or detaches from repertoire_uuid if shared across repertoires.
+    Protected: Only Admin can delete or detach songs from the Official Band Repertoire.
+    """
     all_reps = storage.list_repertoires()
     containing_reps = [r for r in all_reps if uuid in r.song_uuids]
+    target_rep = next((r for r in all_reps if r.uuid == repertoire_uuid), None) if repertoire_uuid else None
+
+    # Protezione del Repertorio Ufficiale:
+    # Se il brano appartiene al Repertorio Ufficiale e si tenta di eliminarlo o rimuoverlo dall'Ufficiale,
+    # solo l'amministratore (is_admin_email) è autorizzato a procedere!
+    is_admin = is_admin_email(user_email)
+    affects_official = any(getattr(r, "is_official", False) for r in containing_reps) if (not target_rep or getattr(target_rep, "is_official", False)) else False
+    if affects_official and not is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="I brani del Repertorio Ufficiale possono essere eliminati solo dall'Amministratore."
+        )
+
     if repertoire_uuid and len(containing_reps) > 1 and any(r.uuid == repertoire_uuid for r in containing_reps):
         removed = storage.remove_song_from_repertoire(uuid, repertoire_uuid, user_email, user_name)
         if not removed:
