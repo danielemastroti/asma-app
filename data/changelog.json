@@ -1,5 +1,17 @@
 [
   {
+    "version": "2026.11.15",
+    "date": "15/11/2026",
+    "title": "Protezione Anti-Orfani PDF per Accordi e Sezioni, Supporto Keep-Together Medley",
+    "new_features": [],
+    "improvements": [],
+    "security": [],
+    "bug_fixes": [
+      "Protezione Atomica Accordi e Sezioni nei PDF: implementata struttura atomica indivisibile (AtomicTable con NOSPLIT) per le coppie accordi-testo e per le intestazioni di sezione ([STROFA], [RITORNELLO], [INTRO], [BRIDGE], ecc.); garantito che gli accordi non restino mai orfani in fondo a una pagina o colonna separati dal proprio testo, e che i badge di sezione non appaiano mai isolati senza la prima riga musicale.",
+      "Rafforzamento Paginazione Medley: preservata l'indivisibilita' dei blocchi musicali anche all'interno dei raggruppamenti KeepTogether di brani medley multi-sezione su iPad e tablet a piu' colonne."
+    ]
+  },
+  {
     "version": "2026.11.14",
     "date": "14/11/2026",
     "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
@@ -31,13 +43,14 @@
     "new_features": [
       "Protezione Rigorosa Repertorio Ufficiale: vietata la modifica diretta dei brani del repertorio ufficiale a tutti gli utenti (incluso l'amministratore). I musicisti creano la propria copia personale nel loro repertorio, apportano le modifiche, le salvano e poi le promuovono a Ufficiale (rimuovendo la copia personale).",
       "Condivisione A4 su WhatsApp per Scalette e Brani: invio del file PDF A4 pronto per la stampa direttamente su WhatsApp tramite Web Share API nativa (con allegato PDF reale per smartphone e tablet, e fallback web per desktop).",
-      "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa ' Con Accordi' e versione ' Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.",
+      "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa '🎸 Con Accordi' e versione '🎤 Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font.",
       "Modifica Data di Esecuzione Scalette: campo data interattivo (gg/mm/aaaa) modificabile direttamente dall'editor scaletta con salvataggio automatico e sincronizzazione immediata nel database cloud Turso.",
       "Badge Fine Brano [END] Standard: inserito badge automatico [END] al termine di ogni spartito per i musicisti sul palco (sia nell'anteprima web che nei PDF generati).",
       "Registro Modifiche Dinamico (Changelog): consultabile liberamente da tutti i componenti della band con raggruppamento rigoroso a singola versione giornaliera e persistenza permanente su database cloud.",
       "Pannello Backup & Restore DB (Solo Admin): maschera esclusiva per gli amministratori per esportare il dump JSON integrale dell'intero database e changelog o ripristinarlo con un click.",
       "Feature Alfa",
-      "Feature Beta"
+      "Feature Beta",
+      "Selettore Rapido Versione A4 (Con Accordi vs Solo Testo): pulsanti dedicati nella modale A4 per scegliere tra versione completa 'Con Accordi' e versione 'Solo Testo' (ideale per cantanti e leggii vocali), con regolazione separata dei font."
     ],
     "improvements": [
       "Prefetch PDF & Tocco Diretto iOS/iPadOS: precaricamento automatico in memoria dei PDF multi-pagina delle scalette per eliminare l'errore di scadenza del gesto utente di Safari ('user denied permission'), affiancato dal pulsante verde di invio istantaneo.",
@@ -83,14 +96,16 @@
       "Risolto Crash Bianco in Modalità Palco ('Node.removeChild'): rimossa la rimozione diretta di nodi DOM gestiti da React nei watchdog di stile, garantendo la transizione fluida e sicura alla Modalità Palco senza interruzioni di rendering.",
       "Correzione Dispositivo Cico e Priorità Profili Turso DB: corretto il riconoscimento hardware dei tablet Huawei e blindata la priorità assoluta ai profili registrati nel database cloud (Foglio A4 da PC, Huawei MatePad da tablet), eliminando alla radice l'assegnazione accidentale di Pixel 8 pro.",
       "Ottimizzazione Prestazioni 'Brani' e Anteprima PDF: introdotto caching istantaneo (@st.cache_data) per rendering pagine PDF, pulsanti di stampa A4 e compilazione documenti musicali, abbattendo il tempo di apertura e selezione brano a meno di 150ms.",
-      "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto ' Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
-      "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista (' Cico') su tablet e smartphone.",
+      "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto '🚪 Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
+      "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('👤 Cico') su tablet e smartphone.",
       "Ottimizzazione Velocità Logon e Logout: rimossa la chiamata di sincronizzazione cloud remota bloccante all'accesso sessione (lo storage è già istantaneo in-memory e SQLite), velocizzando il login e la navigazione ad apertura immediata (<100ms).",
       "Risolto bug dispositivo attivo e preferenze incrociate tra PC e Tablet: memorizzazione e ripristino indipendenti dell'ultimo dispositivo per categoria hardware (desktop PC, tablet, smartphone). Se l'utente imposta 'Foglio a 4 stampabile' da PC, al nuovo login dallo stesso PC ritrova 'Foglio a 4 stampabile' con tutti i settaggi (font, accordi, margini, colonne, colori), senza sovrapporsi al tablet (es. Huawei). La selezione genera un inserimento/aggiornamento immediato su Turso Cloud DB (ON CONFLICT DO UPDATE).",
       "Risolto glitch visivo di tag JS grezzo iniettato via markdown nella parte superiore della vista principale.",
       "Risolto bug di sovrascrittura preferenze utente su reload: sincronizzati i widget slider e radio con le chiavi di sessione e callback on_change dedicati, impedendo a valori di fallback di azzerare i valori a database.",
       "Correzione sparizione editor e anteprima nei Brani: aggiunta sincronizzazione esplicita delle chiavi univoche (UUID) per l'area di testo AML e pulsanti di sblocco/salvataggio.",
-      "Correzione AttributeError su MusicEngine.detect_notation_system durante la modifica degli attributi di tonalità e capotasto."
+      "Correzione AttributeError su MusicEngine.detect_notation_system durante la modifica degli attributi di tonalità e capotasto.",
+      "Unico Tasto Logout e Correzione Flusso di Disconnessione: rimosso il pulsante duplicato di logout (eliminato da menu secondari e popover); mantenuto un unico tasto 'Logout' nella barra superiore con callback on_click dedicato, eliminando il ricaricamento forzato errato e garantendo la disconnessione immediata ed effettiva.",
+      "Risoluzione Sovrapposizione Header Brand: rimossa la badge di modalità (LIVE/EDIT) dall'header ed eliminata la larghezza massima fissa (180px), azzerando qualsiasi collisione o sovrapposizione con il profilo musicista ('Cico') su tablet e smartphone."
     ]
   },
   {
@@ -106,11 +121,12 @@
       "Suggerimenti preset, scene memory e super knob Yamaha Montage dedicati ai tastieristi."
     ],
     "improvements": [
-      "Layout scalette ottimizzato: pulsanti sposta brano ('Su', 'Giu') ed elimina ('Elimina') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.",
+      "Layout scalette ottimizzato: pulsanti sposta brano ('⬆️', '⬇️') ed elimina ('❌') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili.",
       "Unicità rigorosa dei repertori: divieto assoluto di creare o rinominare repertori con nomi duplicati (case-insensitive), con notifica immediata d'errore.",
       "Cancellazione repertori fittizi o vuoti duplicati dal database.",
       "Selettore profili utente e simulazione ruoli riservato esclusivamente agli utenti Admin.",
-      "Rimozione voce ridondante 'Logout' dai sottomenu orizzontali."
+      "Rimozione voce ridondante 'Logout' dai sottomenu orizzontali.",
+      "Layout scalette ottimizzato: pulsanti sposta brano ('Su', 'Giu') ed elimina ('Elimina') disposti su un'unica riga orizzontale compatta su tutti i dispositivi mobili."
     ],
     "security": [
       "Autenticazione Google OAuth reale e obbligatoria per tutti gli accessi: digitazione email autorizzata con login_hint e reindirizzamento diretto a Google per la verifica di sicurezza dell'identità (nessun bypass consentito).",
@@ -127,7 +143,7 @@
       "Risolto AttributeError all'avvio: eliminato importlib.reload legacy in app.py con ripristino dell'importazione nativa e pulita di StorageManager.",
       "Accesso diretto automatico: se l'utente ha già effettuato l'autenticazione Google sul browser, accede direttamente all'applicazione senza passare dalla schermata di login.",
       "Risoluzione Errore Google 403 (Robottino 'Non disponi dell'autorizzazione necessaria'): rimossa navigazione iframe tramite meta-refresh e implementato reindirizzamento top-level (window.top) con pulsante diretto target='_top' per consentire a Google Accounts di aprirsi all'esterno del frame di Streamlit.",
-      "Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante ' Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.",
+      "Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante '🎸 Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale.",
       "Motore PDF: rimossa la tabella a celle colorate per le sequenze di accordi (griglie armoniche); ora renderizzate in linea con separatore '|' pulito (es. 'LA | DO | FA | SOL') conforme alla specifica utente.",
       "Parser AML e Motore Musicale: aggiunto riconoscimento nativo dell'accordo 'SOL4+' e suffissi '4+', con trasposizione corretta e unione automatica delle righe di accordi tradizionali posizionate sopra il testo (es. 'SOL'/'Vespe', 'SOL4+'/'anni').",
       "Anteprima PDF: risolto disallineamento della cache di sessione del preview e bug sintattico in app.py con aggiornamento istantaneo del ridimensionamento font degli accordi.",
@@ -135,7 +151,8 @@
       "Persistenza Dispositivo su Cookie di Sessione e LocalStorage: isolamento totale dell'accoppiamento utente-dispositivo tramite cookie locali nel browser. Il PC rimane impostato stabilmente su A4 Desktop e lo Smartphone su Pixel 8, prevenendo qualsiasi sovrascrittura incrociata anche dopo riavvii o nuovi deploy.",
       "Deduplicazione e Unicità Repertori: rimossi tutti i brani doppi dai repertori, unificati i codici brano canonici e imposto il controllo rigoroso anti-duplicato (case-insensitive) sullo stesso repertorio.",
       "Titoli Brani in UPPERCASE: formattati tutti i titoli dei brani ufficiali in lettere maiuscole per una leggibilità perfetta su display di palco e repertorio.",
-      "Protezione Cestino e Persistenza post-Deploy: rimosso data/trash/ dal .gitignore e implementato il registro Tombstone permanente. Gli elementi cancellati (scalette, brani, repertori) non riappaiono mai più nei menu a discesa né dopo un deploy né dopo un riavvio, rimanendo recuperabili esclusivamente dall'Admin nel Cestino."
+      "Protezione Cestino e Persistenza post-Deploy: rimosso data/trash/ dal .gitignore e implementato il registro Tombstone permanente. Gli elementi cancellati (scalette, brani, repertori) non riappaiono mai più nei menu a discesa né dopo un deploy né dopo un riavvio, rimanendo recuperabili esclusivamente dall'Admin nel Cestino.",
+      "Allineamento Autenticazione alla Prima Versione (Accordi): ripristinato il flusso di autenticazione nativo Streamlit OIDC con pulsante 'Accedi con Google' (on_click=st.login), verifica st.user/headers e supporto Authlib per eliminare definitivamente qualsiasi blocco di navigazione o modulo manuale."
     ]
   },
   {

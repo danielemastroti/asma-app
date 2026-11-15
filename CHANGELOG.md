@@ -1,5 +1,11 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.15 (15/11/2026) — Protezione Anti-Orfani PDF per Accordi e Sezioni, Supporto Keep-Together Medley
+
+### Correzioni di Bug (Bug Fixes)
+- Protezione Atomica Accordi e Sezioni nei PDF: implementata struttura atomica indivisibile (AtomicTable con NOSPLIT) per le coppie accordi-testo e per le intestazioni di sezione ([STROFA], [RITORNELLO], [INTRO], [BRIDGE], ecc.); garantito che gli accordi non restino mai orfani in fondo a una pagina o colonna separati dal proprio testo, e che i badge di sezione non appaiano mai isolati senza la prima riga musicale.
+- Rafforzamento Paginazione Medley: preservata l'indivisibilita' dei blocchi musicali anche all'interno dei raggruppamenti KeepTogether di brani medley multi-sezione su iPad e tablet a piu' colonne.
+
 ## Versione 2026.11.14 (14/11/2026) — Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo
 
 ### Nuove Funzionalità (New Features)
