@@ -191,7 +191,7 @@ class PDFEngine:
         """
         prof = profile or DeviceProfile()
         cache_key = (
-            f"{song.uuid}_{song.updated_at}_{prof.name}_{prof.target_device}_{prof.orientation}_"
+            f"v3_{song.uuid}_{song.updated_at}_{prof.name}_{prof.target_device}_{prof.orientation}_"
             f"{getattr(prof, 'columns', 1)}_{getattr(prof, 'font_size_lyrics', 12)}_"
             f"{getattr(prof, 'font_size_chords', 13)}_"
             f"{getattr(prof, 'margin_left_mm', 10)}_{getattr(prof, 'margin_top_mm', 10)}_{getattr(prof, 'color_lyrics', '')}_"
@@ -772,12 +772,27 @@ class PDFEngine:
 
             if pending_badge:
                 # Fonde atomicamente il badge di sezione con la prima riga di contenuto:
+                # Se main_item e' una Table (es. pair_table con p_chords e p_lyrics), estraiamo direttamente le sue righe
+                # per creare una singola tabella atomica non-annidata a 2 o 3 righe (badge + accordi + testo).
                 # NON potranno MAI essere separati ne' lasciare il badge o gli accordi orfani a fine pagina/colonna!
-                combined_table = AtomicTable([[pending_badge], [main_item]], colWidths=[usable_width])
+                badge_p = pending_badge
+                if isinstance(badge_p, Table):
+                    badge_rows = badge_p._cellvalues
+                else:
+                    badge_rows = [[badge_p]]
+
+                if isinstance(main_item, Table):
+                    combined_rows = badge_rows + main_item._cellvalues
+                else:
+                    combined_rows = badge_rows + [[main_item]]
+
+                combined_table = AtomicTable(combined_rows, colWidths=[usable_width])
                 combined_table.setStyle(TableStyle([
-                    ('TOPPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(c_aml_hex)),
+                    ('TOPPADDING', (0, 0), (-1, 0), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 2),
+                    ('TOPPADDING', (0, 1), (-1, -1), 1),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 0),
                     ('LEFTPADDING', (0, 0), (-1, -1), 0),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('NOSPLIT', (0, 0), (-1, -1)),

@@ -1471,7 +1471,7 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
 
   try {
     const p = state.userPrefs;
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}`;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&_v=${Date.now()}`;
     
     // Timeout a 12s per gestire risvegli o latenze
     const controller = new AbortController();
@@ -3470,7 +3470,7 @@ async function renderStageSong(currentSong) {
       const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
       const stageDelta = currentSong._stageDelta || 0;
-      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&transpose=${stageDelta}`;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&transpose=${stageDelta}&_v=${Date.now()}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();

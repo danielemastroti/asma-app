@@ -1536,7 +1536,7 @@ def get_song_pdf_preview(
     chords_val = chords if isinstance(chords, bool) else (getattr(chords, "default", True) is not False)
     pseudonym = resolve_user_pseudonym(email_clean, user_name)
     cache_key = (
-        f"{song.uuid}_{song.updated_at}_{transpose_val}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
+        f"v3_{song.uuid}_{song.updated_at}_{transpose_val}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
         f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
         f"{prof.color_aml_markup}_{chords_val}_{pseudonym}"
     )
