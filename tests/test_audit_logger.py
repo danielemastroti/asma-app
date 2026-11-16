@@ -40,6 +40,60 @@ class TestAuditLogger(unittest.TestCase):
         login_logs = self.logger.get_entries(action_filter="LOGIN")
         self.assertEqual(len(login_logs), 1)
 
+    def test_15_days_retention_pruning(self):
+        """Test that records older than 15 days are automatically pruned."""
+        from datetime import datetime, timezone, timedelta
+        from asma_core.models import AuditEntry
+
+        now = datetime.now(timezone.utc)
+        old_ts = (now - timedelta(days=20)).isoformat()
+        recent_ts = (now - timedelta(days=2)).isoformat()
+
+        # Inject an expired entry and a valid entry
+        e_old = AuditEntry(
+            uuid="old-uuid",
+            timestamp=old_ts,
+            action="LOGIN",
+            entity_type="AUTH",
+            entity_id="user-old",
+            user_email="old@band.org",
+            user_name="OldUser"
+        )
+        e_recent = AuditEntry(
+            uuid="recent-uuid",
+            timestamp=recent_ts,
+            action="UPDATE",
+            entity_type="SONG",
+            entity_id="song-recent",
+            user_email="puma@band.org",
+            user_name="Puma"
+        )
+        with self.logger._mutex:
+            self.logger._memory_log.extend([e_old, e_recent])
+
+        pruned = self.logger.prune_retention()
+        self.assertEqual(pruned, 1)
+
+        remaining = self.logger.get_entries(limit=10)
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].uuid, "recent-uuid")
+
+    def test_statistics_calculation(self):
+        """Test usage frequency and musician activity statistics."""
+        self.logger.log("LOGIN", "AUTH", "u1", "cico@band.org", "Cico")
+        self.logger.log("UPDATE", "SONG", "s1", "cico@band.org", "Cico", {"title": "Brano 1"})
+        self.logger.log("UPDATE", "SONG", "s2", "puma@band.org", "Puma", {"title": "Brano 2"})
+
+        stats = self.logger.get_statistics(days=15)
+        self.assertEqual(stats["total_events"], 3)
+        self.assertGreaterEqual(len(stats["active_users"]), 2)
+        # Cico should have 2 actions, Puma 1
+        top_user = stats["active_users"][0]
+        self.assertEqual(top_user["name"], "Cico")
+        self.assertEqual(top_user["count"], 2)
+        self.assertEqual(stats["action_counts"]["UPDATE"], 2)
+        self.assertEqual(stats["action_counts"]["LOGIN"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

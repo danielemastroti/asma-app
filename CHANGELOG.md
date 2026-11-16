@@ -1,5 +1,16 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.16 (16/11/2026) — Audit Log Riservato ad Admin con Retention 15 Giorni e Statistiche di Utilizzo Band
+
+### Nuove Funzionalità (New Features)
+- Registro Attivita' Audit Log Riservato all'Admin: introdotta la consultazione on-demand del registro di AUDIT LOG direttamente dall'interfaccia (pulsante nella barra superiore e nella scheda Amministrazione DB), accessibile esclusivamente all'Amministratore; permette di monitorare in tempo reale se il sito viene utilizzato, con che frequenza, quali sono le funzioni usate e da quali musicisti.
+- Retention Automatica a 15 Giorni: implementato meccanismo di potatura automatica a 15 giorni per il registro di audit sia su file locale che su database cloud Turso, garantendo uno storico sempre aggiornato, pulito e leggero.
+- Dashboard Statistiche e Analytics Utilizzo: visualizzazione aggregata con frequenza d'uso (operazioni totali e media giornaliera), musicisti piu' attivi con conteggio operazioni, funzioni piu' utilizzate (Login/Logout, Modifiche Accordi, Scalette, Palco, PDF, Trasposizioni), ricerca full-text e filtri istantanei per musicista e categoria.
+- Esportazione e Download Log (CSV & JSON): possibilita' per l'amministratore di scaricare l'intero audit log degli ultimi 15 giorni in formato CSV tabellare o JSON per archiviazione locale.
+
+### Sicurezza (Security)
+- Protezione Endpoint Audit Log: blocco rigoroso con codice HTTP 403 Forbidden per qualsiasi utente non provvisto di privilegi di amministrazione sulle API di consultazione (/api/audit-log) ed esportazione (/api/audit-log/download).
+
 ## Versione 2026.11.15 (15/11/2026) — Protezione Anti-Orfani PDF per Accordi e Sezioni, Eliminazione Brani Ufficiali Protetta per Admin
 
 ### Nuove Funzionalità (New Features)

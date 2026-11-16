@@ -1,31 +1,5 @@
 [
   {
-    "version": "2026.11.15",
-    "date": "15/11/2026",
-    "title": "Cambio Pagina Palco con Tasti/Pedali, Fix Download PDF Firefox Android PWA, Pseudonimo Dinamico Musicista su Stampa A4, Protezione Anti-Orfani PDF ed Eliminazione Brani Ufficiali Protetta per Admin",
-    "new_features": [
-      "Cambio Pagina Live Palco (Prec / Succ & Pedale Bluetooth): in modalità Palco i pulsanti Prec e Succ consentono ora di scorrere e cambiare pagina con precisione sia su spartiti PDF multi-pagina (snapping automatico pagina per pagina) che in modalità Teleprompter Notte (scorrimento progressivo a schermata), con indicatore numerato di pagina e avanzamento automatico tra brani della scaletta ai margini.",
-      "Supporto Completo Pedali Bluetooth e Tasti Rapidi su Palco: mappati i comandi PageDown/PageUp, frecce su/giù e destra/sinistra, tasti 1 e 3 (pedaliere tipiche iRig/AirTurn/Cuvave) e swipe touch per girare le pagine senza mai staccare le mani dallo strumento.",
-      "Selettore Musicista nella Stampa & Condivisione A4: aggiunto menu a tendina dedicato nella modale A4 per selezionare il musicista effettivo (Puma, Cico, Maurino, Red, Mingo, Sentimental), garantendo che sullo spartito stampato o condiviso compaia sempre lo pseudonimo corretto del componente che esegue la stampa.",
-      "Eliminazione Brani da Repertorio Ufficiale per Admin: abilitata la facolta' per l'amministratore di eliminare brani dal Repertorio Ufficiale Band direttamente dal Visualizzatore Brani; l'azione e' protetta da un dialogo di conferma esplicito (con avviso di rimozione condivisa e spostamento nel cestino protetto) ed e' rigorosamente interdetta ai musicisti non amministratori a livello sia frontend che API (HTTP 403 Forbidden)."
-    ],
-    "improvements": [
-      "Barra Comandi Palco Spostata in Alto: eliminata la barra flottante sul fondo dello schermo che copriva parzialmente le ultime righe di testo e accordi; tutti i controlli (Play/Pausa, Velocità, Metronomo, Font A+/A-, Trasposizione, Cambio Vista e Modalità) sono ora posizionati in alto sotto l'intestazione, lasciando la parte inferiore del display completamente libera e sgombra al 100%.",
-      "Badge Numerati per Pagine PDF su Palco: visualizzazione chiara dell'indice di pagina (es. 'Pag. 1 / 2') su ciascuna pagina PDF in modalità Palco per monitorare a colpo d'occhio l'avanzamento.",
-      "Notifiche Toast di Cambio Pagina: feedback visivo immediato a comparsa ad ogni cambio pagina durante l'esibizione.",
-      "Pulsanti Avanzamento Brano Separati in Scaletta Palco: aggiunti tasti dedicati [⏮⏮ Brano] e [Brano ⏭⏭] per saltare all'inizio o alla fine del brano precedente/successivo all'interno della scaletta."
-    ],
-    "security": [
-      "Rafforzamento sicurezza API DELETE /api/songs/{uuid}: blocco 403 Forbidden per qualsiasi utente non amministratore che tenti di eliminare o staccare un brano dal Repertorio Ufficiale Band."
-    ],
-    "bug_fixes": [
-      "Fix Pagina Bianca su Tablet Android con Firefox PWA: rimosso l'uso di window.location.assign che causava una schermata bianca bloccante nel motore GeckoView di Firefox installato come PWA; sostituito con download sicuro via Blob URL e integrazione nativa con Web Share API.",
-      "Fix Pseudonimo su Stampa PDF (Puma vs Sentimental): risolto il disallineamento per cui le stampe A4 di brani o medley ereditavano lo pseudonimo del proprietario del repertorio o della sessione; la generazione PDF esclude la cache in download e stampa applicando sempre il musicista selezionato.",
-      "Protezione Atomica Accordi e Sezioni nei PDF: implementata struttura atomica indivisibile (AtomicTable con NOSPLIT) per le coppie accordi-testo e per le intestazioni di sezione ([STROFA], [RITORNELLO], [INTRO], [BRIDGE], ecc.); garantito che gli accordi non restino mai orfani in fondo a una pagina o colonna separati dal proprio testo, e che i badge di sezione non appaiano mai isolati senza la prima riga musicale.",
-      "Rafforzamento Paginazione Medley: preservata l'indivisibilita' dei blocchi musicali anche all'interno dei raggruppamenti KeepTogether di brani medley multi-sezione su iPad e tablet a piu' colonne."
-    ]
-  },
-  {
     "version": "2026.11.14",
     "date": "14/11/2026",
     "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",

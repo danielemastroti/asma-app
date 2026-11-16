@@ -201,8 +201,24 @@ class TursoClient:
                     value TEXT,
                     updated_at TEXT
                 );
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    uuid TEXT PRIMARY KEY,
+                    timestamp TEXT,
+                    action TEXT,
+                    entity_type TEXT,
+                    entity_id TEXT,
+                    user_email TEXT,
+                    user_name TEXT,
+                    details TEXT
+                );
                 """
             ])
+            try:
+                client.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log (timestamp);")
+            except Exception:
+                pass
             try:
                 client.execute("ALTER TABLE repertoires ADD COLUMN owner_email TEXT;")
             except Exception:
@@ -891,4 +907,101 @@ class TursoClient:
             return True
         except Exception:
             return False
+
+    # ---------------- AUDIT LOG OPERATIONS (15 DAYS RETENTION) ----------------
+    def push_audit_entry(self, entry: Dict[str, Any]) -> Tuple[bool, str]:
+        """Pushes a single audit entry to the Turso audit_log table."""
+        if not self.is_configured:
+            return False, "Turso non configurato."
+        try:
+            client = self._get_connection()
+            client.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    uuid TEXT PRIMARY KEY,
+                    timestamp TEXT,
+                    action TEXT,
+                    entity_type TEXT,
+                    entity_id TEXT,
+                    user_email TEXT,
+                    user_name TEXT,
+                    details TEXT
+                );
+            """)
+            details_json = json.dumps(entry.get("details", {}), ensure_ascii=False)
+            sql = """
+            INSERT OR REPLACE INTO audit_log (
+                uuid, timestamp, action, entity_type, entity_id, user_email, user_name, details
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """
+            client.execute(sql, [
+                entry.get("uuid", ""),
+                entry.get("timestamp", ""),
+                entry.get("action", ""),
+                entry.get("entity_type", ""),
+                entry.get("entity_id", ""),
+                entry.get("user_email", ""),
+                entry.get("user_name", ""),
+                details_json
+            ])
+            client.close()
+            return True, "Audit log inserito con successo."
+        except Exception as e:
+            return False, str(e)
+
+    def fetch_audit_entries(self, limit: int = 1000) -> List[Dict[str, Any]]:
+        """Retrieves recent audit log entries from Turso in reverse chronological order."""
+        if not self.is_configured:
+            return []
+        try:
+            client = self._get_connection()
+            client.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    uuid TEXT PRIMARY KEY,
+                    timestamp TEXT,
+                    action TEXT,
+                    entity_type TEXT,
+                    entity_id TEXT,
+                    user_email TEXT,
+                    user_name TEXT,
+                    details TEXT
+                );
+            """)
+            res = client.execute(
+                "SELECT uuid, timestamp, action, entity_type, entity_id, user_email, user_name, details FROM audit_log ORDER BY timestamp DESC LIMIT ?;",
+                [limit]
+            )
+            rows = []
+            for r in res.rows:
+                details = {}
+                if r[7]:
+                    try:
+                        details = json.loads(r[7])
+                    except Exception:
+                        details = {}
+                rows.append({
+                    "uuid": r[0],
+                    "timestamp": r[1],
+                    "action": r[2],
+                    "entity_type": r[3],
+                    "entity_id": r[4],
+                    "user_email": r[5],
+                    "user_name": r[6],
+                    "details": details
+                })
+            client.close()
+            return rows
+        except Exception:
+            return []
+
+    def prune_audit_entries(self, cutoff_iso: str) -> Tuple[bool, str]:
+        """Prunes audit entries older than cutoff_iso from Turso."""
+        if not self.is_configured:
+            return False, "Turso non configurato."
+        try:
+            client = self._get_connection()
+            client.execute("DELETE FROM audit_log WHERE timestamp < ?;", [cutoff_iso])
+            client.close()
+            return True, "Prune audit log completato."
+        except Exception as e:
+            return False, str(e)
 

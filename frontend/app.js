@@ -180,6 +180,9 @@ function syncAuthProfileUi() {
 
   const adminDbCard = document.getElementById('admin-db-card');
   if (adminDbCard) adminDbCard.style.display = isAuthAdmin ? 'block' : 'none';
+
+  const headerAuditBtn = document.getElementById('btn-header-audit');
+  if (headerAuditBtn) headerAuditBtn.style.display = isAuthAdmin ? 'flex' : 'none';
 }
 
 function initServiceWorker() {
@@ -731,6 +734,7 @@ async function onMusicianChange(email) {
   const nameSpan = document.getElementById('current-user-name');
   if (nameSpan) nameSpan.textContent = state.currentUser.name;
   showToast(`Profilo attivo: ${state.currentUser.name}`);
+  logAuditEvent('SWITCH_PROFILE', 'USER', email, { name: state.currentUser.name });
 
   // Non-admins must never have activeRepertoire as __ALL__
   const isAdmin = isCurrentUserAdmin();
@@ -2811,6 +2815,7 @@ function buildPdfQueryParams(hasChords, extra = {}) {
  * Mobile: apre la modale di esportazione con Scarica Diretto e Stampa / Salva come PDF.
  */
 function triggerPdfDownload(url, filename, onPrint = null) {
+  logAuditEvent('DOWNLOAD_PDF', 'PDF', filename, { filename: filename });
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
 
@@ -3511,6 +3516,7 @@ async function openStageModal({ resetScroll = true, scrollToBottom = false } = {
 
   const wasHidden = stageModal.style.display === 'none' || !stageModal.style.display;
   stageModal.style.display = 'flex';
+  logAuditEvent('STAGE_VIEW', 'SONG', currentSong.uuid, { title: currentSong.title, mode: state.stageViewType || 'teleprompter' });
   if (wasHidden) {
     try {
       if (!history.state || history.state.asmaModal !== 'stage') {
@@ -5668,6 +5674,7 @@ function calculateFifthsTransition(keyA, bpmA, keyB, bpmB) {
 }
 
 function openCircleOfFifthsModal(initialKey = '') {
+  logAuditEvent('CIRCLE_FIFTHS', 'TOOL', 'circle_of_fifths', { initial_key: initialKey });
   const modal = document.getElementById('circle-of-fifths-modal');
   if (!modal) return;
   modal.style.display = 'flex';
@@ -5765,5 +5772,335 @@ function applyCircleKeyToEditor(keyName) {
     showToast(`Tonalità impostata a ${keyName} nell'editor ✓`);
     closeCircleOfFifthsModal();
   }
+}
+
+// -----------------------------------------------------------------------------
+// 15. AUDIT LOG & USAGE ANALYTICS (ADMIN ONLY - RETENTION 15 DAYS)
+// -----------------------------------------------------------------------------
+let cachedAuditEntries = [];
+let cachedAuditStats = null;
+
+function logAuditEvent(action, entityType = 'SYSTEM', entityId = '', details = {}) {
+  try {
+    const userEmail = (state.currentUser && state.currentUser.email) || localStorage.getItem('asma_user_email') || 'danyposta@gmail.com';
+    const userName = (state.currentUser && state.currentUser.name) || localStorage.getItem('asma_user_name') || 'Musicista';
+    fetch(`${API_BASE}/api/audit-log/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: action,
+        entity_type: entityType,
+        entity_id: entityId || '',
+        user_email: userEmail,
+        user_name: userName,
+        details: details || {}
+      })
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+async function openAuditLogModal() {
+  if (!isCurrentUserAdmin()) {
+    showToast('⚠️ Accesso riservato esclusivamente all\'Amministratore.');
+    return;
+  }
+  const modal = document.getElementById('audit-log-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  await loadAuditLog(false);
+}
+
+function closeAuditLogModal() {
+  const modal = document.getElementById('audit-log-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadAuditLog(forceReload = false) {
+  if (!forceReload && cachedAuditEntries.length > 0 && cachedAuditStats) {
+    renderAuditStats(cachedAuditStats);
+    filterAuditLogTable();
+    return;
+  }
+
+  const tableBody = document.getElementById('audit-table-body');
+  if (tableBody) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="padding: 30px; text-align: center; color: #94a3b8;">
+          Caricamento del registro di audit in corso...
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const adminEmail = (state.currentUser && state.currentUser.email) || 'danyposta@gmail.com';
+    const res = await fetch(`${API_BASE}/api/audit-log?user_email=${encodeURIComponent(adminEmail)}&limit=1000&days=15`);
+    if (!res.ok) {
+      if (res.status === 403) {
+        showToast('⚠️ Permesso negato: solo l\'amministratore può consultare l\'audit log.');
+      } else {
+        showToast('Errore durante il caricamento dell\'audit log.');
+      }
+      return;
+    }
+    const data = await res.json();
+    cachedAuditEntries = data.entries || [];
+    cachedAuditStats = data.stats || {};
+
+    populateAuditMusicianFilter(cachedAuditStats.active_users || []);
+    renderAuditStats(cachedAuditStats);
+    filterAuditLogTable();
+  } catch (err) {
+    console.error('Error loading audit log:', err);
+    showToast('Errore di connessione al server audit');
+  }
+}
+
+function populateAuditMusicianFilter(activeUsers) {
+  const sel = document.getElementById('audit-filter-user');
+  if (!sel) return;
+  const currentVal = sel.value;
+  let html = '<option value="">Tutti i musicisti</option>';
+  activeUsers.forEach(u => {
+    html += `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)} (${u.count} op)</option>`;
+  });
+  sel.innerHTML = html;
+  sel.value = currentVal;
+}
+
+function renderAuditStats(stats) {
+  const totalEl = document.getElementById('audit-stat-total');
+  const dailyEl = document.getElementById('audit-stat-daily');
+  const musEl = document.getElementById('audit-stat-musicians');
+  const actEl = document.getElementById('audit-stat-actions');
+  const lastTimeEl = document.getElementById('audit-stat-last-time');
+  const lastDescEl = document.getElementById('audit-stat-last-desc');
+
+  if (totalEl) totalEl.textContent = stats.total_events || 0;
+  if (dailyEl) dailyEl.textContent = `Media: ${stats.avg_events_per_day || 0} op/giorno (${stats.period_days || 15} gg)`;
+
+  if (musEl) {
+    const users = stats.active_users || [];
+    if (users.length === 0) {
+      musEl.innerHTML = '<span style="font-size: 11.5px; color: #94a3b8;">Nessun dato registrato</span>';
+    } else {
+      musEl.innerHTML = users.slice(0, 6).map(u => `
+        <span onclick="setAuditUserFilter('${escapeHtml(u.email)}')" style="cursor: pointer; background: #0f172a; border: 1px solid #0284c7; color: #38bdf8; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;" title="Filtra per ${escapeHtml(u.name)}">
+          ${escapeHtml(u.name)}: <b>${u.count}</b>
+        </span>
+      `).join('');
+    }
+  }
+
+  if (actEl) {
+    const acts = stats.action_counts || {};
+    const actEntries = Object.entries(acts);
+    if (actEntries.length === 0) {
+      actEl.innerHTML = '<span style="font-size: 11.5px; color: #94a3b8;">Nessun dato</span>';
+    } else {
+      actEl.innerHTML = actEntries.slice(0, 5).map(([act, cnt]) => `
+        <span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+          ${escapeHtml(formatActionLabel(act))}: <b>${cnt}</b>
+        </span>
+      `).join('');
+    }
+  }
+
+  if (lastTimeEl && lastDescEl) {
+    if (stats.last_event) {
+      const le = stats.last_event;
+      lastTimeEl.textContent = formatAuditTimestamp(le.timestamp);
+      lastDescEl.textContent = `${le.user_name || le.user_email}: ${formatActionLabel(le.action)} (${le.entity_type})`;
+    } else {
+      lastTimeEl.textContent = 'Nessuna attività';
+      lastDescEl.textContent = '--';
+    }
+  }
+}
+
+function setAuditUserFilter(email) {
+  const sel = document.getElementById('audit-filter-user');
+  if (sel) {
+    sel.value = email;
+    filterAuditLogTable();
+  }
+}
+
+function filterAuditLogTable() {
+  const userFilter = (document.getElementById('audit-filter-user')?.value || '').toLowerCase().trim();
+  const actionFilter = (document.getElementById('audit-filter-action')?.value || '').toUpperCase().trim();
+  const searchQuery = (document.getElementById('audit-search-query')?.value || '').toLowerCase().trim();
+
+  let filtered = cachedAuditEntries.filter(e => {
+    if (userFilter) {
+      const uEmail = (e.user_email || '').toLowerCase();
+      const uName = (e.user_name || '').toLowerCase();
+      if (!uEmail.includes(userFilter) && !uName.includes(userFilter)) return false;
+    }
+    if (actionFilter) {
+      const act = (e.action || '').toUpperCase();
+      if (actionFilter === 'SETLIST') {
+        if (!act.includes('SETLIST') && e.entity_type !== 'SETLIST') return false;
+      } else if (actionFilter === 'DELETE') {
+        if (!act.includes('DELETE') && !act.includes('PURGE')) return false;
+      } else if (actionFilter === 'UPDATE') {
+        if (!act.includes('UPDATE') && !act.includes('EDIT')) return false;
+      } else if (!act.includes(actionFilter)) {
+        return false;
+      }
+    }
+    if (searchQuery) {
+      const fullStr = `${e.timestamp} ${e.action} ${e.entity_type} ${e.entity_id} ${e.user_email} ${e.user_name} ${JSON.stringify(e.details || {})}`.toLowerCase();
+      if (!fullStr.includes(searchQuery)) return false;
+    }
+    return true;
+  });
+
+  renderAuditTable(filtered);
+}
+
+function renderAuditTable(entries) {
+  const tableBody = document.getElementById('audit-table-body');
+  const countEl = document.getElementById('audit-table-count');
+  if (countEl) countEl.textContent = `Visualizzate ${entries.length} voci su ${cachedAuditEntries.length} totali`;
+
+  if (!tableBody) return;
+
+  if (entries.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="padding: 24px; text-align: center; color: #94a3b8;">
+          Nessuna operazione trovata con i filtri correnti.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tableBody.innerHTML = entries.map(e => {
+    const formattedTs = formatAuditTimestamp(e.timestamp);
+    const actionBadge = renderActionBadge(e.action);
+    const detailStr = formatAuditDetails(e.details, e.entity_id);
+    const objTitle = (e.details && (e.details.title || e.details.name)) ? escapeHtml(e.details.title || e.details.name) : (e.entity_id || '-');
+
+    return `
+      <tr style="border-bottom: 1px solid #1e293b; transition: background 0.15s ease;" onmouseover="this.style.background='rgba(56,189,248,0.05)'" onmouseout="this.style.background='transparent'">
+        <td style="padding: 8px 12px; white-space: nowrap; font-family: monospace; color: #cbd5e1; font-size: 11.5px;">${formattedTs}</td>
+        <td style="padding: 8px 12px; white-space: nowrap;">
+          <div style="font-weight: 800; color: #fff;">${escapeHtml(e.user_name || 'Musicista')}</div>
+          <div style="font-size: 10.5px; color: #94a3b8;">${escapeHtml(e.user_email || '')}</div>
+        </td>
+        <td style="padding: 8px 12px; white-space: nowrap;">${actionBadge}</td>
+        <td style="padding: 8px 12px; color: #facc15; font-weight: 700;">${objTitle}</td>
+        <td style="padding: 8px 12px; color: #cbd5e1; font-size: 11.5px;">${detailStr}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function formatAuditTimestamp(isoString) {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const secs = String(d.getSeconds()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${mins}:${secs}`;
+  } catch (e) {
+    return isoString;
+  }
+}
+
+function formatActionLabel(act) {
+  const map = {
+    'LOGIN': 'Accesso',
+    'LOGOUT': 'Uscita',
+    'CREATE': 'Creazione',
+    'UPDATE': 'Modifica',
+    'DELETE': 'Cancellazione',
+    'RESTORE': 'Ripristino',
+    'PURGE': 'Eliminazione Definitiva',
+    'PURGE_ALL': 'Svuota Cestino',
+    'TRANSPOSE': 'Trasposizione',
+    'PROMOTE': 'Promozione Ufficiale',
+    'FORK': 'Copia Personale',
+    'STAGE_VIEW': 'Vista Palco Live',
+    'DOWNLOAD_PDF': 'Download PDF',
+    'SHARE_A4': 'Stampa/Condividi A4',
+    'CIRCLE_FIFTHS': 'Circolo Quinte',
+    'SWITCH_PROFILE': 'Cambio Musicista',
+    'PREFERENCES': 'Salvataggio Preferenze'
+  };
+  return map[act] || act;
+}
+
+function renderActionBadge(act) {
+  act = (act || '').toUpperCase();
+  let bg = '#1e293b';
+  let border = '#475569';
+  let color = '#cbd5e1';
+
+  if (act.includes('LOGIN')) {
+    bg = 'rgba(34, 197, 94, 0.15)'; border = '#22c55e'; color = '#4ade80';
+  } else if (act.includes('LOGOUT')) {
+    bg = 'rgba(148, 163, 184, 0.15)'; border = '#64748b'; color = '#94a3b8';
+  } else if (act.includes('CREATE') || act.includes('PROMOTE')) {
+    bg = 'rgba(56, 189, 248, 0.15)'; border = '#38bdf8'; color = '#38bdf8';
+  } else if (act.includes('UPDATE') || act.includes('TRANSPOSE')) {
+    bg = 'rgba(245, 158, 11, 0.15)'; border = '#f59e0b'; color = '#fbbf24';
+  } else if (act.includes('DELETE') || act.includes('PURGE')) {
+    bg = 'rgba(239, 68, 68, 0.15)'; border = '#ef4444'; color = '#f87171';
+  } else if (act.includes('STAGE') || act.includes('PDF') || act.includes('SHARE')) {
+    bg = 'rgba(168, 85, 247, 0.15)'; border = '#a855f7'; color = '#c084fc';
+  } else if (act.includes('RESTORE') || act.includes('FORK')) {
+    bg = 'rgba(20, 184, 166, 0.15)'; border = '#14b8a6'; color = '#2dd4bf';
+  }
+
+  return `<span style="display:inline-block; background:${bg}; border:1px solid ${border}; color:${color}; font-weight:800; font-size:10.5px; padding:2px 7px; border-radius:4px; letter-spacing:0.3px;">${escapeHtml(formatActionLabel(act))}</span>`;
+}
+
+function formatAuditDetails(details, fallbackId) {
+  if (!details || typeof details !== 'object' || Object.keys(details).length === 0) {
+    return fallbackId ? `<span style="font-family:monospace; color:#64748b;">${escapeHtml(fallbackId)}</span>` : '-';
+  }
+  const parts = [];
+  if (details.action) parts.push(`<b>${escapeHtml(details.action)}</b>`);
+  if (details.title && details.title !== details.name) parts.push(`"${escapeHtml(details.title)}"`);
+  if (details.mode) parts.push(`Modalità: ${escapeHtml(details.mode)}`);
+  if (details.device) parts.push(`Dispositivo: ${escapeHtml(details.device)}`);
+  if (details.provider) parts.push(`Provider: ${escapeHtml(details.provider)}`);
+  if (details.purged_count !== undefined) parts.push(`Eliminati: ${details.purged_count} elementi`);
+
+  // Extra keys
+  for (const [k, v] of Object.entries(details)) {
+    if (['action', 'title', 'name', 'mode', 'device', 'provider', 'purged_count'].includes(k)) continue;
+    if (v !== undefined && v !== null && v !== '') {
+      parts.push(`${escapeHtml(k)}: <code>${escapeHtml(typeof v === 'object' ? JSON.stringify(v) : String(v))}</code>`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(' &bull; ') : fallbackId;
+}
+
+function downloadAuditLog(format = 'csv') {
+  if (!isCurrentUserAdmin()) {
+    showToast('⚠️ Solo l\'Amministratore può scaricare l\'Audit Log.');
+    return;
+  }
+  const adminEmail = (state.currentUser && state.currentUser.email) || 'danyposta@gmail.com';
+  const url = `${API_BASE}/api/audit-log/download?user_email=${encodeURIComponent(adminEmail)}&format=${encodeURIComponent(format)}&days=15`;
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `audit_log_asma_${new Date().toISOString().slice(0, 10)}.${format}`;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast(`📥 Download Audit Log (${format.toUpperCase()}) avviato`);
 }
 

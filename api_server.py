@@ -438,6 +438,20 @@ def google_oauth_callback(
     }
     token = _sign_session_payload(payload)
     chosen_mode = "editing" if (state or "").endswith(":editing") else "simplified"
+
+    # Registrazione Audit Log per il Login del musicista
+    try:
+        audit.log(
+            action="LOGIN",
+            entity_type="AUTH",
+            entity_id=u.email,
+            user_email=u.email,
+            user_name=display_name,
+            details={"provider": "google", "mode": chosen_mode, "role": payload["role"]}
+        )
+    except Exception:
+        pass
+
     target_url = f"/?mode={chosen_mode}"
     resp = RedirectResponse(url=target_url, status_code=302)
     is_https = (request.headers.get("x-forwarded-proto") or request.url.scheme) == "https"
@@ -454,8 +468,21 @@ def google_oauth_callback(
 
 
 @app.post("/api/auth/logout")
-def google_oauth_logout():
-    """Clears the Google session cookie."""
+def google_oauth_logout(request: Request):
+    """Clears the Google session cookie and logs user logout."""
+    try:
+        session_data = _verify_session_cookie(request.cookies.get(SESSION_COOKIE_NAME))
+        if session_data:
+            audit.log(
+                action="LOGOUT",
+                entity_type="AUTH",
+                entity_id=session_data.get("email", ""),
+                user_email=session_data.get("email", ""),
+                user_name=session_data.get("name", ""),
+                details={"provider": "google"}
+            )
+    except Exception:
+        pass
     resp = JSONResponse({"status": "ok"})
     resp.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
     return resp
@@ -744,6 +771,18 @@ def promote_song_to_official(req: PromoteSongRequest):
         storage.delete_song(req.song_uuid, req.user_email, req.user_name)
         storage.reload_from_disk()
 
+        try:
+            audit.log(
+                action="PROMOTE",
+                entity_type="SONG",
+                entity_id=saved_official.uuid,
+                user_email=req.user_email,
+                user_name=req.user_name,
+                details={"title": saved_official.title, "action": "overwritten_in_official"}
+            )
+        except Exception:
+            pass
+
         default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
         if os.path.abspath(storage._base_dir) == default_base and getattr(storage, "turso_client", None) and storage.turso_client.is_configured:
             try:
@@ -779,6 +818,17 @@ def promote_song_to_official(req: PromoteSongRequest):
         storage.save_repertoire(official_rep, req.user_email, req.user_name)
 
     storage.reload_from_disk()
+    try:
+        audit.log(
+            action="PROMOTE",
+            entity_type="SONG",
+            entity_id=song.uuid,
+            user_email=req.user_email,
+            user_name=req.user_name,
+            details={"title": song.title, "action": "moved_to_official"}
+        )
+    except Exception:
+        pass
     default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
     if os.path.abspath(storage._base_dir) == default_base and getattr(storage, "turso_client", None) and storage.turso_client.is_configured:
         try:
@@ -846,6 +896,17 @@ def fork_song_personal(uuid: str, req: ForkSongRequest):
         storage.move_song_to_repertoire(saved.uuid, target_rep.uuid, req.user_email, req.user_name)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    try:
+        audit.log(
+            action="FORK",
+            entity_type="SONG",
+            entity_id=saved.uuid,
+            user_email=req.user_email,
+            user_name=req.user_name,
+            details={"title": saved.title, "source_uuid": source_song.uuid, "target_repertoire": target_rep.name}
+        )
+    except Exception:
+        pass
     return {
         "status": "success",
         "cloned_song": saved.to_dict(),
@@ -2189,6 +2250,111 @@ def restore_database_backup(req: DatabaseRestoreRequest):
         return res
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Errore durante il ripristino: {str(e)}")
+
+
+# -----------------------------------------------------------------------------
+# AUDIT LOG & USAGE ANALYTICS (15 DAYS RETENTION - ADMIN ONLY)
+# -----------------------------------------------------------------------------
+
+class ClientAuditEventRequest(BaseModel):
+    action: str
+    entity_type: str = "SYSTEM"
+    entity_id: str = ""
+    user_email: str = "unknown"
+    user_name: str = "Unknown"
+    details: Dict[str, Any] = {}
+
+@app.post("/api/audit-log/event")
+def log_client_audit_event(req: ClientAuditEventRequest):
+    """Logs client-side user operations (e.g. stage mode, PDF downloads, profile switches)."""
+    entry = audit.log(
+        action=req.action,
+        entity_type=req.entity_type,
+        entity_id=req.entity_id,
+        user_email=req.user_email,
+        user_name=req.user_name,
+        details=req.details
+    )
+    return {"status": "ok", "uuid": entry.uuid}
+
+@app.get("/api/audit-log")
+def get_audit_log(
+    user_email: str = Query("danyposta@gmail.com", description="Email utente per verifica privilegi admin"),
+    limit: int = Query(500, le=2000),
+    action: Optional[str] = Query(None),
+    entity_type: Optional[str] = Query(None),
+    user_filter: Optional[str] = Query(None),
+    days: int = Query(15, le=30),
+):
+    """Protected: Returns audit log records and usage analytics for Admin only (15 days retention)."""
+    if not is_admin_email(user_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Accesso negato: il registro di audit è riservato esclusivamente all'Amministratore."
+        )
+
+    audit.prune_retention()
+    entries = audit.get_entries(
+        limit=limit,
+        action_filter=action,
+        entity_filter=entity_type,
+        user_filter=user_filter,
+        days_retention=days
+    )
+    stats = audit.get_statistics(days=days)
+    return {
+        "status": "ok",
+        "retention_days": audit.RETENTION_DAYS,
+        "total_returned": len(entries),
+        "stats": stats,
+        "entries": [e.to_dict() for e in entries]
+    }
+
+@app.get("/api/audit-log/download")
+def download_audit_log(
+    user_email: str = Query("danyposta@gmail.com", description="Email admin"),
+    format: str = Query("csv", description="Formato download (csv o json)"),
+    days: int = Query(15, le=30),
+):
+    """Protected: Exports audit log for Admin only."""
+    if not is_admin_email(user_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Accesso negato: il download del registro di audit è riservato all'Amministratore."
+        )
+
+    audit.prune_retention()
+    entries = audit.get_entries(limit=5000, days_retention=days)
+
+    if format.lower() == "json":
+        data = [e.to_dict() for e in entries]
+        return Response(
+            content=json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8"),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename=audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"}
+        )
+    else:
+        import io
+        import csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Timestamp (ISO)", "Azione", "Tipo Entita", "ID Entita", "Email Musicista", "Nome Musicista", "Dettagli"])
+        for e in entries:
+            writer.writerow([
+                e.timestamp,
+                e.action,
+                e.entity_type,
+                e.entity_id,
+                e.user_email,
+                e.user_name,
+                json.dumps(e.details, ensure_ascii=False) if e.details else ""
+            ])
+        csv_data = output.getvalue()
+        return Response(
+            content=csv_data.encode("utf-8"),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"}
+        )
 
 
 # -----------------------------------------------------------------------------
