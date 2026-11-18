@@ -46,9 +46,7 @@
       "979224d5-6769-48bf-bd24-a19c12cab3bd",
       "040676a2-9f1c-472f-9824-ca498ba1029e",
       "95cd69d0-5500-41e2-b08e-4e45ae3a37c9",
-      "e395e256-4783-4f9e-81ff-e40c1bc7db1b",
       "45345c71-cb82-4b40-ab8b-6969de41f0ec",
-      "45f363f6-02d1-4bb8-94e1-66ee7f991017",
       "33b2dd80-4176-4ffe-9a53-25bd6c42abc2",
       "ab115237-08dc-4227-a9ce-c7e701658510",
       "5967dad6-f9d6-497c-a389-065233bc7e13",
@@ -58,7 +56,7 @@
     "is_official": true,
     "owner_email": null,
     "created_at": "2026-11-08T23:26:25.986656+00:00",
-    "updated_at": "2026-11-15T00:33:54.629255+00:00"
+    "updated_at": "2026-11-18T22:42:11.550859+00:00"
   },
   {
     "uuid": "db7aa827-bf49-447c-9599-aa24a66190c5",
@@ -71,7 +69,6 @@
       "f4c63957-869d-4641-98a1-1fde2a804cfc",
       "f861495f-edf9-4e66-ae23-8fc3ecf1e351",
       "eabd6ea6-78cb-4a31-b205-bf6076da505d",
-      "41168143-f444-4a74-9569-a4e0b44d9f36",
       "7eb424e4-b04d-4482-9e23-515a98bc28b8",
       "2e07857a-6108-4e74-8372-8ce5914bf22e"
     ],
@@ -98,7 +95,7 @@
     "is_official": false,
     "owner_email": "acicchelli65@gmail.com",
     "created_at": "2026-11-10T17:15:54.399800+00:00",
-    "updated_at": "2026-11-11T17:09:28.519736+00:00"
+    "updated_at": "2026-11-18T21:19:50.776921+00:00"
   },
   {
     "uuid": "4fc75a77-b4a8-44c7-a9b0-e28cc817aedc",
@@ -129,5 +126,15 @@
     "owner_email": "marcoerario2@gmail.com",
     "created_at": "2026-11-15T10:32:34.793583+00:00",
     "updated_at": "2026-11-15T10:32:34.793960+00:00"
+  },
+  {
+    "uuid": "1c681c91-e58e-442a-8dff-91bc5535e0b6",
+    "name": "Mingo",
+    "description": "Repertorio personale di Mingo",
+    "song_uuids": [],
+    "is_official": false,
+    "owner_email": "gv.drummer69@gmail.com",
+    "created_at": "2026-11-15T16:30:45.364419+00:00",
+    "updated_at": "2026-11-15T16:30:45.364959+00:00"
   }
 ]

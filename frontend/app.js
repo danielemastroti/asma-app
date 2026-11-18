@@ -305,7 +305,13 @@ function getWorkspaceSongs() {
   if (reps.length === 0) return songs;
   const allowed = new Set();
   reps.forEach(r => (r.song_uuids || []).forEach(uid => allowed.add(uid)));
-  return songs.filter(s => allowed.has(s.uuid));
+  const EXCLUDED = ['albachiara', 'alba chiara', 'test undo song', 'temp transpose song', 'unique test song xyz'];
+  return songs.filter(s => {
+    if (!allowed.has(s.uuid)) return false;
+    const t = (s.title || '').trim().toLowerCase();
+    if (EXCLUDED.includes(t) || t.startsWith('test undo') || t.startsWith('temp transpose')) return false;
+    return true;
+  });
 }
 
 function renderDashboard() {
@@ -832,18 +838,10 @@ async function loadRepertoires() {
       const isAdmin = isCurrentUserAdmin();
       const official = workspaceReps.find(r => r.is_official);
 
-      if (!isAdmin) {
-        // Musicians NEVER see '__ALL__' and must default to Official Repertoire
-        const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
-        if (state.activeRepertoire === '__ALL__' || !currentExists) {
-          state.activeRepertoire = official ? official.uuid : (workspaceReps[0]?.uuid || '');
-        }
-      } else {
-        // Admin can see '__ALL__'
-        const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
-        if (state.activeRepertoire !== '__ALL__' && !currentExists) {
-          state.activeRepertoire = official ? official.uuid : '__ALL__';
-        }
+      // Default to Official Repertoire for everyone (musicians and admin) to keep band songs clean
+      const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
+      if (state.activeRepertoire === '__ALL__' || !currentExists) {
+        state.activeRepertoire = official ? official.uuid : (workspaceReps[0]?.uuid || '');
       }
       renderRepertoireChips();
       renderDashboard();
@@ -860,12 +858,6 @@ function renderRepertoireChips() {
   const isAdmin = isCurrentUserAdmin();
   const workspaceReps = getWorkspaceRepertoires();
   let html = '';
-
-  // Only Admin sees "🌐 Tutti"
-  if (isAdmin) {
-    const totalSongs = getWorkspaceSongs().length;
-    html += `<button class="chip ${state.activeRepertoire === '__ALL__' ? 'active' : ''}" onclick="selectRepertoire('__ALL__')">🌐 Tutti (${totalSongs})</button>`;
-  }
 
   workspaceReps.forEach(r => {
     const isActive = state.activeRepertoire === r.uuid ? 'active' : '';
@@ -951,13 +943,31 @@ async function loadSongs({ autoSelect = true } = {}) {
 
 function getFilteredSongs(searchKw = '') {
   let list = getWorkspaceSongs();
-  if (state.activeRepertoire !== '__ALL__') {
+  if (state.activeRepertoire && state.activeRepertoire !== '__ALL__') {
     const rep = state.repertoires.find(r => r.uuid === state.activeRepertoire);
     if (rep && rep.song_uuids) {
       const allowed = new Set(rep.song_uuids);
       list = state.songs.filter(s => allowed.has(s.uuid));
     }
+  } else {
+    // If __ALL__ or not specified, default to official repertoire
+    const official = (state.repertoires || []).find(r => r.is_official);
+    if (official && official.song_uuids) {
+      const allowed = new Set(official.song_uuids);
+      list = state.songs.filter(s => allowed.has(s.uuid));
+    }
   }
+  // Exclude test/default songs and de-duplicate by normalized title
+  const EXCLUDED = ['albachiara', 'alba chiara', 'test undo song', 'temp transpose song', 'unique test song xyz'];
+  const seen = new Set();
+  list = list.filter(s => {
+    const t = (s.title || '').trim().toLowerCase();
+    if (EXCLUDED.includes(t) || t.startsWith('test undo') || t.startsWith('temp transpose')) return false;
+    const norm = t.replace(/[^a-z0-9]/g, '');
+    if (seen.has(norm)) return false;
+    seen.add(norm);
+    return true;
+  });
   if (searchKw) {
     list = list.filter(s =>
       s.title.toLowerCase().includes(searchKw) ||
@@ -3021,14 +3031,13 @@ function downloadPdf() {
 }
 
 function downloadActiveRepertoirePdf() {
-  const currentRepUuid = state.activeRepertoire || '__ALL__';
   const workspaceReps = (typeof getWorkspaceRepertoires === 'function') ? getWorkspaceRepertoires() : (state.repertoires || []);
-  let repName = 'Tutti i Brani';
-  if (currentRepUuid !== '__ALL__') {
-    const rep = workspaceReps.find(r => r.uuid === currentRepUuid);
-    if (rep) repName = rep.name;
-  }
-  downloadRepertoirePdf(currentRepUuid, repName);
+  const officialRep = workspaceReps.find(r => r.is_official) || workspaceReps[0];
+  // Default strictly to official band repertoire unless user explicitly selected a personal one
+  const targetRep = (state.activeRepertoire && state.activeRepertoire !== '__ALL__' && officialRep && state.activeRepertoire !== officialRep.uuid)
+    ? (workspaceReps.find(r => r.uuid === state.activeRepertoire) || officialRep)
+    : officialRep;
+  downloadRepertoirePdf(targetRep ? targetRep.uuid : (officialRep ? officialRep.uuid : '__OFFICIAL__'), targetRep ? targetRep.name : 'Repertorio Ufficiale Band');
 }
 
 function downloadRepertoirePdf(repUuid, repName) {

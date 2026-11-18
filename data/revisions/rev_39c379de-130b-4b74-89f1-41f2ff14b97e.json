@@ -1,0 +1,20 @@
+[
+  {
+    "song_uuid": "39c379de-130b-4b74-89f1-41f2ff14b97e",
+    "revision_number": 1,
+    "author_email": "cico@band.org",
+    "author_name": "Cico",
+    "comment": "Salvataggio brano",
+    "aml_snapshot": "{title: Temp Transpose Song}\n{key: SOL}\n\n[SOL]Vespe [DO]special",
+    "timestamp": "2026-11-18T21:33:45.477329+00:00"
+  },
+  {
+    "song_uuid": "39c379de-130b-4b74-89f1-41f2ff14b97e",
+    "revision_number": 2,
+    "author_email": "cico@band.org",
+    "author_name": "Cico",
+    "comment": "Trasposizione (+1 semitoni)",
+    "aml_snapshot": "{title: Temp Transpose Song}\n{key: SOL#}\n\n[SOL#]Vespe [DO#]special",
+    "timestamp": "2026-11-18T21:33:45.489857+00:00"
+  }
+]

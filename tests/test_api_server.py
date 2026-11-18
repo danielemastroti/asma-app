@@ -189,6 +189,7 @@ class TestApiServer(unittest.TestCase):
             self.assertTrue(pdf_resp.content.startswith(b"%PDF"))
         finally:
             storage.delete_song(song_uuid, email, "Cico")
+            storage.purge_song_permanently(song_uuid)
 
     def test_10_users_endpoint(self):
         resp = self.client.get("/api/users")

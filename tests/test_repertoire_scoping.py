@@ -76,6 +76,8 @@ class TestRepertoireScoping(unittest.TestCase):
 
         # Cleanup test song (as admin)
         self.client.delete(f'/api/songs/{del_song_uuid}?user_email=danyposta@gmail.com')
+        from api_server import storage
+        storage.purge_song_permanently(del_song_uuid)
 
 def run_tests():
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestRepertoireScoping)

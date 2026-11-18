@@ -101,12 +101,12 @@ class TestScenaAndStaccoDirectives(unittest.TestCase):
 
     def test_changelog_rule_and_entry(self):
         latest = ChangelogEngine.get_latest_version()
-        self.assertEqual(latest, "2026.11.14")
+        self.assertTrue(latest >= "2026.11.14")
         all_entries = ChangelogEngine.get_entries()
-        today_entry = next((e for e in all_entries if e["version"] == "2026.11.14"), None)
-        self.assertIsNotNone(today_entry)
-        self.assertTrue(len(today_entry.get("new_features", [])) >= 3)
-        self.assertTrue(len(today_entry.get("bug_fixes", [])) >= 1)
+        scena_entry = next((e for e in all_entries if e["version"] == "2026.11.14"), None)
+        self.assertIsNotNone(scena_entry)
+        self.assertTrue(len(scena_entry.get("new_features", [])) >= 3)
+        self.assertTrue(len(scena_entry.get("bug_fixes", [])) >= 1)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "6ac93c16-c425-4aa6-8652-1e73accfc3e1",
+    "revision_number": 1,
+    "author_email": "cico@band.org",
+    "author_name": "Cico",
+    "comment": "Nuovo brano",
+    "aml_snapshot": "[SOL]Test",
+    "timestamp": "2026-11-18T21:42:55.304325+00:00"
+  }
+]

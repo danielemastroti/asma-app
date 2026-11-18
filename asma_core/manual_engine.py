@@ -511,7 +511,7 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Anteprima PDF Reale:</b> Visualizza le pagine del brano renderizzate ad alta risoluzione (96 DPI) esattamente come verranno visualizzate sul tablet o stampate su carta.", bullet_style))
         story.append(Paragraph("&bull; <b>Stampa A4 Diretta:</b> Invia lo spartito alla stampante del sistema operativo con margini ottimali A4.", bullet_style))
         story.append(Paragraph("&bull; <b>Scarica PDF:</b> Genera e scarica il file PDF ottimizzato con il profilo del dispositivo attivo (proporzioni esatte dello schermo).", bullet_style))
-        story.append(Paragraph("&bull; <b>Scarica Elenco PDF Repertorio (Pulsante '📑 Lista PDF'):</b> Genera e scarica un catalogo PDF professionale con l'elenco completo dei brani del repertorio selezionato (Ufficiale, Personale o Tutti i Brani), con numerazione progressiva, tonalità in notazione italiana, BPM, durata e impaginazione reattiva.", bullet_style))
+        story.append(Paragraph("&bull; <b>Scarica Elenco PDF Repertorio (Pulsante '📑 Lista PDF'):</b> Genera e scarica un catalogo PDF professionale con l'elenco ordinato e pulito dei brani del Repertorio Ufficiale Band (o del repertorio attivo), con numerazione progressiva (#), Titolo Brano, Artista, Tonalità in notazione italiana (DO, REm, ecc.), BPM, Durata e intestazioni ripetute su tutte le pagine. Il sistema include filtri automatici rigorosi che deduplicano i titoli ed escludono categoricamente brani di test/default (es. Albachiara) o copie personali orfane.", bullet_style))
 
         # Embedded screenshot: lista brani
         fig_brani_path = _resolve_asset_path("frontend/assets/manual/fig_repertorio_brani.png")

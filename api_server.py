@@ -614,21 +614,39 @@ def get_repertoire_pdf(
 ):
     """Generates a professional PDF catalog / song list for an entire repertoire or all songs."""
     import pymupdf
-    if uuid == "__ALL__":
-        rep_name = "Tutti i Brani"
-        rep_desc = "Catalogo generale di tutti i brani in repertorio"
-        songs = storage.list_songs()
+    official_rep = next((r for r in storage.list_repertoires() if r.is_official), None)
+    # Default strictly to official band repertoire when __ALL__, official, or unspecified
+    if uuid in ["__ALL__", "official", "__OFFICIAL__"] or not uuid or (official_rep and uuid == official_rep.uuid):
+        rep = official_rep
+        rep_name = "Repertorio Ufficiale Band"
+        rep_desc = "Spartiti e brani ufficiali della band"
     else:
-        rep = storage.get_repertoire(uuid)
-        if not rep:
-            raise HTTPException(status_code=404, detail="Repertorio non trovato")
-        rep_name = rep.name
-        rep_desc = getattr(rep, "description", None)
-        songs = []
+        rep = storage.get_repertoire(uuid) or official_rep
+        rep_name = rep.name if rep else "Repertorio Ufficiale Band"
+        rep_desc = getattr(rep, "description", None) if rep else "Spartiti e brani ufficiali della band"
+
+    target_songs = []
+    if rep and rep.song_uuids:
         for uid in rep.song_uuids:
             s = storage.get_song(uid)
             if s:
-                songs.append(s)
+                target_songs.append(s)
+
+    # Filter out test/dummy songs (e.g. Albachiara, Test Undo Song, Temp Transpose Song) and de-duplicate by title
+    EXCLUDED_KEYWORDS = {"albachiara", "alba chiara", "test undo", "temp transpose", "unique test"}
+    clean_songs = []
+    seen_titles = set()
+    for s in target_songs:
+        title = (getattr(s, "title", None) or (s.get("title") if isinstance(s, dict) else "") or "").strip()
+        norm = re.sub(r'[^a-zA-Z0-9]', '', title.lower())
+        if not norm or any(k in title.lower() for k in EXCLUDED_KEYWORDS):
+            continue
+        if norm in seen_titles:
+            continue
+        seen_titles.add(norm)
+        clean_songs.append(s)
+
+    songs = clean_songs
 
     base_prof = resolve_device_profile(device)
     prof = DeviceProfile(

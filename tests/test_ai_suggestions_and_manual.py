@@ -41,7 +41,11 @@ class TestAISuggestionsAndManual(unittest.TestCase):
 
     def tearDown(self):
         try:
-            storage.delete_song("test-ai-manual-uuid", hard_delete=True)
+            storage.delete_song("test-ai-manual-uuid")
+            storage.purge_song_permanently("test-ai-manual-uuid")
+            p = os.path.join(storage._songs_dir, "test-ai-manual-uuid.json")
+            if os.path.exists(p):
+                os.remove(p)
         except Exception:
             pass
 

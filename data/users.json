@@ -19,7 +19,7 @@
     "email": "gv.drummer69@gmail.com",
     "name": "Mingo",
     "role": "BAND_MEMBER",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Mingo",
+    "picture_url": "https://lh3.googleusercontent.com/a/ACg8ocLtd0XjvAAHnVt6TYfa4LbDQXUXOLsKRGNCXUXfCqDlr75b97IA=s96-c",
     "is_active": true,
     "provider": "google"
   },
@@ -27,7 +27,7 @@
     "email": "titholola@gmail.com",
     "name": "Puma",
     "role": "BAND_MEMBER",
-    "picture_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Puma",
+    "picture_url": "https://lh3.googleusercontent.com/a/ACg8ocK8s2Rqoy2cO1P6Giwakxl_aspPEfsuSiGc-MsgSYb5X5_HcQ=s96-c",
     "is_active": true,
     "provider": "google"
   },
