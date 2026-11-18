@@ -214,6 +214,48 @@ class TestMedleyFeature(unittest.TestCase):
         self.assertNotIn("2. SECONDO SPEZZONE", p1_text)
         self.assertIn("Testo linea 14 del secondo spezzone", p2_text)
 
+    def test_medley_short_fragments_kept_together_without_orphan_directives(self):
+        """Short medley fragments (directives + chords) stay together on one page."""
+        import fitz
+        frag1_lines = "\n".join([f"[DO]Testo linea {i}..." for i in range(16)])
+        aml = f"""{{start_of_song: Brano Lungo | Artista 1 | DO}}
+{{sov}}
+{frag1_lines}
+{{eov}}
+{{end_of_song}}
+
+{{start_of_song: Brano Breve | Artista 2 | MIm}}
+{{scena: CAMBIARE PERFORMANCE}}
+{{scena: 1 SYNTH}}
+{{soc}}
+[MIm]Em
+[LAm]Am
+[MIm]Em
+[LAm]Am | [RE]D
+{{eoc}}
+{{end_of_song}}"""
+        song = Song(
+            uuid="medley-short-keep-test",
+            title="TEST SHORT MEDLEY KEEP",
+            artist="ASMA BAND",
+            aml_content=aml
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, use_cache=False)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        
+        # Verify that wherever 'BRANO BREVE' appears, all its directives and chords are on that SAME page
+        found_page = None
+        for i, page in enumerate(doc):
+            t = page.get_text()
+            if "BRANO BREVE" in t:
+                found_page = i
+                self.assertIn("CAMBIARE PERFORMANCE", t)
+                self.assertIn("1 SYNTH", t)
+                self.assertIn("MIm", t)
+                break
+        self.assertIsNotNone(found_page)
+        doc.close()
+
 
 if __name__ == "__main__":
     unittest.main()

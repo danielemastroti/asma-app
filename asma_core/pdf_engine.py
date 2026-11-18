@@ -741,7 +741,22 @@ class PDFEngine:
             nonlocal fragment_flowables, in_medley_fragment
             flush_section(force=True)
             if fragment_flowables:
-                flowables.extend(fragment_flowables)
+                def unwrap(items):
+                    out = []
+                    for it in items:
+                        if isinstance(it, KeepTogether):
+                            out.extend(unwrap(it._content))
+                        else:
+                            out.append(it)
+                    return out
+
+                flat = unwrap(fragment_flowables)
+                # If the entire song fragment is short enough to fit on a single page (~<= 24 flowables, ~10 lines),
+                # keep the whole fragment together so it never splits across pages (e.g. directives on one page, chords on the next)
+                if len(flat) <= 24:
+                    flowables.append(KeepTogether(flat))
+                else:
+                    flowables.extend(fragment_flowables)
                 fragment_flowables = []
             in_medley_fragment = False
 
