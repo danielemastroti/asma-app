@@ -14,7 +14,7 @@
   "notation_system": "INT",
   "tags": [],
   "shared_notes": "",
-  "aml_content": "[C]test",
+  "aml_content": "[STROFA 1]\n[C]test\n[END]",
   "lock_status": {
     "is_locked": false,
     "locked_by_email": null,

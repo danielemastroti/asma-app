@@ -1,6 +1,6 @@
 {
   "uuid": "e6ea4e0a-abfb-4c05-a70c-e67c42195c59",
-  "title": "Temp Transpose Song",
+  "title": "TEMP TRANSPOSE SONG",
   "artist": "Band",
   "author": "",
   "genre": "",
@@ -14,7 +14,7 @@
   "notation_system": "INT",
   "tags": [],
   "shared_notes": "",
-  "aml_content": "{title: Temp Transpose Song}\n{key: LAb}\n\n[LAb]Vespe [DO#]special",
+  "aml_content": "{title: TEMP TRANSPOSE SONG}\n{key: LAb}\n\n[LAb]Vespe [DO#]special",
   "lock_status": {
     "is_locked": false,
     "locked_by_email": null,

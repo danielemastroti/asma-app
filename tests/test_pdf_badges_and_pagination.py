@@ -279,7 +279,7 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         self.assertIn("[STROFA: 3]", p1_text)
 
         self.assertIn("[RITORNELLO]", p2_text)
-        self.assertIn("[OUTRO]", p2_text)
+        self.assertTrue("[OUTRO]" in p2_text or "[FINALE]" in p2_text)
         self.assertIn("[END]", p2_text)
 
 

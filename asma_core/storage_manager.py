@@ -169,7 +169,7 @@ class StorageManager:
     def _upsert_index_record(self, song: Song, repertoire_uuids: Optional[List[str]] = None, is_deleted: int = 0) -> None:
         reps_str = json.dumps(repertoire_uuids or [])
         tags_str = ",".join(song.tags)
-        clean_title = song.title or ""
+        clean_title = (song.title or "").strip().upper()
         if "'" in clean_title and (clean_title.count("'") > 2 or (clean_title.startswith("'") and clean_title.endswith("'"))):
             clean_title = clean_title.replace("'", "").strip().upper()
             if "IM A BELIEVER" in clean_title:
@@ -206,6 +206,15 @@ class StorageManager:
         """
         with self._mutex:
             song.updated_at = current_iso_timestamp()
+            if song.title:
+                song.title = song.title.strip().upper()
+            if song.aml_content:
+                song.aml_content = re.sub(
+                    r'\{(?:title|t):\s*([^}]+)\}',
+                    lambda m: f"{{title: {m.group(1).strip().upper()}}}",
+                    song.aml_content,
+                    flags=re.IGNORECASE
+                )
 
             # Check existing revision number
             existing_revs = self.get_revisions_for_song(song.uuid)

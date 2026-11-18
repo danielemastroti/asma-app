@@ -367,7 +367,7 @@
     }
   },
   "test_musician@band.org": {
-    "last_active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
+    "last_active_device": "Huawei MediaPad M5",
     "devices": {
       "Huawei MediaPad M5": {
         "layout_font_size": 14.0,
@@ -380,7 +380,6 @@
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
-        "is_last_active": true,
         "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-09 17:45:39",
@@ -390,8 +389,7 @@
         "stage_color_lyrics": "#FFFFFF",
         "stage_color_chords": "#FFD600",
         "stage_color_aml_markup": "#38BDF8",
-        "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019",
-        "color_chords": "#B71C1C"
+        "active_device": "IPad 10.2\" (7/8/9 gen) & pro 2019"
       },
       "IPad 10.2\" (7/8/9 gen) & pro 2019": {
         "layout_font_size": 13.0,
@@ -404,7 +402,6 @@
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 1.0,
-        "is_last_active": true,
         "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-14 14:04:55",
@@ -413,8 +410,7 @@
         "stage_color_lyrics": "#FFFFFF",
         "stage_color_chords": "#FFD600",
         "stage_color_aml_markup": "#38BDF8",
-        "active_device": "Huawei MediaPad M5",
-        "color_chords": "#B71C1C"
+        "active_device": "Huawei MediaPad M5"
       }
     },
     "user_prefs": {
@@ -438,7 +434,6 @@
         "layout_color_chords": "#B71C1C",
         "layout_color_aml": "#4A148C",
         "ui_zoom_level": 0.82,
-        "is_last_active": true,
         "app_mode": "simplified",
         "score_display_mode": "chords",
         "updated_at": "2026-11-12 11:02:33",

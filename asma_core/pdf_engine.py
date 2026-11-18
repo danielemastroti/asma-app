@@ -1315,12 +1315,27 @@ class PDFEngine:
                 flush_section()
 
                 if sec_name in ["end", "fine"]:
+                    flush_section(force=True)
                     curr_target = target_list()
                     while curr_target and isinstance(curr_target[-1], Spacer):
                         curr_target.pop()
                     curr_target.append(Spacer(1, 1.0 * mm))
-                    badge_table = create_section_badge_table(node.section_name, node.label)
-                    current_section_items.append(badge_table)
+                    sb = styles["SectionBadge"]
+                    end_text = "[END]"
+                    end_font_size = min(10.5, sb.fontSize)
+                    p_end = Paragraph(f"<b>{escape(end_text)}</b>", ParagraphStyle('EndBadgeP', parent=sb, fontSize=end_font_size, leading=end_font_size * 1.1))
+                    text_w = pdfmetrics.stringWidth(end_text, sb.fontName, end_font_size)
+                    badge_w = min(usable_width, text_w + 12.0)
+                    end_table = AtomicTable([[p_end]], colWidths=[badge_w], hAlign="LEFT")
+                    end_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 1.5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                        ('NOSPLIT', (0, 0), (-1, -1)),
+                    ]))
+                    curr_target.append(end_table)
                     last_was_inst_marker = False
                     continue
 

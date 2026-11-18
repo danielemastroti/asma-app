@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "locomotive_breath_a57007",
+    "revision_number": 1,
+    "author_email": "system",
+    "author_name": "System",
+    "comment": "Formattazione automatica sezioni AML (strofe e ritornelli)",
+    "aml_snapshot": "[INTRO]\n[MIm]       [SOL]    [RE]   [MIm]       [SOL]    [RE]   [MIm]       [SOL]    [RE]\n[STROFA 1]\n [MIm]In the shuffling madness[SOL]    [RE]\n[MIm]Of the locomotive breat[SOL]h   [RE]   [MIm]\nRuns the all-time lose[SOL]r   [RE]   [SI]\nHeadlong to his death\n{riga_bianca}\n[RITORNELLO]\n[RE]Oh, he [MIm]feels the piston scraping[SOL]\n[RE]Steam [MIm]breaking on his brow[SOL]\n[RE]Old [SOL]Charlie stole the [LA]handle\nAnd the [SI]train it won't stop\nOh no way to [RE]slow [MIm]down...[SOL]    [RE]   [MIm]       [SOL]    [RE]\n\n{riga_bianca}\n\n[STROFA 2]\n [MIm]He sees his children jumping [SOL]off   [RE]\n[MIm]At the stations one by one  [SOL]    [RE]   [MIm]\nHis woman and his best friend[SOL]    [RE]\n[SI]In bed and having fun\n\n{riga_bianca}\n\n[RITORNELLO]\nOh, [RE]he's [MIm]crawling down the corridor[SOL]    [RE]\n[MIm]On his hands and knees [SOL]\n[RE]Old [SOL]Charlie stole the [LA]handle\nAnd the [SI]train it won't stop going\nNo way to [RE]slow [MIm]down...[SOL]    [RE] \n  [MIm]      [SOL]    [RE]   [MIm]\n[SOL]    [RE]   [MIm]        [SOL]    [RE]   [MIm]       [SOL]    [RE]   [SI]\n[RE]   [MIm]        [SOL]    [RE]   [MIm]       [SOL]    [RE]\n[SOL]      [LA]     [SI]       [RE]   [MIm]\n[SOL]    [RE]   [MIm]        [SOL]    [RE]   [MIm]\n\n{riga_bianca}\n\n[STROFA 3]\nHe hears the silence howling[SOL]    [RE]\n[MIm]Catches angels as they fall[SOL]    [RE]   [MIm]\nAnd the all-time winner[SOL]    [RE]\n[SI]Has got him by the balls\n\n{riga_bianca}\n\n[RITORNELLO]\n[RE]Oh, he [MIm]picks up Gideons bible [SOL]    [RE]\n[MIm]Open at page one [SOL]\nI [RE]think [SOL]God he stole the [LA]handle\nAnd the [SI]train it won't stop going\nNo way to [RE]slow [MIm]down\nNo way [SOL]to  [RE]slow [MIm]down\nNo way [SOL]to  [RE]slow [MIm]down\nNo way [SOL]to  [RE]slow [MIm]down\nNo way [SOL]to  [RE]slow [MIm]down\n[END]",
+    "timestamp": "2026-11-18T23:22:48.367461+00:00"
+  }
+]

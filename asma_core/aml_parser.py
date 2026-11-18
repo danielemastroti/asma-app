@@ -320,6 +320,21 @@ class AMLParser:
                     nodes.append(MedleySongEndNode())
                     idx += 1
                     continue
+                elif tag_name in ["sov", "start_of_verse"]:
+                    nodes.append(SectionNode("strofa", label=tag_value or None))
+                    idx += 1
+                    continue
+                elif tag_name in ["soc", "start_of_chorus"]:
+                    nodes.append(SectionNode("ritornello", label=tag_value or None))
+                    idx += 1
+                    continue
+                elif tag_name in ["sob", "start_of_bridge"]:
+                    nodes.append(SectionNode("bridge", label=tag_value or None))
+                    idx += 1
+                    continue
+                elif tag_name in ["eov", "end_of_verse", "eoc", "end_of_chorus", "eob", "end_of_bridge", "doc"]:
+                    idx += 1
+                    continue
                 elif tag_name in active_sections:
                     nodes.append(SectionNode(tag_name, label=tag_value or None))
                     idx += 1

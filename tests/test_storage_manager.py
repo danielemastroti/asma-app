@@ -40,7 +40,7 @@ class TestStorageManager(unittest.TestCase):
         # Retrieve
         fetched = self.storage.get_song(saved.uuid)
         self.assertIsNotNone(fetched)
-        self.assertEqual(fetched.title, "Test Mock Song Alpha")
+        self.assertEqual(fetched.title, "TEST MOCK SONG ALPHA")
         self.assertEqual(fetched.key_current, "Dm")
 
         # Verify revision history
@@ -84,7 +84,7 @@ class TestStorageManager(unittest.TestCase):
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["title"], "Rock Anthem")
+        self.assertEqual(results[0]["title"], "ROCK ANTHEM")
         self.assertLess(elapsed_ms, 20.0)  # Must be well under 20ms even on cold runner
 
     def test_soft_delete_and_trash_restoration(self):
@@ -103,7 +103,7 @@ class TestStorageManager(unittest.TestCase):
         # Restore from trash
         restored = self.storage.restore_song(song.uuid, "admin@band.org", "Admin")
         self.assertIsNotNone(restored)
-        self.assertEqual(restored.title, "Song To Delete")
+        self.assertEqual(restored.title, "SONG TO DELETE")
 
         # Now appears in list again
         active_after = self.storage.list_songs(include_deleted=False)
