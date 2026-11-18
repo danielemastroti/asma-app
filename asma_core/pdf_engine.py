@@ -691,6 +691,8 @@ class PDFEngine:
         flowables: List[Flowable] = []
         fragment_flowables: List[Flowable] = []
         current_section_items: List[Flowable] = []
+        current_section_is_intro: bool = False
+        current_section_has_content: bool = False
         last_was_inst_marker = False
         in_tab_block = False
         medley_fragment_count = 0
@@ -702,10 +704,19 @@ class PDFEngine:
         def append_item(it: Flowable):
             target_list().append(it)
 
-        def flush_section():
-            nonlocal current_section_items
+        def flush_section(force: bool = False):
+            nonlocal current_section_items, current_section_is_intro, current_section_has_content
             if not current_section_items:
+                current_section_is_intro = False
+                current_section_has_content = False
                 return
+            if not current_section_has_content and not force:
+                return
+            if current_section_is_intro and not force:
+                current_section_is_intro = False
+                return
+            current_section_is_intro = False
+            current_section_has_content = False
             dest = target_list()
             # Remove trailing spacers
             while current_section_items and isinstance(current_section_items[-1], Spacer):
@@ -714,13 +725,13 @@ class PDFEngine:
                 return
 
             # Keep section together to prevent orphan header or single line at page bottom:
-            # If the section has up to 16 flowables (badge + spacer + ~7 lines),
+            # If the section can fit on a page (up to ~30 lines, ~65 flowables),
             # wrap in KeepTogether so ReportLab moves the entire section to next page
             # if it doesn't fit completely on the current page!
-            if len(current_section_items) <= 16:
+            if len(current_section_items) <= 65:
                 dest.append(KeepTogether(list(current_section_items)))
             else:
-                # Long section: keep badge + first 3 content lines together so it never breaks after 1 line!
+                # Exceptionally long section (> 30 lines): keep badge + first 3 content lines together so it never breaks after 1 line!
                 head_count = min(7, len(current_section_items))
                 dest.append(KeepTogether(current_section_items[:head_count]))
                 dest.extend(current_section_items[head_count:])
@@ -728,29 +739,15 @@ class PDFEngine:
 
         def finalize_medley_fragment():
             nonlocal fragment_flowables, in_medley_fragment
-            flush_section()
+            flush_section(force=True)
             if fragment_flowables:
-                from reportlab.platypus.doctemplate import ActionFlowable, LCActionFlowable
-
-                if medley_fragment_count <= 1:
-                    flowables.extend(fragment_flowables)
-                else:
-                    sub_group: List[Flowable] = []
-                    for it in fragment_flowables:
-                        if isinstance(it, (ActionFlowable, LCActionFlowable)):
-                            if sub_group:
-                                flowables.append(KeepTogether(sub_group))
-                                sub_group = []
-                            flowables.append(it)
-                        else:
-                            sub_group.append(it)
-                    if sub_group:
-                        flowables.append(KeepTogether(sub_group))
+                flowables.extend(fragment_flowables)
                 fragment_flowables = []
             in_medley_fragment = False
 
         def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None):
-            nonlocal current_section_items
+            nonlocal current_section_items, current_section_has_content
+            current_section_has_content = True
             # Estrai flowable e spacer se incapsulati in KeepTogether
             core_flowables: List[Flowable] = []
             extracted_spacer = spacer_after
@@ -830,7 +827,7 @@ class PDFEngine:
                     if in_medley_fragment:
                         finalize_medley_fragment()
 
-                    flush_section()
+                    flush_section(force=True)
 
                     medley_fragment_count += 1
                     in_medley_fragment = True
@@ -838,6 +835,7 @@ class PDFEngine:
                     # Riga di separazione visibile tra spezzoni di brano differenti (dal 2° brano in poi o dopo contenuti)
                     if medley_fragment_count > 1 or flowables or fragment_flowables:
                         divider_table = Table([[""]], colWidths=[usable_width], rowHeights=[1.5 * mm])
+                        divider_table.keepWithNext = True
                         divider_table.setStyle(TableStyle([
                             ('LINEBELOW', (0, 0), (-1, -1), 1.5, colors.HexColor("#475569")),
                             ('TOPPADDING', (0, 0), (-1, -1), 0),
@@ -845,9 +843,13 @@ class PDFEngine:
                         ]))
                         curr_target = target_list()
                         if curr_target and not isinstance(curr_target[-1], Spacer):
-                            append_item(Spacer(1, 4.0 * mm))
-                        append_item(divider_table)
-                        append_item(Spacer(1, 3.0 * mm))
+                            sp_div1 = Spacer(1, 4.0 * mm)
+                            sp_div1.keepWithNext = True
+                            append_item(sp_div1)
+                        current_section_items.append(divider_table)
+                        sp_div2 = Spacer(1, 3.0 * mm)
+                        sp_div2.keepWithNext = True
+                        current_section_items.append(sp_div2)
 
                     # Estrazione metadati spezzone (Titolo, Artista, Tonalità)
                     if isinstance(node, MedleySongStartNode):
@@ -880,6 +882,7 @@ class PDFEngine:
                         title_p = Paragraph(f"<font color='#FFFFFF' size='{base_lyrics_size * 1.05}'>{title_str}</font>", styles["DocSubtitle"])
                         banner = Table([[title_p]], colWidths=[usable_width])
 
+                    banner.keepWithNext = True
                     banner.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(color_hex)),
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -888,8 +891,10 @@ class PDFEngine:
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ]))
-                    append_item(banner)
-                    append_item(Spacer(1, 2.5 * mm))
+                    current_section_items.append(banner)
+                    sp_ban = Spacer(1, 2.5 * mm)
+                    sp_ban.keepWithNext = True
+                    current_section_items.append(sp_ban)
                     last_was_inst_marker = False
                     continue
 
@@ -935,6 +940,7 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
+                    current_section_has_content = True
                     badge_table = create_section_badge_table("RITORNELLO", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -948,6 +954,7 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
+                    current_section_has_content = True
                     badge_table = create_section_badge_table("STROFA", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -961,6 +968,7 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
+                    current_section_has_content = True
                     badge_table = create_section_badge_table("BRIDGE", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -1062,6 +1070,9 @@ class PDFEngine:
                 if curr_target and not isinstance(curr_target[-1], Spacer):
                     curr_target.append(Spacer(1, 3.5 * mm))
 
+                if any(k in sec_name for k in ["intro", "introduzione"]):
+                    current_section_is_intro = True
+                current_section_has_content = True
                 badge_table = create_section_badge_table(node.section_name, node.label)
                 current_section_items.append(badge_table)
                 sp = Spacer(1, 1.8 * mm)
@@ -1282,10 +1293,10 @@ class PDFEngine:
                     append_item(Spacer(1, 2.0 * mm))
                 last_was_inst_marker = False
 
-        flush_section()
+        flush_section(force=True)
         if in_medley_fragment:
             finalize_medley_fragment()
-        flush_section()
+        flush_section(force=True)
 
         # Inserisci un badge [END] di default alla fine del brano se non gia' presente
         has_end_badge = False
