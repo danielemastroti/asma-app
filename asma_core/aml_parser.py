@@ -187,7 +187,8 @@ GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
 KNOWN_SECTIONS = {
     "intro", "verse", "chorus", "bridge", "solo", "outro",
     "coda", "interlude", "pre-chorus", "medley_start", "medley_transition",
-    "strofa", "ritornello", "assolo", "finale", "end", "fine", "stacco", "ponte", "rit"
+    "strofa", "ritornello", "assolo", "finale", "end", "fine", "stacco", "ponte", "rit",
+    "strumentale", "intermezzo"
 }
 
 KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria", "scena", "scene"}
@@ -196,7 +197,7 @@ KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitar
 def get_active_sections() -> Set[str]:
     try:
         from asma_core.aml_tag_manager import AMLTagManager
-        return AMLTagManager().get_known_sections()
+        return AMLTagManager().get_known_sections() | KNOWN_SECTIONS
     except Exception:
         return KNOWN_SECTIONS
 
@@ -334,7 +335,7 @@ class AMLParser:
 
             # Check for bracketed section header on its own line: [INTRO], [STROFA], [RIT], [RITORNELLO], [VERSE], [CHORUS], etc.
             bracket_sec_match = re.match(
-                r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|END|FINE)(?:\s*[:\-]?\s*(.*?))?\]$",
+                r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|STRUMENTALE|INTERMEZZO|END|FINE)(?:\s*[:\-]?\s*(.*?))?\]$",
                 line,
                 re.IGNORECASE
             )
@@ -349,7 +350,7 @@ class AMLParser:
 
             # Check for bare section header on its own line: STROFA:, INTRO:, RITORNELLO:, etc.
             bare_sec_match = re.match(
-                r"^(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS)\s*:(?:\s*(.*?))?$",
+                r"^(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|STRUMENTALE|INTERMEZZO)\s*:(?:\s*(.*?))?$",
                 line,
                 re.IGNORECASE
             )

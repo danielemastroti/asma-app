@@ -799,23 +799,48 @@ class PDFEngine:
 
         def create_section_badge_table(sec_name: str, sec_label: Optional[str] = None) -> Flowable:
             label_clean = (sec_label or "").strip()
-            badge_title = f"{sec_name.upper()}: {label_clean.upper()}" if label_clean else sec_name.upper()
+            s = sec_name.strip().lower()
+
+            # Normalizzazione etichette badge in nomenclatura standard
+            if s in ["verse", "sov", "start_of_verse"]:
+                italian_name = "STROFA"
+            elif s in ["chorus", "soc", "start_of_chorus", "rit"]:
+                italian_name = "RITORNELLO"
+            elif s in ["bridge", "sob", "start_of_bridge"]:
+                italian_name = "BRIDGE"
+            elif s in ["ponte", "special", "inciso"]:
+                italian_name = "SPECIAL"
+            elif s in ["outro", "coda"]:
+                italian_name = "OUTRO"
+            elif s in ["solo", "assolo"]:
+                italian_name = "SOLO"
+            elif s in ["intro", "introduzione"]:
+                italian_name = "INTRO"
+            elif s in ["strumentale", "intermezzo", "interlude"]:
+                italian_name = "STRUMENTALE"
+            elif s in ["stacco"]:
+                italian_name = "STACCO"
+            elif s in ["end", "fine"]:
+                italian_name = "END"
+            else:
+                italian_name = sec_name.upper()
+
+            badge_title = f"{italian_name}: {label_clean.upper()}" if label_clean else italian_name
             badge_text = f"[{badge_title}]"
             sb = styles["SectionBadge"]
 
             # Distinctive background color similar to STACCO:
-            s = sec_name.strip().lower()
             if any(k in s for k in ["stacco"]):
                 bg_col = colors.HexColor("#DC2626")  # Vibrant Red
             elif any(k in s for k in ["intro"]):
                 bg_col = colors.HexColor("#059669")  # Emerald Green
-            elif any(k in s for k in ["strofa", "verse"]):
+            elif any(k in s for k in ["strofa", "verse", "sov"]):
                 bg_col = colors.HexColor("#2563EB")  # Royal Blue
-            elif any(k in s for k in ["ritornello", "rit", "chorus"]):
+            elif any(k in s for k in ["ritornello", "rit", "chorus", "soc"]):
                 bg_col = colors.HexColor("#7C3AED")  # Vibrant Purple
-            elif any(k in s for k in ["bridge", "ponte"]):
+            elif any(k in s for k in ["bridge", "ponte", "special", "inciso", "sob"]):
                 bg_col = colors.HexColor("#D97706")  # Amber / Orange
-            elif any(k in s for k in ["solo", "assolo"]):
+            elif any(k in s for k in ["solo", "assolo", "strumentale", "intermezzo", "interlude"]):
                 bg_col = colors.HexColor("#B45309")  # Ochre / Gold
             elif any(k in s for k in ["outro", "finale", "coda", "end", "fine"]):
                 bg_col = colors.HexColor("#475569")  # Slate Dark

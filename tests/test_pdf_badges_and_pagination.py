@@ -226,6 +226,62 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         self.assertIn("Terza riga dopo due righe bianche", text)
         self.assertIn("Quarta riga dopo 15 millimetri", text)
 
+    def test_burning_love_formatting_for_cico(self):
+        """Verifies that Burning Love formats into balanced pages without orphan lines for Cico's Huawei MediaPad M5 profile."""
+        from asma_core.storage_manager import StorageManager
+        from asma_core.preferences_manager import PreferencesManager
+        from asma_core.device_manager import DeviceManager
+
+        storage = StorageManager()
+        song = storage.get_song("burning_love_3f6762")
+        self.assertIsNotNone(song)
+
+        dev_mgr = DeviceManager()
+        base_prof = dev_mgr.get_device_by_name("Huawei MediaPad M5")
+        pref_mgr = PreferencesManager()
+        user_prefs = pref_mgr.get_preferences("cico@band.org", "Huawei MediaPad M5")
+
+        prof = DeviceProfile(
+            name=base_prof.name,
+            target_device=base_prof.target_device,
+            device_type=base_prof.device_type,
+            width_mm=base_prof.width_mm,
+            height_mm=base_prof.height_mm,
+            orientation=base_prof.orientation,
+            columns=int(user_prefs.get("layout_columns", 2)),
+            font_size_lyrics=float(user_prefs.get("layout_font_size", 11.5)),
+            font_size_chords=float(user_prefs.get("layout_font_size_chords", 12.5)),
+            margin_top_mm=float(user_prefs.get("layout_margin_top", 8.0)),
+            margin_bottom_mm=float(user_prefs.get("layout_margin_bottom", 8.0)),
+            margin_left_mm=float(user_prefs.get("layout_margin_lateral", 8.0)),
+            margin_right_mm=float(user_prefs.get("layout_margin_lateral", 8.0)),
+        )
+
+        pdf_bytes = PDFEngine.generate_song_pdf(
+            song,
+            profile=prof,
+            include_chords=True,
+            use_cache=False,
+            user_name="Cico"
+        )
+        self.assertIsNotNone(pdf_bytes)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        self.assertEqual(len(doc), 2, "Burning Love should format cleanly onto exactly 2 balanced pages in 2-column mode")
+
+        p1_text = doc[0].get_text()
+        p2_text = doc[1].get_text()
+        doc.close()
+
+        self.assertIn("[INTRO]", p1_text)
+        self.assertIn("[STROFA: 1]", p1_text)
+        self.assertIn("[RITORNELLO]", p1_text)
+        self.assertIn("[STRUMENTALE]", p1_text)
+        self.assertIn("[STROFA: 3]", p1_text)
+
+        self.assertIn("[RITORNELLO]", p2_text)
+        self.assertIn("[OUTRO]", p2_text)
+        self.assertIn("[END]", p2_text)
+
 
 if __name__ == "__main__":
     unittest.main()

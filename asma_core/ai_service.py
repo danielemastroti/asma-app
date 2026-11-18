@@ -16,7 +16,7 @@ from asma_core.music_engine import MusicEngine
 
 
 SECTION_HEADING_REGEX = re.compile(
-    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|outro|finale|coda)(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
+    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|stacco|strumentale|intermezzo|outro|finale|coda)(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
     re.IGNORECASE
 )
 
@@ -32,6 +32,9 @@ SECTION_NAME_MAP = {
     "special": "bridge",
     "solo": "solo",
     "assolo": "solo",
+    "stacco": "stacco",
+    "strumentale": "strumentale",
+    "intermezzo": "strumentale",
     "outro": "outro",
     "finale": "outro",
     "coda": "coda"
