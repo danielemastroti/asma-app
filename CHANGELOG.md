@@ -1,5 +1,13 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.18 (18/11/2026) — Badge Sezioni Evidenziati, Icona Grafica per {scena: }, Autorefresh Audit Log e Paginazione Anti-Orfano PDF
+
+### Nuove Funzionalità (New Features)
+- Autorefresh Audit Log per Admin (5 Min): visualizzazione del registro di audit con aggiornamento automatico ciclico ogni 5 minuti (300.000 ms) per l'amministratore autenticato, corredata da indicatore verde di stato attivo nella testata della modale.
+- Icona Grafica Tasti Live per {scena: }: la direttiva `{scena: }` elimina completamente la parola testuale "scena" nei PDF e nel visualizzatore live, mostrando l'icona grafica della tastiera seguita dal preset/valore del musicista in un pill badge ciano dedicato.
+- Badge Sezioni ad Alta Visibilità (simili a STACCO): tutti i badge musicali ([INTRO], [STROFA], [RITORNELLO], [RIT], [BRIDGE], [SOLO], [OUTRO]) sono ora evidenziati con sfondi pill compatti e colori dedicati vivaci ad alto contrasto sia su PDF che su Web/Palco (Blu reale per STROFA, Viola per RITORNELLO, Smeraldo per INTRO, Ambra per BRIDGE, Ocra per SOLO, Rosso per STACCO).
+- Paginazione Intelligente e Protezione Anti-Orfano Sezioni nei PDF: se una sezione (strofa, ritornello, verso) inizia in fondo a una pagina e rischia di spezzarsi dopo una sola riga, il motore PDF sposta l'intera sezione all'inizio della pagina successiva mantenendo l'intera stanza compatta e unita.
+
 ## Versione 2026.11.16 (16/11/2026) — Audit Log Riservato ad Admin con Retention 15 Giorni e Statistiche di Utilizzo Band
 
 ### Nuove Funzionalità (New Features)

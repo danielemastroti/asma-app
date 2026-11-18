@@ -187,7 +187,7 @@ GRID_LINE_REGEX = re.compile(r"^\|(.+)\|$")
 KNOWN_SECTIONS = {
     "intro", "verse", "chorus", "bridge", "solo", "outro",
     "coda", "interlude", "pre-chorus", "medley_start", "medley_transition",
-    "strofa", "ritornello", "assolo", "finale", "end", "fine", "stacco"
+    "strofa", "ritornello", "assolo", "finale", "end", "fine", "stacco", "ponte", "rit"
 }
 
 KNOWN_CUSTOM_TAGS = {"note", "voice", "guitar", "drums", "bass", "keys", "chitarra", "voce", "batteria", "scena", "scene"}
@@ -332,10 +332,33 @@ class AMLParser:
                     idx += 1
                     continue
 
-            # Check for bracketed section header on its own line: [END], [FINE], [INTRO], etc.
-            bracket_sec_match = re.match(r"^\[(END|FINE)\]$", line, re.IGNORECASE)
+            # Check for bracketed section header on its own line: [INTRO], [STROFA], [RIT], [RITORNELLO], [VERSE], [CHORUS], etc.
+            bracket_sec_match = re.match(
+                r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|END|FINE)(?:\s*[:\-]?\s*(.*?))?\]$",
+                line,
+                re.IGNORECASE
+            )
             if bracket_sec_match:
-                nodes.append(SectionNode(bracket_sec_match.group(1).strip().lower()))
+                sec_type = bracket_sec_match.group(1).strip().rstrip('.').lower()
+                sec_label = bracket_sec_match.group(2).strip() if bracket_sec_match.group(2) else None
+                if sec_type == "rit":
+                    sec_type = "ritornello"
+                nodes.append(SectionNode(sec_type, label=sec_label or None))
+                idx += 1
+                continue
+
+            # Check for bare section header on its own line: STROFA:, INTRO:, RITORNELLO:, etc.
+            bare_sec_match = re.match(
+                r"^(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS)\s*:(?:\s*(.*?))?$",
+                line,
+                re.IGNORECASE
+            )
+            if bare_sec_match:
+                sec_type = bare_sec_match.group(1).strip().rstrip('.').lower()
+                sec_label = bare_sec_match.group(2).strip() if bare_sec_match.group(2) else None
+                if sec_type == "rit":
+                    sec_type = "ritornello"
+                nodes.append(SectionNode(sec_type, label=sec_label or None))
                 idx += 1
                 continue
 

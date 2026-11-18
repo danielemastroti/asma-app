@@ -1,12 +1,13 @@
 // Service Worker for THE New ASMA PWA
-const CACHE_NAME = 'asma-pwa-v90';
+const CACHE_NAME = 'asma-pwa-v91';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
   '/manifest.json',
-  '/assets/band_logo.png'
+  '/assets/band_logo.png',
+  '/assets/keyboard_icon.png'
 ];
 
 self.addEventListener('install', (e) => {

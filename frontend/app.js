@@ -2612,6 +2612,30 @@ function parseAmlForWeb(aml, showChords) {
         continue;
       }
 
+function renderAmlSectionBadge(secName) {
+  const upper = (secName || '').toUpperCase();
+  let bg = '#2563eb';
+  let icon = '';
+  if (upper.includes('STACCO')) {
+    bg = '#dc2626';
+    icon = '⚡ ';
+  } else if (upper.includes('INTRO')) {
+    bg = '#059669';
+  } else if (upper.includes('STROFA') || upper.includes('VERSE')) {
+    bg = '#2563eb';
+  } else if (upper.includes('RITORNELLO') || upper.includes('RIT') || upper.includes('CHORUS')) {
+    bg = '#7c3aed';
+  } else if (upper.includes('BRIDGE') || upper.includes('PONTE')) {
+    bg = '#d97706';
+  } else if (upper.includes('SOLO') || upper.includes('ASSOLO')) {
+    bg = '#b45309';
+    icon = '🎸 ';
+  } else if (upper.includes('OUTRO') || upper.includes('FINALE') || upper.includes('CODA') || upper.includes('END') || upper.includes('FINE')) {
+    bg = '#475569';
+  }
+  return `<div class="aml-tag-badge" style="display:inline-block; background:${bg}; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:10px 0 4px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.35);">${icon}[${escapeHtml(secName)}]</div>`;
+}
+
       // Section open directives
       let secName = null;
       if (['soc', 'start_of_chorus', 'chorus', 'ritornello'].includes(tag)) {
@@ -2626,17 +2650,11 @@ function parseAmlForWeb(aml, showChords) {
 
       if (secName) {
         if (inSection) html += '</div>';
-        const isSoloBadge = secName.startsWith('SOLO') || secName.startsWith('ASSOLO');
         const isChorus = secName.includes('RITORNELLO') || secName.includes('CHORUS');
-        if (isSoloBadge) {
-          html += `<div class="aml-section"><div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">[${escapeHtml(secName)}]</div>`;
-        } else {
-          const borderColor = isChorus ? '#ffd600' : 'var(--accent-cyan)';
-          const bgTint = isChorus ? 'background: rgba(255, 214, 0, 0.06); border-left: 3px solid #ffd600; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
-          html += `<div class="aml-section" style="${bgTint}"><div class="aml-tag-header" style="color: ${borderColor}; font-weight: 900;">[${escapeHtml(secName)}]</div>`;
-        }
+        const bgTint = isChorus ? 'background: rgba(124, 58, 237, 0.05); border-left: 3px solid #7c3aed; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
+        html += `<div class="aml-section" style="${bgTint}">${renderAmlSectionBadge(secName)}</div>`;
         inSection = true;
-        lastWasInstrumental = isSoloBadge;
+        lastWasInstrumental = secName.includes('SOLO') || secName.includes('ASSOLO') || secName.includes('STACCO');
         continue;
       }
 
@@ -2651,15 +2669,15 @@ function parseAmlForWeb(aml, showChords) {
 
       // Direttiva Scena Live Tastiere: {scena: 3} oppure {scena 3}
       if (['scena', 'scene'].includes(tag)) {
-        const scenaText = val ? `SCENA: ${escapeHtml(val.toUpperCase())}` : 'SCENA';
-        html += `<div class="aml-scene-badge" style="display:inline-block; background:rgba(6,182,212,0.18); color:#06b6d4; border:1px solid #06b6d4; border-radius:5px; padding:2px 8px; font-weight:800; margin:6px 0; font-size:13px; letter-spacing:0.5px;">🎹 ${scenaText}</div>`;
+        const scenaText = val ? escapeHtml(val.toUpperCase()) : '';
+        html += `<div class="aml-scene-badge" style="display:inline-block; background:#0891b2; color:#ffffff; border-radius:5px; padding:2px 8px; font-weight:800; margin:6px 0; font-size:13px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"><img src="assets/keyboard_icon.png" style="width:14px; height:13px; vertical-align:middle; margin-right:4px;" alt="🎹"/> ${scenaText}</div>`;
         continue;
       }
 
       // Direttiva Stacco Musicale / Strumento: {stacco: guitar} oppure {stacco organo} oppure {stacco}
       if (['stacco'].includes(tag)) {
         const staccoText = val ? `STACCO: ${escapeHtml(val.toUpperCase())}` : 'STACCO';
-        html += `<div class="aml-stacco-badge" style="display:inline-block; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid #ef4444; border-radius:5px; padding:2px 8px; font-weight:800; margin:6px 0; font-size:13px; letter-spacing:0.5px;">⚡ ${staccoText}</div>`;
+        html += `<div class="aml-stacco-badge" style="display:inline-block; background:#dc2626; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:6px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">⚡ [${staccoText}]</div>`;
         continue;
       }
 
@@ -2683,17 +2701,11 @@ function parseAmlForWeb(aml, showChords) {
 
     if (sectionTitle) {
       if (inSection) html += '</div>';
-      const isSoloSec = sectionTitle.startsWith('SOLO') || sectionTitle.startsWith('ASSOLO');
-      const isStaccoSec = sectionTitle.startsWith('STACCO');
-      if (isSoloSec) {
-        html += `<div class="aml-section"><div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">[${escapeHtml(sectionTitle)}]</div>`;
-      } else if (isStaccoSec) {
-        html += `<div class="aml-section"><div style="display: inline-block; background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.55); border-radius: 5px; padding: 2px 9px; font-weight: 900; margin: 10px 0 4px 0;">⚡ [${escapeHtml(sectionTitle)}]</div>`;
-      } else {
-        html += `<div class="aml-section"><div class="aml-tag-header">[${escapeHtml(sectionTitle)}]</div>`;
-      }
+      const isChorus = sectionTitle.includes('RITORNELLO') || sectionTitle.includes('CHORUS');
+      const bgTint = isChorus ? 'background: rgba(124, 58, 237, 0.05); border-left: 3px solid #7c3aed; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
+      html += `<div class="aml-section" style="${bgTint}">${renderAmlSectionBadge(sectionTitle)}</div>`;
       inSection = true;
-      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || isSoloSec || isStaccoSec;
+      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO') || sectionTitle.includes('ASSOLO') || sectionTitle.includes('STACCO');
       continue;
     }
 
@@ -5779,6 +5791,7 @@ function applyCircleKeyToEditor(keyName) {
 // -----------------------------------------------------------------------------
 let cachedAuditEntries = [];
 let cachedAuditStats = null;
+let auditAutoRefreshTimer = null;
 
 function logAuditEvent(action, entityType = 'SYSTEM', entityId = '', details = {}) {
   try {
@@ -5808,11 +5821,31 @@ async function openAuditLogModal() {
   if (!modal) return;
   modal.style.display = 'flex';
   await loadAuditLog(false);
+
+  // Setup 5-minute autorefresh for logged-in Admin
+  if (auditAutoRefreshTimer) {
+    clearInterval(auditAutoRefreshTimer);
+  }
+  auditAutoRefreshTimer = setInterval(() => {
+    const m = document.getElementById('audit-log-modal');
+    if (m && m.style.display !== 'none' && isCurrentUserAdmin()) {
+      loadAuditLog(true);
+    } else {
+      if (auditAutoRefreshTimer) {
+        clearInterval(auditAutoRefreshTimer);
+        auditAutoRefreshTimer = null;
+      }
+    }
+  }, 300000); // 5 minutes (300,000 ms)
 }
 
 function closeAuditLogModal() {
   const modal = document.getElementById('audit-log-modal');
   if (modal) modal.style.display = 'none';
+  if (auditAutoRefreshTimer) {
+    clearInterval(auditAutoRefreshTimer);
+    auditAutoRefreshTimer = null;
+  }
 }
 
 async function loadAuditLog(forceReload = false) {

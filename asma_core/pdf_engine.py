@@ -690,7 +690,7 @@ class PDFEngine:
         """
         flowables: List[Flowable] = []
         fragment_flowables: List[Flowable] = []
-        pending_badge: Optional[Flowable] = None
+        current_section_items: List[Flowable] = []
         last_was_inst_marker = False
         in_tab_block = False
         medley_fragment_count = 0
@@ -702,11 +702,33 @@ class PDFEngine:
         def append_item(it: Flowable):
             target_list().append(it)
 
+        def flush_section():
+            nonlocal current_section_items
+            if not current_section_items:
+                return
+            dest = target_list()
+            # Remove trailing spacers
+            while current_section_items and isinstance(current_section_items[-1], Spacer):
+                current_section_items.pop()
+            if not current_section_items:
+                return
+
+            # Keep section together to prevent orphan header or single line at page bottom:
+            # If the section has up to 8 flowables (badge + spacer + ~5-6 lines),
+            # wrap in KeepTogether so ReportLab moves the entire section to next page
+            # if only 1 line fits on current page!
+            if len(current_section_items) <= 8:
+                dest.append(KeepTogether(list(current_section_items)))
+            else:
+                # Long section: keep badge + first 3 content lines together so it never breaks after 1 line!
+                head_count = min(5, len(current_section_items))
+                dest.append(KeepTogether(current_section_items[:head_count]))
+                dest.extend(current_section_items[head_count:])
+            current_section_items = []
+
         def finalize_medley_fragment():
-            nonlocal fragment_flowables, in_medley_fragment, pending_badge
-            if pending_badge:
-                fragment_flowables.append(pending_badge)
-                pending_badge = None
+            nonlocal fragment_flowables, in_medley_fragment
+            flush_section()
             if fragment_flowables:
                 from reportlab.platypus.doctemplate import ActionFlowable, LCActionFlowable
 
@@ -719,12 +741,8 @@ class PDFEngine:
                             unw.append(it)
                     return unw
 
-                # Lo spezzone iniziale (1° brano del medley) non deve MAI forzare il salto a pagina 2
-                # lasciando la prima pagina bianca con solo l'intestazione del brano.
                 if medley_fragment_count <= 1:
-                    flat = unwrap(fragment_flowables)
-                    if flat:
-                        flowables.extend(flat)
+                    flowables.extend(fragment_flowables)
                 else:
                     sub_group: List[Flowable] = []
                     for it in fragment_flowables:
@@ -745,9 +763,7 @@ class PDFEngine:
             in_medley_fragment = False
 
         def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None):
-            nonlocal pending_badge
-            dest = target_list()
-
+            nonlocal current_section_items
             # Estrai flowable e spacer se incapsulati in KeepTogether
             core_flowables: List[Flowable] = []
             extracted_spacer = spacer_after
@@ -763,47 +779,58 @@ class PDFEngine:
 
             if not core_flowables:
                 if extracted_spacer:
-                    dest.append(extracted_spacer)
+                    current_section_items.append(extracted_spacer)
                 return
 
             main_item = core_flowables[0] if len(core_flowables) == 1 else AtomicTable([[f] for f in core_flowables], colWidths=[usable_width])
             if isinstance(main_item, Table):
                 main_item.setStyle(TableStyle([('NOSPLIT', (0, 0), (-1, -1))]))
 
-            if pending_badge:
-                # Fonde atomicamente il badge di sezione con la prima riga di contenuto:
-                # Se main_item e' una Table (es. pair_table con p_chords e p_lyrics), estraiamo direttamente le sue righe
-                # per creare una singola tabella atomica non-annidata a 2 o 3 righe (badge + accordi + testo).
-                # NON potranno MAI essere separati ne' lasciare il badge o gli accordi orfani a fine pagina/colonna!
-                badge_p = pending_badge
-                if isinstance(badge_p, Table):
-                    badge_rows = badge_p._cellvalues
-                else:
-                    badge_rows = [[badge_p]]
-
-                if isinstance(main_item, Table):
-                    combined_rows = badge_rows + main_item._cellvalues
-                else:
-                    combined_rows = badge_rows + [[main_item]]
-
-                combined_table = AtomicTable(combined_rows, colWidths=[usable_width])
-                combined_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(c_aml_hex)),
-                    ('TOPPADDING', (0, 0), (-1, 0), 2),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 2),
-                    ('TOPPADDING', (0, 1), (-1, -1), 1),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 0),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                    ('NOSPLIT', (0, 0), (-1, -1)),
-                ]))
-                dest.append(combined_table)
-                pending_badge = None
-            else:
-                dest.append(main_item)
-
+            current_section_items.append(main_item)
             if extracted_spacer:
-                dest.append(extracted_spacer)
+                current_section_items.append(extracted_spacer)
+
+        def create_section_badge_table(sec_name: str, sec_label: Optional[str] = None) -> Flowable:
+            label_clean = (sec_label or "").strip()
+            badge_title = f"{sec_name.upper()}: {label_clean.upper()}" if label_clean else sec_name.upper()
+            badge_text = f"[{badge_title}]"
+            sb = styles["SectionBadge"]
+
+            # Distinctive background color similar to STACCO:
+            s = sec_name.strip().lower()
+            if any(k in s for k in ["stacco"]):
+                bg_col = colors.HexColor("#DC2626")  # Vibrant Red
+            elif any(k in s for k in ["intro"]):
+                bg_col = colors.HexColor("#059669")  # Emerald Green
+            elif any(k in s for k in ["strofa", "verse"]):
+                bg_col = colors.HexColor("#2563EB")  # Royal Blue
+            elif any(k in s for k in ["ritornello", "rit", "chorus"]):
+                bg_col = colors.HexColor("#7C3AED")  # Vibrant Purple
+            elif any(k in s for k in ["bridge", "ponte"]):
+                bg_col = colors.HexColor("#D97706")  # Amber / Orange
+            elif any(k in s for k in ["solo", "assolo"]):
+                bg_col = colors.HexColor("#B45309")  # Ochre / Gold
+            elif any(k in s for k in ["outro", "finale", "coda", "end", "fine"]):
+                bg_col = colors.HexColor("#475569")  # Slate Dark
+            else:
+                bg_col = colors.HexColor(c_aml_hex) if c_aml_hex else colors.HexColor("#4F46E5")
+
+            p_badge = Paragraph(
+                f"<b>{escape(badge_text)}</b>",
+                ParagraphStyle(f'Badge_{s}', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85)
+            )
+            text_w = pdfmetrics.stringWidth(badge_text, sb.fontName, base_lyrics_size * 0.85)
+            badge_w = min(usable_width, text_w + 16.0)
+            t = AtomicTable([[p_badge]], colWidths=[badge_w], hAlign="LEFT")
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), bg_col),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('NOSPLIT', (0, 0), (-1, -1)),
+            ]))
+            return t
 
         for node in doc.nodes:
             if isinstance(node, (DirectiveNode, MedleySongStartNode, MedleySongEndNode)):
@@ -815,9 +842,7 @@ class PDFEngine:
                     if in_medley_fragment:
                         finalize_medley_fragment()
 
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
 
                     medley_fragment_count += 1
                     in_medley_fragment = True
@@ -882,9 +907,7 @@ class PDFEngine:
 
                 # Spezzone Medley: Fine brano (direttiva invisibile sul PDF)
                 if isinstance(node, MedleySongEndNode) or d_name in ["end_of_song", "eos", "end_of_medley", "end_of_medley_song", "eoms"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         append_item(Spacer(1, 2.0 * mm))
@@ -912,9 +935,6 @@ class PDFEngine:
 
                 # Band notes and comments: {c: ...} or {comment: ...}
                 if d_name in ["c", "comment", "ci", "cb"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
                     note_text = d_val or "Nota"
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>{escape(note_text)}</i></b></font>", styles["DocSubtitle"])
                     add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
@@ -923,72 +943,40 @@ class PDFEngine:
 
                 # Section directives: {soc}, {start_of_chorus}, {sov}, {start_of_verse}, {sob}, {start_of_bridge}
                 if d_name in ["soc", "start_of_chorus", "chorus", "ritornello"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
-                        append_item(Spacer(1, 3.5 * mm))
-                    badge_title = d_val.upper() if d_val else "RITORNELLO"
-                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
-                    p = Paragraph(badge_text, styles["SectionBadge"])
-                    badge_table = AtomicTable([[p]], colWidths=[usable_width])
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                    pending_badge = badge_table
+                        curr_target.append(Spacer(1, 3.5 * mm))
+                    badge_table = create_section_badge_table("RITORNELLO", d_val or None)
+                    current_section_items.append(badge_table)
+                    current_section_items.append(Spacer(1, 1.8 * mm))
                     last_was_inst_marker = False
                     continue
 
                 if d_name in ["sov", "start_of_verse", "verse", "strofa"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
-                        append_item(Spacer(1, 3.5 * mm))
-                    badge_title = d_val.upper() if d_val else "STROFA"
-                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
-                    p = Paragraph(badge_text, styles["SectionBadge"])
-                    badge_table = AtomicTable([[p]], colWidths=[usable_width])
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                    pending_badge = badge_table
+                        curr_target.append(Spacer(1, 3.5 * mm))
+                    badge_table = create_section_badge_table("STROFA", d_val or None)
+                    current_section_items.append(badge_table)
+                    current_section_items.append(Spacer(1, 1.8 * mm))
                     last_was_inst_marker = False
                     continue
 
                 if d_name in ["sob", "start_of_bridge", "bridge", "speciale"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
-                        append_item(Spacer(1, 3.5 * mm))
-                    badge_title = d_val.upper() if d_val else "BRIDGE"
-                    badge_text = f"&nbsp;&nbsp;<b>[{badge_title}]</b>&nbsp;&nbsp;"
-                    p = Paragraph(badge_text, styles["SectionBadge"])
-                    badge_table = AtomicTable([[p]], colWidths=[usable_width])
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                    pending_badge = badge_table
+                        curr_target.append(Spacer(1, 3.5 * mm))
+                    badge_table = create_section_badge_table("BRIDGE", d_val or None)
+                    current_section_items.append(badge_table)
+                    current_section_items.append(Spacer(1, 1.8 * mm))
                     last_was_inst_marker = False
                     continue
 
                 if d_name in ["eoc", "end_of_chorus", "eov", "end_of_verse", "eob", "end_of_bridge"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         append_item(Spacer(1, 2.0 * mm))
@@ -996,9 +984,7 @@ class PDFEngine:
 
                 # Column break: {colb} or {column_break}
                 if d_name in ["colb", "column_break", "col_break"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     if cols == 2:
                         append_item(FrameBreak())
                     else:
@@ -1007,22 +993,30 @@ class PDFEngine:
 
                 # Direttiva Scena Live Tastiere: {scena: ...}
                 if d_name in ["scena", "scene"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     scena_val = (d_val or "").strip()
-                    badge_title = f"[SCENA: {scena_val.upper()}]" if scena_val else "[SCENA]"
+                    badge_title = scena_val.upper() if scena_val else ""
                     sb = styles["SectionBadge"]
-                    p_scena = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('ScenaBadgeDir', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
-                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
-                    badge_w = min(usable_width, text_w + 16.0)
-                    badge_table = Table([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
+                    icon_path = os.path.join(os.path.dirname(__file__), "assets", "keyboard_icon.png")
+                    img_w, img_h = 13.0, 12.0
+                    if os.path.exists(icon_path):
+                        clean_icon_path = icon_path.replace("\\", "/")
+                        img_markup = f'<img src="{clean_icon_path}" width="{img_w}" height="{img_h}" valign="middle"/>'
+                    else:
+                        img_markup = "&#9836;"
+
+                    content_markup = f"{img_markup} &nbsp;<b>{escape(badge_title)}</b>" if badge_title else img_markup
+                    p_scena = Paragraph(content_markup, ParagraphStyle('ScenaBadgeDir', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85) if badge_title else 0
+                    badge_w = min(usable_width, text_w + img_w + 24.0)
+                    badge_table = AtomicTable([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#0891B2")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
                     add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
                     last_was_inst_marker = False
@@ -1030,22 +1024,21 @@ class PDFEngine:
 
                 # Direttiva Stacco Strumentale / d'insieme: {stacco: ...}
                 if d_name in ["stacco"]:
-                    if pending_badge:
-                        append_item(pending_badge)
-                        pending_badge = None
+                    flush_section()
                     stacco_val = (d_val or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
                     sb = styles["SectionBadge"]
                     p_stacco = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('StaccoBadgeDir', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
                     text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
                     badge_w = min(usable_width, text_w + 16.0)
-                    badge_table = Table([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table = AtomicTable([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
                     add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
                     last_was_inst_marker = True
@@ -1068,76 +1061,56 @@ class PDFEngine:
                 else:
                     in_tab_block = False
 
-                if pending_badge:
-                    append_item(pending_badge)
-                    pending_badge = None
+                flush_section()
 
                 # Separazione spaziale elegante e proporzionata prima di ogni nuova sezione
                 curr_target = target_list()
                 if curr_target and not isinstance(curr_target[-1], Spacer):
-                    append_item(Spacer(1, 3.5 * mm))
+                    curr_target.append(Spacer(1, 3.5 * mm))
 
                 # Section badge (preserves optional label, e.g. {solo: brass ensemble} -> [SOLO: BRASS ENSEMBLE])
                 label_clean = (node.label or "").strip()
                 badge_title = f"{node.section_name.upper()}: {label_clean.upper()}" if label_clean else node.section_name.upper()
-                badge_text = f"&nbsp;&nbsp;<b>[{escape(badge_title)}]</b>&nbsp;&nbsp;"
-                p = Paragraph(badge_text, styles["SectionBadge"])
-                if sec_name in ["solo", "assolo"]:
-                    # Compact inline-width pill in distinct amber/ochre color (only wraps written text, not full line)
-                    sb = styles["SectionBadge"]
-                    solo_text = f"[{badge_title}]"
-                    p_solo = Paragraph(f"<b>{escape(solo_text)}</b>", sb)
-                    text_w = pdfmetrics.stringWidth(solo_text, sb.fontName, sb.fontSize)
-                    badge_w = min(usable_width, text_w + 14.0)
-                    badge_table = AtomicTable([[p_solo]], colWidths=[badge_w], hAlign="LEFT")
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#B45309")),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                elif sec_name in ["end", "fine"]:
-                    sb = styles["SectionBadge"]
-                    end_text = f"[{badge_title}]"
-                    p_end = Paragraph(f"<b>{escape(end_text)}</b>", sb)
-                    text_w = pdfmetrics.stringWidth(end_text, sb.fontName, sb.fontSize)
-                    badge_w = min(usable_width, text_w + 14.0)
-                    badge_table = AtomicTable([[p_end]], colWidths=[badge_w], hAlign="LEFT")
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                elif sec_name in ["stacco"]:
-                    sb = styles["SectionBadge"]
-                    stacco_text = f"[{badge_title}]"
-                    p_stacco = Paragraph(f"<b>{escape(stacco_text)}</b>", ParagraphStyle('StaccoBadgeSec', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
-                    text_w = pdfmetrics.stringWidth(stacco_text, sb.fontName, base_lyrics_size * 0.85)
-                    badge_w = min(usable_width, text_w + 16.0)
-                    badge_table = AtomicTable([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
+                badge_text = f"[{badge_title}]"
+                sb = styles["SectionBadge"]
+
+                # Distinctive background color similar to STACCO:
+                if any(k in sec_name for k in ["stacco"]):
+                    bg_col = colors.HexColor("#DC2626")  # Vibrant Red
+                elif any(k in sec_name for k in ["intro"]):
+                    bg_col = colors.HexColor("#059669")  # Emerald Green
+                elif any(k in sec_name for k in ["strofa", "verse"]):
+                    bg_col = colors.HexColor("#2563EB")  # Royal Blue
+                elif any(k in sec_name for k in ["ritornello", "rit", "chorus"]):
+                    bg_col = colors.HexColor("#7C3AED")  # Vibrant Purple
+                elif any(k in sec_name for k in ["bridge", "ponte"]):
+                    bg_col = colors.HexColor("#D97706")  # Amber / Orange
+                elif any(k in sec_name for k in ["solo", "assolo"]):
+                    bg_col = colors.HexColor("#B45309")  # Ochre / Gold
+                elif any(k in sec_name for k in ["outro", "finale", "coda", "end", "fine"]):
+                    bg_col = colors.HexColor("#475569")  # Slate Dark
                 else:
-                    badge_table = AtomicTable([[p]], colWidths=[usable_width])
-                    badge_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                        ('TOPPADDING', (0, 0), (-1, -1), 2),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                        ('NOSPLIT', (0, 0), (-1, -1)),
-                    ]))
-                pending_badge = badge_table
+                    bg_col = colors.HexColor(c_aml_hex) if c_aml_hex else colors.HexColor("#4F46E5")
+
+                p_badge = Paragraph(
+                    f"<b>{escape(badge_text)}</b>",
+                    ParagraphStyle(f'Badge_{sec_name}', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85)
+                )
+                text_w = pdfmetrics.stringWidth(badge_text, sb.fontName, base_lyrics_size * 0.85)
+                badge_w = min(usable_width, text_w + 16.0)
+                badge_table = AtomicTable([[p_badge]], colWidths=[badge_w], hAlign="LEFT")
+                badge_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), bg_col),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('NOSPLIT', (0, 0), (-1, -1)),
+                ]))
+                current_section_items.append(badge_table)
+                current_section_items.append(Spacer(1, 1.8 * mm))
                 last_was_inst_marker = False
+                continue
 
             elif isinstance(node, ChordGridLineNode):
                 if in_tab_block or cls.is_guitar_tab_line(node.to_aml()):
@@ -1264,19 +1237,30 @@ class PDFEngine:
 
                 # Direttiva Scena Live Tastiere in CustomTag
                 if tag_label in ["scena", "scene"]:
+                    flush_section()
                     scena_val = (node.content or "").strip()
-                    badge_title = f"[SCENA: {scena_val.upper()}]" if scena_val else "[SCENA]"
+                    badge_title = scena_val.upper() if scena_val else ""
                     sb = styles["SectionBadge"]
-                    p_scena = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('ScenaBadgeCust', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
-                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
-                    badge_w = min(usable_width, text_w + 16.0)
-                    badge_table = Table([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
+                    icon_path = os.path.join(os.path.dirname(__file__), "assets", "keyboard_icon.png")
+                    img_w, img_h = 13.0, 12.0
+                    if os.path.exists(icon_path):
+                        clean_icon_path = icon_path.replace("\\", "/")
+                        img_markup = f'<img src="{clean_icon_path}" width="{img_w}" height="{img_h}" valign="middle"/>'
+                    else:
+                        img_markup = "&#9836;"
+
+                    content_markup = f"{img_markup} &nbsp;<b>{escape(badge_title)}</b>" if badge_title else img_markup
+                    p_scena = Paragraph(content_markup, ParagraphStyle('ScenaBadgeCust', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
+                    text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85) if badge_title else 0
+                    badge_w = min(usable_width, text_w + img_w + 24.0)
+                    badge_table = AtomicTable([[p_scena]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#0891B2")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
                     add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
                     last_was_inst_marker = False
@@ -1284,19 +1268,21 @@ class PDFEngine:
 
                 # Direttiva Stacco in CustomTag
                 if tag_label in ["stacco"]:
+                    flush_section()
                     stacco_val = (node.content or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
                     sb = styles["SectionBadge"]
                     p_stacco = Paragraph(f"<b>{escape(badge_title)}</b>", ParagraphStyle('StaccoBadgeCust', parent=sb, textColor=colors.HexColor("#FFFFFF"), fontSize=base_lyrics_size * 0.85))
                     text_w = pdfmetrics.stringWidth(badge_title, sb.fontName, base_lyrics_size * 0.85)
                     badge_w = min(usable_width, text_w + 16.0)
-                    badge_table = Table([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
+                    badge_table = AtomicTable([[p_stacco]], colWidths=[badge_w], hAlign="LEFT")
                     badge_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#DC2626")),
                         ('TOPPADDING', (0, 0), (-1, -1), 2),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                         ('LEFTPADDING', (0, 0), (-1, -1), 6),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
                     add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
                     last_was_inst_marker = True
@@ -1331,22 +1317,17 @@ class PDFEngine:
             elif isinstance(node, EmptyLineNode):
                 if in_tab_block:
                     continue
-                if pending_badge:
-                    # Non scaricare pending_badge qui: una riga vuota tra la direttiva di sezione
-                    # e la prima riga musicale non deve mai staccare il badge dalla strofa/ritornello!
-                    continue
+                flush_section()
                 # Spaziatura contenuta tra strofe/paragrafi (senza creare vuoti enormi)
                 curr_target = target_list()
                 if curr_target and not isinstance(curr_target[-1], Spacer):
                     append_item(Spacer(1, 2.0 * mm))
                 last_was_inst_marker = False
 
+        flush_section()
         if in_medley_fragment:
             finalize_medley_fragment()
-
-        if pending_badge:
-            flowables.append(pending_badge)
-            pending_badge = None
+        flush_section()
 
         # Inserisci un badge [END] di default alla fine del brano se non gia' presente
         has_end_badge = False

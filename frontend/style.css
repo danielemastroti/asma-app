@@ -419,6 +419,29 @@ body {
   page-break-after: avoid;
 }
 
+.aml-tag-badge {
+  display: inline-block;
+  color: #ffffff;
+  border-radius: 5px;
+  padding: 2.5px 9px;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  margin: 10px 0 4px 0;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.stage-content .aml-tag-badge {
+  font-size: 0.95em;
+  padding: 3px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
 .aml-instrumental {
   color: var(--pref-aml-color);
   font-style: italic;
