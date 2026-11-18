@@ -765,7 +765,9 @@ class ManualEngine:
             [Paragraph("<b>{c: } / {comment: }</b>", body_style), Paragraph("<code>{c: Rallentare sul finale}</code>", code_box_style), Paragraph("Note di palco / Regia", body_style), Paragraph("Box corsivo evidenziato in grigio per indicazioni esecutive ai musicisti.", body_style)],
             [Paragraph("<b>{scena: }</b>", body_style), Paragraph("<code>{scena: 3}<br/>{scena: Piano + Pad}</code>", code_box_style), Paragraph("Preset Tastiere / Synth", body_style), Paragraph("Badge ciano dedicato per Sentimental: indica numero preset o tasto synth.", body_style)],
             [Paragraph("<b>{stacco: }</b>", body_style), Paragraph("<code>{stacco: Tutti}<br/>{stacco: guitar}</code>", code_box_style), Paragraph("Stacco / Break ritmico", body_style), Paragraph("Badge rosso brillante ad alto contrasto per coordinare stop e ripartenze.", body_style)],
+            [Paragraph("<b>{riga_bianca} / {blank_line}</b>", body_style), Paragraph("<code>{riga_bianca}</code><br/><code>{riga_bianca: 2}</code><br/><code>{blank_line}</code>", code_box_style), Paragraph("Riga bianca / Spaziatura libera", body_style), Paragraph("Inserisce una riga bianca vuota (o N righe personalizzate) in qualsiasi punto dello spartito (tra sezioni, versi o all'interno del testo).", body_style)],
             [Paragraph("<b>{colb}</b>", body_style), Paragraph("<code>{colb}</code>", code_box_style), Paragraph("Salto Colonna", body_style), Paragraph("<i>Column Break</i>: forza il testo a passare alla 2ª colonna (layout 2 colonne).", body_style)],
+            [Paragraph("<b>{np} / {new_page}</b>", body_style), Paragraph("<code>{np}</code><br/><code>{new_page}</code>", code_box_style), Paragraph("Salto Pagina Forzato", body_style), Paragraph("<i>Page Break</i>: forza il passaggio immediato alla pagina successiva nel PDF.", body_style)],
             [Paragraph("<b>Accordi Inline</b>", body_style), Paragraph("<code>[DO]Respiri [SOL]piano</code>", code_box_style), Paragraph("Accordo su sillaba", body_style), Paragraph("Accordo oro agganciato esattamente sopra la sillaba, trasponibile con 1 tap.", body_style)],
             [Paragraph("<b>Griglia a Battute</b>", body_style), Paragraph("<code>| DO | SOL | LAm | FA |</code>", code_box_style), Paragraph("Griglia armonica", body_style), Paragraph("Ideale per introduzioni e parti strumentali ritmiche con stanghette di battuta.", body_style)],
             [Paragraph("<b>Spezzoni Medley</b>", body_style), Paragraph("<code>{start_of_song: ...}<br/>...<br/>{end_of_song}</code>", code_box_style), Paragraph("Medley concatenati", body_style), Paragraph("Definisce spezzoni con tonalità propria e palette a colori vivaci alternati.", body_style)]
@@ -895,6 +897,12 @@ class ManualEngine:
         story.append(Paragraph(
             "&bull; <b>Direttiva {Stacco: } (es. <code>{stacco: guitar}</code>, <code>{stacco: organo}</code> o <code>{stacco: Tutti}</code>):</b> "
             "Segnala un break o stab strumentale con badge rosso ad alto contrasto per coordinare gli stop ritmici della band.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "&bull; <b>Direttiva Riga Bianca {riga_bianca} (o <code>{blank_line}</code> / <code>{riga_bianca: 2}</code>):</b> "
+            "Consente di inserire una riga bianca vuota (o N righe a scelta) in qualsiasi posizione dello spartito (tra sezioni, tra versi o all'interno di una strofa/ritornello) "
+            "per personalizzare la spaziatura sia nel PDF che nel teleprompter palco. È disponibile anche il quick chip rapido '␣ {riga_bianca}' nell'editor.",
             bullet_style
         ))
         story.append(Paragraph(

@@ -1,12 +1,18 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
-## Versione 2026.11.18 (18/11/2026) — Badge Sezioni Evidenziati, Icona Grafica per {scena: }, Autorefresh Audit Log e Paginazione Anti-Orfano PDF
+## Versione 2026.11.18 (18/11/2026) — Nuova Direttiva {riga_bianca}, Badge Sezioni Evidenziati, Icona Tastiera {scena: }, Paginazione Intelligente & Autorefresh Audit Log
 
 ### Nuove Funzionalità (New Features)
+- Nuova Direttiva Riga Bianca `{riga_bianca}` / `{blank_line}`: consente di inserire una riga bianca vuota (o N righe / altezza personalizzata es. `{riga_bianca: 2}` o `{riga_bianca: 15mm}`) in qualsiasi posizione dello spartito (tra sezioni, tra versi o all'interno di una strofa/ritornello) sia nei PDF generati che nella visualizzazione web e teleprompter palco. Aggiunto anche il quick chip rapido `␣ {riga_bianca}` nella toolbar dell'editor AML.
+- Nuova Direttiva Salto Pagina Forzato `{np}` / `{new_page}` / `{salto_pagina}`: forza l'interruzione immediata e il passaggio alla pagina successiva nella compilazione del PDF.
 - Autorefresh Audit Log per Admin (5 Min): visualizzazione del registro di audit con aggiornamento automatico ciclico ogni 5 minuti (300.000 ms) per l'amministratore autenticato, corredata da indicatore verde di stato attivo nella testata della modale.
 - Icona Grafica Tasti Live per {scena: }: la direttiva `{scena: }` elimina completamente la parola testuale "scena" nei PDF e nel visualizzatore live, mostrando l'icona grafica della tastiera seguita dal preset/valore del musicista in un pill badge ciano dedicato.
 - Badge Sezioni ad Alta Visibilità (simili a STACCO): tutti i badge musicali ([INTRO], [STROFA], [RITORNELLO], [RIT], [BRIDGE], [SOLO], [OUTRO]) sono ora evidenziati con sfondi pill compatti e colori dedicati vivaci ad alto contrasto sia su PDF che su Web/Palco (Blu reale per STROFA, Viola per RITORNELLO, Smeraldo per INTRO, Ambra per BRIDGE, Ocra per SOLO, Rosso per STACCO).
-- Paginazione Intelligente e Protezione Anti-Orfano Sezioni nei PDF: se una sezione (strofa, ritornello, verso) inizia in fondo a una pagina e rischia di spezzarsi dopo una sola riga, il motore PDF sposta l'intera sezione all'inizio della pagina successiva mantenendo l'intera stanza compatta e unita.
+
+### Miglioramenti & Paginazione (Improvements & Fixes)
+- Paginazione Sezioni Lunghe (>6 righe) e Ottimizzazione Riempimento Pagine PDF: se una sezione è molto lunga (es. ritornello di 50 Special), il blocco di testa (badge, direttive preliminari e prime 6 righe di testo) rimane rigorosamente unito contro gli orfani, mentre le righe dalla 7ª in poi scorrono armoniosamente sulla pagina successiva, eliminando i vuoti anomali a fondo pagina.
+- Compattazione Spezzoni Medley: gli spezzoni di brani medley che possono rientrare in una singola pagina (fino a ~25 righe) vengono preservati come unità compatta, evitando spezzamenti prematuri di intestazioni o cambi preset.
+- Protezione Anti-Orfano Sezioni nei PDF: se una sezione (strofa, ritornello, verso) inizia in fondo a una pagina e rischia di spezzarsi dopo una sola riga o senza testo, il motore PDF sposta l'intero blocco all'inizio della pagina successiva.
 
 ## Versione 2026.11.16 (16/11/2026) — Audit Log Riservato ad Admin con Retention 15 Giorni e Statistiche di Utilizzo Band
 

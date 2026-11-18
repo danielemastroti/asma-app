@@ -196,6 +196,32 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         # Page 2 continues with the rest of the ritornello and next verse
         self.assertIn("Esco di fretta dalla mia stanza", p2_text)
 
+    def test_blank_line_directive_renders_successfully(self):
+        """Directive {riga_bianca} or {blank_line} or {riga_bianca: 2} inserts spacing without errors."""
+        aml = """{title: Test Blank Line}
+{artist: Test}
+{key: C}
+[STROFA]
+[C]Prima riga
+{riga_bianca}
+[G]Seconda riga dopo riga bianca
+{blank_line: 2}
+[F]Terza riga dopo due righe bianche
+{riga_bianca: 15mm}
+[C]Quarta riga dopo 15 millimetri
+"""
+        song = Song(title="Test Blank Line", artist="Test", key_current="C", aml_content=aml)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, use_cache=False)
+        self.assertIsNotNone(pdf_bytes)
+        self.assertGreater(len(pdf_bytes), 1000)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("Prima riga", text)
+        self.assertIn("Seconda riga dopo riga bianca", text)
+        self.assertIn("Terza riga dopo due righe bianche", text)
+        self.assertIn("Quarta riga dopo 15 millimetri", text)
+
 
 if __name__ == "__main__":
     unittest.main()

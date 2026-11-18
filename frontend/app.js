@@ -1349,6 +1349,7 @@ function renderSongViewer() {
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'bridge')" title="Racchiudi o inserisci ponte/speciale">{sob} Bridge {eob}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'solo')" title="Inserisci sezione assolo strumentale">{solo: Strumento}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'comment')" title="Inserisci nota o commento">{c: Commento}</button>
+            <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'riga_bianca')" style="background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid #64748b; font-weight: 800;" title="Inserisci una riga bianca nello spartito e nel PDF ({riga_bianca})">␣ {riga_bianca}</button>
             <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'colb')" title="Interruzione colonna">{colb} Salto Colonna</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[STROFA]\\n')">[STROFA]</button>
@@ -1775,6 +1776,9 @@ function insertDirectiveAtCursor(textareaId, type) {
       break;
     case 'colb':
       insertion = `\n{colb}\n`;
+      break;
+    case 'riga_bianca':
+      insertion = `\n{riga_bianca}\n`;
       break;
     default:
       insertion = `{${type}}\n`;
@@ -2678,6 +2682,18 @@ function renderAmlSectionBadge(secName) {
       if (['stacco'].includes(tag)) {
         const staccoText = val ? `STACCO: ${escapeHtml(val.toUpperCase())}` : 'STACCO';
         html += `<div class="aml-stacco-badge" style="display:inline-block; background:#dc2626; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:6px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">⚡ [${staccoText}]</div>`;
+        continue;
+      }
+
+      // Direttiva Riga Bianca / Spazio Verticale: {riga_bianca}, {blank_line}, {spazio}
+      if (['riga_bianca', 'rigabianca', 'riga-bianca', 'riga_vuota', 'rigavuota', 'blank_line', 'blankline', 'blank-line', 'empty_line', 'emptyline', 'spazio', 'space'].includes(tag)) {
+        let count = 1;
+        if (val) {
+          const parsed = parseInt(val, 10);
+          if (!isNaN(parsed) && parsed > 0) count = parsed;
+        }
+        const heightEm = (count * 1.35).toFixed(1);
+        html += `<div class="aml-blank-line" style="height: ${heightEm}em; min-height: 16px;"></div>`;
         continue;
       }
 

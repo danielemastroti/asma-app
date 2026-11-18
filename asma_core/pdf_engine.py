@@ -1013,6 +1013,49 @@ class PDFEngine:
                         append_item(Spacer(1, 4.0 * mm))
                     continue
 
+                # Page break: {np}, {new_page}, {page_break}, {salto_pagina}
+                if d_name in ["np", "new_page", "page_break", "salto_pagina", "salto_di_pagina"]:
+                    flush_section(force=True)
+                    append_item(PageBreak())
+                    continue
+
+                # Riga bianca / Spazio verticale personalizzato: {riga_bianca}, {blank_line}, {spazio}, ecc.
+                if d_name in [
+                    "riga_bianca", "rigabianca", "riga-bianca",
+                    "riga_vuota", "rigavuota", "riga-vuota",
+                    "blank_line", "blankline", "blank-line",
+                    "empty_line", "emptyline", "empty-line",
+                    "spazio", "space"
+                ]:
+                    line_count = 1
+                    custom_height_pt = None
+                    if d_val:
+                        val_str = d_val.strip().lower()
+                        if val_str.endswith("mm"):
+                            try:
+                                custom_height_pt = float(val_str[:-2].strip()) * mm
+                            except ValueError:
+                                pass
+                        elif val_str.endswith("pt"):
+                            try:
+                                custom_height_pt = float(val_str[:-2].strip())
+                            except ValueError:
+                                pass
+                        else:
+                            try:
+                                line_count = max(1, int(val_str))
+                            except ValueError:
+                                line_count = 1
+
+                    if custom_height_pt is not None:
+                        blank_h = max(1.0, custom_height_pt)
+                    else:
+                        blank_h = base_lyrics_size * 1.3 * line_count
+
+                    add_flowable(Spacer(1, blank_h), is_content=False, is_text_line=False)
+                    last_was_inst_marker = False
+                    continue
+
                 # Direttiva Scena Live Tastiere: {scena: ...}
                 if d_name in ["scena", "scene"]:
                     scena_val = (d_val or "").strip()
@@ -1270,6 +1313,43 @@ class PDFEngine:
                     ]))
                     add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]), is_content=False)
                     last_was_inst_marker = True
+                    continue
+
+                # Riga bianca / Spazio verticale in CustomTag
+                if tag_label in [
+                    "riga_bianca", "rigabianca", "riga-bianca",
+                    "riga_vuota", "rigavuota", "riga-vuota",
+                    "blank_line", "blankline", "blank-line",
+                    "empty_line", "emptyline", "empty-line",
+                    "spazio", "space"
+                ]:
+                    line_count = 1
+                    custom_height_pt = None
+                    raw_val = (node.content or "").strip().lower()
+                    if raw_val:
+                        if raw_val.endswith("mm"):
+                            try:
+                                custom_height_pt = float(raw_val[:-2].strip()) * mm
+                            except ValueError:
+                                pass
+                        elif raw_val.endswith("pt"):
+                            try:
+                                custom_height_pt = float(raw_val[:-2].strip())
+                            except ValueError:
+                                pass
+                        else:
+                            try:
+                                line_count = max(1, int(raw_val))
+                            except ValueError:
+                                line_count = 1
+
+                    if custom_height_pt is not None:
+                        blank_h = max(1.0, custom_height_pt)
+                    else:
+                        blank_h = base_lyrics_size * 1.3 * line_count
+
+                    add_flowable(Spacer(1, blank_h), is_content=False, is_text_line=False)
+                    last_was_inst_marker = False
                     continue
 
                 # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
