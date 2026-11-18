@@ -109,5 +109,61 @@ Fine del brano
                 self.assertIn("Apro gli occhi", p1_text)
         doc.close()
 
+    def test_section_with_directives_not_split_across_pages(self):
+        """A section (e.g. STROFA) with directives/tags (e.g. {scena: ENTRA HAMMOND}) must never split badge and directive across pages."""
+        aml = """Intro:
+[LAm]     [FA]    [DO]    [SOL]     [DO]
+{sov}
+ [DO]Someone told me long ago
+There's a calm before the storm
+I [SOL]know.. It's been comin' [DO]for some time
+{eov}
+{sov}
+When it's over, so they say
+It'll rain a sunny day
+I [SOL]know.. Shinin' down like [DO]water
+{eov}
+{soc}
+ [FA]I want to [SOL]know
+Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
+ [FA]I want to [SOL]know
+Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
+ [FA]Comin' [SOL]down on a sunny [DO]day?
+{eoc}
+{sov}
+{scena: ENTRA HAMMOND}
+ [DO]Yesterday, and days before
+Sun is cold and rain is hard,
+I [SOL]know.. Been that way for [DO]all my time
+{eov}
+{sov}
+'Til forever, on it goes
+Through the circle, fast and slow,
+I [SOL]know.. It can't stop, I [DO]wonder
+{eov}
+{soc}
+ [FA]I want to [SOL]know
+Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
+{eoc}"""
+        prof = DeviceProfile(name='test_tablet', font_size_lyrics=18.0, font_size_chords=18.0, columns=1, margin_top_mm=8.0, margin_bottom_mm=8.0, margin_left_mm=10.0, margin_right_mm=10.0)
+        song = Song(uuid='test-cvr', title='HAVE YOU EVER SEEN THE RAIN?', artist='CCR', aml_content=aml)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, user_name='Sentimental', use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype='pdf')
+        self.assertGreaterEqual(len(doc), 2)
+
+        # STROFA and ENTRA HAMMOND must NEVER be separated onto different pages
+        for page_idx, page in enumerate(doc):
+            text = page.get_text()
+            if "ENTRA HAMMOND" in text:
+                # The STROFA badge and the first verse line must be on the EXACT SAME page as ENTRA HAMMOND
+                self.assertIn("[STROFA]", text, f"ENTRA HAMMOND is on page {page_idx+1} but [STROFA] is missing from this page!")
+                self.assertIn("Yesterday, and days before", text, f"ENTRA HAMMOND is on page {page_idx+1} but lyrics are missing from this page!")
+            elif "Yesterday, and days before" in text:
+                self.assertIn("ENTRA HAMMOND", text, f"Lyrics on page {page_idx+1} but ENTRA HAMMOND missing!")
+                self.assertIn("[STROFA]", text, f"Lyrics on page {page_idx+1} but [STROFA] missing!")
+
+        doc.close()
+
+
 if __name__ == "__main__":
     unittest.main()

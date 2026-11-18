@@ -760,9 +760,10 @@ class PDFEngine:
                 fragment_flowables = []
             in_medley_fragment = False
 
-        def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None):
+        def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None, is_content: bool = True):
             nonlocal current_section_items, current_section_has_content
-            current_section_has_content = True
+            if is_content:
+                current_section_has_content = True
             # Estrai flowable e spacer se incapsulati in KeepTogether
             core_flowables: List[Flowable] = []
             extracted_spacer = spacer_after
@@ -938,14 +939,14 @@ class PDFEngine:
                         from asma_core.music_engine import MusicEngine
                         ita_k = MusicEngine.convert_notation(d_val, "ITA")
                         comm_p = Paragraph(f"<font color='{c_chord_hex}'><b>[CAMBIO TONALITÀ: {escape(ita_k)}]</b></font>", styles["DocSubtitle"])
-                        add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
+                        add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]), is_content=False)
                     continue
 
                 # Band notes and comments: {c: ...} or {comment: ...}
                 if d_name in ["c", "comment", "ci", "cb"]:
                     note_text = d_val or "Nota"
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>{escape(note_text)}</i></b></font>", styles["DocSubtitle"])
-                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]))
+                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]), is_content=False)
                     last_was_inst_marker = False
                     continue
 
@@ -955,7 +956,6 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
-                    current_section_has_content = True
                     badge_table = create_section_badge_table("RITORNELLO", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -969,7 +969,6 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
-                    current_section_has_content = True
                     badge_table = create_section_badge_table("STROFA", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -983,7 +982,6 @@ class PDFEngine:
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         curr_target.append(Spacer(1, 3.5 * mm))
-                    current_section_has_content = True
                     badge_table = create_section_badge_table("BRIDGE", d_val or None)
                     current_section_items.append(badge_table)
                     sp = Spacer(1, 1.8 * mm)
@@ -993,7 +991,7 @@ class PDFEngine:
                     continue
 
                 if d_name in ["eoc", "end_of_chorus", "eov", "end_of_verse", "eob", "end_of_bridge"]:
-                    flush_section()
+                    flush_section(force=True)
                     curr_target = target_list()
                     if curr_target and not isinstance(curr_target[-1], Spacer):
                         append_item(Spacer(1, 2.0 * mm))
@@ -1001,7 +999,7 @@ class PDFEngine:
 
                 # Column break: {colb} or {column_break}
                 if d_name in ["colb", "column_break", "col_break"]:
-                    flush_section()
+                    flush_section(force=True)
                     if cols == 2:
                         append_item(FrameBreak())
                     else:
@@ -1010,7 +1008,6 @@ class PDFEngine:
 
                 # Direttiva Scena Live Tastiere: {scena: ...}
                 if d_name in ["scena", "scene"]:
-                    flush_section()
                     scena_val = (d_val or "").strip()
                     badge_title = scena_val.upper() if scena_val else ""
                     sb = styles["SectionBadge"]
@@ -1035,13 +1032,12 @@ class PDFEngine:
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                         ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
-                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]), is_content=False)
                     last_was_inst_marker = False
                     continue
 
                 # Direttiva Stacco Strumentale / d'insieme: {stacco: ...}
                 if d_name in ["stacco"]:
-                    flush_section()
                     stacco_val = (d_val or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
                     sb = styles["SectionBadge"]
@@ -1057,14 +1053,14 @@ class PDFEngine:
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                         ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
-                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]), is_content=False)
                     last_was_inst_marker = True
                     continue
 
                 # Any other directive with value (e.g. custom tag)
                 if d_val:
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b>[{d_name.upper()}]:</b> {escape(d_val)}</font>", styles["DocSubtitle"])
-                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.0 * mm)]))
+                    add_flowable(KeepTogether([comm_p, Spacer(1, 1.0 * mm)]), is_content=False)
                     last_was_inst_marker = False
                 continue
 
@@ -1087,7 +1083,6 @@ class PDFEngine:
 
                 if any(k in sec_name for k in ["intro", "introduzione"]):
                     current_section_is_intro = True
-                current_section_has_content = True
                 badge_table = create_section_badge_table(node.section_name, node.label)
                 current_section_items.append(badge_table)
                 sp = Spacer(1, 1.8 * mm)
@@ -1221,7 +1216,6 @@ class PDFEngine:
 
                 # Direttiva Scena Live Tastiere in CustomTag
                 if tag_label in ["scena", "scene"]:
-                    flush_section()
                     scena_val = (node.content or "").strip()
                     badge_title = scena_val.upper() if scena_val else ""
                     sb = styles["SectionBadge"]
@@ -1246,13 +1240,12 @@ class PDFEngine:
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                         ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
-                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]), is_content=False)
                     last_was_inst_marker = False
                     continue
 
                 # Direttiva Stacco in CustomTag
                 if tag_label in ["stacco"]:
-                    flush_section()
                     stacco_val = (node.content or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
                     sb = styles["SectionBadge"]
@@ -1268,7 +1261,7 @@ class PDFEngine:
                         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                         ('NOSPLIT', (0, 0), (-1, -1)),
                     ]))
-                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]))
+                    add_flowable(KeepTogether([badge_table, Spacer(1, 1.8 * mm)]), is_content=False)
                     last_was_inst_marker = True
                     continue
 
@@ -1295,7 +1288,7 @@ class PDFEngine:
                 if in_tab_block or cls.is_guitar_tab_line(node.text):
                     continue
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])
-                add_flowable(KeepTogether([comm_p, Spacer(1, 0.8 * mm)]))
+                add_flowable(KeepTogether([comm_p, Spacer(1, 0.8 * mm)]), is_content=False)
                 last_was_inst_marker = False
 
             elif isinstance(node, EmptyLineNode):
