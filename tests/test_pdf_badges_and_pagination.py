@@ -164,6 +164,38 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
 
         doc.close()
 
+    def test_long_section_splits_across_pages_keeping_head_intact(self):
+        """A long section (e.g. 15-line chorus in 50 Special) can split across pages, keeping badge and first 6 text lines intact."""
+        import json
+        with open('data/songs/50_special_bebdbb.json', encoding='utf-8') as f:
+            d = json.load(f)
+        prof = DeviceProfile(
+            name='Huawei MediaPad M5',
+            font_size_lyrics=13.0,
+            font_size_chords=13.0,
+            columns=1,
+            margin_top_mm=10.0,
+            margin_bottom_mm=8.0,
+            margin_left_mm=10.0,
+            margin_right_mm=10.0,
+        )
+        song = Song.from_dict(d)
+        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, user_name='Cico', use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype='pdf')
+
+        p1_text = doc[0].get_text()
+        p2_text = doc[1].get_text()
+        doc.close()
+
+        # Page 1 must not be left half-empty: it must contain Verse 1 AND the head of Ritornello
+        self.assertIn("Dammi una special", p1_text)
+        self.assertIn("[RITORNELLO]", p1_text)
+        self.assertIn("Ma quant'è bello andare in giro", p1_text)
+        self.assertIn("per i colli bolognesi", p1_text)  # 6th line of text
+
+        # Page 2 continues with the rest of the ritornello and next verse
+        self.assertIn("Esco di fretta dalla mia stanza", p2_text)
+
 
 if __name__ == "__main__":
     unittest.main()

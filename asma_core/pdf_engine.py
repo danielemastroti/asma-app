@@ -693,6 +693,8 @@ class PDFEngine:
         current_section_items: List[Flowable] = []
         current_section_is_intro: bool = False
         current_section_has_content: bool = False
+        section_text_lines: int = 0
+        section_split_index: Optional[int] = None
         last_was_inst_marker = False
         in_tab_block = False
         medley_fragment_count = 0
@@ -705,7 +707,7 @@ class PDFEngine:
             target_list().append(it)
 
         def flush_section(force: bool = False):
-            nonlocal current_section_items, current_section_is_intro, current_section_has_content
+            nonlocal current_section_items, current_section_is_intro, current_section_has_content, section_text_lines, section_split_index
             if not current_section_items:
                 current_section_is_intro = False
                 current_section_has_content = False
@@ -724,18 +726,19 @@ class PDFEngine:
             if not current_section_items:
                 return
 
-            # Keep section together to prevent orphan header or single line at page bottom:
-            # If the section can fit on a page (up to ~30 lines, ~65 flowables),
-            # wrap in KeepTogether so ReportLab moves the entire section to next page
-            # if it doesn't fit completely on the current page!
-            if len(current_section_items) <= 65:
-                dest.append(KeepTogether(list(current_section_items)))
+            # Se la sezione è molto lunga (> 6 righe di testo), può spezzarsi su più pagine;
+            # l'importante è che il blocco di testa (badge di sezione, direttive, griglie armoniche, commenti
+            # e le prime 6 righe di testo) rimanga unito e non venga spezzato prematuramente!
+            if section_split_index is not None and section_split_index < len(current_section_items):
+                head = current_section_items[:section_split_index]
+                tail = current_section_items[section_split_index:]
+                dest.append(KeepTogether(head))
+                dest.extend(tail)
             else:
-                # Exceptionally long section (> 30 lines): keep badge + first 3 content lines together so it never breaks after 1 line!
-                head_count = min(7, len(current_section_items))
-                dest.append(KeepTogether(current_section_items[:head_count]))
-                dest.extend(current_section_items[head_count:])
+                dest.append(KeepTogether(list(current_section_items)))
             current_section_items = []
+            section_text_lines = 0
+            section_split_index = None
 
         def finalize_medley_fragment():
             nonlocal fragment_flowables, in_medley_fragment
@@ -751,17 +754,17 @@ class PDFEngine:
                     return out
 
                 flat = unwrap(fragment_flowables)
-                # If the entire song fragment is short enough to fit on a single page (~<= 24 flowables, ~10 lines),
-                # keep the whole fragment together so it never splits across pages (e.g. directives on one page, chords on the next)
-                if len(flat) <= 24:
+                # Se lo spezzone del medley può stare su una singola pagina (~<= 60 flowables, ~25 righe),
+                # tienilo insieme per evitare spezzamenti non necessari.
+                if len(flat) <= 60:
                     flowables.append(KeepTogether(flat))
                 else:
                     flowables.extend(fragment_flowables)
                 fragment_flowables = []
             in_medley_fragment = False
 
-        def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None, is_content: bool = True):
-            nonlocal current_section_items, current_section_has_content
+        def add_flowable(item: Flowable, spacer_after: Optional[Spacer] = None, is_content: bool = True, is_text_line: bool = False):
+            nonlocal current_section_items, current_section_has_content, section_text_lines, section_split_index
             if is_content:
                 current_section_has_content = True
             # Estrai flowable e spacer se incapsulati in KeepTogether
@@ -789,6 +792,10 @@ class PDFEngine:
             current_section_items.append(main_item)
             if extracted_spacer:
                 current_section_items.append(extracted_spacer)
+            if is_text_line:
+                section_text_lines += 1
+                if section_text_lines == 6:
+                    section_split_index = len(current_section_items)
 
         def create_section_badge_table(sec_name: str, sec_label: Optional[str] = None) -> Flowable:
             label_clean = (sec_label or "").strip()
@@ -1106,7 +1113,7 @@ class PDFEngine:
                     inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
                     if grid_line_text:
                         p_grid = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{grid_line_text}</b></font>{inline_comm_html}", styles["ChordText"])
-                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_grid, Spacer(1, 1.2 * mm)]))
+                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_grid, Spacer(1, 1.2 * mm)]), is_text_line=True)
                         last_was_inst_marker = False
                 else:
                     # Nel PDF solo testo per il cantante, le sequenze di accordi/battute sono segnalate come (Strumentale)
@@ -1165,12 +1172,12 @@ class PDFEngine:
                             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                             ('NOSPLIT', (0, 0), (-1, -1)),
                         ]))
-                        add_flowable(pair_table, spacer_after=Spacer(1, 0.8 * mm))
+                        add_flowable(pair_table, spacer_after=Spacer(1, 0.8 * mm), is_text_line=True)
                     else:
                         # Pure chord line (e.g. SOL SOL# LA {c: brass} -> SOL SOL# LA (brass))
                         chords_html = cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size)
                         p_chords = Paragraph(f"{chords_html}{inline_comm_html}", styles["ChordText"])
-                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_chords, Spacer(1, 1.2 * mm)]))
+                        add_flowable(KeepTogether([Spacer(1, 1.0 * mm), p_chords, Spacer(1, 1.2 * mm)]), is_text_line=True)
                     last_was_inst_marker = False
                 else:
                     # Check if lyrics_str actually contains pure chords (es. SIb/FA  DO/MI   RE7/9+)
@@ -1193,14 +1200,14 @@ class PDFEngine:
                         else:
                             # Nel PDF con accordi, renderizzali in evidenza come riga di accordi con stile ChordText
                             p_chords = Paragraph(f"<font color='{c_chord_hex}' size='{base_chords_size}pt'><b>{cls._format_chord_spaces(lyrics_str)}</b></font>", styles["ChordText"])
-                            add_flowable(KeepTogether([Spacer(1, 1.2 * mm), p_chords, Spacer(1, 1.5 * mm)]))
+                            add_flowable(KeepTogether([Spacer(1, 1.2 * mm), p_chords, Spacer(1, 1.5 * mm)]), is_text_line=True)
                             last_was_inst_marker = False
                     elif lyrics_str.strip():
                         # Singer lyrics-only (or line with only lyrics)
                         inline_comm = getattr(node, "inline_comment", None)
                         inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
                         p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
-                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]))
+                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]), is_text_line=True)
                         last_was_inst_marker = False
                     elif chords_str.strip():
                         # Sequenza di soli accordi senza testo (es. MI | DO | LA) -> segnalato come (Strumentale)
