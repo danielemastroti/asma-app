@@ -906,6 +906,12 @@ class ManualEngine:
             bullet_style
         ))
         story.append(Paragraph(
+            "&bull; <b>Badge Fine Brano [END] Anti-Orfano:</b> "
+            "Il badge di chiusura [END] viene armonizzato e compattato per rimanere sempre all'interno dell'ultima pagina di testo e accordi, "
+            "evitando rigorosamente di generare una pagina supplementare vuota contenente soltanto il badge [END].",
+            bullet_style
+        ))
+        story.append(Paragraph(
             "&bull; <b>Composizione MEDLEY Multi-Brano:</b> Supporto completo a brani composti da spezzoni concatenati (fino a 20 brani) "
             "tramite le direttive <code>{start_of_song: Titolo | Artista | Tonalità}</code> ed <code>{end_of_song}</code>. "
             "Ciascuno spezzone ha la propria tonalità e sezioni, con colorazione alternata tra 20 tonalità cromatiche vive "

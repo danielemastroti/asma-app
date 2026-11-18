@@ -207,8 +207,8 @@ class PDFEngine:
 
         # Top margin: exactly 58 pt (px) default for single songs, lateral margins from profile
         top_m = max(float(getattr(prof, "margin_top_mm", 10.0)), 0.0) * mm
-        # Bottom margin: at least 15.0 mm to guarantee no overlap with the footer line (which sits at 9.5 mm)
-        bot_m = max(prof.margin_bottom_mm, 15.0) * mm
+        # Bottom margin: at least 12.0 mm to guarantee no overlap with the footer line (which sits at 9.5 mm)
+        bot_m = max(prof.margin_bottom_mm, 12.0) * mm
         left_m = prof.margin_left_mm * mm
         right_m = prof.margin_right_mm * mm
         usable_w = pagesize[0] - left_m - right_m
@@ -1126,6 +1126,16 @@ class PDFEngine:
 
                 flush_section()
 
+                if sec_name in ["end", "fine"]:
+                    curr_target = target_list()
+                    while curr_target and isinstance(curr_target[-1], Spacer):
+                        curr_target.pop()
+                    curr_target.append(Spacer(1, 1.0 * mm))
+                    badge_table = create_section_badge_table(node.section_name, node.label)
+                    current_section_items.append(badge_table)
+                    last_was_inst_marker = False
+                    continue
+
                 # Separazione spaziale elegante e proporzionata prima di ogni nuova sezione
                 curr_target = target_list()
                 if curr_target and not isinstance(curr_target[-1], Spacer):
@@ -1215,7 +1225,7 @@ class PDFEngine:
                             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                             ('NOSPLIT', (0, 0), (-1, -1)),
                         ]))
-                        add_flowable(pair_table, spacer_after=Spacer(1, 0.8 * mm), is_text_line=True)
+                        add_flowable(pair_table, spacer_after=Spacer(1, 0.6 * mm), is_text_line=True)
                     else:
                         # Pure chord line (e.g. SOL SOL# LA {c: brass} -> SOL SOL# LA (brass))
                         chords_html = cls._format_aligned_chord_line(chords_str, c_chord_hex, base_chords_size, base_lyrics_size)
@@ -1250,7 +1260,7 @@ class PDFEngine:
                         inline_comm = getattr(node, "inline_comment", None)
                         inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
                         p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
-                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.8 * mm)]), is_text_line=True)
+                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.6 * mm)]), is_text_line=True)
                         last_was_inst_marker = False
                     elif chords_str.strip():
                         # Sequenza di soli accordi senza testo (es. MI | DO | LA) -> segnalato come (Strumentale)
@@ -1407,22 +1417,26 @@ class PDFEngine:
             break
 
         if not has_end_badge and flowables:
-            if not isinstance(flowables[-1], Spacer):
-                flowables.append(Spacer(1, 2.5 * mm))
+            # Rimuovi eventuali spaziatori vuoti multipli prima di [END] per compattare
+            while len(flowables) > 1 and isinstance(flowables[-1], Spacer):
+                flowables.pop()
+            flowables.append(Spacer(1, 1.0 * mm))
             sb = styles["SectionBadge"]
             end_text = "[END]"
-            p_end = Paragraph(f"<b>{escape(end_text)}</b>", sb)
-            text_w = pdfmetrics.stringWidth(end_text, sb.fontName, sb.fontSize)
-            badge_w = min(usable_width, text_w + 14.0)
-            end_table = Table([[p_end]], colWidths=[badge_w], hAlign="LEFT")
+            end_font_size = min(10.5, sb.fontSize)
+            p_end = Paragraph(f"<b>{escape(end_text)}</b>", ParagraphStyle('EndBadgeP', parent=sb, fontSize=end_font_size, leading=end_font_size * 1.1))
+            text_w = pdfmetrics.stringWidth(end_text, sb.fontName, end_font_size)
+            badge_w = min(usable_width, text_w + 12.0)
+            end_table = AtomicTable([[p_end]], colWidths=[badge_w], hAlign="LEFT")
             end_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(c_aml_hex)),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 1.5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('NOSPLIT', (0, 0), (-1, -1)),
             ]))
-            flowables.append(KeepTogether([end_table]))
+            flowables.append(end_table)
 
         return flowables
 

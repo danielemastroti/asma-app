@@ -182,7 +182,7 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         song = Song.from_dict(d)
         pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, user_name='Cico', use_cache=False)
         doc = pymupdf.open(stream=pdf_bytes, filetype='pdf')
-
+        num_pages = len(doc)
         p1_text = doc[0].get_text()
         p2_text = doc[1].get_text()
         doc.close()
@@ -195,6 +195,10 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
 
         # Page 2 continues with the rest of the ritornello and next verse
         self.assertIn("Esco di fretta dalla mia stanza", p2_text)
+
+        # The entire song and [END] must fit on 2 pages without creating an orphan 3rd page for [END] alone
+        self.assertEqual(num_pages, 2, "50 Special with Huawei MediaPad M5 must fit on 2 pages without orphan END on page 3")
+        self.assertIn("[END]", p2_text, "END badge must be on page 2")
 
     def test_blank_line_directive_renders_successfully(self):
         """Directive {riga_bianca} or {blank_line} or {riga_bianca: 2} inserts spacing without errors."""

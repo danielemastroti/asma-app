@@ -1,5 +1,25 @@
 [
   {
+    "version": "2026.11.18",
+    "date": "18/11/2026",
+    "title": "Nuova Direttiva {riga_bianca}, Badge Sezioni Evidenziati, Icona Tastiera {scena: }, Paginazione Intelligente, Prevenzione END Orfano & Autorefresh Audit Log",
+    "new_features": [
+      "Nuova Direttiva Riga Bianca {riga_bianca} / {blank_line}: inserimento di una riga bianca vuota (o spaziatura personalizzata es. {riga_bianca: 2} o {riga_bianca: 15mm}) in qualsiasi posizione dello spartito (tra sezioni, tra versi o all'interno di una strofa/ritornello) sia nei PDF generati che nella visualizzazione web e teleprompter palco, corredata da quick chip '␣ {riga_bianca}' nell'editor AML.",
+      "Nuova Direttiva Salto Pagina Forzato {np} / {new_page} / {salto_pagina}: interruzione forzata e passaggio immediato alla pagina successiva nel PDF.",
+      "Autorefresh Audit Log per Admin (5 Min): visualizzazione del registro di audit con aggiornamento ciclico ogni 5 minuti per l'amministratore con indicatore verde di stato attivo.",
+      "Icona Grafica Tasti Live per {scena: }: eliminata la parola testuale 'scena' nei PDF e nel visualizzatore live, sostituita dall'icona grafica della tastiera seguita dal preset synth in un pill badge ciano dedicato.",
+      "Badge Sezioni ad Alta Visibilità (simili a STACCO): tutti i badge musicali ([INTRO], [STROFA], [RITORNELLO], [RIT], [BRIDGE], [SOLO], [OUTRO]) evidenziati con sfondi pill compatti e colori vivaci ad alto contrasto su PDF, Web e Palco."
+    ],
+    "improvements": [
+      "Eliminazione Pagine Orfane per Badge [END]: il badge di chiusura [END] viene compattato e armonizzato per rimanere sempre all'interno dell'ultima pagina di musica (come in 50 Special su tablet, passato da 3 pagine a 2 pagine perfette); evitata la creazione di una pagina supplementare vuota contenente solo il badge [END], consentendone il passaggio alla successiva unicamente se strettamente necessario e accompagnato da testo.",
+      "Paginazione Sezioni Lunghe (>6 righe) e Ottimizzazione Riempimento Pagine PDF: se una sezione è molto lunga (es. ritornello di 50 Special), il blocco di testa (badge, direttive preliminari e prime 6 righe di testo) rimane rigorosamente unito contro gli orfani, mentre le righe successive (dalla 7ª in poi) scorrono armoniosamente sulla pagina successiva, eliminando i vuoti a fondo pagina.",
+      "Compattazione Spezzoni Medley: gli spezzoni di brani medley che possono rientrare in una singola pagina (fino a ~25 righe) vengono preservati come unità compatta, evitando spezzamenti prematuri di intestazioni o cambi preset.",
+      "Protezione Anti-Orfano Sezioni nei PDF: se una sezione inizia in fondo a una pagina e rischia di spezzarsi dopo una sola riga o senza testo, il motore PDF sposta l'intero blocco all'inizio della pagina successiva."
+    ],
+    "security": [],
+    "bug_fixes": []
+  },
+  {
     "version": "2026.11.14",
     "date": "14/11/2026",
     "title": "Medley Multi-Brano, Nuove Direttive Scena & Stacco, Ripristino Teleprompter Palco e Persistenza Dispositivo",
