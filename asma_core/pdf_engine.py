@@ -439,6 +439,155 @@ class PDFEngine:
         return pdf_bytes
 
     @classmethod
+    def generate_repertoire_pdf(
+        cls,
+        repertoire_name: str,
+        songs: List[Song],
+        profile: Optional[DeviceProfile] = None,
+        template_name: str = "standard",
+        watermark: Optional[str] = None,
+        user_name: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> bytes:
+        """
+        Generates a clean, beautifully formatted PDF catalog/list of all songs in a repertoire.
+        Includes band logo, summary metadata, and a responsive table with:
+        #, Titolo Brano, Artista, Tonalità (ITA), BPM, Durata.
+        """
+        from asma_core.music_engine import MusicEngine
+        prof = profile or DeviceProfile()
+        buffer = io.BytesIO()
+        pagesize = cls.get_page_size(prof)
+
+        left_m = prof.margin_left_mm * mm
+        right_m = prof.margin_right_mm * mm
+        top_m = max(prof.margin_top_mm, 10.0) * mm
+        bot_m = max(prof.margin_bottom_mm, 12.0) * mm
+        usable_w = pagesize[0] - left_m - right_m
+
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=pagesize,
+            leftMargin=left_m,
+            rightMargin=right_m,
+            topMargin=top_m,
+            bottomMargin=bot_m
+        )
+
+        styles = cls._build_style_sheet(prof, template_name)
+        story: List[Flowable] = []
+
+        # 1. Band Logo
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "band_logo.png")
+        if not os.path.exists(logo_path):
+            logo_path = "assets/band_logo.png"
+        if os.path.exists(logo_path):
+            try:
+                from reportlab.platypus import Image as RLImage
+                story.append(RLImage(logo_path, width=42 * mm, height=16.8 * mm))
+                story.append(Spacer(1, 4 * mm))
+            except Exception:
+                pass
+
+        # 2. Header Title & Subtitle
+        rep_clean = repertoire_name.strip() if repertoire_name else "Repertorio Band"
+        story.append(Paragraph(f"<b>ELENCO BRANI — {rep_clean.upper()}</b>", styles["DocTitle"]))
+
+        date_str = datetime.now().strftime("%d/%m/%Y")
+        meta_parts = [f"Totale Brani: <b>{len(songs)}</b>", f"Data: <b>{date_str}</b>"]
+        if user_name:
+            clean_pseudo = re.sub(r'\(.*?\)', '', user_name).strip()
+            if clean_pseudo:
+                meta_parts.append(f"Musicista: <b>({clean_pseudo})</b>")
+        if description and description.strip():
+            meta_parts.append(f"<i>{description.strip()}</i>")
+
+        story.append(Paragraph(" &bull; ".join(meta_parts), styles["SectionText"]))
+        story.append(Spacer(1, 5 * mm))
+
+        # 3. Helper to extract song attributes whether Song model or dict
+        def _get_val(obj: Any, key: str, default: Any = "") -> Any:
+            if hasattr(obj, key):
+                v = getattr(obj, key)
+                return v if v is not None else default
+            if isinstance(obj, dict):
+                v = obj.get(key)
+                return v if v is not None else default
+            return default
+
+        # Sort songs alphabetically by title
+        sorted_songs = sorted(songs, key=lambda s: str(_get_val(s, "title", "")).strip().lower())
+
+        # 4. Table Construction
+        if usable_w < 115 * mm:
+            # Phone / ultra-compact layout: #, Titolo, Tonalità, BPM
+            table_data = [["#", "Titolo Brano", "Tonalità", "BPM"]]
+            for idx, s in enumerate(sorted_songs, start=1):
+                raw_k = _get_val(s, "key_current", "") or _get_val(s, "key_original", "") or "-"
+                key_ita = MusicEngine.convert_notation(raw_k, "ITA") if raw_k and raw_k != "-" else "-"
+                bpm_val = _get_val(s, "bpm", 0)
+                bpm_str = f"{bpm_val}" if bpm_val else "-"
+                s_title = _get_val(s, "title", "Brano")
+                title_p = Paragraph(f"<b>{escape(s_title)}</b>", styles["TableCellBold"])
+                table_data.append([str(idx), title_p, key_ita, bpm_str])
+
+            col_widths = [usable_w * 0.12, usable_w * 0.54, usable_w * 0.20, usable_w * 0.14]
+        else:
+            # Tablet / A4 layout: #, Titolo, Artista, Tonalità, BPM, Durata
+            table_data = [["#", "Titolo Brano", "Artista", "Tonalità", "BPM", "Durata"]]
+            for idx, s in enumerate(sorted_songs, start=1):
+                raw_k = _get_val(s, "key_current", "") or _get_val(s, "key_original", "") or "-"
+                key_ita = MusicEngine.convert_notation(raw_k, "ITA") if raw_k and raw_k != "-" else "-"
+                bpm_val = _get_val(s, "bpm", 0)
+                bpm_str = f"{bpm_val} BPM" if bpm_val else "-"
+                dur_val = _get_val(s, "duration_seconds", 0)
+                dur_str = f"{int(dur_val) // 60}:{int(dur_val) % 60:02d}" if (dur_val and int(dur_val) > 0) else "-"
+                s_title = _get_val(s, "title", "Brano")
+                s_artist = _get_val(s, "artist", "-")
+                title_p = Paragraph(f"<b>{escape(s_title)}</b>", styles["TableCellBold"])
+                artist_p = Paragraph(escape(s_artist), styles["TableCell"])
+                table_data.append([str(idx), title_p, artist_p, key_ita, bpm_str, dur_str])
+
+            col_widths = [
+                usable_w * 0.06,
+                usable_w * 0.38,
+                usable_w * 0.26,
+                usable_w * 0.12,
+                usable_w * 0.10,
+                usable_w * 0.08
+            ]
+
+        tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+            ('FONTSIZE', (0, 1), (-1, -1), 8.5)
+        ]))
+
+        story.append(tbl)
+
+        def canvas_maker(*args, **kwargs):
+            c = NumberedCanvas(*args, **kwargs)
+            c.watermark_text = watermark
+            c.document_title = rep_clean
+            c.version_str = "| Elenco Repertorio"
+            return c
+
+        doc.build(story, canvasmaker=canvas_maker)
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes
+
+    @classmethod
     def _build_style_sheet(cls, profile: DeviceProfile, template_name: str) -> Dict[str, ParagraphStyle]:
         """Constructs typography styles conforming to the device profile, custom layout and template."""
         base_lyrics_size = profile.font_size_lyrics
@@ -502,6 +651,20 @@ class PDFEngine:
                 fontSize=base_lyrics_size * 0.9,
                 leading=base_lyrics_size * 1.1,
                 textColor=aml_color
+            ),
+            "TableCell": ParagraphStyle(
+                "TableCell",
+                fontName="Helvetica",
+                fontSize=8.5,
+                leading=11.0,
+                textColor=colors.HexColor("#1e293b")
+            ),
+            "TableCellBold": ParagraphStyle(
+                "TableCellBold",
+                fontName="Helvetica-Bold",
+                fontSize=8.5,
+                leading=11.0,
+                textColor=colors.HexColor("#0f172a")
             )
         }
         return styles

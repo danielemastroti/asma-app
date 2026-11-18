@@ -14,6 +14,31 @@ from typing import List, Dict, Any, Optional
 
 INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
     {
+        "version": "2026.11.18",
+        "date": "18/11/2026",
+        "title": "Download PDF Elenco Brani in Repertorio, Nuova Direttiva {riga_bianca}, Badge Sezioni Evidenziati, Icona Tastiera {scena: }, Paginazione Intelligente & Autorefresh Audit Log",
+        "new_features": [
+            "Download PDF Elenco Brani in Repertorio: introdotta la possibilità di scaricare e stampare un documento PDF professionale con la lista completa e ordinata dei brani presenti in repertorio (sia per il Repertorio Ufficiale Band, per i repertori personali dei musicisti, o per il catalogo generale 'Tutti i Brani'). Il PDF include logo della band, conteggio totale dei brani, data di generazione, pseudonimo del musicista e una tabella ordinata alfabeticamente con numerazione progressiva (#), Titolo Brano, Artista, Tonalità in notazione italiana (DO, REm, ecc.), BPM e Durata, con intestazioni di colonna ripetute su tutte le pagine (repeatRows=1) e impaginazione reattiva ottimizzata sia per tablet (Huawei MediaPad M5) che per foglio A4. Pulsante '📑 Lista PDF' accessibile con un solo tocco direttamente accanto ai chip dei repertori e nella modale di gestione amministratore.",
+            "Nuova Direttiva Riga Bianca {riga_bianca} / {blank_line}: consente di inserire una riga bianca vuota (o N righe / altezza personalizzata es. {riga_bianca: 2} o {riga_bianca: 15mm}) in qualsiasi posizione dello spartito (tra sezioni, tra versi o all'interno di una strofa/ritornello) sia nei PDF generati che nella visualizzazione web e teleprompter palco. Aggiunto anche il quick chip rapido '␣ {riga_bianca}' nella toolbar dell'editor AML.",
+            "Nuova Direttiva Salto Pagina Forzato {np} / {new_page} / {salto_pagina}: forza l'interruzione immediata e il passaggio alla pagina successiva nella compilazione del PDF.",
+            "Autorefresh Audit Log per Admin (5 Min): visualizzazione del registro di audit con aggiornamento automatico ciclico ogni 5 minuti (300.000 ms) per l'amministratore autenticato, corredata da indicatore verde di stato attivo nella testata della modale.",
+            "Icona Grafica Tasti Live per {scena: }: la direttiva {scena: } elimina completamente la parola testuale 'scena' nei PDF e nel visualizzatore live, mostrando l'icona grafica della tastiera seguita dal preset/valore del musicista in un pill badge ciano dedicato.",
+            "Badge Sezioni ad Alta Visibilità (simili a STACCO): tutti i badge musicali ([INTRO], [STROFA], [RITORNELLO], [RIT], [BRIDGE], [SOLO], [OUTRO]) sono ora evidenziati con sfondi pill compatti e colori dedicati vivaci ad alto contrasto sia su PDF che su Web/Palco."
+        ],
+        "improvements": [
+            "Risoluzione Sezioni e Direttive nei PDF Scaricati (Rotolando verso sud) & Segmentazione Euristica: corretto e strutturato il brano Rotolando verso sud dei Negrita con tutte le sezioni AML standard ([INTRO], [STROFA 1], [RITORNELLO], [STROFA 2], [STROFA 3], [SPECIAL], [STROFA 4], [END]) sincronizzandolo su database locale e cloud Turso. Potenziato il motore di segmentazione euristica in BandAIService che rileva automaticamente strofe e ritornelli ripetuti anche per brani privi di tag espliciti, evitando la generazione di PDF con muri di testo non formattati.",
+            "Sincronizzazione Parametro Trasposizione su Download PDF Brano: esteso l'endpoint /api/songs/{uuid}/pdf con il parametro transpose (semitoni al volo) sincronizzato con il visualizzatore e l'anteprima PDF.",
+            "Formattazione e Paginazione Ottimale di Burning Love per Cico (Huawei MediaPad M5): risolta la formattazione anomala del brano Burning Love per il profilo tablet a 2 colonne di Cico con sezioni AML standard e griglia armonica bilanciata ripartita su esattamente 2 pagine piene ed equilibrate.",
+            "Supporto Sezione [STRUMENTALE] / [INTERMEZZO] in AML Parser & PDF Engine: estesa la sintassi riconosciuta a livello di AST per includere le sezioni strumentali ([STRUMENTALE], STRUMENTALE:, [INTERMEZZO]) con rendering a badge pill dedicato in ocra/oro.",
+            "Eliminazione Pagine Orfane per Badge [END]: il badge di chiusura [END] viene compattato e armonizzato per rimanere sempre all'interno dell'ultima pagina di musica.",
+            "Paginazione Sezioni Lunghe (>6 righe) e Ottimizzazione Riempimento Pagine PDF: se una sezione è molto lunga, il blocco di testa (badge, direttive preliminari e prime 6 righe di testo) rimane unito contro gli orfani, mentre le righe successive scorrono sulla pagina successiva.",
+            "Compattazione Spezzoni Medley: gli spezzoni di brani medley che possono rientrare in una singola pagina vengono preservati come unità compatta.",
+            "Protezione Anti-Orfano Sezioni nei PDF: prevenzione dello spezzamento prematuro di intestazioni o versi isolati a fondo pagina."
+        ],
+        "security": [],
+        "bug_fixes": []
+    },
+    {
         "version": "2026.11.12",
         "date": "12/11/2026",
         "title": "Protezione Repertorio Ufficiale, Condivisione WhatsApp A4, Toggle Accordi/Testo, Fix iOS Share e Sezioni",

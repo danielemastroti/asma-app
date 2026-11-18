@@ -462,6 +462,42 @@ E|-------------------|
         self.assertLess(abs(brass_y - sibm_y), 3.0)
         self.assertLess(brass_y, wheel_y - 5.0)
 
+    def test_generate_repertoire_pdf_table_and_content(self):
+        """Test downloading / generating a PDF song list of an entire repertoire."""
+        import pymupdf
+        songs = [
+            Song(title="Albachiara", artist="Vasco Rossi", key_current="C", bpm=68, duration_seconds=240),
+            Song(title="Hotel California", artist="Eagles", key_current="Bm", bpm=74, duration_seconds=390),
+            Song(title="Rotolando Verso Sud", artist="Negrita", key_current="Gm", bpm=120, duration_seconds=260)
+        ]
+        prof = DeviceProfile(name="Huawei MediaPad M5", width_mm=143.0, height_mm=212.0)
+        pdf_bytes = PDFEngine.generate_repertoire_pdf(
+            "Repertorio Rock",
+            songs,
+            profile=prof,
+            user_name="Cico"
+        )
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        self.assertGreaterEqual(len(doc), 1)
+        full_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        self.assertIn("ELENCO BRANI", full_text)
+        self.assertIn("REPERTORIO ROCK", full_text)
+        self.assertIn("Albachiara", full_text)
+        self.assertIn("Hotel California", full_text)
+        self.assertIn("Rotolando Verso Sud", full_text)
+        self.assertIn("Cico", full_text)
+
+    def test_generate_repertoire_pdf_with_dict_items(self):
+        """Repertoire PDF supports song summaries passed as dictionaries."""
+        songs = [
+            {"title": "Song A", "artist": "Artist A", "key_current": "DO", "bpm": 100, "duration_seconds": 180},
+            {"title": "Song B", "artist": "Artist B", "key_current": "SOL", "bpm": 120, "duration_seconds": 210}
+        ]
+        pdf_bytes = PDFEngine.generate_repertoire_pdf("Repertorio Test", songs)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+
 
 if __name__ == "__main__":
     unittest.main()

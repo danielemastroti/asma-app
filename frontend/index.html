@@ -188,12 +188,15 @@
 
     <!-- 1. VIEW: SONGS & REPERTOIRES -->
     <section id="view-songs" style="display: none;">
-      <!-- 1-TOUCH REPERTOIRE CHIPS & ADMIN TOOL -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <!-- 1-TOUCH REPERTOIRE CHIPS & REPERTOIRE ACTIONS -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
         <div id="repertoire-chips" class="repertoire-chips" style="flex: 1; margin-bottom: 0;">
           <!-- Rendered by app.js -->
         </div>
-        <button id="btn-admin-manage-rep" class="btn btn-secondary" style="display: none; min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #ffd600; border-color: #ffd600; white-space: nowrap; margin-left: 8px;" onclick="openAdminRepertoiresModal()" title="Gestione Repertori (Solo Amministratore)">⚙️ Gestisci</button>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button id="btn-download-rep-pdf" class="btn btn-secondary" style="min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #38bdf8; border-color: #38bdf8; white-space: nowrap;" onclick="downloadActiveRepertoirePdf()" title="Scarica Elenco PDF con la lista dei brani del repertorio selezionato">📑 Lista PDF</button>
+          <button id="btn-admin-manage-rep" class="btn btn-secondary" style="display: none; min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #ffd600; border-color: #ffd600; white-space: nowrap;" onclick="openAdminRepertoiresModal()" title="Gestione Repertori (Solo Amministratore)">⚙️ Gestisci</button>
+        </div>
       </div>
 
       <!-- SEARCH & NEW SONG BAR -->

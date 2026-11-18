@@ -151,7 +151,7 @@ class BandAIService:
         }
 
         # Modelli gratuiti e leggeri raccomandati per velocità e minimo consumo di token
-        models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview"]
+        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             try:
@@ -227,6 +227,56 @@ class BandAIService:
         return "\n".join(new_lines)
 
     @classmethod
+    def segment_unlabeled_stanzas(cls, aml_text: str) -> str:
+        """
+        Smart deterministic stanza and chorus detection for AML text lacking explicit section markers.
+        1. Analyzes paragraph blocks separated by blank lines.
+        2. Detects repeating stanzas by text similarity and labels them as {chorus}.
+        3. Labels the initial block as {intro} if it contains chords without lyrics.
+        4. Labels other blocks as {verse: N}.
+        """
+        blocks = [b.strip() for b in re.split(r'\n\s*\n', aml_text.strip()) if b.strip()]
+        if len(blocks) <= 1:
+            return aml_text
+
+        def get_lyrics_only(b: str) -> str:
+            no_chords = re.sub(r'\[.*?\]', '', b)
+            no_directives = re.sub(r'\{.*?\}', '', no_chords)
+            return ' '.join(re.findall(r'\b\w+\b', no_directives.lower()))
+
+        block_lyrics = [get_lyrics_only(b) for b in blocks]
+        is_chorus = [False] * len(blocks)
+
+        for i in range(len(blocks)):
+            if is_chorus[i] or len(block_lyrics[i]) < 12:
+                continue
+            words_i = set(block_lyrics[i].split())
+            if not words_i:
+                continue
+            for j in range(i + 1, len(blocks)):
+                if len(block_lyrics[j]) < 12:
+                    continue
+                words_j = set(block_lyrics[j].split())
+                intersection = words_i.intersection(words_j)
+                union = words_i.union(words_j)
+                if union and (len(intersection) / len(union)) > 0.45:
+                    is_chorus[i] = True
+                    is_chorus[j] = True
+
+        verse_idx = 0
+        new_blocks = []
+        for idx, b in enumerate(blocks):
+            if idx == 0 and not block_lyrics[0]:
+                new_blocks.append("{intro}\n" + b)
+            elif is_chorus[idx]:
+                new_blocks.append("{chorus}\n" + b)
+            else:
+                verse_idx += 1
+                new_blocks.append(f"{{verse: {verse_idx}}}\n" + b)
+
+        return "\n\n".join(new_blocks)
+
+    @classmethod
     def ensure_section_spacing_aml(cls, aml_text: str) -> str:
         """
         Ensures that a song AML document has well-defined sections and spacing:
@@ -252,7 +302,9 @@ class BandAIService:
         if ai_result:
             return ai_result
 
-        return heuristic_res
+        # 3. Intelligent fallback stanza and chorus segmenter
+        segmented = cls.segment_unlabeled_stanzas(heuristic_res)
+        return segmented
 
 
     KNOWN_SONG_BPM: Dict[str, int] = {

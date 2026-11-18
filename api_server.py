@@ -602,6 +602,102 @@ def get_repertoire(uuid: str):
         "updated_at": rep.updated_at
     }
 
+@app.get("/api/repertoires/{uuid}/pdf")
+def get_repertoire_pdf(
+    uuid: str,
+    device: str = Query("Huawei MediaPad M5", description="Nome profilo hardware di destinazione"),
+    email: Optional[str] = Query(None, description="Email musicista per preferenze layout"),
+    user_name: Optional[str] = Query(None, description="Pseudonimo musicista"),
+    download: bool = Query(True, description="True per forzare il download come attachment"),
+    a4: bool = Query(False, description="True per impaginare su foglio A4"),
+    autoprint: bool = Query(False, description="True per iniettare comando di stampa diretta")
+):
+    """Generates a professional PDF catalog / song list for an entire repertoire or all songs."""
+    import pymupdf
+    if uuid == "__ALL__":
+        rep_name = "Tutti i Brani"
+        rep_desc = "Catalogo generale di tutti i brani in repertorio"
+        songs = storage.list_songs()
+    else:
+        rep = storage.get_repertoire(uuid)
+        if not rep:
+            raise HTTPException(status_code=404, detail="Repertorio non trovato")
+        rep_name = rep.name
+        rep_desc = getattr(rep, "description", None)
+        songs = []
+        for uid in rep.song_uuids:
+            s = storage.get_song(uid)
+            if s:
+                songs.append(s)
+
+    base_prof = resolve_device_profile(device)
+    prof = DeviceProfile(
+        name=base_prof.name,
+        target_device=base_prof.target_device,
+        device_type=base_prof.device_type,
+        width_mm=base_prof.width_mm,
+        height_mm=base_prof.height_mm,
+        orientation=base_prof.orientation,
+        columns=base_prof.columns,
+        font_size_lyrics=base_prof.font_size_lyrics,
+        font_size_chords=base_prof.font_size_chords,
+        margin_top_mm=base_prof.margin_top_mm,
+        margin_bottom_mm=base_prof.margin_bottom_mm,
+        margin_left_mm=base_prof.margin_left_mm,
+        margin_right_mm=base_prof.margin_right_mm,
+        color_lyrics=getattr(base_prof, "color_lyrics", "#111111"),
+        color_chords=getattr(base_prof, "color_chords", "#B71C1C"),
+        color_aml_markup=getattr(base_prof, "color_aml_markup", "#4A148C")
+    )
+
+    if email:
+        user_prefs = pref_mgr.get_preferences(email, prof.name)
+        if user_prefs:
+            if "layout_margin_lateral" in user_prefs:
+                lat = float(user_prefs["layout_margin_lateral"])
+                prof.margin_left_mm = lat
+                prof.margin_right_mm = lat
+            if "layout_margin_top" in user_prefs:
+                prof.margin_top_mm = float(user_prefs["layout_margin_top"])
+
+    if a4 or "foglio" in device.lower():
+        prof.width_mm = 210.0
+        prof.height_mm = 297.0
+        prof.target_device = "pc_a4"
+        prof.device_type = "printable_a4"
+
+    pseudonym = resolve_user_pseudonym(email, user_name)
+    pdf_bytes = PDFEngine.generate_repertoire_pdf(
+        rep_name,
+        songs,
+        profile=prof,
+        user_name=pseudonym,
+        description=rep_desc
+    )
+
+    if autoprint:
+        try:
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            cat = doc.pdf_catalog()
+            action_xref = doc.get_new_xref()
+            doc.update_object(action_xref, "<< /S /JavaScript /JS (print\\(\\);) >>")
+            doc.xref_set_key(cat, "OpenAction", f"{action_xref} 0 R")
+            pdf_bytes = doc.tobytes(garbage=3)
+        except Exception:
+            pass
+
+    clean_fn = re.sub(r'[^a-zA-Z0-9_\-]', '_', rep_name).strip('_') or "repertorio"
+    filename = f"Repertorio_{clean_fn}.pdf"
+    disp = "attachment" if download else "inline"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'{disp}; filename="{filename}"'
+        }
+    )
+
 def is_admin_email(email: Optional[str]) -> bool:
     if not email:
         return False
@@ -1382,6 +1478,7 @@ def get_song_pdf(
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali (mm)"),
     margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)"),
+    transpose: int = Query(0, description="Trasposizione temporanea al volo (semitoni) senza salvare sul DB"),
     a4: bool = Query(False, description="True per impaginare su foglio A4 mantenendo la formattazione del device"),
     autoprint: bool = Query(False, description="True per iniettare comando di stampa automatica diretta")
 ):
@@ -1390,6 +1487,37 @@ def get_song_pdf(
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    transpose_val = int(transpose) if (isinstance(transpose, int) or (isinstance(transpose, str) and transpose.lstrip('-+').isdigit())) else 0
+    if transpose_val != 0:
+        transposed_aml = AMLParser.transpose_preserving_format(song.aml_content, semitones=transpose_val)
+        transposed_key = song.key_current
+        if transposed_key and transposed_key != "-":
+            try:
+                transposed_key = MusicEngine.transpose_chord(transposed_key, transpose_val)
+            except Exception:
+                pass
+        song = Song(
+            uuid=song.uuid,
+            title=song.title,
+            artist=song.artist,
+            author=song.author,
+            genre=song.genre,
+            year=song.year,
+            duration_seconds=song.duration_seconds,
+            bpm=song.bpm,
+            time_signature=song.time_signature,
+            capo=song.capo,
+            key_original=song.key_original,
+            key_current=transposed_key,
+            notation_system=song.notation_system,
+            tags=list(song.tags) if song.tags else [],
+            aml_content=transposed_aml,
+            shared_notes=song.shared_notes,
+            current_revision=song.current_revision,
+            created_at=song.created_at,
+            updated_at=song.updated_at,
+        )
 
     base_prof = resolve_device_profile(device)
 

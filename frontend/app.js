@@ -2832,6 +2832,9 @@ function buildPdfQueryParams(hasChords, extra = {}) {
     margin_lateral: String(p.layout_margin_lateral || 10),
     margin_top: String(p.layout_margin_top || 10),
   });
+  if (state.selectedSong && state.selectedSong._stageDelta) {
+    params.set('transpose', String(state.selectedSong._stageDelta));
+  }
   Object.entries(extra).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.set(k, String(v));
   });
@@ -3015,6 +3018,28 @@ function downloadPdf() {
   const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
   const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?${qs}`;
   triggerPdfDownload(url, filename, () => printA4());
+}
+
+function downloadActiveRepertoirePdf() {
+  const currentRepUuid = state.activeRepertoire || '__ALL__';
+  const workspaceReps = (typeof getWorkspaceRepertoires === 'function') ? getWorkspaceRepertoires() : (state.repertoires || []);
+  let repName = 'Tutti i Brani';
+  if (currentRepUuid !== '__ALL__') {
+    const rep = workspaceReps.find(r => r.uuid === currentRepUuid);
+    if (rep) repName = rep.name;
+  }
+  downloadRepertoirePdf(currentRepUuid, repName);
+}
+
+function downloadRepertoirePdf(repUuid, repName) {
+  const cleanTitle = (repName || 'Repertorio').replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const filename = `Repertorio_${cleanTitle}.pdf`;
+  const qs = buildPdfQueryParams(false, { download: 'true' });
+  const url = `${API_BASE}/api/repertoires/${encodeURIComponent(repUuid)}/pdf?${qs}`;
+  triggerPdfDownload(url, filename, () => {
+    const printUrl = `${API_BASE}/api/repertoires/${encodeURIComponent(repUuid)}/pdf?${buildPdfQueryParams(false, { download: 'false', autoprint: 'true', a4: 'true' })}`;
+    printDirectA4(printUrl);
+  });
 }
 
 async function printDirectA4(url) {
@@ -5056,6 +5081,7 @@ function renderAdminRepertoiresList() {
           <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">${escapeHtml(r.description || 'Nessuna descrizione')} &bull; ${r.song_count} brani</div>
         </div>
         <div style="display:flex; gap:6px; align-items:center;">
+          <button class="btn btn-secondary" style="min-height:30px; padding:2px 8px; font-size:11px; color:#38bdf8; border-color:#38bdf8;" onclick="downloadRepertoirePdf('${r.uuid}', '${escapeHtml(r.name)}')" title="Scarica Elenco PDF Brani">📑 PDF</button>
           <button class="btn btn-secondary" style="min-height:30px; padding:2px 8px; font-size:11px;" onclick="adminRenameRepertoire('${r.uuid}', '${escapeHtml(r.name)}')">✏️</button>
           ${deleteBtn}
         </div>
