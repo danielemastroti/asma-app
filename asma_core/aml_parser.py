@@ -350,7 +350,7 @@ class AMLParser:
 
             # Check for bracketed section header on its own line: [INTRO], [STROFA], [RIT], [RITORNELLO], [VERSE], [CHORUS], etc.
             bracket_sec_match = re.match(
-                r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|STRUMENTALE|INTERMEZZO|END|FINE)(?:\s*[:\-]?\s*(.*?))?\]$",
+                r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|STRUMENTALE|INTERMEZZO|END|FINE)(?:\s*[:\-]?\s*(.*?))?\](?:\s*\(?[xX]?\d+[xX]?\)?)?$",
                 line,
                 re.IGNORECASE
             )
@@ -791,8 +791,8 @@ class AMLParser:
 
         while i < len(raw_lines):
             curr_line = raw_lines[i]
-            # Check if this line is a chord line and next line is lyrics
-            if is_chord_line(curr_line) and (i + 1 < len(raw_lines)) and not is_chord_line(raw_lines[i + 1]):
+            # Check if this line is a chord line and next line is lyrics (must not be empty)
+            if is_chord_line(curr_line) and (i + 1 < len(raw_lines)) and raw_lines[i + 1].strip() and not is_chord_line(raw_lines[i + 1]):
                 chord_line = curr_line
                 lyric_line = raw_lines[i + 1]
 

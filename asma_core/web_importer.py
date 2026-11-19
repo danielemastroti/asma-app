@@ -181,7 +181,19 @@ class WebSongImporter:
             from asma_core.pdf_engine import PDFEngine
             cleaned = re.sub(r"\[ch\](.*?)\[/ch\]", r"\1", content)
             cleaned = re.sub(r"\[/?tab\]", "", cleaned)
-            cleaned = "\n".join([l for l in cleaned.splitlines() if not PDFEngine.is_guitar_tab_line(l)])
+            filter_lines = []
+            for l in cleaned.splitlines():
+                if PDFEngine.is_guitar_tab_line(l):
+                    continue
+                cl = l.strip()
+                if re.match(r"^(?:title|artist|tabbed by|author|tuning|difficulty|strumming)\s*:.*", cl, re.IGNORECASE):
+                    continue
+                if re.match(r"^(?:after that|then|guitar \d+|keyboard|drums).*(?:plays|riff|solo|this|intro).*$", cl, re.IGNORECASE):
+                    continue
+                if re.match(r"^[\*\-_=~]{3,}$", cl) or re.match(r"^\|\s*[/\\hpbr~x]\s+", cl, re.IGNORECASE):
+                    continue
+                filter_lines.append(l)
+            cleaned = "\n".join(filter_lines)
 
             doc = AMLParser.import_traditional_chords_over_text(cleaned)
 

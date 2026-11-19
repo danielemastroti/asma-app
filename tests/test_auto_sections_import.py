@@ -165,6 +165,66 @@ Intro:
         self.assertIn("[END]", result)
         self.assertIn("[DO]Testo personalizzato riga 1", result)
 
+    def test_import_fortunate_son_traditional_with_embedded_chorus_tail(self):
+        """Verifies that songs like Fortunate Son (where only Intro: exists and verses embed chorus at the end) are structured."""
+        trad_text = """
+Intro:
+SOL  FA/SOL  DO/SOL  SOL
+
+SOL                  FA
+ Some folks are born made to wave the flag
+DO                            SOL
+ Ooh, they're red, white and blue
+                         FA
+And when the band plays "Hail to the chief"
+DO                             SOL
+ Ooh, they point the cannon at you, Lord
+            RE          DO                      SOL            
+It ain't me, it ain't me, I ain't no senator's son, son
+           RE           DO                     SOL
+It ain't me, it ain't me, I ain't no fortunate one, no
+
+SOL                   FA
+ Some folks are born silver spoon in hand
+DO                         SOL
+ Lord, don't they help themselves, oh
+                     FA
+But when the taxman comes to the door
+DO                                 SOL
+ Lord, the house looks like a rummage sale, yes
+            RE          DO                      SOL            
+It ain't me, it ain't me, I ain't no senator's son, son
+           RE           DO                     SOL
+It ain't me, it ain't me, I ain't no fortunate one, no
+"""
+        song = ImportEngine.import_from_traditional(trad_text, "Fortunate Son")
+        self.assertIn("[INTRO]", song.aml_content)
+        self.assertIn("[STROFA 1]", song.aml_content)
+        self.assertIn("[RITORNELLO]", song.aml_content)
+        self.assertIn("[STROFA 2]", song.aml_content)
+        self.assertIn("[END]", song.aml_content)
+
+    def test_import_with_intro_multiplier_and_chordpro_directives(self):
+        """Verifies that [Intro] (x2) and {verse: 1}/{chorus} are properly normalized to standard AML badges."""
+        ug_raw = """[Intro] (x2)
+[G] [F]
+
+{verse: 1}
+[G]Some folks are born, [F]made to wave the flag
+[C]Ooh, they're red, white and [G]blue
+
+{chorus}
+ [G]It ain't me, [D]it ain't me, [C]I ain't no senator's [G]son
+"""
+        structured = BandAIService.auto_assign_sections(ug_raw, "FORTUNATE SON", "CCR")
+        self.assertIn("[INTRO]", structured)
+        self.assertIn("[STROFA 1]", structured)
+        self.assertIn("[RITORNELLO]", structured)
+        self.assertIn("[END]", structured)
+        self.assertNotIn("{verse: 1}", structured)
+        self.assertNotIn("{chorus}", structured)
+        self.assertNotIn("(x2)", structured)
+
 
 if __name__ == "__main__":
     unittest.main()

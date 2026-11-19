@@ -16,7 +16,7 @@ from asma_core.music_engine import MusicEngine
 
 
 SECTION_HEADING_REGEX = re.compile(
-    r"^(?:\[|\(|\{)?\s*(?:(?:guitar|chitarra|tastiere|keyboards|bass|basso|sax|fiati)\s+)?(intro(?:duzione)?|verse|strofa|ritornello|rit|chorus|bridge|ponte|inciso|special|solo|assolo|stacco|strumentale|instrumental|intermezzo|interlude|outro|finale|coda|sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge)(?:\s+(?:solo|assolo|guitar|chitarra))?(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
+    r"^(?:\[|\(|\{)?\s*(?:(?:guitar|chitarra|tastiere|keyboards|bass|basso|sax|fiati)\s+)?(intro(?:duzione)?|verse|strofa|ritornello|rit|chorus|bridge|ponte|inciso|special|solo|assolo|stacco|strumentale|instrumental|intermezzo|interlude|outro|finale|coda|sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge)(?:\s+(?:solo|assolo|guitar|chitarra))?(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*(?:\]|\)|\}))?(?:\s*\(?[xX]?\d+[xX]?\)?)?\s*[:\-]?\s*$",
     re.IGNORECASE
 )
 
@@ -314,21 +314,23 @@ class BandAIService:
     @classmethod
     def has_aml_section_badges(cls, aml_text: str) -> bool:
         """
-        Checks whether an AML text contains standard square-bracketed section badges
-        ([INTRO], [STROFA], [RITORNELLO], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END], etc.).
+        Checks whether an AML text contains standard uppercase section badges
+        with at least one verse or chorus ([STROFA], [RITORNELLO], etc.) and no unconverted directives.
         """
         if not aml_text or not aml_text.strip():
             return False
-        return bool(re.search(
-            r"(?:^|\n)\s*\[(INTRO|STROFA|RITORNELLO|RIT|BRIDGE|SPECIAL|SOLO|STRUMENTALE|FINALE|STACCO|INTERMEZZO|END)",
-            aml_text,
-            re.IGNORECASE
-        ))
+        # If it contains ChordPro section directives or English tags, it's not final AML
+        if re.search(r"\{(?:verse|chorus|intro|bridge|solo|outro|sov|soc|sob)\b", aml_text, re.IGNORECASE):
+            return False
+        if re.search(r"\[(?:verse|chorus|bridge)\b", aml_text, re.IGNORECASE):
+            return False
+        # Must contain at least one verse or chorus badge in standard uppercase
+        return bool(re.search(r"(?:^|\n)\s*\[(STROFA|RITORNELLO|RIT)\b", aml_text))
 
     @classmethod
     def has_explicit_sections(cls, aml_text: str) -> bool:
         """
-        Checks whether an AML text contains standard section badges ([INTRO], [STROFA], etc.)
+        Checks whether an AML text contains standard section badges ([STROFA], [RITORNELLO], etc.)
         or ChordPro section directives ({sov}, {soc}, {sob}, {verse}, {chorus}, etc.).
         """
         if not aml_text or not aml_text.strip():
@@ -336,10 +338,59 @@ class BandAIService:
         if cls.has_aml_section_badges(aml_text):
             return True
         return bool(re.search(
-            r"\{(?:sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge|verse|chorus|bridge|intro|solo|outro|strofa|ritornello)",
+            r"\{(?:sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge|verse|chorus|bridge|strofa|ritornello)\b",
             aml_text,
             re.IGNORECASE
         ))
+
+    @classmethod
+    def split_embedded_choruses(cls, blocks: List[str]) -> List[str]:
+        """
+        If multiple stanzas (>= 4 lines) end with the exact same 1 to 4 lines of lyrics
+        (e.g. tabs where chorus was appended at the bottom of each verse without a blank line),
+        separates those tail lines into independent chorus blocks.
+        """
+        def get_lyr_clean(line: str) -> str:
+            no_c = re.sub(r'\[.*?\]', '', line)
+            no_d = re.sub(r'\{.*?\}', '', no_c)
+            no_p = re.sub(r'\|.*?\|', '', no_d)
+            return ' '.join(re.findall(r'\b\w+\b', no_p.lower()))
+
+        block_lines = [b.splitlines() for b in blocks]
+        block_lyr = [[get_lyr_clean(l) for l in lines] for lines in block_lines]
+
+        tail_candidates: List[int] = []
+        for i in range(len(blocks)):
+            if len(block_lyr[i]) < 4:
+                continue
+            for j in range(i + 1, len(blocks)):
+                if len(block_lyr[j]) < 4:
+                    continue
+                k = 1
+                max_k = min(len(block_lyr[i]), len(block_lyr[j])) // 2
+                match_k = 0
+                while k <= max_k:
+                    if block_lyr[i][-k] and block_lyr[i][-k] == block_lyr[j][-k]:
+                        match_k = k
+                        k += 1
+                    else:
+                        break
+                if match_k >= 1:
+                    tail_candidates.append(match_k)
+
+        if not tail_candidates:
+            return blocks
+
+        from collections import Counter
+        best_k = Counter(tail_candidates).most_common(1)[0][0]
+        new_blocks: List[str] = []
+        for lines in block_lines:
+            if len(lines) >= best_k + 2:
+                new_blocks.append('\n'.join(lines[:-best_k]))
+                new_blocks.append('\n'.join(lines[-best_k:]))
+            else:
+                new_blocks.append('\n'.join(lines))
+        return new_blocks
 
     @classmethod
     def split_headers_and_body(cls, aml_text: str) -> Tuple[List[str], str]:
@@ -410,6 +461,17 @@ class BandAIService:
             return cleaned
 
         # 2. Conversione deterministica di intestazioni testuali grezze o direttive ChordPro ({sov}, {soc}, Intro:, Verse 1:, ecc.)
+        # Rimuove preventivamente righe di commento/autore tipiche dei portali web
+        filtered_lines = []
+        for l in body.splitlines():
+            cl = l.strip()
+            if re.match(r"^(?:title|artist|tabbed by|author|tuning|difficulty|strumming)\s*:.*", cl, re.IGNORECASE):
+                continue
+            if re.match(r"^(?:after that|then|guitar \d+|keyboard|drums).*(?:plays|riff|solo|this|intro).*$", cl, re.IGNORECASE):
+                continue
+            filtered_lines.append(l)
+        body = "\n".join(filtered_lines)
+
         lines = body.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         converted_lines: List[str] = []
         found_headings = False
@@ -439,18 +501,26 @@ class BandAIService:
             else:
                 converted_lines.append(l)
 
-        if found_headings:
-            body_res = "\n".join(converted_lines).rstrip()
+        body_res = "\n".join(converted_lines).rstrip()
+        has_full_headings = bool(re.search(r"\[(STROFA|RITORNELLO|RIT)\b", body_res))
+        if has_full_headings:
+            body_res = re.sub(r"\n{3,}", "\n\n", body_res)
             if not re.search(r"\[(END|FINE)\]\s*$", body_res, re.IGNORECASE):
                 body_res += "\n[END]"
             if headers:
                 return "\n".join(headers) + "\n\n" + body_res
             return body_res
 
+        # Se sono state trovate solo intestazioni parziali (es. solo [INTRO]), procedi alla segmentazione dei restanti blocchi
+        body = body_res
+
         # 3. Segmentazione euristica e semantica per brani privi di qualsiasi intestazione
         blocks = [b.strip() for b in re.split(r'\n\s*\n', body.strip()) if b.strip()]
         if not blocks:
             return aml_text
+
+        # Separazione ritornelli incorporati a fondo strofa (tail chorus detection)
+        blocks = cls.split_embedded_choruses(blocks)
 
         # Se il testo è un unico blocco continuo senza righe vuote, suddividi in blocchi logici da 4 righe
         if len(blocks) == 1 and len(blocks[0].splitlines()) > 6:
@@ -473,15 +543,30 @@ class BandAIService:
             res = []
             for l in b.splitlines():
                 no_c = re.sub(r'\[.*?\]', '', l)
-                no_d = re.sub(r'\{.*?\}', '', no_c).strip().lower()
-                if no_d:
-                    res.append(no_d)
+                no_d = re.sub(r'\{.*?\}', '', no_c)
+                no_p = re.sub(r'\|.*?\|', '', no_d).strip().lower()
+                if no_p:
+                    res.append(no_p)
             return res
 
         def get_words(b: str) -> List[str]:
             no_chords = re.sub(r'\[.*?\]', '', b)
             no_dirs = re.sub(r'\{.*?\}', '', no_chords)
-            return re.findall(r'\b\w+\b', no_dirs.lower())
+            words = []
+            for line in no_dirs.splitlines():
+                line_clean = line.strip()
+                if "|" in line_clean:
+                    tokens = [t.strip("|,/ ") for t in line_clean.split() if t.strip("|,/ ")]
+                    valid = sum(1 for t in tokens if MusicEngine.parse_chord(t))
+                    if tokens and (valid / len(tokens)) >= 0.5:
+                        continue
+                tokens = line_clean.split()
+                if tokens:
+                    valid = sum(1 for t in tokens if MusicEngine.parse_chord(t))
+                    if (valid / len(tokens)) >= 0.75:
+                        continue
+                words.extend(re.findall(r'\b[a-zA-ZàèéìòùÀÈÉÌÒÙ]{2,}\b', line_clean.lower()))
+            return words
 
         block_lines = [get_lines(b) for b in blocks]
         block_words = [get_words(b) for b in blocks]
@@ -500,7 +585,7 @@ class BandAIService:
                 wj = set(block_words[j])
                 uni = wi.union(wj)
                 w_sim = len(wi.intersection(wj)) / len(uni) if uni else 0
-                if sl >= 1 or w_sim >= 0.55:
+                if sl >= 1 or w_sim >= 0.50:
                     score = sl * 2.5 + w_sim
                     pair_scores.append((score, i, j, sl, w_sim))
 
@@ -518,19 +603,37 @@ class BandAIService:
         verse_idx = 0
         assigned_blocks: List[str] = []
         for idx, b in enumerate(blocks):
+            lines_b = [l.strip() for l in b.splitlines() if l.strip()]
+            if not lines_b:
+                continue
+            first_l = lines_b[0]
+            # Se il blocco ha già un badge di sezione in testa (es. [INTRO])
+            if first_l.startswith('[') and first_l.endswith(']') and not any(first_l.upper().startswith(f"[{c}") for c in ["DO", "RE", "MI", "FA", "SOL", "LA", "SI", "A", "B", "C", "D", "E", "F", "G"]):
+                assigned_blocks.append(b)
+                continue
+
             words = block_words[idx]
-            if idx == 0 and len(words) < 3:
-                assigned_blocks.append("[INTRO]\n" + b)
-            elif is_chorus[idx]:
-                assigned_blocks.append("[RITORNELLO]\n" + b)
-            elif len(words) < 3:
-                if idx == len(blocks) - 1:
+            if len(words) < 3:
+                if idx == 0:
+                    assigned_blocks.append("[INTRO]\n" + b)
+                elif idx == len(blocks) - 1:
                     assigned_blocks.append("[FINALE]\n" + b)
                 else:
                     assigned_blocks.append("[STRUMENTALE]\n" + b)
+            elif is_chorus[idx]:
+                assigned_blocks.append("[RITORNELLO]\n" + b)
             else:
                 verse_idx += 1
                 assigned_blocks.append(f"[STROFA {verse_idx}]\n" + b)
+
+        body_res = "\n\n".join(assigned_blocks).rstrip()
+        body_res = re.sub(r"\n{3,}", "\n\n", body_res)
+        if not re.search(r"\[(END|FINE)\]\s*$", body_res, re.IGNORECASE):
+            body_res += "\n[END]"
+
+        if headers:
+            return "\n".join(headers) + "\n\n" + body_res
+        return body_res
 
         body_res = "\n\n".join(assigned_blocks).rstrip()
         if not re.search(r"\[(END|FINE)\]\s*$", body_res, re.IGNORECASE):
