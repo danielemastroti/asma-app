@@ -550,6 +550,16 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Da Link Web:</b> Estrazione diretta di testo e accordi da una pagina web specifica incollandone la URL.", bullet_style))
         story.append(Paragraph("&bull; <b>Scrivi AML:</b> Composizione libera direttamente nel formato sorgente della band con assistenza sintattica.", bullet_style))
 
+        story.append(Paragraph(
+            "<b>Assegnazione Automatica Sezioni Musicali su Nuove Importazioni:</b> "
+            "Qualsiasi brano acquisito tramite Incolla Testo, ChordPro, estrazione PDF, URL web o Scrivi AML "
+            "viene analizzato dal motore musicale in background: se il testo originale è privo di indicazioni di sezione, "
+            "il sistema rileva automaticamente strofe e ritornelli ripetuti, inserendo i badge standard ad alta visibilità "
+            "(<code>[INTRO]</code>, <code>[STROFA 1]</code>, <code>[RITORNELLO]</code>, <code>[BRIDGE]</code>, <code>[SOLO]</code>, "
+            "<code>[STRUMENTALE]</code>, <code>[FINALE]</code>, <code>[END]</code>) senza mai alterare le parole o gli accordi originali.",
+            body_style
+        ))
+
         story.append(Paragraph("<b>Approfondimento: Scansione da Fotocamera / Foto Spartito Cartaceo (OCR AI)</b>", ch_sub_style))
         story.append(Paragraph(
             "La scheda <b>'Fotocamera / Foto'</b> è una delle funzionalità più potenti di ASMA: consente di digitalizzare in pochi "

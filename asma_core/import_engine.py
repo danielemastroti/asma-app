@@ -39,6 +39,10 @@ class ImportEngine:
         time_sig = meta.get("time", "4/4")
         capo = int(meta.get("capo", 0)) if meta.get("capo", "").isdigit() else 0
 
+        from asma_core.ai_service import BandAIService
+
+        clean_aml = BandAIService.auto_assign_sections(doc.to_aml(), title, artist)
+
         song = Song(
             title=title,
             artist=artist,
@@ -47,7 +51,7 @@ class ImportEngine:
             bpm=tempo,
             time_signature=time_sig,
             capo=capo,
-            aml_content=doc.to_aml()
+            aml_content=clean_aml
         )
         return song
 
@@ -72,12 +76,18 @@ class ImportEngine:
                         break
         key = key or "C"
 
+        from asma_core.ai_service import BandAIService
+
+        raw_title = meta.get("title", default_title)
+        raw_artist = meta.get("artist", "")
+        clean_aml = BandAIService.auto_assign_sections(doc.to_aml(), raw_title, raw_artist)
+
         song = Song(
-            title=meta.get("title", default_title),
-            artist=meta.get("artist", ""),
+            title=raw_title,
+            artist=raw_artist,
             key_original=key,
             key_current=key,
-            aml_content=doc.to_aml()
+            aml_content=clean_aml
         )
         return song
 

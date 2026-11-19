@@ -195,6 +195,7 @@ class WebSongImporter:
             ]
 
             from asma_core.ai_service import BandAIService
+            clean_aml = BandAIService.auto_assign_sections("\n".join(aml_lines), title, artist)
             est_bpm = BandAIService.estimate_song_bpm(title, artist)
             return Song(
                 title=title,
@@ -202,7 +203,7 @@ class WebSongImporter:
                 key_original=tonality,
                 key_current=tonality,
                 bpm=est_bpm,
-                aml_content="\n".join(aml_lines),
+                aml_content=clean_aml,
                 tags=["importato-web", "ultimate-guitar"]
             )
         except Exception:
@@ -335,6 +336,7 @@ class WebSongImporter:
         ]
 
         from asma_core.ai_service import BandAIService
+        clean_aml = BandAIService.auto_assign_sections("\n".join(aml_lines), final_title, final_artist)
         est_bpm = BandAIService.estimate_song_bpm(final_title, final_artist)
         return Song(
             title=final_title,
@@ -342,7 +344,7 @@ class WebSongImporter:
             key_original=detected_key,
             key_current=detected_key,
             bpm=est_bpm,
-            aml_content="\n".join(aml_lines),
+            aml_content=clean_aml,
             tags=["importato-web"]
         )
 

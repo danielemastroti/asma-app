@@ -215,6 +215,9 @@ class StorageManager:
                     song.aml_content,
                     flags=re.IGNORECASE
                 )
+                from asma_core.ai_service import BandAIService
+                if not BandAIService.has_explicit_sections(song.aml_content):
+                    song.aml_content = BandAIService.auto_assign_sections(song.aml_content, song.title, song.artist)
 
             # Check existing revision number
             existing_revs = self.get_revisions_for_song(song.uuid)

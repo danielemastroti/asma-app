@@ -11,12 +11,12 @@ import re
 import json
 import urllib.request
 import urllib.error
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from asma_core.music_engine import MusicEngine
 
 
 SECTION_HEADING_REGEX = re.compile(
-    r"^(?:\[|\(|\{)?\s*(intro(?:duzione)?|verse|strofa|ritornello|chorus|bridge|inciso|special|solo|assolo|stacco|strumentale|intermezzo|outro|finale|coda)(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
+    r"^(?:\[|\(|\{)?\s*(?:(?:guitar|chitarra|tastiere|keyboards|bass|basso|sax|fiati)\s+)?(intro(?:duzione)?|verse|strofa|ritornello|rit|chorus|bridge|ponte|inciso|special|solo|assolo|stacco|strumentale|instrumental|intermezzo|interlude|outro|finale|coda|sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge)(?:\s+(?:solo|assolo|guitar|chitarra))?(?:(?:\s*[:\-]?\s*|\s+)([\dIVX]+))?(?:\s*[-:]\s*|\s*|\s*[\:\-]|\s*(?:\]|\)|\}))?$",
     re.IGNORECASE
 )
 
@@ -40,12 +40,47 @@ SECTION_NAME_MAP = {
     "coda": "coda"
 }
 
+SECTION_BADGE_MAP = {
+    "intro": "INTRO",
+    "introduzione": "INTRO",
+    "verse": "STROFA",
+    "strofa": "STROFA",
+    "sov": "STROFA",
+    "start_of_verse": "STROFA",
+    "chorus": "RITORNELLO",
+    "ritornello": "RITORNELLO",
+    "rit": "RITORNELLO",
+    "soc": "RITORNELLO",
+    "start_of_chorus": "RITORNELLO",
+    "bridge": "BRIDGE",
+    "ponte": "BRIDGE",
+    "inciso": "BRIDGE",
+    "special": "BRIDGE",
+    "sob": "BRIDGE",
+    "start_of_bridge": "BRIDGE",
+    "solo": "SOLO",
+    "assolo": "SOLO",
+    "stacco": "STACCO",
+    "strumentale": "STRUMENTALE",
+    "instrumental": "STRUMENTALE",
+    "intermezzo": "STRUMENTALE",
+    "interlude": "STRUMENTALE",
+    "outro": "FINALE",
+    "finale": "FINALE",
+    "coda": "FINALE",
+    "end": "END",
+    "fine": "END"
+}
+
 
 class BandAIService:
     """
     Auxiliary Creative AI Service.
     100% Optional. Fallbacks seamlessly to deterministic logic when offline or disabled.
     """
+    SECTION_HEADING_REGEX = SECTION_HEADING_REGEX
+    SECTION_NAME_MAP = SECTION_NAME_MAP
+    SECTION_BADGE_MAP = SECTION_BADGE_MAP
     MODE_OFF = "OFF"
     MODE_FREE = "FREE"
     MODE_PREMIUM = "PREMIUM"
@@ -129,8 +164,8 @@ class BandAIService:
 
         prompt = (
             "Sei un assistente musicale esperto di formattazione testi e spartiti per leggio.\n"
-            "Nel testo musicale seguente mancano i tag di sezione. Inserisci i tag di sezione AML standard "
-            "({intro}, {verse}, {chorus}, {bridge}, {solo}, {outro}) prima di ciascuna sezione logica del brano.\n"
+            "Nel testo musicale seguente mancano i tag di sezione. Inserisci i badge di sezione AML standard in lingua italiana "
+            "([INTRO], [STROFA 1], [RITORNELLO], [STROFA 2], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END]) prima di ciascuna sezione logica del brano.\n"
             "Regole vincolanti:\n"
             "1. Mantieni esattamente inalterate tutte le parole e tutti gli accordi (es. [Am], [G]).\n"
             "2. Non aggiungere spiegazioni, non commentare e non usare blocchi di codice markdown (nessun ```).\n"
@@ -171,7 +206,7 @@ class BandAIService:
                                 out_text = parts[0].get("text", "").strip()
                                 out_text = re.sub(r"^```[a-zA-Z]*\n", "", out_text)
                                 out_text = re.sub(r"\n```$", "", out_text).strip()
-                                if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello)", out_text, re.IGNORECASE):
+                                if re.search(r"(\{|\[)(intro|verse|chorus|bridge|solo|outro|strofa|ritornello)", out_text, re.IGNORECASE):
                                     return out_text
             except Exception:
                 continue
@@ -277,24 +312,255 @@ class BandAIService:
         return "\n\n".join(new_blocks)
 
     @classmethod
-    def ensure_section_spacing_aml(cls, aml_text: str) -> str:
+    def has_aml_section_badges(cls, aml_text: str) -> bool:
         """
-        Ensures that a song AML document has well-defined sections and spacing:
-        1. If sections are already present ({intro}, {verse}, {chorus}, etc.), leaves it unchanged.
-        2. If sections are missing, attempts fast lightweight AI model (Gemini free tier).
-        3. As the ultimate fallback, applies deterministic heuristic segmentation to format the PDF
-           at the highest possible standard.
+        Checks whether an AML text contains standard square-bracketed section badges
+        ([INTRO], [STROFA], [RITORNELLO], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END], etc.).
+        """
+        if not aml_text or not aml_text.strip():
+            return False
+        return bool(re.search(
+            r"(?:^|\n)\s*\[(INTRO|STROFA|RITORNELLO|RIT|BRIDGE|SPECIAL|SOLO|STRUMENTALE|FINALE|STACCO|INTERMEZZO|END)",
+            aml_text,
+            re.IGNORECASE
+        ))
+
+    @classmethod
+    def has_explicit_sections(cls, aml_text: str) -> bool:
+        """
+        Checks whether an AML text contains standard section badges ([INTRO], [STROFA], etc.)
+        or ChordPro section directives ({sov}, {soc}, {sob}, {verse}, {chorus}, etc.).
+        """
+        if not aml_text or not aml_text.strip():
+            return False
+        if cls.has_aml_section_badges(aml_text):
+            return True
+        return bool(re.search(
+            r"\{(?:sov|soc|sob|start_of_verse|start_of_chorus|start_of_bridge|verse|chorus|bridge|intro|solo|outro|strofa|ritornello)",
+            aml_text,
+            re.IGNORECASE
+        ))
+
+    @classmethod
+    def split_headers_and_body(cls, aml_text: str) -> Tuple[List[str], str]:
+        """
+        Separates top metadata header directives ({title: }, {artist: }, etc.) from the song body.
+        """
+        lines = aml_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        headers: List[str] = []
+        body_lines: List[str] = []
+        in_headers = True
+
+        for l in lines:
+            stripped = l.strip()
+            if in_headers and stripped.startswith("{") and stripped.endswith("}") and any(
+                stripped.lower().startswith(f"{{{k}") for k in [
+                    "title", "t:", "artist", "a:", "key", "k:", "tempo", "bpm",
+                    "capo", "duration", "time", "source"
+                ]
+            ) and not any(
+                stripped.lower().startswith(f"{{{k}") for k in [
+                    "sov", "soc", "sob", "intro", "verse", "chorus", "bridge", "solo", "outro", "c:", "comment"
+                ]
+            ):
+                headers.append(stripped)
+            elif in_headers and not stripped:
+                continue
+            else:
+                in_headers = False
+                body_lines.append(l)
+
+        return headers, "\n".join(body_lines)
+
+    @classmethod
+    def auto_assign_sections(cls, aml_text: str, song_title: str = "", artist: str = "") -> str:
+        """
+        Automatically and musically assigns standard AML section badges ([INTRO], [STROFA 1],
+        [RITORNELLO], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END]) to imported or newly created songs.
         """
         if not aml_text or not aml_text.strip():
             return aml_text
 
-        # Check if AML already has explicit section tags
-        if re.search(r"(\{|\[)(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale|strumentale|end|fine|sob|soc|sov|start_of_bridge|start_of_chorus|start_of_verse|speciale)", aml_text, re.IGNORECASE):
+        # Ignora stringhe brevi arbitrarie o placeholder prive di accordi o direttive musicali
+        has_chords = bool(re.search(r"\[(?:[A-G]|DO|RE|MI|FA|SOL|LA|SI)", aml_text, re.IGNORECASE))
+        has_dirs = bool(re.search(r"\{[a-zA-Z_]+", aml_text))
+        if not has_chords and not has_dirs and len(aml_text.strip().splitlines()) < 4:
             return aml_text
 
-        # 1. Fast deterministic heuristic segmentation (instantly converts Strofa 1:, Ritornello:, etc.)
+        headers, body = cls.split_headers_and_body(aml_text)
+
+        # Se il corpo ha già badge di sezione standard tra parentesi quadre, preservali intatti
+        if cls.has_aml_section_badges(body):
+            cleaned = body.rstrip()
+            if not re.search(r"\[(END|FINE)\]\s*$", cleaned, re.IGNORECASE):
+                cleaned += "\n[END]"
+            if headers:
+                return "\n".join(headers) + "\n\n" + cleaned
+            return cleaned
+
+        # 1. Tentativo con Vision/Gemini AI se la chiave API è configurata
+        ai_res = cls.detect_sections_with_ai(body)
+        if ai_res and cls.has_aml_section_badges(ai_res):
+            body = ai_res
+            cleaned = body.rstrip()
+            if not re.search(r"\[(END|FINE)\]\s*$", cleaned, re.IGNORECASE):
+                cleaned += "\n[END]"
+            if headers:
+                return "\n".join(headers) + "\n\n" + cleaned
+            return cleaned
+
+        # 2. Conversione deterministica di intestazioni testuali grezze o direttive ChordPro ({sov}, {soc}, Intro:, Verse 1:, ecc.)
+        lines = body.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        converted_lines: List[str] = []
+        found_headings = False
+        verse_count = 0
+
+        for l in lines:
+            clean = l.strip()
+            # Elimina marcatori di chiusura ({eov}, {eoc}, {eob}, {doc})
+            if re.match(r"^\{(?:eov|eoc|eob|doc|end_of_verse|end_of_chorus|end_of_bridge)\}\s*$", clean, re.IGNORECASE):
+                found_headings = True
+                continue
+            m = cls.SECTION_HEADING_REGEX.match(clean)
+            if m:
+                found_headings = True
+                kw = m.group(1).lower()
+                badge = cls.SECTION_BADGE_MAP.get(kw, "STROFA")
+                num = m.group(2)
+                if badge == "STROFA":
+                    if num:
+                        b_str = f"[STROFA {num}]"
+                    else:
+                        verse_count += 1
+                        b_str = f"[STROFA {verse_count}]"
+                else:
+                    b_str = f"[{badge}]"
+                converted_lines.append(b_str)
+            else:
+                converted_lines.append(l)
+
+        if found_headings:
+            body_res = "\n".join(converted_lines).rstrip()
+            if not re.search(r"\[(END|FINE)\]\s*$", body_res, re.IGNORECASE):
+                body_res += "\n[END]"
+            if headers:
+                return "\n".join(headers) + "\n\n" + body_res
+            return body_res
+
+        # 3. Segmentazione euristica e semantica per brani privi di qualsiasi intestazione
+        blocks = [b.strip() for b in re.split(r'\n\s*\n', body.strip()) if b.strip()]
+        if not blocks:
+            return aml_text
+
+        # Se il testo è un unico blocco continuo senza righe vuote, suddividi in blocchi logici da 4 righe
+        if len(blocks) == 1 and len(blocks[0].splitlines()) > 6:
+            raw_lines = [rl for rl in blocks[0].splitlines() if rl.strip()]
+            new_blocks = []
+            chunk = []
+            for rl in raw_lines:
+                chunk.append(rl)
+                if len(chunk) >= 4:
+                    new_blocks.append("\n".join(chunk))
+                    chunk = []
+            if chunk:
+                if len(chunk) <= 2 and new_blocks:
+                    new_blocks[-1] += "\n" + "\n".join(chunk)
+                else:
+                    new_blocks.append("\n".join(chunk))
+            blocks = new_blocks
+
+        def get_lines(b: str) -> List[str]:
+            res = []
+            for l in b.splitlines():
+                no_c = re.sub(r'\[.*?\]', '', l)
+                no_d = re.sub(r'\{.*?\}', '', no_c).strip().lower()
+                if no_d:
+                    res.append(no_d)
+            return res
+
+        def get_words(b: str) -> List[str]:
+            no_chords = re.sub(r'\[.*?\]', '', b)
+            no_dirs = re.sub(r'\{.*?\}', '', no_chords)
+            return re.findall(r'\b\w+\b', no_dirs.lower())
+
+        block_lines = [get_lines(b) for b in blocks]
+        block_words = [get_words(b) for b in blocks]
+        is_chorus = [False] * len(blocks)
+
+        # Rilevamento ritornelli tramite combinazione di linee identiche e similarità lessicale
+        pair_scores = []
+        for i in range(len(blocks)):
+            if len(block_words[i]) < 4:
+                continue
+            for j in range(i + 1, len(blocks)):
+                if len(block_words[j]) < 4:
+                    continue
+                sl = len(set(block_lines[i]).intersection(set(block_lines[j])))
+                wi = set(block_words[i])
+                wj = set(block_words[j])
+                uni = wi.union(wj)
+                w_sim = len(wi.intersection(wj)) / len(uni) if uni else 0
+                if sl >= 1 or w_sim >= 0.55:
+                    score = sl * 2.5 + w_sim
+                    pair_scores.append((score, i, j, sl, w_sim))
+
+        if pair_scores:
+            pair_scores.sort(key=lambda x: -x[0])
+            best_score = pair_scores[0][0]
+            chorus_indices = set()
+            for sc, i, j, sl, w_sim in pair_scores:
+                if sc >= best_score * 0.70:
+                    chorus_indices.add(i)
+                    chorus_indices.add(j)
+            for idx in chorus_indices:
+                is_chorus[idx] = True
+
+        verse_idx = 0
+        assigned_blocks: List[str] = []
+        for idx, b in enumerate(blocks):
+            words = block_words[idx]
+            if idx == 0 and len(words) < 3:
+                assigned_blocks.append("[INTRO]\n" + b)
+            elif is_chorus[idx]:
+                assigned_blocks.append("[RITORNELLO]\n" + b)
+            elif len(words) < 3:
+                if idx == len(blocks) - 1:
+                    assigned_blocks.append("[FINALE]\n" + b)
+                else:
+                    assigned_blocks.append("[STRUMENTALE]\n" + b)
+            else:
+                verse_idx += 1
+                assigned_blocks.append(f"[STROFA {verse_idx}]\n" + b)
+
+        body_res = "\n\n".join(assigned_blocks).rstrip()
+        if not re.search(r"\[(END|FINE)\]\s*$", body_res, re.IGNORECASE):
+            body_res += "\n[END]"
+
+        if headers:
+            return "\n".join(headers) + "\n\n" + body_res
+        return body_res
+
+    @classmethod
+    def ensure_section_spacing_aml(cls, aml_text: str) -> str:
+        """
+        Ensures that a song AML document has well-defined sections and spacing:
+        1. If sections are already present ({intro}, {verse}, {chorus}, [STROFA], {sov}, etc.), leaves it unchanged.
+        2. If sections are missing, runs deterministic heading detector (e.g. Ritornello:, Strofa 1:).
+        3. Attempts fast lightweight AI model if available.
+        4. Intelligent fallback stanza and chorus segmenter.
+        """
+        if not aml_text or not aml_text.strip():
+            return aml_text
+
+        # If sections already exist ([STROFA], {sov}, {verse}, etc.), return immediately
+        if cls.has_explicit_sections(aml_text):
+            return aml_text
+
+        # 1. First run deterministic heading detector (e.g. Ritornello:, Strofa 1:)
         heuristic_res = cls.detect_sections_heuristic(aml_text)
-        if re.search(r"(\{|\[)(intro|verse|chorus|bridge|solo|outro|strofa|ritornello|assolo|finale|strumentale|end|fine|sob|soc|sov|start_of_bridge|start_of_chorus|start_of_verse|speciale)", heuristic_res, re.IGNORECASE):
+
+        # If sections now exist ({intro}, {verse}, etc.), return immediately
+        if re.search(r"\{(intro|verse|chorus|bridge|solo|outro|strofa|ritornello)", heuristic_res, re.IGNORECASE) or cls.has_explicit_sections(heuristic_res):
             return heuristic_res
 
         # 2. Try lightweight AI detection when no textual headings were found
@@ -817,13 +1083,16 @@ class BandAIService:
                                 if json_match:
                                     clean_json = json_match.group(1)
                                 parsed_data = json.loads(clean_json)
+                                raw_aml = parsed_data.get("aml_content", "")
+                                t_title = parsed_data.get("title", "Nuovo Brano")
+                                t_artist = parsed_data.get("artist", "")
                                 return {
-                                    "title": parsed_data.get("title", "Nuovo Brano"),
-                                    "artist": parsed_data.get("artist", ""),
+                                    "title": t_title.upper() if t_title else "NUOVO BRANO",
+                                    "artist": t_artist,
                                     "key": parsed_data.get("key", "DO"),
                                     "bpm": int(parsed_data.get("bpm", 120)) if str(parsed_data.get("bpm", "")).isdigit() else 120,
                                     "capo": int(parsed_data.get("capo", 0)) if str(parsed_data.get("capo", "")).isdigit() else 0,
-                                    "aml_content": parsed_data.get("aml_content", "")
+                                    "aml_content": cls.auto_assign_sections(raw_aml, t_title, t_artist)
                                 }
             except urllib.error.HTTPError as he:
                 try:
