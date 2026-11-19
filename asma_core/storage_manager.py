@@ -416,14 +416,18 @@ class StorageManager:
         user_email: str = "system",
         user_name: str = "System"
     ) -> bool:
-        """Permanently deletes a soft-deleted song and its revisions from trash."""
+        """Permanently deletes a song (active or soft-deleted in trash) and its revisions."""
         with self._mutex:
+            song_path = os.path.join(self._songs_dir, f"{song_uuid}.json")
+            if os.path.exists(song_path):
+                os.remove(song_path)
             trash_path = os.path.join(self._trash_dir, f"song_{song_uuid}.json")
             if os.path.exists(trash_path):
                 os.remove(trash_path)
             rev_file = os.path.join(self._revs_dir, f"rev_{song_uuid}.json")
             if os.path.exists(rev_file):
                 os.remove(rev_file)
+            self._delete_index_record(song_uuid)
             self.audit.log("PURGE", "SONG", song_uuid, user_email, user_name, {})
             return True
 

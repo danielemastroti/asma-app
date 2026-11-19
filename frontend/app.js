@@ -1695,11 +1695,19 @@ function showNewSongForm() {
   if (form) {
     const repSelect = document.getElementById('new-song-repertoire');
     const workspaceReps = getWorkspaceRepertoires();
-    if (repSelect && workspaceReps.length > 0) {
-      repSelect.innerHTML = workspaceReps.map(r => {
-        const isSelected = (state.activeRepertoire === r.uuid) || (state.activeRepertoire === '__ALL__' && (isOwnPersonalRepertoire(r) || r.is_official));
-        return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
-      }).join('');
+    // CRITICAL: Newly created or imported songs NEVER go to "Repertorio Ufficiale Band"!
+    // They are always placed in personal repertoires and can only enter Official via promotion.
+    const personalReps = (workspaceReps || []).filter(r => !r.is_official);
+    if (repSelect) {
+      if (personalReps.length > 0) {
+        repSelect.innerHTML = personalReps.map(r => {
+          const isSelected = (state.activeRepertoire === r.uuid) || isOwnPersonalRepertoire(r);
+          return `<option value="${r.uuid}" ${isSelected ? 'selected' : ''}>${escapeHtml(r.name)} (Personale)</option>`;
+        }).join('');
+      } else {
+        const uName = (state.currentUser && state.currentUser.name) || 'Personale';
+        repSelect.innerHTML = `<option value="" selected>${escapeHtml(uName)} (Personale)</option>`;
+      }
     }
     form.style.display = 'block';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2364,7 +2372,12 @@ async function submitNewSong() {
   const aml = document.getElementById('new-song-aml')?.value || '';
 
   const repSelect = document.getElementById('new-song-repertoire');
-  const targetRepertoire = repSelect?.value || (state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null);
+  let targetRepertoire = repSelect?.value;
+  const officialRep = (state.repertoires || []).find(r => r.is_official);
+  if (!targetRepertoire || (officialRep && targetRepertoire === officialRep.uuid) || targetRepertoire === '__ALL__') {
+    const personal = (state.repertoires || []).find(r => isOwnPersonalRepertoire(r) || (!r.is_official && !r.owner_email));
+    targetRepertoire = personal ? personal.uuid : null;
+  }
 
   const payload = {
     title: title.toUpperCase(),
@@ -2386,10 +2399,12 @@ async function submitNewSong() {
     });
     if (res.ok) {
       const data = await res.json();
-      showToast(`Brano "${title}" salvato nel repertorio ✓`);
+      const targetRepName = data.target_repertoire_name || 'personale';
+      showToast(`Brano "${title}" salvato in ${targetRepName} ✓ (Usa '⭐ Promuovi a Ufficiale' per pubblicarlo nella band)`);
       hideNewSongForm();
-      if (targetRepertoire) {
-        state.activeRepertoire = targetRepertoire;
+      const finalRepUuid = data.target_repertoire_uuid || targetRepertoire;
+      if (finalRepUuid) {
+        state.activeRepertoire = finalRepUuid;
       }
       // Reload both repertoires and songs to immediately reflect new assignment in UI
       await loadRepertoires();

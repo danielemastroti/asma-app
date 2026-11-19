@@ -778,6 +778,53 @@ def _clone_song_object(source_song: Song, shared_notes: Optional[str] = None) ->
     )
 
 
+def _resolve_personal_repertoire(user_email: Optional[str], user_name: Optional[str]) -> Repertoire:
+    """Finds or creates a personal repertoire for the user.
+    New and imported songs are strictly placed in personal repertoires, never directly into Official Band.
+    """
+    all_reps = storage.list_repertoires()
+    # 1. Match by owner_email
+    if user_email:
+        clean_email = user_email.strip().lower()
+        personal = next(
+            (r for r in all_reps if not getattr(r, "is_official", False) and getattr(r, "owner_email", None) and getattr(r, "owner_email", "").strip().lower() == clean_email),
+            None
+        )
+        if personal:
+            return personal
+
+    # 2. Match by user_name / pseudonym
+    effective_name = (user_name or "").strip()
+    if user_email and not effective_name:
+        u = auth_mgr.get_user_by_email(user_email)
+        if u and u.name:
+            effective_name = u.name.strip()
+    if effective_name:
+        clean_name = effective_name.lower()
+        personal = next(
+            (r for r in all_reps if not getattr(r, "is_official", False) and r.name.strip().lower() == clean_name),
+            None
+        )
+        if personal:
+            return personal
+
+    # 3. Fallback: first non-official repertoire
+    personal = next((r for r in all_reps if not getattr(r, "is_official", False)), None)
+    if personal:
+        return personal
+
+    # 4. Create personal repertoire if none exists
+    rep_name = effective_name or "Personale"
+    new_rep = Repertoire(
+        name=rep_name,
+        description=f"Repertorio personale di {rep_name}",
+        is_official=False,
+        owner_email=user_email,
+        song_uuids=[]
+    )
+    return storage.save_repertoire(new_rep, user_email or "system", effective_name or "Utente")
+
+
 def _ensure_personal_copy_if_shared(
     song: Song,
     repertoire_uuid: Optional[str],
@@ -986,19 +1033,7 @@ def fork_song_personal(uuid: str, req: ForkSongRequest):
     if not source_song:
         raise HTTPException(status_code=404, detail="Brano sorgente non trovato")
 
-    all_reps = storage.list_repertoires()
-    target_rep = next((r for r in all_reps if getattr(r, "owner_email", None) == req.user_email), None)
-    if not target_rep:
-        u = auth_mgr.get_user_by_email(req.user_email)
-        u_name = u.name if u else req.user_name
-        target_rep = Repertoire(
-            name=f"{u_name}",
-            description=f"Repertorio personale di {u_name}",
-            is_official=False,
-            owner_email=req.user_email,
-            song_uuids=[]
-        )
-        target_rep = storage.save_repertoire(target_rep, req.user_email, req.user_name)
+    target_rep = _resolve_personal_repertoire(req.user_email, req.user_name)
 
     can_add, reason = storage.can_add_song_to_repertoire(target_rep.uuid, source_song.title)
     if not can_add:
@@ -1150,7 +1185,10 @@ def get_song(uuid: str):
 
 @app.post("/api/songs")
 def create_song(req: SongCreateRequest):
-    """Creates a new song, stores AML, and adds to repertoire if specified."""
+    """Creates a new song, stores AML, and adds strictly to personal repertoire.
+    Imported and newly created songs NEVER enter the official band repertoire directly.
+    They enter the official repertoire only after explicit promotion ('/api/repertoires/promote-song').
+    """
     song = Song(
         title=req.title.strip().upper(),
         artist=req.artist.strip() if req.artist else "Band",
@@ -1163,12 +1201,18 @@ def create_song(req: SongCreateRequest):
         key_current=req.key_current or "C",
         aml_content=req.aml_content or "{verse}\n[DO]Testo iniziale...\n"
     )
+
+    all_reps = storage.list_repertoires()
     target_rep_uuid = req.repertoire_uuid
-    if not target_rep_uuid or target_rep_uuid == "__ALL__":
-        all_reps = storage.list_repertoires()
-        if all_reps:
-            official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), all_reps[0])
-            target_rep_uuid = official_rep.uuid
+    target_rep = next((r for r in all_reps if r.uuid == target_rep_uuid), None) if target_rep_uuid else None
+
+    # CRITICAL SECURITY & WORKFLOW RULE:
+    # Newly created or imported songs NEVER go to the Official Band Repertoire directly.
+    # If the target is missing, __ALL__, official, or points to an official repertoire,
+    # strictly resolve to the user's personal repertoire.
+    if not target_rep or getattr(target_rep, "is_official", False) or target_rep_uuid in ["__ALL__", "official", "__OFFICIAL__"]:
+        target_rep = _resolve_personal_repertoire(req.user_email, req.user_name)
+        target_rep_uuid = target_rep.uuid
 
     if target_rep_uuid:
         can_add, reason = storage.can_add_song_to_repertoire(target_rep_uuid, song.title)
@@ -1178,7 +1222,12 @@ def create_song(req: SongCreateRequest):
     saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Creazione brano")
     if target_rep_uuid:
         storage.move_song_to_repertoire(saved.uuid, target_rep_uuid, req.user_email, req.user_name)
-    return {"status": "success", "song": saved.to_dict()}
+    return {
+        "status": "success",
+        "song": saved.to_dict(),
+        "target_repertoire_uuid": target_rep_uuid,
+        "target_repertoire_name": getattr(target_rep, "name", "Personale")
+    }
 
 @app.put("/api/songs/{uuid}")
 def update_song(uuid: str, req: SongUpdateRequest):

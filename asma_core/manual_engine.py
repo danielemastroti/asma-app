@@ -507,6 +507,13 @@ class ManualEngine:
             "I brani sono suddivisi tra <b>Repertorio Ufficiale Band</b> (protetto) e <b>Personale</b> del singolo musicista.",
             body_style
         ))
+        story.append(Paragraph(
+            "<b>Isolamento del Repertorio Ufficiale:</b> Il Repertorio Ufficiale Band è blindato per preservare l'integrità del catalogo concerti. "
+            "Nessun brano nuovo o importato può atterrare direttamente nell'Ufficiale. Tutti i nuovi brani confluiscono esclusivamente "
+            "nel Repertorio Personale del musicista e possono accedere al Repertorio Ufficiale solo attraverso il comando esplicito "
+            "<b>'⭐ Promuovi a Ufficiale'</b>.",
+            body_style
+        ))
         story.append(Paragraph("<b>Funzionalità della Scheda Brano:</b>", ch_sub_style))
         story.append(Paragraph("&bull; <b>Anteprima PDF Reale:</b> Visualizza le pagine del brano renderizzate ad alta risoluzione (96 DPI) esattamente come verranno visualizzate sul tablet o stampate su carta.", bullet_style))
         story.append(Paragraph("&bull; <b>Stampa A4 Diretta:</b> Invia lo spartito alla stampante del sistema operativo con margini ottimali A4.", bullet_style))
@@ -557,6 +564,19 @@ class ManualEngine:
             "il sistema rileva automaticamente strofe e ritornelli ripetuti, inserendo i badge standard ad alta visibilità "
             "(<code>[INTRO]</code>, <code>[STROFA 1]</code>, <code>[RITORNELLO]</code>, <code>[BRIDGE]</code>, <code>[SOLO]</code>, "
             "<code>[STRUMENTALE]</code>, <code>[FINALE]</code>, <code>[END]</code>) senza mai alterare le parole o gli accordi originali.",
+            body_style
+        ))
+
+        story.append(Paragraph(
+            "<b>Regola Rigorosa di Destinazione &mdash; Sempre nel Repertorio Personale:</b> "
+            "L'importazione dei brani <u>non va mai direttamente sul Repertorio Ufficiale Band</u>. "
+            "Qualsiasi brano creato o importato da qualunque canale (ricerca web, fotocamera OCR, incolla testo, link diretto o editor AML) "
+            "viene <b>sempre e automaticamente posizionato nel repertorio personale</b> del musicista connesso. "
+            "Nel modulo di salvataggio, il selettore del repertorio di destinazione mostra unicamente i repertori personali, bloccando l'accesso diretto all'Ufficiale con un apposito promemoria protettivo.<br/>"
+            "Un brano personale può entrare nel <b>Repertorio Ufficiale Band</b> esclusivamente a seguito di una <b>promozione esplicita</b>: "
+            "aprendo la scheda del brano personale, basta premere il pulsante dorato <b>'⭐ Promuovi a Ufficiale'</b>. "
+            "Se nel Repertorio Ufficiale esiste già un brano con lo stesso titolo, il sistema ne aggiorna armoniosamente il contenuto (accordi, sezioni, metadati) "
+            "eliminando la copia personale ridondante; se si tratta di un brano inedito, lo trasferisce nell'elenco ufficiale comune mantenendo la storia delle revisioni.",
             body_style
         ))
 
