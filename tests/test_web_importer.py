@@ -92,6 +92,21 @@ L'auto veloce correva
         score_partial = WebSongImporter._compute_relevance("Albachiara", "Vasco Rossi", "Albachiara (Live)", "Various")
         self.assertGreater(score_exact, score_partial)
 
+    def test_rank_and_tag_best_candidate(self):
+        """Test that the highest quality chord/section candidate is tagged with is_best and badge='Migliore'."""
+        mock_candidates = [
+            {"title": "Fortunate Son", "artist": "CCR", "score": 80, "rating": 4.5, "votes": 50, "version": 1},
+            {"title": "Fortunate Son", "artist": "CCR", "score": 135, "rating": 4.9, "votes": 2500, "version": 3},
+            {"title": "Fortunate Son", "artist": "CCR", "score": 95, "rating": 4.7, "votes": 200, "version": 2}
+        ]
+        ranked = WebSongImporter.rank_and_tag_candidates(mock_candidates)
+        self.assertEqual(ranked[0]["version"], 3)
+        self.assertTrue(ranked[0]["is_best"])
+        self.assertEqual(ranked[0]["badge"], "Migliore")
+        self.assertFalse(ranked[1]["is_best"])
+        self.assertEqual(ranked[1]["badge"], "")
+        self.assertFalse(ranked[2]["is_best"])
+
     def test_search_online_fallback(self):
         """Test graceful fallback to editable draft when searching offline or non-existent song."""
         song = WebSongImporter.search_online_and_import("NonExistentSongXYZ12345", "UnknownBand")

@@ -2188,18 +2188,29 @@ async function executeWebSearch() {
       `;
 
       data.candidates.forEach((cand) => {
+        const isBest = cand.is_best || cand.badge === 'Migliore';
+        const bestBadge = isBest
+          ? `<span class="badge-best-candidate" title="Migliore per accuratezza di sezioni e accordi">⭐ Migliore</span>`
+          : '';
+        const metaDetails = [];
+        if (cand.rating && cand.rating > 0) metaDetails.push(`★ ${cand.rating}`);
+        if (cand.votes && cand.votes > 0) metaDetails.push(`${cand.votes} voti`);
+        if (cand.version && cand.version > 1) metaDetails.push(`Ver. ${cand.version}`);
+        const metaStr = metaDetails.length > 0 ? ` &bull; <span style="color: #fbbf24; font-size: 11px; font-weight: 700;">${metaDetails.join(' &bull; ')}</span>` : '';
+
         cardsHtml += `
-          <div class="web-result-card">
+          <div class="web-result-card ${isBest ? 'is-best' : ''}">
             <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 800; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${escapeHtml(cand.title)}
+              <div style="font-weight: 800; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${escapeHtml(cand.title)}</span>
+                ${bestBadge}
               </div>
               <div style="font-size: 12px; color: #38bdf8; margin-top: 2px;">
-                <b>${escapeHtml(cand.artist)}</b> &bull; <span class="portal-badge">${escapeHtml(cand.portal)}</span>
+                <b>${escapeHtml(cand.artist)}</b> &bull; <span class="portal-badge">${escapeHtml(cand.portal)}</span>${metaStr}
               </div>
             </div>
-            <button class="btn btn-success" style="font-weight: 800; min-height: 36px; padding: 4px 14px; white-space: nowrap;" onclick="importCandidateUrl('${encodeURIComponent(cand.url)}')">
-              ⚡ Importa
+            <button class="btn ${isBest ? 'btn-success' : 'btn-secondary'}" style="font-weight: 800; min-height: 36px; padding: 4px 14px; white-space: nowrap;" onclick="importCandidateUrl('${encodeURIComponent(cand.url)}')">
+              ${isBest ? '⭐ Importa Consigliato' : '⚡ Importa'}
             </button>
           </div>
         `;

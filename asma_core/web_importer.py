@@ -61,12 +61,19 @@ class WebSongImporter:
                         if cand_title:
                             score = cls._compute_relevance(song_title, artist, cand_title, cand_artist)
                             if score > 0:
+                                # Accordi e Spartiti is a hand-curated editorial chord portal with Italian notation and verse/chorus stanzas
+                                curation_boost = 25 if score >= 40 else 10
                                 candidates.append({
                                     "title": cand_title,
                                     "artist": cand_artist or artist or "Artista Sconosciuto",
                                     "portal": "Accordi e Spartiti",
                                     "url": href,
-                                    "score": score
+                                    "score": score + curation_boost,
+                                    "rating": 5.0,
+                                    "votes": None,
+                                    "version": 1,
+                                    "is_best": False,
+                                    "badge": ""
                                 })
         except Exception:
             pass  # Fail gracefully to allow other sources
@@ -93,19 +100,62 @@ class WebSongImporter:
                                 cand_artist = res.get("artist_name", "")
                                 score = cls._compute_relevance(song_title, artist, cand_title, cand_artist)
                                 if score > 0:
+                                    try:
+                                        rating = float(res.get("rating", 0) or 0)
+                                    except (ValueError, TypeError):
+                                        rating = 0.0
+                                    try:
+                                        votes = int(res.get("votes", 0) or 0)
+                                    except (ValueError, TypeError):
+                                        votes = 0
+                                    try:
+                                        version = int(res.get("version", 1) or 1)
+                                    except (ValueError, TypeError):
+                                        version = 1
+                                    is_verified = bool(res.get("verified"))
+
+                                    # Quality boost for chords and sections:
+                                    # High ratings and community vote volume correlate directly with complete sections and accurate chords.
+                                    import math
+                                    vote_boost = min(35, int(math.log10(max(1, votes)) * 10)) if votes > 0 else 0
+                                    rating_boost = int((rating / 5.0) * 15) if rating > 0 else 0
+                                    verified_boost = 15 if is_verified else 0
+                                    total_score = score + vote_boost + rating_boost + verified_boost
+
                                     candidates.append({
                                         "title": cand_title,
                                         "artist": cand_artist,
                                         "portal": "Ultimate Guitar",
                                         "url": tab_url,
-                                        "score": score
+                                        "score": total_score,
+                                        "rating": round(rating, 2) if rating > 0 else None,
+                                        "votes": votes if votes > 0 else None,
+                                        "version": version,
+                                        "is_best": False,
+                                        "badge": ""
                                     })
         except Exception:
             pass
 
-        # Sort descending by relevance score
-        candidates.sort(key=lambda x: x["score"], reverse=True)
+        # Sort descending by quality & relevance score and tag the best candidate
+        cls.rank_and_tag_candidates(candidates)
         return candidates[:limit]
+
+    @classmethod
+    def rank_and_tag_candidates(cls, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Sorts candidates by quality score and tags the best candidate with is_best=True and badge='Migliore'.
+        """
+        if not candidates:
+            return []
+        candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
+        for c in candidates:
+            c["is_best"] = False
+            c["badge"] = ""
+        if candidates and candidates[0].get("score", 0) >= 30:
+            candidates[0]["is_best"] = True
+            candidates[0]["badge"] = "Migliore"
+        return candidates
 
     @classmethod
     def _compute_relevance(cls, target_title: str, target_artist: str, cand_title: str, cand_artist: str) -> int:

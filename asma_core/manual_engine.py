@@ -544,7 +544,7 @@ class ManualEngine:
             "per acquisire rapidamente spartiti da qualunque supporto:",
             body_style
         ))
-        story.append(Paragraph("&bull; <b>Cerca sul Web:</b> Inserisci titolo e artista: il crawler musicale cerca su portali pubblici di accordi e converte il brano in formato AML strutturato.", bullet_style))
+        story.append(Paragraph("&bull; <b>Cerca sul Web (con Badge '⭐ Migliore'):</b> Inserisci titolo e artista: il crawler musicale interroga istantaneamente portali nazionali e internazionali (Accordi e Spartiti, Ultimate-Guitar). L'algoritmo valuta accuratezza armonica, recensioni della community e ricchezza delle sezioni, contrassegnando visivamente il brano di qualità superiore con il badge <b>'⭐ Migliore'</b> e il pulsante <i>'⭐ Importa Consigliato'</i>, mostrando a colpo d'occhio rating stellato e voti.", bullet_style))
         story.append(Paragraph("&bull; <b>Fotocamera / Scansione OCR (Gemini Vision AI):</b> Scansione ottica diretta di spartiti cartacei, canzonieri o fogli scritti a mano tramite la fotocamera del dispositivo o caricamento immagini.", bullet_style))
         story.append(Paragraph("&bull; <b>Incolla Testo:</b> Incolla testo con accordi posti sopra le parole (formato testo tradizionale); il parser fonde testo e accordi in sintassi inline AML <code>[DO]Parola</code> senza errori di allineamento.", bullet_style))
         story.append(Paragraph("&bull; <b>Da Link Web:</b> Estrazione diretta di testo e accordi da una pagina web specifica incollandone la URL.", bullet_style))
