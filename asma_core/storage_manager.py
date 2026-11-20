@@ -305,13 +305,14 @@ class StorageManager:
             seen_combos = set()
             unique_results = []
             for r in results:
-                norm = re.sub(r"[^A-Z0-9]", "", (r.get("title") or "").upper())
+                # Deduplicate only identical trimmed titles to avoid collapsing distinct titles (e.g. 'MEDLEY ROCK' vs 'MEDLEY-ROCK')
+                title_key = (r.get("title") or "").strip().upper()
                 raw_reps = r.get("repertoire_uuids") or "[]"
                 try:
                     reps_list = tuple(sorted(json.loads(raw_reps)))
                 except Exception:
                     reps_list = ()
-                combo_key = (norm, reps_list) if reps_list else (norm, r.get("uuid"))
+                combo_key = (title_key, reps_list) if reps_list else (title_key, r.get("uuid"))
                 if combo_key not in seen_combos:
                     seen_combos.add(combo_key)
                     unique_results.append(r)

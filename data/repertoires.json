@@ -4,19 +4,15 @@
     "name": "Daniele",
     "description": "Repertorio personale di Daniele (Tastiera)",
     "song_uuids": [
-      "cf948606-f687-443e-b332-e8550ad6e891",
-      "8f1e4be9-d90b-4d2d-a39f-27f9098789d0",
+      "125e78b2-d704-4f64-a742-847380b28249",
       "b4a1523d-49b1-48e8-a47c-c661646d4542",
-      "f4c63957-869d-4641-98a1-1fde2a804cfc",
-      "f861495f-edf9-4e66-ae23-8fc3ecf1e351",
-      "eabd6ea6-78cb-4a31-b205-bf6076da505d",
-      "7eb424e4-b04d-4482-9e23-515a98bc28b8",
-      "2e07857a-6108-4e74-8372-8ce5914bf22e"
+      "df8cb9ca-c685-472e-9350-2400728f1d34",
+      "f4c63957-869d-4641-98a1-1fde2a804cfc"
     ],
     "is_official": false,
     "owner_email": "danyposta@gmail.com",
     "created_at": "2026-11-09T16:17:28.148112+00:00",
-    "updated_at": "2026-11-15T09:28:56.825927+00:00"
+    "updated_at": "2026-11-20T19:20:00.000000+00:00"
   },
   {
     "uuid": "maurino-personal-rep-uuid",
@@ -129,7 +125,9 @@
       "5967dad6-f9d6-497c-a389-065233bc7e13",
       "6475047d-28a4-42b3-8c42-105e9e683553",
       "989e0c2c-c6c8-40e3-a144-c5b6875f2365",
-      "c4d5151a-432a-4bc2-87c1-02e5ada142ca"
+      "c4d5151a-432a-4bc2-87c1-02e5ada142ca",
+      "01a75736-637f-4fb3-a51f-3b56e83d03da",
+      "3131717c-0968-4a55-83f1-e4cb8bbade6b"
     ],
     "is_official": true,
     "owner_email": null,

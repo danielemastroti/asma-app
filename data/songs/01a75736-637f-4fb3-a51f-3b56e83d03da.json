@@ -1,0 +1,28 @@
+{
+  "uuid": "01a75736-637f-4fb3-a51f-3b56e83d03da",
+  "title": "CON IL NASTRO ROSA",
+  "artist": "Lucio Battisti",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 120,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "DO#",
+  "key_current": "SOL",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: CON IL NASTRO ROSA}\n{artist: Lucio Battisti}\n{key: SOL}\n{source: https://www.accordiespartiti.it/accordi/italiani/battisti-lucio/con-il-nastro-rosa/}\n\n[INTRO]\n| SOLm | RE#7+ | FA | SOLm |\n\n[STRUMENTALE]\n| SOLm | RE#7+ | FA | SOLm |\n\n[STROFA 1]\nInse[SOLm]guendo una libellula in un prato\nun giorno [RE#7+]che avevo rotto col passato\n\n[STROFA 2]\nquando [FA]già credevo d'esserci riuscito\nsono [SOLm]caduto\n\n[STROFA 3]\nUna frase [SOLm]sciocca un volgare doppio senso\nmi ha allar[RE#7+]mato, non e' come io la penso\n\n[STROFA 4]\nma il senti[FA]mento era già un po' troppo denso\ne son [SOLm]restato\n\n[RITORNELLO]\nChissà, [SOLm]chissà chi sei\nchissà [RE#7+]che sarai\n\n[RITORNELLO]\nchissà [FA]che sarà di noi\nlo scopri[SOLm]remo solo vivendo\n\n[RITORNELLO]\nComunque [SOLm]adesso ho un po' paura\nora [RE#7+]che quest'avventura\n\n[RITORNELLO]\nsta diven[FA]tando una storia vera\nspero [SOLm]tanto tu sia sincera\n\n[STRUMENTALE]\n| SOLm | RE#7+ | FA | SOLm |\n\n[STRUMENTALE]\n| SOLm | RE#7+ | FA | SOLm |\n\n[STROFA 5]\nun magaz[SOLm]zino che contiene tante casse\nalcune [RE#7+]nere, alcune gialle, alcune rosse\n\n[STROFA 6]\ndovendo [FA]scegliere e studiare le mie mosse\nsono all’im[SOLm]passe\n\n[STROFA 7]\nMi sto accor[SOLm]gendo che son giunto dentro casa\ncon la mia [RE#7+]cassa ancora con il nastro rosa\n\n[STROFA 8]\nE non [FA]vorrei aver sbagliato la mia spesa\nO la mia [SOLm]sposa\n\n[RITORNELLO]\nChissà, [SOLm]chissà chi sei\nchissà [RE#7+]che sarai\n\n[RITORNELLO]\nchissà [FA]che sarà di noi\nlo scopri[SOLm]remo solo vivendo\n\n[RITORNELLO]\nComunque [SOLm]adesso ho un po' paura\nora [RE#7+]che quest'avventura\n\n[RITORNELLO]\nsta diven[FA]tando una storia vera\nspero [SOLm]tanto tu sia sincera\n\n[STRUMENTALE]\n| LA# | SOLm | RE#7+ | REm7 |\n\n[STRUMENTALE]\n| SOLm | LA# | DO7 | RE# | SOLm |\n\n[STRUMENTALE]\n| LA# | DO7 | RE#7+ | REm7 |\n\n[FINALE]\n| SOLm | LA#/FA | DO | RE# | SOLm |\n[END]",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-19T21:53:28.308158+00:00",
+  "updated_at": "2026-11-19T21:54:09.455359+00:00"
+}

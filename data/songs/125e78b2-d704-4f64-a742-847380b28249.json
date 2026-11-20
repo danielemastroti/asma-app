@@ -1,0 +1,28 @@
+{
+  "uuid": "125e78b2-d704-4f64-a742-847380b28249",
+  "title": "DIECI RAGAZZE",
+  "artist": "Lucio Battisti",
+  "author": "",
+  "genre": "",
+  "year": null,
+  "duration_seconds": 0,
+  "bpm": 81,
+  "time_signature": "4/4",
+  "capo": 0,
+  "key_original": "LA",
+  "key_current": "SOL",
+  "notation_system": "INT",
+  "tags": [],
+  "shared_notes": "",
+  "aml_content": "{title: DIECI RAGAZZE}\n{artist: Lucio Battisti}\n{key: SOL}\n\n\n[STROFA 1]\n[SOLm]Ho visto un uomo che moriva per amore,\nne ho visto un altro che più lacrime [RE#]non ha\nNessun [SOLm]coltello mai ti può [RE#]ferir di più\ndi un grande amore che ti stringe il [RE]cuor\n\n[STROFA 2]\n[SOLm]Dieci ragazze per me posson bastare\ndieci ragazze per me voglio [RE]dimenticare\n\n[STROFA 3]\ncapelli [SOLm]biondi da accarez[SOLm/FA]zare\ne labbra [DO/MI]rosse sulle quali [RE#]morire\n[SOLm]Dieci ragazze per [RE]me\nsolo per [SOLm]me      [SOL5]    [FA#5]      [MI5]     [RE#]   [RE]\n\n[STROFA 4]\n[SOLm]Una la voglio perché sa bene ballare\n\n[STROFA 5]\nUna la voglio perché ancor non sa\ncosa vuol [RE]dir l'amore\n[SOLm]Una soltanto perc[LA#/FA]hé\nha cono[DO/MI]sciuto tutti tranne [RE#]me\n[SOLm]Dieci ragazze [RE]così che dicono solo di [SOLm]sì\n\n[RITORNELLO]\n[RE]Vorrei sapere chi ha [SOLm]detto\nche non vivo [FA]più senza [SOLm]te   [FA]    [RE7]\n[SOLm]Matto, quello è proprio [FA]matto [LA#]perché\nforse non [RE]sa\n\n[RITORNELLO]\nche posso averne [SOLm]una per il [FA]giorno\n[SOLm]una per la [FA]sera\nperò quel [SOLm]matto mi conosce\nperché ha detto una cosa vera   [RE#7]\n\n[STROFA 6]\n[SOL#m]Dieci ragazze per me posson bastare\ndieci ragazze per me voglio [RE#]dimenticare\ncapelli [SOL#m]biondi da accare[SI/FA#]zzare\ne labbra [DO#/FA]rosse sulle quali [MI]morire\n[SOL#m]Dieci ragazze [RE#7]così che dicon solo di [SOL#m]sì\n\n[RITORNELLO]\n[RE#]Vorrei sapere chi ha [SOL#m]detto\nche non vivo [FA#]più senza [SOL#m]te     [FA#]    [RE#7]\n[SOL#m]Matto, quello è proprio [FA#]matto [SI]perché\nforse non [RE#]sa\n\n[RITORNELLO]\nche posso averne [SOL#m]una per il [FA#]giorno\n[SOL#m]una per la [FA#]sera\nperò quel [SOL#m]matto mi conosce\nperché ha detto una cosa vera  [MI7]\n\n[STROFA 7]\n[LAm]Dieci ragazze per me\n[FA]dieci ragazze per me\n[RE]dieci ragazze per me\nperò io muoio per [LAm]te  [FA7]\nperò io muoio per [LAm]te  [FA7]\n\n[STRUMENTALE]\n| LAm | FA | LAm | FA | LAm | FA |\n\n[FINALE]\n| LAm | MIm | LAm |\n[END]",
+  "lock_status": {
+    "is_locked": false,
+    "locked_by_email": null,
+    "locked_by_name": null,
+    "locked_at": null,
+    "session_id": null
+  },
+  "current_revision": 2,
+  "created_at": "2026-11-20T06:40:05.531941+00:00",
+  "updated_at": "2026-11-20T06:40:18.715347+00:00"
+}

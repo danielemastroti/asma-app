@@ -957,15 +957,15 @@ function getFilteredSongs(searchKw = '') {
       list = state.songs.filter(s => allowed.has(s.uuid));
     }
   }
-  // Exclude test/default songs and de-duplicate by normalized title
+  // Exclude test/default songs and de-duplicate strictly by unique song UUID (never collapse distinct titles like 'MEDLEY ROCK' and 'MEDLEY-ROCK')
   const EXCLUDED = ['albachiara', 'alba chiara', 'test undo song', 'temp transpose song', 'unique test song xyz'];
-  const seen = new Set();
+  const seenUuids = new Set();
   list = list.filter(s => {
+    if (!s || !s.uuid) return false;
     const t = (s.title || '').trim().toLowerCase();
     if (EXCLUDED.includes(t) || t.startsWith('test undo') || t.startsWith('temp transpose')) return false;
-    const norm = t.replace(/[^a-z0-9]/g, '');
-    if (seen.has(norm)) return false;
-    seen.add(norm);
+    if (seenUuids.has(s.uuid)) return false;
+    seenUuids.add(s.uuid);
     return true;
   });
   if (searchKw) {
