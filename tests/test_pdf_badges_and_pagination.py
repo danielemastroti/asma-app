@@ -282,6 +282,82 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         self.assertTrue("[OUTRO]" in p2_text or "[FINALE]" in p2_text)
         self.assertIn("[END]", p2_text)
 
+    def test_ipad_page_dimensions_and_footer_margins(self):
+        """Verifies iPad 10.2 profile has 174.1 x 224.0 mm, margin_bottom_mm=14.0, and generated PDF has exact canvas dimensions and footer."""
+        from asma_core.device_manager import DeviceManager
+        dm = DeviceManager()
+        prof = dm.get_device_by_name('IPad 10.2" (7/8/9 gen) & pro 2019')
+        self.assertIsNotNone(prof)
+        self.assertEqual(prof.width_mm, 174.1)
+        self.assertEqual(prof.height_mm, 224.0)
+        self.assertEqual(prof.margin_bottom_mm, 14.0)
+
+        song = Song(
+            uuid="test_ipad_song",
+            title="TEST IPAD SONG",
+            artist="Band",
+            aml_content="[INTRO]\nDO SOL\n[STROFA 1]\nTesto di prova\n[END]"
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, user_name="Cico", use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        self.assertEqual(len(doc), 1)
+        page = doc[0]
+        expected_w = 174.1 * (72.0 / 25.4)
+        expected_h = 224.0 * (72.0 / 25.4)
+        self.assertAlmostEqual(page.rect.width, expected_w, places=1)
+        self.assertAlmostEqual(page.rect.height, expected_h, places=1)
+        txt = page.get_text()
+        self.assertIn("Pagina 1 di 1", txt)
+        self.assertIn("Rev #", txt)
+        doc.close()
+
+    def test_cico_singer_view_deduplicates_consecutive_strumentale(self):
+        """Verifies that in singer view (include_chords=False), consecutive Strumentale badges/directives appear only once."""
+        aml = """{title: CON IL NASTRO ROSA}
+{artist: Lucio Battisti}
+{key: SOL}
+[INTRO]
+SOL | DO | MIm | RE
+[STRUMENTALE]
+SOL | DO | MIm | RE
+[STROFA: 1]
+Inseguendo una libellula in un prato
+[STRUMENTALE]
+MIm | DO | RE
+[SOLO: Chitarra]
+SOL | DO | RE
+[STROFA: 2]
+Un'altra riga di testo
+[END]
+"""
+        song = Song(
+            uuid="test_nastro_rosa",
+            title="CON IL NASTRO ROSA",
+            artist="Lucio Battisti",
+            aml_content=aml
+        )
+        prof = DeviceProfile(
+            name="Tablet Cico",
+            columns=1,
+            font_size_lyrics=14.0,
+            font_size_chords=14.0,
+            margin_bottom_mm=12.0
+        )
+        pdf_bytes = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=False, user_name="Cico", use_cache=False)
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        full_text = "\n".join(p.get_text() for p in doc)
+        doc.close()
+
+        intro_to_strofa1 = full_text[full_text.find("[INTRO]"):full_text.find("[STROFA: 1]")]
+        self.assertIn("(Strumentale)", intro_to_strofa1)
+        self.assertNotIn("[STRUMENTALE]", intro_to_strofa1, "Consecutive [STRUMENTALE] badge must be suppressed after (Strumentale)")
+        self.assertEqual(intro_to_strofa1.count("(Strumentale)"), 1, "There must be exactly one (Strumentale) indicator between INTRO and STROFA: 1")
+
+        strofa1_to_strofa2 = full_text[full_text.find("[STROFA: 1]"):full_text.find("[STROFA: 2]")]
+        self.assertIn("[STRUMENTALE]", strofa1_to_strofa2)
+        self.assertNotIn("[SOLO: Chitarra]", strofa1_to_strofa2, "Consecutive solo badge must be suppressed when already in instrumental")
+        self.assertEqual(strofa1_to_strofa2.count("[STRUMENTALE]"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

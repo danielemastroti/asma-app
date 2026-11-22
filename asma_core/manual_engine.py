@@ -477,13 +477,14 @@ class ManualEngine:
             body_style
         ))
         story.append(Paragraph(
-            "<b>I 5 Parametri di Impaginazione Regolabili:</b>", ch_sub_style
+            "<b>I 6 Parametri di Impaginazione Regolabili:</b>", ch_sub_style
         ))
         story.append(Paragraph("&bull; <b>Numero Colonne:</b> 1 colonna (lettura continua) oppure 2 colonne (ottimizzazione dello spazio verticale per evitare cambi pagina).", bullet_style))
         story.append(Paragraph("&bull; <b>Font Testo (pt):</b> Dimensione regolabile da 8 a 30 pt.", bullet_style))
         story.append(Paragraph("&bull; <b>Font Accordi (pt):</b> Dimensione indipendente regolabile da 8 a 32 pt.", bullet_style))
         story.append(Paragraph("&bull; <b>Margini Laterali (mm):</b> Spaziatura laterale da 4 a 30 mm.", bullet_style))
         story.append(Paragraph("&bull; <b>Margine Superiore (mm):</b> Spazio superiore da 0 a 40 mm per posizionare il brano sotto cornici o fotocamere frontali.", bullet_style))
+        story.append(Paragraph("&bull; <b>Margine Inferiore (mm):</b> Spazio inferiore da 4 a 50 mm (default 14 mm). Regola e protegge l'area utile prima del piè di pagina (data, revisione, numerazione), garantendo l'assenza totale di tagli o sovrapposizioni su schermi iPad (7ª/8ª/9ª gen Retina 4:3) e tablet con barre di navigazione o custodie a cornice spessa.", bullet_style))
 
         # Embedded screenshot: layout
         fig_layout_path = _resolve_asset_path("frontend/assets/manual/fig_layout_impaginazione.png")
@@ -519,6 +520,7 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Stampa A4 Diretta:</b> Invia lo spartito alla stampante del sistema operativo con margini ottimali A4.", bullet_style))
         story.append(Paragraph("&bull; <b>Scarica PDF:</b> Genera e scarica il file PDF ottimizzato con il profilo del dispositivo attivo (proporzioni esatte dello schermo).", bullet_style))
         story.append(Paragraph("&bull; <b>Scarica Elenco PDF Repertorio (Pulsante '📑 Lista PDF'):</b> Genera e scarica un catalogo PDF professionale con l'elenco ordinato e pulito dei brani del Repertorio Ufficiale Band (o del repertorio attivo), con numerazione progressiva (#), Titolo Brano, Artista, Tonalità in notazione italiana (DO, REm, ecc.), BPM, Durata e intestazioni ripetute su tutte le pagine. Il sistema include filtri automatici rigorosi che deduplicano i titoli ed escludono categoricamente brani di test/default (es. Albachiara) o copie personali orfane.", bullet_style))
+        story.append(Paragraph("&bull; <b>Vista 'Solo Testo' per Cantante (Cico) & Deduplicazione Strumentali:</b> Nella modalità senza accordi, il motore ripulisce e ottimizza la lettura per il cantante eliminando griglie armoniche e compattando le indicazioni strumentali consecutive (badge <code>[STRUMENTALE]</code>, <code>[SOLO]</code> o direttive <code>(Strumentale)</code> prive di versi intermedi), che vengono emesse una sola volta per la massima chiarezza e scorrevolezza sul leggio.", bullet_style))
 
         # Embedded screenshot: lista brani
         fig_brani_path = _resolve_asset_path("frontend/assets/manual/fig_repertorio_brani.png")

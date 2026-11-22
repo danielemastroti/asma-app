@@ -725,7 +725,10 @@ class BandAIService:
         Restituisce None se offline o se il brano non è presente su SongBPM.
         """
         import urllib.parse
-        from bs4 import BeautifulSoup
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            return None
 
         clean_t = re.sub(r"[\(\[\{].*?[\)\]\}]", "", title or "").strip()
         clean_a = re.sub(r"[\(\[\{].*?[\)\]\}]", "", artist or "").strip()

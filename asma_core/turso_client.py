@@ -11,7 +11,10 @@ import json
 import glob
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
-import libsql_client
+try:
+    import libsql_client
+except ImportError:
+    libsql_client = None
 
 
 class TursoClient:
@@ -74,9 +77,11 @@ class TursoClient:
     def is_configured(self) -> bool:
         return bool(self.http_url and self.token)
 
-    def _get_connection(self) -> libsql_client.ClientSync:
+    def _get_connection(self):
         if not self.is_configured:
             raise RuntimeError("Turso client non configurato. Verifica config/secrets.toml [turso] o le variabili TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.")
+        if libsql_client is None:
+            raise RuntimeError("libsql_client non installato.")
         return libsql_client.create_client_sync(url=self.http_url, auth_token=self.token)
 
     def init_schema(self) -> Tuple[bool, str]:

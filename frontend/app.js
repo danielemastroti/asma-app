@@ -51,6 +51,7 @@ const state = {
       layout_columns: 1,
       layout_margin_lateral: 10.0,
       layout_margin_top: 10.0,
+      layout_margin_bottom: 14.0,
       color_lyrics: '#111111',
       color_chords: '#B71C1C',
       color_aml_markup: '#4A148C',
@@ -662,6 +663,8 @@ function updateSettingsFormValues() {
   if (valMargin) valMargin.textContent = p.layout_margin_lateral;
   const valMarginTop = document.getElementById('val-margin-top');
   if (valMarginTop) valMarginTop.textContent = p.layout_margin_top || 10;
+  const valMarginBottom = document.getElementById('val-margin-bottom');
+  if (valMarginBottom) valMarginBottom.textContent = p.layout_margin_bottom || 14;
 
   // Color inputs - Spartito & PDF (Sfondo Bianco)
   const cLyrics = document.getElementById('pick-color-lyrics');
@@ -807,6 +810,14 @@ function adjustMarginTop(delta) {
   state.userPrefs.layout_margin_top = Math.max(0, Math.min(50, (state.userPrefs.layout_margin_top || 10) + delta));
   const val = document.getElementById('val-margin-top');
   if (val) val.textContent = state.userPrefs.layout_margin_top;
+  autosaveUserPreferences();
+  if (state.selectedSong) renderSongViewer();
+}
+
+function adjustMarginBottom(delta) {
+  state.userPrefs.layout_margin_bottom = Math.max(4, Math.min(50, (state.userPrefs.layout_margin_bottom || 14) + delta));
+  const val = document.getElementById('val-margin-bottom');
+  if (val) val.textContent = state.userPrefs.layout_margin_bottom;
   autosaveUserPreferences();
   if (state.selectedSong) renderSongViewer();
 }
@@ -1500,7 +1511,7 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
 
   try {
     const p = state.userPrefs;
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&_v=${Date.now()}`;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&_v=${Date.now()}`;
     
     // Timeout a 12s per gestire risvegli o latenze
     const controller = new AbortController();
@@ -3304,12 +3315,16 @@ function renderAmlSectionBadge(secName) {
       }
 
       if (secName) {
+        const isInst = secName.includes('STRUMENTALE') || secName.includes('SOLO') || secName.includes('ASSOLO') || secName.includes('INTERMEZZO') || secName.includes('STACCO');
+        if (!showChords && isInst && lastWasInstrumental) {
+          continue;
+        }
         if (inSection) html += '</div>';
         const isChorus = secName.includes('RITORNELLO') || secName.includes('CHORUS');
         const bgTint = isChorus ? 'background: rgba(124, 58, 237, 0.05); border-left: 3px solid #7c3aed; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
         html += `<div class="aml-section" style="${bgTint}">${renderAmlSectionBadge(secName)}</div>`;
         inSection = true;
-        lastWasInstrumental = secName.includes('SOLO') || secName.includes('ASSOLO') || secName.includes('STACCO');
+        lastWasInstrumental = isInst;
         continue;
       }
 
@@ -3367,12 +3382,16 @@ function renderAmlSectionBadge(secName) {
     }
 
     if (sectionTitle) {
+      const isInst = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO') || sectionTitle.includes('ASSOLO') || sectionTitle.includes('INTERMEZZO') || sectionTitle.includes('STACCO');
+      if (!showChords && isInst && lastWasInstrumental) {
+        continue;
+      }
       if (inSection) html += '</div>';
       const isChorus = sectionTitle.includes('RITORNELLO') || sectionTitle.includes('CHORUS');
       const bgTint = isChorus ? 'background: rgba(124, 58, 237, 0.05); border-left: 3px solid #7c3aed; padding-left: 10px; border-radius: 0 6px 6px 0;' : '';
       html += `<div class="aml-section" style="${bgTint}">${renderAmlSectionBadge(sectionTitle)}</div>`;
       inSection = true;
-      lastWasInstrumental = sectionTitle.includes('STRUMENTALE') || sectionTitle.includes('SOLO') || sectionTitle.includes('ASSOLO') || sectionTitle.includes('STACCO');
+      lastWasInstrumental = isInst;
       continue;
     }
 
@@ -3482,6 +3501,7 @@ function buildPdfQueryParams(hasChords, extra = {}) {
     font_size_chords: String(p.layout_font_size_chords || 13),
     margin_lateral: String(p.layout_margin_lateral || 10),
     margin_top: String(p.layout_margin_top || 10),
+    margin_bottom: String(p.layout_margin_bottom || 14),
   });
   if (state.selectedSong && state.selectedSong._stageDelta) {
     params.set('transpose', String(state.selectedSong._stageDelta));
@@ -4316,7 +4336,7 @@ async function renderStageSong(currentSong, { resetScroll = false, scrollToBotto
       const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
       const stageDelta = currentSong._stageDelta || 0;
-      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&transpose=${stageDelta}&_v=${Date.now()}`;
+      const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&transpose=${stageDelta}&_v=${Date.now()}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();

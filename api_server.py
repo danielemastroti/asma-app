@@ -186,6 +186,7 @@ class UserPreferencesRequest(BaseModel):
     layout_columns: Optional[int] = 1
     layout_margin_lateral: Optional[float] = 10.0
     layout_margin_top: Optional[float] = 10.0
+    layout_margin_bottom: Optional[float] = 14.0
     color_lyrics: Optional[str] = "#111111"
     color_chords: Optional[str] = "#B71C1C"
     color_aml_markup: Optional[str] = "#4A148C"
@@ -687,6 +688,8 @@ def get_repertoire_pdf(
                 prof.margin_right_mm = lat
             if "layout_margin_top" in user_prefs:
                 prof.margin_top_mm = float(user_prefs["layout_margin_top"])
+            if "layout_margin_bottom" in user_prefs:
+                prof.margin_bottom_mm = float(user_prefs["layout_margin_bottom"])
 
     if a4 or "foglio" in device.lower():
         prof.width_mm = 210.0
@@ -1717,6 +1720,8 @@ def get_song_pdf(
                 prof.margin_right_mm = lat
             if "layout_margin_top" in user_prefs:
                 prof.margin_top_mm = float(user_prefs["layout_margin_top"])
+            if "layout_margin_bottom" in user_prefs:
+                prof.margin_bottom_mm = float(user_prefs["layout_margin_bottom"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -1792,6 +1797,7 @@ def get_song_pdf_preview(
     font_size_chords: Optional[float] = Query(None, description="Override dimensione font accordi"),
     margin_lateral: Optional[float] = Query(None, description="Override margini laterali"),
     margin_top: Optional[float] = Query(None, description="Override margine superiore (mm)"),
+    margin_bottom: Optional[float] = Query(None, description="Override margine inferiore (mm)"),
     transpose: int = Query(0, description="Trasposizione temporanea al volo (semitoni) senza salvare sul DB")
 ):
     """
@@ -1873,6 +1879,8 @@ def get_song_pdf_preview(
                 prof.margin_right_mm = lat
             if "layout_margin_top" in user_prefs:
                 prof.margin_top_mm = float(user_prefs["layout_margin_top"])
+            if "layout_margin_bottom" in user_prefs:
+                prof.margin_bottom_mm = float(user_prefs["layout_margin_bottom"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -1902,12 +1910,15 @@ def get_song_pdf_preview(
     margin_top_val = margin_top if isinstance(margin_top, (int, float)) else None
     if margin_top_val is not None:
         prof.margin_top_mm = float(margin_top_val)
+    margin_bot_val = margin_bottom if isinstance(margin_bottom, (int, float)) else None
+    if margin_bot_val is not None:
+        prof.margin_bottom_mm = float(margin_bot_val)
 
     chords_val = chords if isinstance(chords, bool) else (getattr(chords, "default", True) is not False)
     pseudonym = resolve_user_pseudonym(email_clean, user_name)
     cache_key = (
         f"v3_{song.uuid}_{song.updated_at}_{transpose_val}_{prof.name}_{prof.columns}_{prof.font_size_lyrics}_"
-        f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.color_lyrics}_{prof.color_chords}_"
+        f"{prof.font_size_chords}_{prof.margin_left_mm}_{prof.margin_top_mm}_{prof.margin_bottom_mm}_{prof.color_lyrics}_{prof.color_chords}_"
         f"{prof.color_aml_markup}_{chords_val}_{pseudonym}"
     )
 
@@ -2178,6 +2189,8 @@ def get_setlist_pdf(
                 prof.margin_right_mm = lat
             if "layout_margin_top" in user_prefs:
                 prof.margin_top_mm = float(user_prefs["layout_margin_top"])
+            if "layout_margin_bottom" in user_prefs:
+                prof.margin_bottom_mm = float(user_prefs["layout_margin_bottom"])
             if "color_lyrics" in user_prefs:
                 prof.color_lyrics = user_prefs["color_lyrics"]
             elif "layout_color_text" in user_prefs:
@@ -2315,6 +2328,7 @@ def save_user_preferences(email: str, req: UserPreferencesRequest):
         "layout_columns": req.layout_columns or 1,
         "layout_margin_lateral": req.layout_margin_lateral if req.layout_margin_lateral is not None else 10.0,
         "layout_margin_top": req.layout_margin_top if req.layout_margin_top is not None else 10.0,
+        "layout_margin_bottom": req.layout_margin_bottom if req.layout_margin_bottom is not None else 14.0,
         "color_lyrics": c_lyric,
         "layout_color_text": c_lyric,
         "color_chords": c_chord,

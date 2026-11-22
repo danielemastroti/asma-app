@@ -90,7 +90,7 @@ PAGE_SIZES: Dict[str, Tuple[float, float]] = {
     "pc_a4": portrait(A4),
     "pc_a4_landscape": portrait(A4),
     "tablet": portrait(A4),
-    "ipad": portrait(A4),
+    "ipad": (174.1 * mm, 224.0 * mm),
     "smartphone": (100 * mm, 210 * mm)  # Layout PDF sempre verticale
 }
 
@@ -116,6 +116,8 @@ class NumberedCanvas(canvas.Canvas):
         self.watermark_text: Optional[str] = None
         self.document_title: str = ""
         self.version_str: str = ""
+        self.margin_bottom_mm: Optional[float] = None
+        self.margin_side_mm: Optional[float] = None
 
     def showPage(self):
         self._saved_page_states.append(dict(self.__dict__))
@@ -152,10 +154,16 @@ class NumberedCanvas(canvas.Canvas):
             self.setLineWidth(0.5)
             self.line(15 * mm, page_h - 11 * mm, page_w - 15 * mm, page_h - 11 * mm)
 
-        # 3. Footer line and page numbering (proportional to page width and safe from content overlap)
-        foot_m_side = min(12.0 * mm, page_w * 0.08)
-        foot_line_y = 9.5 * mm
-        foot_text_y = 6.0 * mm
+        # 3. Footer line and page numbering (proportional to page width and safe from content overlap/bezel cutoff)
+        side_m = getattr(self, "margin_side_mm", None)
+        if side_m is not None and side_m > 0:
+            foot_m_side = max(side_m * mm, 14.0 * mm)
+        else:
+            foot_m_side = max(14.0 * mm, page_w * 0.08)
+
+        bot_margin = float(getattr(self, "margin_bottom_mm", 12.0) or 12.0)
+        foot_line_y = max(6.0, bot_margin - 3.5) * mm
+        foot_text_y = max(3.5, bot_margin - 7.5) * mm
 
         self.setFont("Helvetica", 7.5)
         self.setFillColor(colors.HexColor("#777777"))
@@ -234,8 +242,7 @@ class PDFEngine:
 
         # Top margin: exactly 58 pt (px) default for single songs, lateral margins from profile
         top_m = max(float(getattr(prof, "margin_top_mm", 10.0)), 0.0) * mm
-        # Bottom margin: at least 12.0 mm to guarantee no overlap with the footer line (which sits at 9.5 mm)
-        bot_m = max(prof.margin_bottom_mm, 12.0) * mm
+        bot_m = max(float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0), 12.0) * mm
         left_m = prof.margin_left_mm * mm
         right_m = prof.margin_right_mm * mm
         usable_w = pagesize[0] - left_m - right_m
@@ -293,6 +300,8 @@ class PDFEngine:
             c.watermark_text = watermark
             c.document_title = song.title
             c.version_str = f"| Rev #{song.current_revision}"
+            c.margin_bottom_mm = float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0)
+            c.margin_side_mm = max(float(getattr(prof, "margin_left_mm", 10.0) or 10.0), float(getattr(prof, "margin_right_mm", 10.0) or 10.0))
             if user_name:
                 clean_foot = re.sub(r'\(.*?\)', '', user_name).strip()
                 if clean_foot:
@@ -475,6 +484,8 @@ class PDFEngine:
             c.watermark_text = watermark
             c.document_title = setlist.title
             c.version_str = "| Scaletta Ufficiale"
+            c.margin_bottom_mm = float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0)
+            c.margin_side_mm = max(float(getattr(prof, "margin_left_mm", 10.0) or 10.0), float(getattr(prof, "margin_right_mm", 10.0) or 10.0))
             return c
 
         doc.build(story, canvasmaker=canvas_maker)
@@ -505,8 +516,8 @@ class PDFEngine:
 
         left_m = prof.margin_left_mm * mm
         right_m = prof.margin_right_mm * mm
-        top_m = max(prof.margin_top_mm, 10.0) * mm
-        bot_m = max(prof.margin_bottom_mm, 12.0) * mm
+        top_m = max(float(getattr(prof, "margin_top_mm", 10.0) or 10.0), 10.0) * mm
+        bot_m = max(float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0), 12.0) * mm
         usable_w = pagesize[0] - left_m - right_m
 
         doc = SmartSimpleDocTemplate(
@@ -624,6 +635,8 @@ class PDFEngine:
             c.watermark_text = watermark
             c.document_title = rep_clean
             c.version_str = "| Elenco Repertorio"
+            c.margin_bottom_mm = float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0)
+            c.margin_side_mm = max(float(getattr(prof, "margin_left_mm", 10.0) or 10.0), float(getattr(prof, "margin_right_mm", 10.0) or 10.0))
             return c
 
         doc.build(story, canvasmaker=canvas_maker)
@@ -1368,12 +1381,32 @@ class PDFEngine:
             elif isinstance(node, SectionNode):
                 sec_name = node.section_name.strip().lower()
                 sec_label = (node.label or "").strip().lower()
+                sec_full = f"{sec_name} {sec_label}".strip()
+                is_inst_section = any(k in sec_full for k in ["solo", "assolo", "strumentale", "intermezzo", "interlude"])
+
                 # Elimina sempre le sezioni e i badge dedicati a tablature
                 if any(k in sec_name for k in ["tab", "tablatura", "tabs", "riff_tab", "guitar_tab"]) or "tab" in sec_label:
                     in_tab_block = True
                     continue
                 else:
                     in_tab_block = False
+
+                if not include_chords and is_inst_section:
+                    if last_was_inst_marker:
+                        # Marcatore/badge strumentale già emesso in sequenza immediata: scrivi una sola volta
+                        continue
+                    flush_section(force=True)
+                    curr_target = target_list()
+                    if curr_target and not isinstance(curr_target[-1], Spacer):
+                        curr_target.append(Spacer(1, 3.5 * mm))
+                    badge_table = create_section_badge_table(node.section_name, node.label)
+                    current_section_items.append(badge_table)
+                    sp = Spacer(1, 1.8 * mm)
+                    sp.keepWithNext = True
+                    current_section_items.append(sp)
+                    current_section_has_content = True
+                    last_was_inst_marker = True
+                    continue
 
                 flush_section()
 
@@ -1625,15 +1658,29 @@ class PDFEngine:
                         blank_h = base_lyrics_size * 1.3 * line_count
 
                     add_flowable(Spacer(1, blank_h), is_content=False, is_text_line=False)
-                    last_was_inst_marker = False
+                    if include_chords:
+                        last_was_inst_marker = False
                     continue
 
                 # Tag strumentale o assolo (es. {guitar: solo}, {assolo}, ecc.)
                 tag_label = node.tag_type.strip().lower()
                 is_solo = any(k in tag_label for k in ["solo", "assolo", "instrumental", "guitar", "chitarra", "piano", "sax", "stacco"])
                 if not include_chords and is_solo:
+                    if last_was_inst_marker:
+                        # Non duplicare marcatori strumentali consecutivi
+                        continue
                     content_str = f" — {node.content}" if node.content and node.content.strip() else ""
                     tag_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale{content_str})</i></b></font>", styles["CustomTagText"])
+                    tag_t = Table([[tag_p]], colWidths=[usable_width])
+                    tag_t.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#EDE7F6")),
+                        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor(c_aml_hex)),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ]))
+                    add_flowable(KeepTogether([tag_t, Spacer(1, 0.8 * mm)]))
+                    last_was_inst_marker = True
+                    continue
                 else:
                     tag_p = Paragraph(f"&#9835; <b>[{node.tag_type.upper()}]:</b> {node.content}", styles["CustomTagText"])
 
@@ -1650,9 +1697,13 @@ class PDFEngine:
             elif isinstance(node, CommentNode):
                 if in_tab_block or cls.is_guitar_tab_line(node.text):
                     continue
+                comm_text = (node.text or "").strip().lower()
+                if not include_chords and any(w in comm_text for w in ["strumentale", "solo", "assolo"]):
+                    if last_was_inst_marker:
+                        continue
+                    last_was_inst_marker = True
                 comm_p = Paragraph(f"<i># {node.text}</i>", styles["DocSubtitle"])
                 add_flowable(KeepTogether([comm_p, Spacer(1, 0.8 * mm)]), is_content=False)
-                last_was_inst_marker = False
 
             elif isinstance(node, EmptyLineNode):
                 if in_tab_block:
@@ -1662,7 +1713,7 @@ class PDFEngine:
                 curr_target = target_list()
                 if curr_target and not isinstance(curr_target[-1], (Spacer, PageBreak)):
                     append_item(Spacer(1, 2.0 * mm))
-                last_was_inst_marker = False
+                # Preserva last_was_inst_marker: le righe vuote non devono azzerare la protezione anti-duplicati strumentali
 
         flush_section(force=True)
         if in_medley_fragment:
