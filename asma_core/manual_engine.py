@@ -981,7 +981,11 @@ class ManualEngine:
             "&bull; <b>Piena Libertà: Dispositivo Personale vs Stampa A4 Tradizionale:</b> "
             "Il musicista mantiene sempre la totale flessibilità: può consultare il medley con la formattazione su misura per il proprio dispositivo in uso "
             "(a video, in Stage Mode o scaricando il PDF del proprio profilo hardware) oppure generare, stampare e condividere su WhatsApp in qualsiasi momento "
-            "la <b>copia in formato A4 standard</b> (con o senza accordi), esattamente come avviene per tutti gli altri brani del catalogo.",
+            "la <b>copia in formato A4 standard</b> (con o senza accordi), esattamente come avviene per tutti gli altri brani del catalogo. "
+            "Il motore di compilazione PDF garantisce inoltre la totale assenza di pagine bianche o salti forzati accidentali: anche se il brano è stato "
+            "salvato con interruzioni pagina specifiche per un tablet o smartphone, la generazione A4 ri-ottimizza automaticamente la capienza verticale "
+            "(40 righe in colonna singola, 52 a due colonne) e ripulisce qualsiasi spaziatore orfano o salto a frame vuoto tramite <code>SmartDocTemplate</code>, "
+            "assicurando spartiti A4 sempre densi, armoniosi e continui per tutti i membri della band.",
             bullet_style
         ))
 

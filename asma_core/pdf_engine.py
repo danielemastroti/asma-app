@@ -58,6 +58,33 @@ MEDLEY_COLORS = [
 ]
 
 
+class SmartDocTemplate(BaseDocTemplate):
+    """
+    Subclass of BaseDocTemplate that prevents blank pages by suppressing
+    redundant PageBreak calls when the current frame has no drawn content.
+    """
+    def handle_pageBreak(self, slow=None):
+        flowable_count = getattr(self, '_curPageFlowableCount', 0)
+        at_top = getattr(getattr(self, 'frame', None), '_atTop', 0)
+        if flowable_count == 0 or at_top:
+            return
+        super().handle_pageBreak(slow=slow)
+
+
+class SmartSimpleDocTemplate(SimpleDocTemplate):
+    """
+    Subclass of SimpleDocTemplate that prevents blank pages by suppressing
+    redundant PageBreak calls when the current frame has no drawn content.
+    """
+    def handle_pageBreak(self, slow=None):
+        flowable_count = getattr(self, '_curPageFlowableCount', 0)
+        at_top = getattr(getattr(self, 'frame', None), '_atTop', 0)
+        if flowable_count == 0 or at_top:
+            return
+        super().handle_pageBreak(slow=slow)
+
+
+
 # Standard custom page sizes (in points, 1 point = 1/72 inch)
 PAGE_SIZES: Dict[str, Tuple[float, float]] = {
     "pc_a4": portrait(A4),
@@ -221,12 +248,12 @@ class PDFEngine:
             content_w = col_w
             f1 = Frame(left_m, bot_m, col_w, usable_h, id='c1', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
             f2 = Frame(left_m + col_w + col_gap, bot_m, col_w, usable_h, id='c2', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
-            doc = BaseDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
+            doc = SmartDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
             doc.addPageTemplates([PageTemplate(id='TwoCol', frames=[f1, f2])])
         else:
             content_w = usable_w
             f1 = Frame(left_m, bot_m, usable_w, usable_h, id='c1', topPadding=0, bottomPadding=0, leftPadding=0, rightPadding=0)
-            doc = BaseDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
+            doc = SmartDocTemplate(buffer, pagesize=pagesize, leftMargin=left_m, rightMargin=right_m, topMargin=top_m, bottomMargin=bot_m)
             doc.addPageTemplates([PageTemplate(id='OneCol', frames=[f1])])
 
         styles = cls._build_style_sheet(prof, template_name)
@@ -238,7 +265,24 @@ class PDFEngine:
         story.append(Spacer(1, 3 * mm))
 
         # 2. Parse AML Document and Render Flowables
-        aml_text = BandAIService.ensure_section_spacing_aml(song.aml_content)
+        aml_source = song.aml_content or ""
+        is_a4 = (
+            getattr(prof, "target_device", "") == "pc_a4"
+            or getattr(prof, "device_type", "") == "printable_a4"
+            or "foglio" in (getattr(prof, "name", "") or "").lower()
+        )
+        if is_a4 and aml_source:
+            _, fragments = AMLParser.split_medley_fragments(aml_source)
+            if len(fragments) > 1:
+                # Re-pack fragments intelligently for A4 capacity: 1 col = 40 lines, 2 cols = 52 lines
+                target_dev_name = "Foglio a 4 stampabile" if cols == 1 else "Tablet"
+                aml_source, _ = AMLParser.format_medley_pages(
+                    aml_source,
+                    strategy="smart_fit",
+                    target_device=target_dev_name
+                )
+
+        aml_text = BandAIService.ensure_section_spacing_aml(aml_source)
         aml_doc = AMLParser.parse(aml_text)
         content_flowables = cls._render_aml_nodes_to_flowables(aml_doc, styles, content_w, include_chords=include_chords, profile=prof)
         story.extend(content_flowables)
@@ -291,7 +335,7 @@ class PDFEngine:
         right_m = prof.margin_right_mm * mm
         usable_w = pagesize[0] - left_m - right_m
 
-        doc = SimpleDocTemplate(
+        doc = SmartSimpleDocTemplate(
             buffer,
             pagesize=pagesize,
             leftMargin=left_m,
@@ -465,7 +509,7 @@ class PDFEngine:
         bot_m = max(prof.margin_bottom_mm, 12.0) * mm
         usable_w = pagesize[0] - left_m - right_m
 
-        doc = SimpleDocTemplate(
+        doc = SmartSimpleDocTemplate(
             buffer,
             pagesize=pagesize,
             leftMargin=left_m,
@@ -917,12 +961,17 @@ class PDFEngine:
                     return out
 
                 flat = unwrap(fragment_flowables)
+                while flat and isinstance(flat[0], Spacer):
+                    flat.pop(0)
+                while flat and isinstance(flat[-1], Spacer):
+                    flat.pop()
                 # Se lo spezzone del medley può stare su una singola pagina (~<= 60 flowables, ~25 righe),
                 # tienilo insieme per evitare spezzamenti non necessari.
-                if len(flat) <= 60:
-                    flowables.append(KeepTogether(flat))
-                else:
-                    flowables.extend(fragment_flowables)
+                if flat:
+                    if len(flat) <= 60:
+                        flowables.append(KeepTogether(flat))
+                    else:
+                        flowables.extend(flat)
                 fragment_flowables = []
             in_medley_fragment = False
 
@@ -1123,9 +1172,6 @@ class PDFEngine:
                 # Spezzone Medley: Fine brano (direttiva invisibile sul PDF)
                 if isinstance(node, MedleySongEndNode) or d_name in ["end_of_song", "eos", "end_of_medley", "end_of_medley_song", "eoms"]:
                     flush_section()
-                    curr_target = target_list()
-                    if curr_target and not isinstance(curr_target[-1], Spacer):
-                        append_item(Spacer(1, 2.0 * mm))
                     finalize_medley_fragment()
                     continue
 
@@ -1215,7 +1261,13 @@ class PDFEngine:
                 # Page break: {np}, {new_page}, {page_break}, {salto_pagina}
                 if d_name in ["np", "new_page", "page_break", "salto_pagina", "salto_di_pagina"]:
                     flush_section(force=True)
-                    append_item(PageBreak())
+                    if in_medley_fragment:
+                        finalize_medley_fragment()
+                    curr_t = target_list()
+                    while curr_t and isinstance(curr_t[-1], Spacer):
+                        curr_t.pop()
+                    if curr_t and not isinstance(curr_t[-1], PageBreak):
+                        append_item(PageBreak())
                     continue
 
                 # Riga bianca / Spazio verticale personalizzato: {riga_bianca}, {blank_line}, {spazio}, ecc.
@@ -1608,7 +1660,7 @@ class PDFEngine:
                 flush_section()
                 # Spaziatura contenuta tra strofe/paragrafi (senza creare vuoti enormi)
                 curr_target = target_list()
-                if curr_target and not isinstance(curr_target[-1], Spacer):
+                if curr_target and not isinstance(curr_target[-1], (Spacer, PageBreak)):
                     append_item(Spacer(1, 2.0 * mm))
                 last_was_inst_marker = False
 
@@ -1652,7 +1704,24 @@ class PDFEngine:
             ]))
             flowables.append(end_table)
 
-        return flowables
+        # Post-process: sanitize flowables list to guarantee no redundant or orphan page breaks
+        cleaned_flowables: List[Flowable] = []
+        for it in flowables:
+            if isinstance(it, PageBreak):
+                while cleaned_flowables and isinstance(cleaned_flowables[-1], Spacer):
+                    cleaned_flowables.pop()
+                if cleaned_flowables and not isinstance(cleaned_flowables[-1], PageBreak):
+                    cleaned_flowables.append(it)
+            elif isinstance(it, Spacer):
+                if cleaned_flowables and not isinstance(cleaned_flowables[-1], (Spacer, PageBreak)):
+                    cleaned_flowables.append(it)
+            else:
+                cleaned_flowables.append(it)
+
+        while cleaned_flowables and isinstance(cleaned_flowables[-1], (Spacer, PageBreak)):
+            cleaned_flowables.pop()
+
+        return cleaned_flowables
 
     @classmethod
     def clear_cache(cls) -> None:
