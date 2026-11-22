@@ -121,7 +121,7 @@ class ManualEngine:
             {"num": 7, "title": "Creazione Brani Autoprodotti", "desc": "Barra metadati essenziali compatti e repertorio personale protetto."},
             {"num": 8, "title": "Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", "desc": "Protezione del repertorio ufficiale, copia nel personale, schema grafico di flusso e promozione con sovrascrittura."},
             {"num": 9, "title": "AML (ASMA Markup Language) — Sintassi, Direttive & Guida Autonoma", "desc": "Tabella completa di tutte le direttive, esempi pratici per scrivere un intero brano da zero o un medley autonomamente."},
-            {"num": 10, "title": "Modalità Editing, Nuove Direttive Scena/Stacco & Medley", "desc": "Direttiva {Scena: X} per tastiere, {stacco: strumento}, e Medley continui fino a 20 brani con colori alternati."},
+            {"num": 10, "title": "Modalità Editing, Nuove Direttive Scena/Stacco & Medley", "desc": "Direttiva {Scena: X} per tastiere, {stacco: strumento}, Medley fino a 20 brani e Impaginazione Pagine su base Dispositivo / Stampa A4."},
             {"num": 11, "title": "IL CIRCOLO DELLE QUINTE (Armonia & Esempi Pratici per la Band)", "desc": "Guida semplice per musicisti: l'orologio delle tonalità, relative minori, modulazioni, trasposizioni per la voce e transizioni live per scalette e medley."},
             {"num": 12, "title": "Modalità Palco (Stage Mode) & Teleprompter 60fps", "desc": "Autoscroll fluido a 60fps, avvio on-demand, tap-to-pause, contrasto notturno OLED, pedaliere HID e metronomo."},
             {"num": 13, "title": "Gestione Scalette Live & Condivisione WhatsApp", "desc": "Composizione scalette, variazioni BPM, durata totale e condivisione A4 WhatsApp."},
@@ -947,6 +947,41 @@ class ManualEngine:
             "tramite le direttive <code>{start_of_song: Titolo | Artista | Tonalità}</code> ed <code>{end_of_song}</code>. "
             "Ciascuno spezzone ha la propria tonalità e sezioni, con colorazione alternata tra 20 tonalità cromatiche vive "
             "per distinguere i passaggi al volo durante il live.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "&bull; <b>Formattazione Pagine Medley su Base Dispositivo (📐 Impagina Medley):</b> "
+            "Poiché i medley sono composti assemblando più spezzoni e ogni musicista utilizza schermi di dimensioni diverse "
+            "(es. Huawei MediaPad M5 o MatePad di Cico, iPad, smartphone o foglio A4), a lavoro ultimato l'impaginazione naturale "
+            "potrebbe risultare non ottimizzata per il leggio digitale. L'editor offre ora lo strumento dedicato <b>'📐 Impagina Medley'</b> "
+            "(accessibile con un tocco nella testata dell'editor, tra i quick-chip e nelle opzioni del visualizzatore).",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "&bull; <b>Prompt Guidato Post-Salvataggio nel Personale:</b> "
+            "Subito dopo aver salvato un Medley nel proprio <i>Repertorio Personale</i> (da nuovo brano o da modifica), "
+            "il sistema mostra un prompt interattivo che invita il musicista a impaginare immediatamente gli spezzoni per il proprio dispositivo, "
+            "garantendo uno spartito rifinito e pronto per la prova o il concerto senza passaggi manuali complessi.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "&bull; <b>Strategie di Distribuzione Pagine Flessibili:</b> "
+            "All'interno della modale di impaginazione il musicista può selezionare il dispositivo target e scegliere tra tre strategie:<br/>"
+            "&nbsp;&nbsp;1. <b>Compattazione Ottimizzata (Smart Fit):</b> Calcola il peso in righe di ogni spezzone in base alla capienza verticale del dispositivo "
+            "(~52 righe per tablet a 2 colonne, ~40 righe per foglio A4, ~22 righe per smartphone) e inserisce i salti pagina <code>{np}</code> "
+            "solo dove strettamente necessario per minimizzare il numero totale di facciate senza spezzare i singoli brani a metà.<br/>"
+            "&nbsp;&nbsp;2. <b>1 Spezzone per Pagina:</b> Posiziona categoricamente ogni spezzone su una nuova pagina dedicata inserendo <code>{np}</code> "
+            "dopo ciascun <code>{end_of_song}</code>, ideale per chi desidera una schermata chiara e isolata per ogni brano del medley.<br/>"
+            "&nbsp;&nbsp;3. <b>Personalizzata con Toggle Interattivi:</b> Consente al musicista di attivare o disattivare liberamente il salto pagina "
+            "dopo qualsiasi spezzone con un semplice tocco, aggiornando all'istante la stima delle pagine risultanti e consentendo la verifica con anteprima PDF reale in tempo reale.<br/>"
+            "&nbsp;&nbsp;4. <b>Rimuovi Salti Pagina (Testo Continuo):</b> Elimina tutti i salti <code>{np}</code> per consentire uno scorrimento fluido ininterrotto.",
+            bullet_style
+        ))
+        story.append(Paragraph(
+            "&bull; <b>Piena Libertà: Dispositivo Personale vs Stampa A4 Tradizionale:</b> "
+            "Il musicista mantiene sempre la totale flessibilità: può consultare il medley con la formattazione su misura per il proprio dispositivo in uso "
+            "(a video, in Stage Mode o scaricando il PDF del proprio profilo hardware) oppure generare, stampare e condividere su WhatsApp in qualsiasi momento "
+            "la <b>copia in formato A4 standard</b> (con o senza accordi), esattamente come avviene per tutti gli altri brani del catalogo.",
             bullet_style
         ))
 

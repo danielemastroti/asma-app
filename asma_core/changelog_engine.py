@@ -14,6 +14,24 @@ from typing import List, Dict, Any, Optional
 
 INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
     {
+        "version": "2026.11.22",
+        "date": "22/11/2026",
+        "title": "Formattazione Pagine Medley su Base Dispositivo nell'Editor, Prompt Guidato Post-Salvataggio nel Personale & Paginazione Smart",
+        "new_features": [
+            "Formattazione Pagine Medley su Base Dispositivo nell'Editor (📐 Impagina Medley): nuova funzionalità integrata nell'editor AML e nel visualizzatore che permette al musicista di formattare e impaginare automaticamente gli spezzoni di un Medley su misura per il proprio dispositivo hardware (es. Tablet Huawei MediaPad M5 / MatePad, iPad, smartphone o foglio A4). Il sistema calcola il peso in righe di ciascuno spezzone e inserisce con precisione i salti pagina forzati ({np}) per garantire che ogni transizione live ricada nel punto ideale dello schermo o della stampa, senza spezzamenti accidentali di accordi o sezioni a fondo pagina.",
+            "Prompt Guidato Post-Salvataggio nel Repertorio Personale: al completamento del salvataggio di un Medley nel Repertorio Personale (sia da nuovo brano che da modifica esistente), l'applicazione mostra un prompt modale dedicato che invita il musicista a procedere subito con l'impaginazione guidata su base dispositivo prima di tornare alla lista brani o al palco, garantendo che lo spartito sia immediatamente pronto e ottimizzato per il leggio digitale.",
+            "Strategie di Impaginazione Multiple (Smart Fit, 1 Spezzone per Pagina, Personalizzata): la modale di impaginazione offre tre strategie flessibili: Compattazione Ottimizzata (Smart Fit) che raggruppa dinamicamente gli spezzoni in base alla capienza dello schermo target (52 righe per tablet a 2 colonne, 40 per foglio A4, 22 per smartphone); 1 Spezzone per Pagina che posiziona ciascun brano su una schermata/pagina indipendente; Personalizzata con toggle interattivi per ciascuno spezzone con stima pagine in tempo reale; e Rimuovi Salti Pagina per visualizzazione continua.",
+            "Piena Parità Formattazione Dispositivo & Stampa A4 Tradizionale: il musicista mantiene come sempre la possibilità sia di visualizzare il medley ottimizzato per il dispositivo attualmente selezionato (sia a video che in Stage Mode o download PDF dispositivo), sia di generare, condividere su WhatsApp o stampare in qualsiasi momento la copia in formato A4 standard (con accordi o solo testo) identica a tutti gli altri brani del repertorio."
+        ],
+        "improvements": [
+            "Nuovi Quick-Chip nell'Editor AML: aggiunti nella barra dei quick-chip i pulsanti ad inserimento rapido '📐 Impagina Medley', '␣ {riga_bianca}' e '📄 {np} Salto Pagina'.",
+            "Rendering Web e Visualizzatore per Salto Pagina {np}: il parser web visualizza una barra tratteggiata elegante di demarcazione pagina con etichetta '--- Salto Pagina (Nuova Pagina PDF) ---', permettendo di verificare a colpo d'occhio dove cadrà il cambio pagina.",
+            "Soppressione Separatori Medley Ridondanti in Testa a Nuova Pagina: nel generatore PDF (pdf_engine.py), se uno spezzone inizia in cima a una nuova pagina generata da un salto forzato {np}, la linea separatrice orizzontale superiore viene soppressa per non sovrapporsi o sporcare l'intestazione."
+        ],
+        "security": [],
+        "bug_fixes": []
+    },
+    {
         "version": "2026.11.19",
         "date": "19/11/2026",
         "title": "Badge '⭐ Migliore' su Ricerca Web per Sezioni & Accordi, Standardizzazione Sezioni Repertorio Ufficiale & Pulizia Elenchi PDF",

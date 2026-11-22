@@ -1,5 +1,22 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.22 (22/11/2026) — Formattazione Pagine Medley su Base Dispositivo nell'Editor, Prompt Guidato Post-Salvataggio nel Personale & Paginazione Smart
+
+### Nuove Funzionalità (New Features)
+- Formattazione Pagine Medley su Base Dispositivo nell'Editor (📐 Impagina Medley): nuova funzionalità integrata nell'editor AML e nel visualizzatore che permette al musicista di formattare e impaginare automaticamente gli spezzoni di un Medley su misura per il proprio dispositivo hardware (es. Tablet Huawei MediaPad M5 / MatePad, iPad, smartphone o foglio A4). Il sistema calcola il peso in righe di ciascuno spezzone e inserisce con precisione i salti pagina forzati (`{np}`) per garantire che ogni transizione live ricada nel punto ideale dello schermo o della stampa, senza spezzamenti accidentali di accordi o sezioni a fondo pagina.
+- Prompt Guidato Post-Salvataggio nel Repertorio Personale: al completamento del salvataggio di un Medley nel Repertorio Personale (sia da nuovo brano che da modifica esistente), l'applicazione mostra un prompt modale dedicato che invita il musicista a procedere subito con l'impaginazione guidata su base dispositivo prima di tornare alla lista brani o al palco, garantendo che lo spartito sia immediatamente pronto e ottimizzato per il leggio digitale.
+- Strategie di Impaginazione Multiple (Smart Fit, 1 Spezzone per Pagina, Personalizzata): la modale di impaginazione offre tre strategie flessibili:
+  - Compattazione Ottimizzata (Smart Fit): raggruppa dinamicamente gli spezzoni in base alla capienza verticale del dispositivo target (52 righe per tablet a 2 colonne, 40 righe per foglio A4, 22 righe per smartphone), minimizzando le pagine complessive e preservando l'integrità dei singoli brani.
+  - 1 Spezzone per Pagina: posiziona categoricamente ogni spezzone su una nuova pagina dedicata (`{np}` a chiusura di ogni `{end_of_song}`), offrendo la massima pulizia visiva sul leggio per medley complessi.
+  - Personalizzata con Toggle Interattivi: consente al musicista di attivare o disattivare liberamente il salto pagina dopo ciascuno spezzone con un semplice tocco, visualizzando in tempo reale il conteggio pagine risultante.
+  - Rimuovi Salti Pagina (Testo Continuo): elimina tutti i tag `{np}` presenti per un flusso continuo e compatto.
+- Piena Parità Formattazione Dispositivo & Stampa A4 Tradizionale: il musicista mantiene come sempre la possibilità sia di visualizzare il medley ottimizzato per il dispositivo attualmente selezionato (sia a video che in Stage Mode o download PDF dispositivo), sia di generare, condividere su WhatsApp o stampare in qualsiasi momento la copia in formato A4 standard (con accordi o solo testo) identica a tutti gli altri brani del repertorio.
+
+### Miglioramenti & Paginazione (Improvements & Fixes)
+- Nuovi Quick-Chip nell'Editor AML: aggiunti nella barra dei quick-chip i pulsanti ad inserimento rapido `📐 Impagina Medley`, `␣ {riga_bianca}` e `📄 {np} Salto Pagina`.
+- Rendering Web e Visualizzatore per Salto Pagina {np}: il parser web ora visualizza una barra tratteggiata elegante di demarcazione pagina con etichetta `--- Salto Pagina (Nuova Pagina PDF) ---`, permettendo al musicista di verificare a colpo d'occhio dove cadrà il cambio pagina anche senza compilare il PDF.
+- Soppressione Separatori Medley Ridondanti in Testa a Nuova Pagina: nel generatore PDF (`pdf_engine.py`), se uno spezzone inizia in cima a una nuova pagina generata da un salto forzato `{np}`, la linea separatrice orizzontale superiore viene soppressa per non sovrapporsi o sporcare l'intestazione della pagina.
+
 ## Versione 2026.11.19 (19/11/2026) — Badge '⭐ Migliore' su Ricerca Web per Sezioni & Accordi, Standardizzazione Sezioni Repertorio Ufficiale & Pulizia Elenchi PDF
 
 ### Nuove Funzionalità (New Features)
