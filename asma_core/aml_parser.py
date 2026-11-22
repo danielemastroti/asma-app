@@ -7,7 +7,7 @@ Zero-AI Dependency. Conforms to SRS Cap. 5, 14 and Blueprint Sec. 5.
 
 from __future__ import annotations
 import re
-from typing import List, Dict, Any, Optional, Tuple, Union
+from typing import List, Dict, Any, Optional, Tuple, Union, Set
 from asma_core.music_engine import MusicEngine, ParsedChord
 
 
@@ -861,3 +861,122 @@ class AMLParser:
             result.insert(clamped_col, insert_str)
 
         return "".join(result).rstrip()
+
+    @classmethod
+    def split_medley_fragments(cls, aml_text: str) -> tuple[str, List[Dict[str, Any]]]:
+        """
+        Splits an AML text into header metadata and structured medley fragments.
+        Identifies fragment titles, artists, keys, line counts, and whether a page break
+        directive ({np}, {new_page}, etc.) precedes each fragment.
+        """
+        pattern = re.compile(
+            r'(\n?[ \t]*\{(?:np|new_page|page_break|salto_pagina|salto_di_pagina)[^\}]*\}\s*)?'
+            r'(\{(?:start_of_song|sos|start_of_medley|start_of_medley_song|soms)(?:[:\s]\s*([^\}]+))?\})',
+            re.IGNORECASE
+        )
+        matches = list(pattern.finditer(aml_text))
+        if not matches:
+            return aml_text, []
+
+        header = aml_text[:matches[0].start()].rstrip()
+        fragments: List[Dict[str, Any]] = []
+
+        for i, m in enumerate(matches):
+            next_start = matches[i + 1].start() if i + 1 < len(matches) else len(aml_text)
+            has_np = bool(m.group(1))
+            tag_val = m.group(3) or ""
+            title, artist, key = cls.parse_medley_start_value(tag_val)
+
+            body_start = m.start() + (len(m.group(1)) if m.group(1) else 0)
+            frag_raw = aml_text[body_start:next_start].rstrip()
+            frag_clean = re.sub(
+                r'\n?[ \t]*\{(?:np|new_page|page_break|salto_pagina|salto_di_pagina)[^\}]*\}\s*$',
+                '',
+                frag_raw,
+                flags=re.IGNORECASE
+            ).rstrip()
+
+            lines = [l for l in frag_clean.splitlines() if l.strip()]
+            fragments.append({
+                "index": i + 1,
+                "title": title or f"Spezzone {i + 1}",
+                "artist": artist,
+                "key": key,
+                "has_page_break": has_np,
+                "raw_content": frag_clean,
+                "line_count": len(lines)
+            })
+
+        return header, fragments
+
+    @classmethod
+    def format_medley_pages(
+        cls,
+        aml_text: str,
+        strategy: str = "smart_fit",
+        target_device: Optional[str] = None,
+        custom_breaks: Optional[List[int]] = None
+    ) -> tuple[str, List[Dict[str, Any]]]:
+        """
+        Applies device-aware page formatting to a medley AML document.
+        Strategies:
+          - 'one_per_page': each fragment starts on a new page ({np} before fragments 2..N)
+          - 'smart_fit': computes line capacity for target device and packs fragments onto pages
+          - 'custom': explicitly sets {np} before fragments in custom_breaks
+          - 'clear': removes all page breaks between fragments
+        Returns (formatted_aml, fragments_meta).
+        """
+        header, fragments = cls.split_medley_fragments(aml_text)
+        if not fragments:
+            return aml_text, []
+
+        dev_str = (target_device or "").lower()
+        if any(s in dev_str for s in ["smartphone", "pixel", "iphone", "oppo"]):
+            cap = 22
+        elif any(s in dev_str for s in ["a4", "foglio"]):
+            cap = 40
+        else:
+            # Tablet default (e.g. 2 columns, height ~250mm)
+            cap = 52
+
+        break_indices: Set[int] = set()
+
+        if strategy == "one_per_page":
+            for i in range(2, len(fragments) + 1):
+                break_indices.add(i)
+        elif strategy == "custom" and custom_breaks is not None:
+            break_indices = {int(b) for b in custom_breaks if int(b) > 1}
+        elif strategy == "smart_fit":
+            cur_lines = 0
+            for i, f in enumerate(fragments):
+                idx = i + 1
+                overhead = 3  # banner + spacing
+                needed = f["line_count"] + overhead
+                if i == 0:
+                    cur_lines = needed
+                else:
+                    if cur_lines + needed > cap:
+                        break_indices.add(idx)
+                        cur_lines = needed
+                    else:
+                        cur_lines += needed
+        elif strategy == "clear":
+            break_indices = set()
+
+        output_parts: List[str] = [header] if header else []
+        cur_page = 1
+
+        for i, f in enumerate(fragments):
+            idx = i + 1
+            if idx in break_indices and i > 0:
+                cur_page += 1
+                f["page"] = cur_page
+                f["has_page_break"] = True
+                output_parts.append("\n{np}\n" + f["raw_content"])
+            else:
+                f["page"] = cur_page
+                f["has_page_break"] = False
+                output_parts.append(("\n\n" if output_parts else "") + f["raw_content"])
+
+        formatted_aml = "\n".join(output_parts).strip() + "\n"
+        return formatted_aml, fragments

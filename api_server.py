@@ -112,6 +112,16 @@ class TransposeRequest(BaseModel):
     user_name: Optional[str] = "Cico"
     repertoire_uuid: Optional[str] = None
 
+class FormatMedleyPagesRequest(BaseModel):
+    strategy: Optional[str] = "smart_fit"
+    device: Optional[str] = "Huawei MediaPad M5"
+    custom_breaks: Optional[List[int]] = None
+    aml_content: Optional[str] = None
+    user_email: Optional[str] = "cico@band.org"
+    user_name: Optional[str] = "Cico"
+    repertoire_uuid: Optional[str] = None
+    save_to_db: Optional[bool] = False
+
 class RepertoireCreateRequest(BaseModel):
     uuid: Optional[str] = None
     name: str
@@ -1419,6 +1429,89 @@ def transpose_song(uuid: str, req: TransposeRequest):
 
     saved = storage.save_song(song, req.user_email, req.user_name, f"Trasposizione ({req.semitones:+d} semitoni)")
     return {"status": "success", "song": saved.to_dict(), "detached_copy": was_detached}
+
+
+@app.post("/api/medley/format-pages")
+def format_raw_medley_pages(req: FormatMedleyPagesRequest):
+    """
+    Formats medley pages based on device profile without requiring a saved song UUID.
+    Returns formatted AML and fragment analysis with assigned pages.
+    """
+    raw_aml = req.aml_content or ""
+    if not raw_aml.strip():
+        raise HTTPException(status_code=400, detail="Contenuto AML non fornito")
+
+    formatted_aml, fragments = AMLParser.format_medley_pages(
+        raw_aml,
+        strategy=req.strategy or "smart_fit",
+        target_device=req.device or "Huawei MediaPad M5",
+        custom_breaks=req.custom_breaks
+    )
+
+    total_pages = max([f.get("page", 1) for f in fragments], default=1) if fragments else 1
+    return {
+        "status": "success",
+        "formatted_aml": formatted_aml,
+        "fragments": fragments,
+        "total_pages": total_pages,
+        "device": req.device or "Huawei MediaPad M5",
+        "strategy": req.strategy or "smart_fit"
+    }
+
+
+@app.post("/api/songs/{uuid}/format-medley-pages")
+def format_song_medley_pages(uuid: str, req: FormatMedleyPagesRequest):
+    """
+    Formats the pages of a medley song based on target device profile.
+    If save_to_db is True, updates the song in the personal repertoire.
+    """
+    song = storage.get_song(uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato")
+
+    source_aml = req.aml_content if req.aml_content is not None else song.aml_content
+    formatted_aml, fragments = AMLParser.format_medley_pages(
+        source_aml,
+        strategy=req.strategy or "smart_fit",
+        target_device=req.device or "Huawei MediaPad M5",
+        custom_breaks=req.custom_breaks
+    )
+
+    total_pages = max([f.get("page", 1) for f in fragments], default=1) if fragments else 1
+
+    was_detached = False
+    saved_song = song
+    if req.save_to_db:
+        song, was_detached = _ensure_personal_copy_if_shared(
+            song, req.repertoire_uuid, req.user_email, req.user_name
+        )
+        if not was_detached:
+            all_reps = storage.list_repertoires()
+            official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+            if official_rep and song.uuid in official_rep.song_uuids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="I brani del Repertorio Ufficiale non possono essere modificati direttamente. Crea prima una copia personale nel tuo repertorio e promuovila a ufficiale quando completata."
+                )
+
+        song.aml_content = formatted_aml
+        saved_song = storage.save_song(
+            song,
+            req.user_email,
+            req.user_name,
+            f"Impaginazione Medley ({req.device or 'Dispositivo'})"
+        )
+
+    return {
+        "status": "success",
+        "song": saved_song.to_dict(),
+        "detached_copy": was_detached,
+        "formatted_aml": formatted_aml,
+        "fragments": fragments,
+        "total_pages": total_pages,
+        "device": req.device or "Huawei MediaPad M5",
+        "strategy": req.strategy or "smart_fit"
+    }
 
 
 # -----------------------------------------------------------------------------

@@ -13,12 +13,36 @@ from asma_core.aml_parser import (
 )
 from asma_core.lock_manager import LockManager
 from asma_core.audit_logger import AuditLogger
-from asma_core.storage_manager import StorageManager
-from asma_core.pdf_engine import PDFEngine
-from asma_core.live_stage_component import LiveStageComponent
-from asma_core.export_engine import ExportEngine
-from asma_core.import_engine import ImportEngine
-from asma_core.printer_engine import PrinterEngine
+
+try:
+    from asma_core.storage_manager import StorageManager
+except ImportError:
+    StorageManager = None
+
+try:
+    from asma_core.pdf_engine import PDFEngine
+except ImportError:
+    PDFEngine = None
+
+try:
+    from asma_core.live_stage_component import LiveStageComponent
+except ImportError:
+    LiveStageComponent = None
+
+try:
+    from asma_core.export_engine import ExportEngine
+except ImportError:
+    ExportEngine = None
+
+try:
+    from asma_core.import_engine import ImportEngine
+except ImportError:
+    ImportEngine = None
+
+try:
+    from asma_core.printer_engine import PrinterEngine
+except ImportError:
+    PrinterEngine = None
 
 __all__ = [
     "Song", "Repertoire", "Setlist", "SetlistItem", "LiveEvent",

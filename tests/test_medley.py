@@ -256,6 +256,73 @@ class TestMedleyFeature(unittest.TestCase):
         self.assertIsNotNone(found_page)
         doc.close()
 
+    def test_medley_device_pagination_formatter(self):
+        """Tests device-aware medley formatting strategies in AMLParser."""
+        aml = """{title: Mega Medley 80}
+{artist: ASMA Band}
+
+{start_of_song: Gloria | Umberto Tozzi | MI}
+[INTRO]
+| MI | LA | SI | MI |
+{soc}
+[MI]Gloria... [SI]manchi tu nell'aria
+{eoc}
+{end_of_song}
+
+{start_of_song: Gente di Mare | Raf & Tozzi | DO}
+[INTRO]
+| DO | SOL | LAm | FA |
+{sov}
+[DO]A tutti i marinai...
+{eov}
+{end_of_song}
+
+{start_of_song: Si Puo Dare Di Piu | Trio | RE}
+[INTRO]
+| RE | LA | SIm | SOL |
+{soc}
+[RE]Si puo dare di piu...
+{eoc}
+{end_of_song}"""
+
+        # 1. Strategy: one_per_page
+        out_one, frags_one = AMLParser.format_medley_pages(aml, strategy="one_per_page")
+        self.assertEqual(len(frags_one), 3)
+        self.assertEqual(frags_one[0]["page"], 1)
+        self.assertEqual(frags_one[1]["page"], 2)
+        self.assertEqual(frags_one[2]["page"], 3)
+        self.assertIn("{np}\n{start_of_song: Gente di Mare", out_one)
+        self.assertIn("{np}\n{start_of_song: Si Puo Dare Di Piu", out_one)
+
+        # 2. Strategy: smart_fit on tablet (all 3 short fragments fit on 1 page of tablet)
+        out_tab, frags_tab = AMLParser.format_medley_pages(aml, strategy="smart_fit", target_device="Samsung Galaxy tab s8")
+        self.assertEqual(frags_tab[0]["page"], 1)
+        self.assertEqual(frags_tab[1]["page"], 1)
+        self.assertEqual(frags_tab[2]["page"], 1)
+        self.assertNotIn("{np}", out_tab)
+
+        # 3. Strategy: smart_fit on smartphone (smaller capacity, splits onto multiple pages)
+        out_phone, frags_phone = AMLParser.format_medley_pages(aml, strategy="smart_fit", target_device="Pixel 8 pro")
+        self.assertEqual(frags_phone[0]["page"], 1)
+        self.assertEqual(frags_phone[1]["page"], 1)
+        self.assertEqual(frags_phone[2]["page"], 2)
+        self.assertIn("{np}\n{start_of_song: Si Puo Dare Di Piu", out_phone)
+
+        # 4. Strategy: custom breaks (e.g. only fragment 2 on new page)
+        out_cust, frags_cust = AMLParser.format_medley_pages(aml, strategy="custom", custom_breaks=[2])
+        self.assertEqual(frags_cust[0]["page"], 1)
+        self.assertEqual(frags_cust[1]["page"], 2)
+        self.assertEqual(frags_cust[2]["page"], 2)
+        self.assertIn("{np}\n{start_of_song: Gente di Mare", out_cust)
+        self.assertNotIn("{np}\n{start_of_song: Si Puo Dare Di Piu", out_cust)
+
+        # 5. Strategy: clear (removes all breaks)
+        out_clear, frags_clear = AMLParser.format_medley_pages(out_one, strategy="clear")
+        self.assertNotIn("{np}", out_clear)
+        self.assertEqual(frags_clear[0]["page"], 1)
+        self.assertEqual(frags_clear[1]["page"], 1)
+        self.assertEqual(frags_clear[2]["page"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

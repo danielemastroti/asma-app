@@ -1285,6 +1285,7 @@ function renderSongViewer() {
         <div class="viewer-tools">
           <button class="btn btn-success" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit(false)">💾 Salva nel DB</button>
           <button class="btn btn-primary" style="font-weight: 800; min-height: 38px; padding: 4px 14px;" onclick="saveSongEdit(true)">📄 Salva & Scarica PDF</button>
+          <button type="button" class="btn btn-secondary" style="font-weight: 800; min-height: 38px; padding: 4px 12px; color: #c084fc; border-color: #a855f7;" onclick="openMedleyPageFormatterModal()" title="Formatta le pagine del Medley su base dispositivo (tablet, smartphone, A4)">📐 Impagina Medley</button>
           <button class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px;" onclick="closeSongEditor()">✕ Annulla</button>
         </div>
       </div>
@@ -1352,6 +1353,7 @@ function renderSongViewer() {
             <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Direttive:</span>
             <button type="button" class="quick-chip quick-chip-directive" onclick="openCircleOfFifthsModal(document.getElementById('edit-song-key') ? document.getElementById('edit-song-key').value : '')" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #eab308; font-weight: 800;" title="Apri il Circolo delle Quinte per tonalità e cambi armonici">🎼 Circolo Quinte</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyModal('edit-song-aml')" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Aggiungi spezzone Medley (gestione fino a 20 brani distinti con titolo, artista e tonalità)">🎶 + Spezzone Medley</button>
+            <button type="button" class="quick-chip quick-chip-directive" onclick="openMedleyPageFormatterModal()" style="background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; font-weight: 800;" title="Formatta e impagina gli spezzoni del Medley su base dispositivo (tablet, smartphone, A4)">📐 Impagina Medley</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'scena')" style="background: rgba(6, 182, 212, 0.18); color: #22d3ee; border: 1px solid #06b6d4; font-weight: 800;" title="Preset / tasto setup per tastierista live (es. {scena: 3})">🎹 {scena: 1}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'stacco')" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-weight: 800;" title="Stacco musicale con strumento o d'insieme (es. {stacco: guitar} o {stacco: Tutti})">⚡ {stacco: Tutti}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'chorus')" title="Racchiudi o inserisci ritornello">{soc} Rit {eoc}</button>
@@ -1360,6 +1362,7 @@ function renderSongViewer() {
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'solo')" title="Inserisci sezione assolo strumentale">{solo: Strumento}</button>
             <button type="button" class="quick-chip quick-chip-directive" onclick="insertDirectiveAtCursor('edit-song-aml', 'comment')" title="Inserisci nota o commento">{c: Commento}</button>
             <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'riga_bianca')" style="background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid #64748b; font-weight: 800;" title="Inserisci una riga bianca nello spartito e nel PDF ({riga_bianca})">␣ {riga_bianca}</button>
+            <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'np')" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid #f59e0b; font-weight: 800;" title="Inserisci salto pagina per dispositivo ({np})">📄 {np} Salto Pagina</button>
             <button type="button" class="quick-chip quick-chip-layout" onclick="insertDirectiveAtCursor('edit-song-aml', 'colb')" title="Interruzione colonna">{colb} Salto Colonna</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[INTRO]\\n')">[INTRO]</button>
             <button type="button" class="quick-chip quick-chip-section" onclick="insertChordAtCursor('edit-song-aml', '\\n[STROFA]\\n')">[STROFA]</button>
@@ -1377,6 +1380,7 @@ function renderSongViewer() {
       <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
         <button class="btn btn-success" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit(false)">💾 Salva nel DB</button>
         <button class="btn btn-primary" style="font-weight: 800; min-height: 42px; padding: 6px 18px;" onclick="saveSongEdit(true)">📄 Salva & Scarica PDF</button>
+        <button type="button" class="btn btn-secondary" style="font-weight: 800; min-height: 42px; padding: 6px 14px; color: #c084fc; border-color: #a855f7;" onclick="openMedleyPageFormatterModal()" title="Formatta le pagine del Medley su base dispositivo">📐 Impagina Medley</button>
         <button class="btn btn-secondary" style="min-height: 42px; padding: 6px 14px;" onclick="closeSongEditor()">✕ Annulla</button>
       </div>
     `;
@@ -1445,6 +1449,7 @@ function renderSongViewer() {
         <button class="btn btn-secondary" style="color: #facc15; border-color: #eab308; font-weight: 800;" onclick="openCircleOfFifthsModal('${s.key_current || ''}')" title="Apri il Circolo delle Quinte per visualizzare relazioni armoniche e modulazioni">🎼 Circolo Quinte</button>
         <button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="openAiSuggestionsModal('${s.uuid}')" title="Suggerimenti live per musicisti o per l'intera band con AI Gemini Free">💡 Consigli Live</button>
         ${editingActionsHtml}
+        ${isMedleyAml(s.aml_content) ? `<button class="btn btn-secondary" style="color: #c084fc; border-color: #a855f7; font-weight: 800;" onclick="openMedleyPageFormatterModal('${s.uuid}')" title="Formatta e impagina gli spezzoni del Medley su base dispositivo (tablet, smartphone, A4)">📐 Impagina Medley</button>` : ''}
         <button class="btn btn-secondary" style="color: #25D366; border-color: #25D366; font-weight: 800;" onclick="openShareA4Modal()" title="Condividi o stampa PDF in formato A4 con font personalizzato su WhatsApp per la band">📤 A4 / WhatsApp</button>
         <button class="btn btn-secondary" onclick="printA4()">🖨️ Stampa A4</button>
         <button class="btn btn-secondary" onclick="downloadPdf()">💾 Salva PDF</button>
@@ -1644,6 +1649,9 @@ async function saveSongEdit(downloadPdfAfter = false) {
       if (downloadPdfAfter) {
         await downloadPdf();
       }
+      if (isMedleyAml(state.selectedSong?.aml_content)) {
+        setTimeout(() => showMedleyPostSavePrompt(state.selectedSong), 300);
+      }
     } else {
       const err = await res.json().catch(() => ({}));
       showToast(err.detail || 'Errore durante il salvataggio del brano');
@@ -1798,6 +1806,11 @@ function insertDirectiveAtCursor(textareaId, type) {
     case 'riga_bianca':
       insertion = `\n{riga_bianca}\n`;
       break;
+    case 'np':
+    case 'salto_pagina':
+    case 'page_break':
+      insertion = `\n{np}\n`;
+      break;
     default:
       insertion = `{${type}}\n`;
   }
@@ -1910,6 +1923,592 @@ function confirmInsertMedleyFragment(textareaId) {
 
   document.getElementById('medley-builder-modal')?.remove();
   showToast(`🎶 Spezzone Medley "${title}" inserito!`);
+}
+
+// ----------------------------------------------------------------------------
+// MEDLEY DEVICE-AWARE PAGE FORMATTING ENGINE
+// ----------------------------------------------------------------------------
+
+function isMedleyAml(amlText) {
+  if (!amlText) return false;
+  return /\{(?:start_of_song|sos|start_of_medley|start_of_medley_song|soms)\b/i.test(amlText);
+}
+
+function showMedleyPostSavePrompt(song) {
+  if (!song) return;
+  const existing = document.getElementById('medley-post-save-prompt');
+  if (existing) existing.remove();
+
+  const devName = state.activeDevice || 'Tablet';
+  const modal = document.createElement('div');
+  modal.id = 'medley-post-save-prompt';
+  modal.className = 'modal-backdrop';
+  modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 14px; backdrop-filter: blur(4px);';
+  modal.innerHTML = `
+    <div style="background: #0f172a; border: 2px solid #a855f7; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(56, 189, 248, 0.15)); padding: 16px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: 900; font-size: 16px; color: #c084fc; display: flex; align-items: center; gap: 8px;">
+          <span>🎶</span> Medley Salvato nel Personale!
+        </div>
+        <button type="button" class="btn btn-secondary" style="min-height: 28px; padding: 2px 8px; font-size: 13px;" onclick="document.getElementById('medley-post-save-prompt').remove()">✕</button>
+      </div>
+      <div style="padding: 20px; font-size: 13.5px; color: #cbd5e1; line-height: 1.55;">
+        <p style="margin-top: 0; font-weight: 700; color: #f8fafc; font-size: 15px;">
+          "${escapeHtml(song.title)}" è composto da vari spezzoni di brani.
+        </p>
+        <p style="margin: 10px 0; color: #94a3b8;">
+          Per garantire la migliore leggibilità dal vivo sul tuo dispositivo <b>${escapeHtml(devName)}</b>, desideri formattare e distribuire ora gli spezzoni sulle pagine?
+        </p>
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8; padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 14px 0 18px 0; font-size: 12px; color: #94a3b8;">
+          💡 <i>Come sempre, potrai visualizzare lo spartito impaginato per il tuo dispositivo in uso o stamparne una copia in formato <b>A4</b> tramite "🖨️ Stampa A4".</i>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" style="min-height: 40px; padding: 4px 14px;" onclick="document.getElementById('medley-post-save-prompt').remove()">👁️ Visualizza Spartito</button>
+          <button type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #7c3aed, #9333ea); border-color: #a855f7; font-weight: 800; min-height: 40px; padding: 4px 18px;" onclick="document.getElementById('medley-post-save-prompt').remove(); openMedleyPageFormatterModal('${song.uuid}')">📐 Formatta Pagine per ${escapeHtml(devName)}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function splitMedleyAmlClient(aml) {
+  if (!aml) return { header: '', fragments: [] };
+  const pattern = /(\n?[ \t]*\{(?:np|new_page|page_break|salto_pagina|salto_di_pagina)[^\}]*\}\s*)?(\{(?:start_of_song|sos|start_of_medley|start_of_medley_song|soms)(?:[:\s]\s*([^\}]+))?\})/gi;
+  const matches = [];
+  let m;
+  while ((m = pattern.exec(aml)) !== null) {
+    matches.push({
+      start: m.index,
+      length: m[0].length,
+      hasNp: !!m[1],
+      npLength: m[1] ? m[1].length : 0,
+      tagVal: m[3] ? m[3].trim() : ''
+    });
+  }
+  if (!matches.length) return { header: aml, fragments: [] };
+
+  const header = aml.substring(0, matches[0].start).trimEnd();
+  const fragments = [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const cur = matches[i];
+    const nextStart = (i + 1 < matches.length) ? matches[i + 1].start : aml.length;
+    const bodyStart = cur.start + cur.npLength;
+    let rawContent = aml.substring(bodyStart, nextStart).trimEnd();
+    rawContent = rawContent.replace(/\n?[ \t]*\{(?:np|new_page|page_break|salto_pagina|salto_di_pagina)[^\}]*\}\s*$/i, '').trimEnd();
+
+    let title = '', artist = '', key = '';
+    const val = cur.tagVal;
+    if (val.includes('|')) {
+      const parts = val.split('|').map(s => s.trim());
+      title = parts[0] || '';
+      artist = parts[1] || '';
+      key = parts[2] || '';
+    } else if (val.includes(' - ')) {
+      const parts = val.split(' - ').map(s => s.trim());
+      title = parts[0] || '';
+      artist = parts[1] || '';
+    } else {
+      title = val;
+    }
+
+    const lines = rawContent.split('\n').filter(l => l.trim().length > 0);
+    fragments.push({
+      index: i + 1,
+      title: title || `Spezzone ${i + 1}`,
+      artist: artist,
+      key: key,
+      hasPageBreak: cur.hasNp,
+      rawContent: rawContent,
+      lineCount: lines.length,
+      assignedPage: 1
+    });
+  }
+  return { header, fragments };
+}
+
+function assembleMedleyAmlClient(header, fragments, breakIndices) {
+  const parts = header ? [header] : [];
+  let curPage = 1;
+  fragments.forEach((f, idx) => {
+    const isNewPage = idx > 0 && breakIndices.has(f.index);
+    if (isNewPage) {
+      curPage++;
+      parts.push(`\n\n{np}\n${f.rawContent}`);
+    } else {
+      parts.push(`\n\n${f.rawContent}`);
+    }
+    f.assignedPage = curPage;
+    f.hasPageBreak = isNewPage;
+  });
+  return parts.join('').trim() + '\n';
+}
+
+function getDeviceCapacity(deviceName) {
+  const devStr = (deviceName || '').toLowerCase();
+  if (devStr.includes('smartphone') || devStr.includes('pixel') || devStr.includes('iphone') || devStr.includes('oppo')) {
+    return { type: 'smartphone', cap: 22, cols: 1, label: 'Smartphone (1 Colonna • Capienza ~22 righe)' };
+  } else if (devStr.includes('a4') || devStr.includes('foglio')) {
+    return { type: 'printable_a4', cap: 40, cols: 1, label: 'Foglio A4 Stampabile (Capienza ~40 righe)' };
+  } else {
+    return { type: 'tablet', cap: 52, cols: 2, label: 'Tablet (2 Colonne • Capienza ~52 righe)' };
+  }
+}
+
+let medleyFormatterState = null;
+
+function openMedleyPageFormatterModal(songUuid = null, textareaId = 'edit-song-aml') {
+  const existing = document.getElementById('medley-page-formatter-modal');
+  if (existing) existing.remove();
+
+  // Find source AML
+  let sourceAml = '';
+  let targetSong = null;
+  const textarea = document.getElementById(textareaId);
+
+  if (songUuid) {
+    targetSong = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
+    if (targetSong) sourceAml = targetSong.aml_content || '';
+  } else if (state.isEditingSong && textarea) {
+    sourceAml = textarea.value || '';
+    targetSong = state.selectedSong;
+  } else if (textarea) {
+    sourceAml = textarea.value || '';
+  } else if (state.selectedSong) {
+    targetSong = state.selectedSong;
+    sourceAml = state.selectedSong.aml_content || '';
+  }
+
+  if (!isMedleyAml(sourceAml)) {
+    showToast('⚠️ Nessuno spezzone medley rilevato. Inserisci prima almeno uno spezzone con "🎶 + Spezzone Medley".');
+    return;
+  }
+
+  const { header, fragments } = splitMedleyAmlClient(sourceAml);
+  if (!fragments || fragments.length === 0) {
+    showToast('⚠️ Impossibile analizzare gli spezzoni del Medley.');
+    return;
+  }
+
+  const currentDev = state.activeDevice || (state.devicesList && state.devicesList[0]?.name) || 'Huawei MediaPad M5';
+  const customBreaks = new Set(fragments.filter(f => f.hasPageBreak).map(f => f.index));
+
+  medleyFormatterState = {
+    songUuid: songUuid || targetSong?.uuid || null,
+    songTitle: targetSong?.title || (document.getElementById('edit-song-title')?.value) || 'Medley',
+    textareaId: textareaId,
+    targetDevice: currentDev,
+    header: header,
+    fragments: fragments,
+    customBreaks: customBreaks,
+    strategy: customBreaks.size > 0 ? 'custom' : 'smart_fit',
+    showPdfPreview: false
+  };
+
+  calculateMedleyPageAllocation();
+
+  const devOptionsHtml = (state.devicesList || []).map(d => {
+    const isSel = d.name === medleyFormatterState.targetDevice;
+    const isAct = d.name === state.activeDevice ? ' ★ (In Uso)' : '';
+    return `<option value="${escapeHtml(d.name)}" ${isSel ? 'selected' : ''}>${escapeHtml(d.name)}${isAct}</option>`;
+  }).join('');
+
+  const modalHtml = `
+    <div id="medley-page-formatter-modal" class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 12px; backdrop-filter: blur(5px);">
+      <div class="modal-card" style="background: #0b1329; border: 2px solid #a855f7; border-radius: 14px; width: 100%; max-width: 720px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.9); overflow: hidden;">
+        
+        <!-- HEADER -->
+        <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(56, 189, 248, 0.15)); padding: 14px 18px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+          <div>
+            <h3 style="margin: 0; font-size: 17px; font-weight: 900; color: #c084fc; display: flex; align-items: center; gap: 8px;">
+              <span>📐</span> Impaginazione Medley su Base Dispositivo
+            </h3>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+              Brano: <b style="color: #fff;">${escapeHtml(medleyFormatterState.songTitle)}</b> &bull; ${medleyFormatterState.fragments.length} spezzoni rilevati
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" style="min-height: 30px; padding: 2px 10px; font-size: 13px;" onclick="closeMedleyPageFormatterModal()">✕</button>
+        </div>
+
+        <!-- BODY SCROLLABLE -->
+        <div style="padding: 16px 18px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
+          
+          <!-- SELETTORE DISPOSITIVO -->
+          <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+              <label style="font-size: 12px; font-weight: 800; color: #cbd5e1;">📱 Dispositivo Target di Formattazione:</label>
+              <span id="medley-fmt-device-badge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
+                ${escapeHtml(getDeviceCapacity(medleyFormatterState.targetDevice).label)}
+              </span>
+            </div>
+            <select id="medley-fmt-device-select" class="search-input" style="width: 100%; font-size: 13.5px; background: #1e293b; color: #fff; font-weight: 700;" onchange="onMedleyFormatterDeviceChanged(this.value)">
+              ${devOptionsHtml}
+            </select>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 6px;">
+              Tutti i margini, colonne e dimensione dei caratteri vengono calcolati specificamente per questo schermo.
+            </div>
+          </div>
+
+          <!-- STRATEGIE DI IMPAGINAZIONE -->
+          <div>
+            <label style="font-size: 12px; font-weight: 800; color: #cbd5e1; margin-bottom: 6px; display: block;">⚡ Strategia di Distribuzione Pagine:</label>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" id="btn-strat-smart" class="btn ${medleyFormatterState.strategy === 'smart_fit' ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; font-weight: 800;" onclick="applyMedleyStrategy('smart_fit')">
+                ⚡ Compattazione Ottimizzata Dispositivo
+              </button>
+              <button type="button" id="btn-strat-one" class="btn ${medleyFormatterState.strategy === 'one_per_page' ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; font-weight: 800;" onclick="applyMedleyStrategy('one_per_page')">
+                🎯 1 Spezzone per Pagina
+              </button>
+              <button type="button" id="btn-strat-clear" class="btn ${medleyFormatterState.strategy === 'clear' ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; font-weight: 800;" onclick="applyMedleyStrategy('clear')">
+                🔄 Flusso Continuo Libero
+              </button>
+            </div>
+          </div>
+
+          <!-- RIEPILOGO PAGINE & FLOW VISUALE -->
+          <div id="medley-fmt-summary-box" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <!-- Riempito dinamicamente -->
+          </div>
+
+          <!-- LISTA SPEZZONI INTERATTIVA -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label style="font-size: 12px; font-weight: 800; color: #cbd5e1;">🎶 Spezzoni del Medley & Salti Pagina Manuali:</label>
+              <span style="font-size: 11px; color: #94a3b8;">Tocca un pulsante per forzare o togliere il salto pagina</span>
+            </div>
+            <div id="medley-fmt-fragments-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Riempito dinamicamente -->
+            </div>
+          </div>
+
+          <!-- NOTA DI COMPATIBILITA A4 -->
+          <div style="background: rgba(37, 211, 102, 0.08); border-left: 3px solid #25D366; border-radius: 0 6px 6px 0; padding: 8px 12px; font-size: 12px; color: #cbd5e1; line-height: 1.45;">
+            🖨️ <b>Flessibilità Palco & Stampa A4:</b> Questa formattazione personalizza l'esperienza visiva per <b>${escapeHtml(medleyFormatterState.targetDevice)}</b>. Come per tutti gli altri brani di ASMA, puoi sempre visualizzare o stampare la copia in formato standard <b>Foglio A4</b> tramite il pulsante <b>"🖨️ Stampa A4"</b> o <b>"📤 A4 / WhatsApp"</b>.
+          </div>
+
+          <!-- ANTEPRIMA PDF EMBEDDED TOGGLE -->
+          <div style="border-top: 1px solid #334155; padding-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <button type="button" class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="toggleMedleyPdfPreview()">
+                👁️ Mostra / Ricarica Anteprima Reale PDF (${escapeHtml(medleyFormatterState.targetDevice)})
+              </button>
+            </div>
+            <div id="medley-fmt-pdf-preview" style="display: none; margin-top: 10px; max-height: 280px; overflow-y: auto; background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px;">
+              <div style="text-align: center; color: #94a3b8; padding: 20px;">Tocca il pulsante sopra per generare l'anteprima reale ad alta risoluzione.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FOOTER ACTIONS -->
+        <div style="background: #0f172a; padding: 12px 18px; border-top: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
+          <button type="button" class="btn btn-secondary" onclick="closeMedleyPageFormatterModal()">✕ Chiudi</button>
+          <button type="button" class="btn btn-success" style="font-weight: 800; min-height: 40px; padding: 6px 18px; background: linear-gradient(135deg, #059669, #10b981); border-color: #34d399;" onclick="saveAndApplyMedleyFormatting()">
+            💾 Applica & Salva Formattazione Pagine
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  renderMedleyFormatterFragmentCards();
+}
+
+function calculateMedleyPageAllocation() {
+  if (!medleyFormatterState) return;
+  const dev = getDeviceCapacity(medleyFormatterState.targetDevice);
+  const cap = dev.cap;
+  const frags = medleyFormatterState.fragments;
+
+  const breaks = new Set();
+  if (medleyFormatterState.strategy === 'one_per_page') {
+    for (let i = 2; i <= frags.length; i++) breaks.add(i);
+  } else if (medleyFormatterState.strategy === 'smart_fit') {
+    let curLines = 0;
+    frags.forEach((f, idx) => {
+      const needed = f.lineCount + 3;
+      if (idx === 0) {
+        curLines = needed;
+      } else {
+        if (curLines + needed > cap) {
+          breaks.add(f.index);
+          curLines = needed;
+        } else {
+          curLines += needed;
+        }
+      }
+    });
+  } else if (medleyFormatterState.strategy === 'clear') {
+    // None
+  } else if (medleyFormatterState.strategy === 'custom') {
+    medleyFormatterState.customBreaks.forEach(b => { if (b > 1) breaks.add(b); });
+  }
+
+  let curPage = 1;
+  frags.forEach((f, idx) => {
+    if (idx > 0 && breaks.has(f.index)) {
+      curPage++;
+    }
+    f.assignedPage = curPage;
+    f.hasPageBreak = breaks.has(f.index);
+  });
+  medleyFormatterState.totalPages = curPage;
+  medleyFormatterState.activeBreaks = breaks;
+}
+
+function renderMedleyFormatterFragmentCards() {
+  if (!medleyFormatterState) return;
+  calculateMedleyPageAllocation();
+
+  // Summary box
+  const summaryBox = document.getElementById('medley-fmt-summary-box');
+  if (summaryBox) {
+    const dev = getDeviceCapacity(medleyFormatterState.targetDevice);
+    summaryBox.innerHTML = `
+      <div style="font-size: 13px; font-weight: 800; color: #fff;">
+        📄 Totale Pagine Medley: <span style="color: #ffd600; font-size: 16px;">${medleyFormatterState.totalPages} pagine</span>
+        <span style="font-weight: 500; font-size: 12px; color: #94a3b8; margin-left: 6px;">(${escapeHtml(medleyFormatterState.targetDevice)})</span>
+      </div>
+      <div style="font-size: 11.5px; color: #cbd5e1;">
+        Capienza schermo: <b>~${dev.cap} righe/pag.</b> (${dev.cols} ${dev.cols === 1 ? 'colonna' : 'colonne'})
+      </div>
+    `;
+  }
+
+  // Update strategy buttons active state
+  const bSmart = document.getElementById('btn-strat-smart');
+  const bOne = document.getElementById('btn-strat-one');
+  const bClear = document.getElementById('btn-strat-clear');
+  if (bSmart) bSmart.className = `btn ${medleyFormatterState.strategy === 'smart_fit' ? 'btn-primary' : 'btn-secondary'}`;
+  if (bOne) bOne.className = `btn ${medleyFormatterState.strategy === 'one_per_page' ? 'btn-primary' : 'btn-secondary'}`;
+  if (bClear) bClear.className = `btn ${medleyFormatterState.strategy === 'clear' ? 'btn-primary' : 'btn-secondary'}`;
+
+  // Fragment cards
+  const container = document.getElementById('medley-fmt-fragments-list');
+  if (!container) return;
+
+  const MEDLEY_COLORS_FMT = [
+    { bg: 'rgba(2, 132, 199, 0.22)', border: '#0284c7', text: '#38bdf8' },
+    { bg: 'rgba(217, 119, 6, 0.22)', border: '#d97706', text: '#fbbf24' },
+    { bg: 'rgba(5, 150, 105, 0.22)', border: '#059669', text: '#34d399' },
+    { bg: 'rgba(124, 58, 237, 0.22)', border: '#7c3aed', text: '#c084fc' },
+    { bg: 'rgba(225, 29, 72, 0.22)', border: '#e11d48', text: '#fb7185' },
+    { bg: 'rgba(8, 145, 178, 0.22)', border: '#0891b2', text: '#22d3ee' },
+    { bg: 'rgba(234, 88, 12, 0.22)', border: '#ea580c', text: '#fb923c' },
+    { bg: 'rgba(79, 70, 229, 0.22)', border: '#4f46e5', text: '#818cf8' },
+    { bg: 'rgba(22, 163, 74, 0.22)', border: '#16a34a', text: '#4ade80' },
+    { bg: 'rgba(219, 39, 119, 0.22)', border: '#db2777', text: '#f472b6' }
+  ];
+
+  container.innerHTML = medleyFormatterState.fragments.map((f, idx) => {
+    const col = MEDLEY_COLORS_FMT[(idx) % MEDLEY_COLORS_FMT.length];
+    const isFirst = idx === 0;
+
+    let breakBtnHtml = '';
+    if (isFirst) {
+      breakBtnHtml = `<span style="font-size: 11.5px; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.4);">📌 Inizio Medley (Pagina 1)</span>`;
+    } else {
+      if (f.hasPageBreak) {
+        breakBtnHtml = `
+          <button type="button" class="btn btn-primary" style="background: rgba(245, 158, 11, 0.25); border-color: #f59e0b; color: #fbbf24; font-weight: 800; font-size: 11.5px; padding: 4px 10px;" onclick="toggleMedleyFragmentBreak(${f.index})" title="Tocca per unire alla pagina precedente">
+            📄 Nuova Pagina (Pag. ${f.assignedPage})
+          </button>`;
+      } else {
+        breakBtnHtml = `
+          <button type="button" class="btn btn-secondary" style="color: #94a3b8; font-size: 11.5px; padding: 4px 10px;" onclick="toggleMedleyFragmentBreak(${f.index})" title="Tocca per iniziare questo spezzone su una nuova pagina">
+            🔗 Unito su Pagina ${f.assignedPage}
+          </button>`;
+      }
+    }
+
+    const keyBadge = f.key ? `<span style="color: #ffd600; font-weight: 800; font-size: 11.5px; margin-left: 6px;">[${escapeHtml(toLatinKey(f.key))}]</span>` : '';
+    const artistStr = f.artist ? `<span style="color: #94a3b8; font-size: 11.5px; margin-left: 6px;">&bull; ${escapeHtml(f.artist)}</span>` : '';
+
+    return `
+      <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid ${col.border}; border-left: 4px solid ${col.border}; border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <span style="background: ${col.bg}; color: ${col.text}; font-weight: 900; font-size: 12px; padding: 2px 7px; border-radius: 4px;">🎵 ${f.index}</span>
+          <span style="font-weight: 800; font-size: 13.5px; color: #fff;">${escapeHtml(f.title.toUpperCase())}</span>
+          ${keyBadge}
+          ${artistStr}
+          <span style="font-size: 10.5px; color: #64748b; margin-left: 4px;">(~${f.lineCount} righe)</span>
+        </div>
+        <div>
+          ${breakBtnHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function applyMedleyStrategy(strategy) {
+  if (!medleyFormatterState) return;
+  medleyFormatterState.strategy = strategy;
+  if (strategy === 'clear') {
+    medleyFormatterState.customBreaks.clear();
+  }
+  renderMedleyFormatterFragmentCards();
+}
+
+function toggleMedleyFragmentBreak(fragIndex) {
+  if (!medleyFormatterState) return;
+  medleyFormatterState.strategy = 'custom';
+  if (medleyFormatterState.customBreaks.has(fragIndex)) {
+    medleyFormatterState.customBreaks.delete(fragIndex);
+  } else {
+    medleyFormatterState.customBreaks.add(fragIndex);
+  }
+  renderMedleyFormatterFragmentCards();
+}
+
+function onMedleyFormatterDeviceChanged(newDevice) {
+  if (!medleyFormatterState) return;
+  medleyFormatterState.targetDevice = newDevice;
+  const dev = getDeviceCapacity(newDevice);
+  const badge = document.getElementById('medley-fmt-device-badge');
+  if (badge) badge.textContent = dev.label;
+  renderMedleyFormatterFragmentCards();
+}
+
+async function toggleMedleyPdfPreview() {
+  if (!medleyFormatterState) return;
+  const container = document.getElementById('medley-fmt-pdf-preview');
+  if (!container) return;
+
+  if (container.style.display !== 'none' && medleyFormatterState.showPdfPreview) {
+    container.style.display = 'none';
+    medleyFormatterState.showPdfPreview = false;
+    return;
+  }
+
+  container.style.display = 'block';
+  medleyFormatterState.showPdfPreview = true;
+  container.innerHTML = `<div style="text-align: center; color: #38bdf8; padding: 20px;">⏳ Generazione anteprima reale PDF per ${escapeHtml(medleyFormatterState.targetDevice)}...</div>`;
+
+  try {
+    const formattedAml = assembleMedleyAmlClient(medleyFormatterState.header, medleyFormatterState.fragments, medleyFormatterState.activeBreaks);
+    
+    // We send to backend format API or preview
+    await fetch(`${API_BASE}/api/medley/format-pages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aml_content: formattedAml,
+        device: medleyFormatterState.targetDevice,
+        strategy: 'custom',
+        custom_breaks: Array.from(medleyFormatterState.activeBreaks)
+      })
+    });
+
+    if (medleyFormatterState.songUuid) {
+      // If we have a saved song, we can fetch real page preview images!
+      const hasChords = state.scoreMode === 'chords';
+      const previewUrl = `${API_BASE}/api/songs/${medleyFormatterState.songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(medleyFormatterState.targetDevice)}&email=${encodeURIComponent(state.currentUser?.email || '')}&_v=${Date.now()}`;
+      
+      const pRes = await fetch(previewUrl);
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (pData.pages && pData.pages.length > 0) {
+          container.innerHTML = `
+            <div style="font-size: 11.5px; color: #ffd600; font-weight: 700; margin-bottom: 8px;">
+              📄 Anteprima Reale PDF (${pData.total_pages} pagine su ${escapeHtml(pData.device)}):
+            </div>
+            <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px;">
+              ${pData.pages.map((b64, idx) => `
+                <div style="flex: 0 0 160px; text-align: center;">
+                  <img src="${b64}" style="width: 100%; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.6);" alt="Pagina ${idx+1}">
+                  <div style="font-size: 10.5px; color: #94a3b8; margin-top: 3px;">Pagina ${idx+1}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+          return;
+        }
+      }
+    }
+
+    // Fallback info if preview images not ready
+    container.innerHTML = `
+      <div style="font-size: 12px; color: #cbd5e1; padding: 12px; background: rgba(56, 189, 248, 0.08); border-radius: 6px;">
+        ✅ Struttura pagine validata: <b>${medleyFormatterState.totalPages} pagine</b> generate per <b>${escapeHtml(medleyFormatterState.targetDevice)}</b>.
+        Tocca "💾 Applica & Salva Formattazione" per visualizzarle a schermo intero nel visualizzatore PDF.
+      </div>
+    `;
+  } catch (err) {
+    console.warn('Medley preview error:', err);
+    container.innerHTML = `<div style="color: #ef4444; padding: 10px; font-size: 12px;">⚠️ Impossibile generare anteprima immagini al volo. La formattazione verrà applicata al salvataggio.</div>`;
+  }
+}
+
+async function saveAndApplyMedleyFormatting() {
+  if (!medleyFormatterState) return;
+
+  const formattedAml = assembleMedleyAmlClient(
+    medleyFormatterState.header,
+    medleyFormatterState.fragments,
+    medleyFormatterState.activeBreaks
+  );
+
+  const textarea = document.getElementById(medleyFormatterState.textareaId);
+  if (textarea) {
+    textarea.value = formattedAml;
+  }
+
+  const targetDev = medleyFormatterState.targetDevice;
+  const totalPages = medleyFormatterState.totalPages;
+  const songUuid = medleyFormatterState.songUuid;
+
+  if (songUuid) {
+    try {
+      showToast('Salvataggio formattazione pagine in corso...');
+      const payload = {
+        strategy: 'custom',
+        device: targetDev,
+        custom_breaks: Array.from(medleyFormatterState.activeBreaks),
+        aml_content: formattedAml,
+        user_email: state.currentUser?.email || 'cico@band.org',
+        user_name: state.currentUser?.name || 'Cico',
+        repertoire_uuid: state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null,
+        save_to_db: true
+      };
+
+      const res = await fetch(`${API_BASE}/api/songs/${songUuid}/format-medley-pages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.song) {
+          state.selectedSong = data.song;
+          const idx = (state.songs || []).findIndex(x => x.uuid === songUuid);
+          if (idx !== -1) state.songs[idx] = Object.assign(state.songs[idx], data.song);
+        }
+        renderSongCards();
+        renderSongViewer();
+        showToast(`🎶 Pagine Medley formattate per ${targetDev} (${totalPages} pag.) ✓`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Errore salvataggio formattazione');
+      }
+    } catch (err) {
+      console.error('Error saving formatted medley:', err);
+      showToast('Formattazione applicata all\'editor!');
+    }
+  } else {
+    showToast(`🎶 Pagine Medley formattate per ${targetDev} (${totalPages} pag.) nell'editor!`);
+  }
+
+  closeMedleyPageFormatterModal();
+}
+
+function closeMedleyPageFormatterModal() {
+  document.getElementById('medley-page-formatter-modal')?.remove();
+  medleyFormatterState = null;
 }
 
 function toggleEditorLivePreview(textareaId, previewId, btn) {
@@ -2411,6 +3010,9 @@ async function submitNewSong() {
       await loadSongs();
       if (data.song && data.song.uuid) {
         selectSong(data.song.uuid);
+        if (isMedleyAml(data.song.aml_content || aml)) {
+          setTimeout(() => showMedleyPostSavePrompt(data.song), 400);
+        }
       }
     } else {
       const err = await res.json();
@@ -2649,6 +3251,19 @@ function parseAmlForWeb(aml, showChords) {
       // Column break: {colb}
       if (['colb', 'column_break', 'col_break'].includes(tag)) {
         html += `<div style="break-before: column; border-top: 1px dashed #a855f7; margin: 12px 0; color: #a855f7; font-size: 11px; font-weight: 700; padding-top: 4px;">--- SALTO COLONNA ---</div>`;
+        continue;
+      }
+
+      // Page break: {np}, {new_page}, {page_break}, {salto_pagina}
+      if (['np', 'new_page', 'page_break', 'salto_pagina', 'salto-pagina'].includes(tag)) {
+        if (inSection) {
+          html += '</div>';
+          inSection = false;
+        }
+        const activeDevName = escapeHtml(state.activeDevice || 'Dispositivo');
+        html += `<div class="aml-page-break" style="break-before: page; margin: 20px 0 16px 0; border-top: 2px dashed #f59e0b; text-align: center; position: relative;">
+          <span style="position: relative; top: -11px; background: #0f172a; padding: 2px 14px; font-size: 11px; color: #fbbf24; font-weight: 800; border-radius: 4px; border: 1px solid #d97706; box-shadow: 0 1px 4px rgba(0,0,0,0.4);">📄 SALTO PAGINA (${activeDevName})</span>
+        </div>`;
         continue;
       }
 

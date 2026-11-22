@@ -1044,7 +1044,18 @@ class PDFEngine:
                     in_medley_fragment = True
 
                     # Riga di separazione visibile tra spezzoni di brano differenti (dal 2° brano in poi o dopo contenuti)
-                    if medley_fragment_count > 1 or flowables or fragment_flowables:
+                    # Non disegnare la riga se lo spezzone inizia in cima a una nuova pagina (dopo PageBreak)
+                    last_flowable = None
+                    check_target = fragment_flowables if fragment_flowables else flowables
+                    for it in reversed(check_target):
+                        if isinstance(it, Spacer):
+                            continue
+                        last_flowable = it
+                        break
+
+                    is_after_page_break = isinstance(last_flowable, PageBreak)
+
+                    if not is_after_page_break and (medley_fragment_count > 1 or flowables or fragment_flowables):
                         divider_table = Table([[""]], colWidths=[usable_width], rowHeights=[1.5 * mm])
                         divider_table.keepWithNext = True
                         divider_table.setStyle(TableStyle([
