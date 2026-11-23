@@ -22,6 +22,11 @@
 - Standardizzazione Sezione [STROFA] su Tutto il Catalogo (con Avanzamento Revisioni): convertite tutte le strofe numerate (`[STROFA 1]`, `[STROFA 2]`, ecc.) e direttive ChordPro residue nella notazione pulita unificata `[STROFA]`, migliorando la leggibilità live sul leggio per Cico e per la band. Ogni brano aggiornato ha avanzato la propria revisione con snapshot storici e tracciamento audit.
 - Motore di Importazione ed Auto-Segmentazione allineato a [STROFA]: il motore centrale di segmentazione (`BandAIService` / `WebImporter`) assegna ora categoricamente il badge standard `[STROFA]` senza suffissi numerici sia su importazioni da ricerca web, testi tradizionali, ChordPro che scansione fotocamera.
 - Quick-Chip Accordi in Notazione Anglosassone nell'Editor AML: aggiunta nella toolbar dell'editor una serie dedicata di chip rapidi per gli accordi anglosassoni (`[C]`, `[D]`, `[E]`, `[F]`, `[G]`, `[A]`, `[B]`) con evidenziazione azzurra ciano, utilizzabili in combinazione diretta con i tasti modificatori (`m`, `7`, `maj7`, `sus`, `dim`, `b`, `#`, `/`).
+- Strutturazione Musicale Sezioni AML su UNCHAIN MY HEART, A LUCA e JUMPIN JACK FLASH:
+  - `UNCHAIN MY HEART` (Joe Cocker): inseriti i badge standard `[BRIDGE]` ("I'm under your spell..."), `[STROFA]` su tutti i versi, `[SOLO: Sax]` in sostituzione della riga di testo grezza `| Solo |`, `| F7 | E7 |` a chiusura assolo, e `[FINALE]` prima dell'outro ad-lib. Risolto l'accavallamento sintattico di accordi `[F7]I'm under [E7]your...`.
+  - `A LUCA (PICCOLA BAND)` (Cicchelli Avanzi Ventura): rimossa l'intestazione duplicata `{title:...}`, convertite le direttive ChordPro `{chorus}` nel badge standard `[RITORNELLO]` e `{solo: guitar}` nel badge pill `[SOLO: Chitarra]`, corrette le refusi testuali minori.
+  - `JUMPIN JACK FLASH` (The Rolling Stones): separato chiaramente il celebre ritornello ("But it's all right now, in fact it's a gas...") dalle strofe con il badge `[RITORNELLO]`, delimitato lo stacco armonico centrale con `[STRUMENTALE]` e strutturato l'outro con `[FINALE]`.
+  Tutti i brani hanno avanzato la revisione con tracciamento storico in `data/revisions/` e `data/audit_trail.jsonl`.
 
 ## Versione 2026.11.19 (19/11/2026) — Badge '⭐ Migliore' su Ricerca Web per Sezioni & Accordi, Standardizzazione Sezioni Repertorio Ufficiale & Pulizia Elenchi PDF
 
