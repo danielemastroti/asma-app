@@ -1150,6 +1150,7 @@ function renderRepertoireChips() {
   if (adminBtn) {
     adminBtn.style.display = (isAdmin && isEditingMode()) ? 'inline-block' : 'none';
   }
+  updateTopDownloadPdfButton();
 }
 
 let _selectSongSeq = 0;
@@ -1576,6 +1577,7 @@ function toggleScoreMode() {
 function renderSongViewer() {
   const container = document.getElementById('song-viewer');
   if (!container) return;
+  updateTopDownloadPdfButton();
   if (!state.selectedSong) {
     state.isEditingSong = false;
     container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 24px 16px; font-size: 13px;">🎵 Tocca un brano dalla lista sopra per visualizzarne lo spartito o teleprompter</div>`;
@@ -4186,12 +4188,28 @@ function printExportedPdf() {
 }
 
 function downloadPdf() {
-  if (!state.selectedSong) return;
+  if (!state.selectedSong) {
+    showToast('⚠️ Seleziona prima un brano dalla lista per salvarne il PDF');
+    return;
+  }
   const cleanTitle = (state.selectedSong.title || 'brano').replace(/[^a-zA-Z0-9_\-]/g, '_');
   const filename = `${cleanTitle}.pdf`;
   const qs = buildPdfQueryParams(state.scoreMode === 'chords', { download: 'true' });
   const url = `${API_BASE}/api/songs/${state.selectedSong.uuid}/pdf?${qs}`;
   triggerPdfDownload(url, filename, () => printA4());
+}
+
+function updateTopDownloadPdfButton() {
+  const btn = document.getElementById('btn-top-download-pdf');
+  if (!btn) return;
+  if (state.selectedSong && state.selectedSong.title) {
+    btn.title = `Salva / Scarica lo spartito PDF di "${state.selectedSong.title}" (${state.activeDevice || 'Dispositivo'})`;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.title = 'Seleziona un brano dalla lista per salvarne lo spartito PDF';
+    btn.style.opacity = '0.75';
+  }
 }
 
 function downloadActiveRepertoirePdf() {
