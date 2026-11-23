@@ -3169,6 +3169,26 @@ function parseAmlForWeb(aml, showChords) {
       continue;
     }
 
+    // Comments starting with #
+    if (trimmed.startsWith('#')) {
+      const commText = trimmed.slice(1).trim();
+      const cleanComm = commText.replace(/^[♪\u266a\u266b\u25a0■\*\-\#\s]+/, '').replace(/^[\(\[\{]+|[\)\]\}]+$/g, '').trim().toLowerCase();
+      const isCommInst = /^(?:strumentale|instrumental|solo|assolo|intermezzo|interlude)(?:\s*[:\-–—]?\s*.*)?$/.test(cleanComm);
+      if (!showChords && isCommInst) {
+        if (lastWasInstrumental) {
+          continue;
+        }
+        lastWasInstrumental = true;
+        html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+        continue;
+      }
+      html += `<div style="margin: 4px 0; color: #94a3b8; font-style: italic; font-size: 12px;"># ${escapeHtml(commText)}</div>`;
+      if (isCommInst) {
+        lastWasInstrumental = true;
+      }
+      continue;
+    }
+
     // 1. Detect Directives ({tag} or {tag: value})
     const dirMatch = trimmed.match(/^\{([a-zA-Z0-9_-]+)(?:[:\s]\s*([^\}]+))?\}$/);
     if (dirMatch) {
@@ -3255,7 +3275,21 @@ function parseAmlForWeb(aml, showChords) {
 
       // Comments / band notes: {c: ...} or {comment: ...}
       if (['c', 'comment', 'ci', 'cb'].includes(tag)) {
+        const commText = (val || 'Nota').trim();
+        const cleanComm = commText.replace(/^[♪\u266a\u266b\u25a0■\*\-\#\s]+/, '').replace(/^[\(\[\{]+|[\)\]\}]+$/g, '').trim().toLowerCase();
+        const isCommInst = /^(?:strumentale|instrumental|solo|assolo|intermezzo|interlude)(?:\s*[:\-–—]?\s*.*)?$/.test(cleanComm);
+        if (!showChords && isCommInst) {
+          if (lastWasInstrumental) {
+            continue;
+          }
+          lastWasInstrumental = true;
+          html += `<div class="aml-instrumental">♪ (Strumentale)</div>`;
+          continue;
+        }
         html += `<div style="margin: 6px 0; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 4px 10px; border-radius: 0 4px 4px 0; font-style: italic; font-size: 13px; font-weight: 700;">${escapeHtml(val || 'Nota')}</div>`;
+        if (isCommInst) {
+          lastWasInstrumental = true;
+        }
         continue;
       }
 
@@ -3346,8 +3380,12 @@ function renderAmlSectionBadge(secName) {
 
       // Direttiva Stacco Musicale / Strumento: {stacco: guitar} oppure {stacco organo} oppure {stacco}
       if (['stacco'].includes(tag)) {
+        if (!showChords && lastWasInstrumental) {
+          continue;
+        }
         const staccoText = val ? `STACCO: ${escapeHtml(val.toUpperCase())}` : 'STACCO';
         html += `<div class="aml-stacco-badge" style="display:inline-block; background:#dc2626; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:6px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">⚡ [${staccoText}]</div>`;
+        lastWasInstrumental = true;
         continue;
       }
 
@@ -3441,8 +3479,16 @@ function renderAmlSectionBadge(secName) {
     const lyricsOnly = lineClean.replace(/\[[^\]]+\]/g, '').trim();
     const hasChordTokens = /\[[^\]]+\]/.test(lineClean);
 
+    const cleanLyr = lyricsOnly.replace(/^[♪\u266a\u266b\u25a0■\*\-\#\s]+/, '').replace(/^[\(\[\{]+|[\)\]\}]+$/g, '').trim().toLowerCase();
+    const isLyrInst = /^(?:strumentale|instrumental|solo|assolo|intermezzo|interlude)(?:\s*[:\-–—]?\s*.*)?$/.test(cleanLyr);
+
     if (!showChords) {
-      if (hasChordTokens && !lyricsOnly) {
+      if (isLyrInst) {
+        if (!lastWasInstrumental) {
+          html += `<div class="aml-instrumental">♪ (Strumentale)${inlineCommHtml}</div>`;
+          lastWasInstrumental = true;
+        }
+      } else if (hasChordTokens && !lyricsOnly) {
         // Pure chords line without lyrics -> Instrumental line for singer
         if (!lastWasInstrumental) {
           html += `<div class="aml-instrumental">♪ (Strumentale)${inlineCommHtml}</div>`;
@@ -3456,7 +3502,11 @@ function renderAmlSectionBadge(secName) {
         lastWasInstrumental = false;
       }
     } else {
-      if (hasChordTokens) {
+      if (isLyrInst && !hasChordTokens) {
+        const dispTitle = cleanLyr ? cleanLyr.charAt(0).toUpperCase() + cleanLyr.slice(1) : 'Strumentale';
+        html += `<div class="aml-instrumental">♪ (${escapeHtml(dispTitle)})${inlineCommHtml}</div>`;
+        lastWasInstrumental = true;
+      } else if (hasChordTokens) {
         const formatted = formatChordLyricLine(lineClean);
         if (formatted.chordHtml && formatted.chordHtml.trim()) {
           const appendToChords = !(formatted.lyricHtml && formatted.lyricHtml.trim());
@@ -3465,10 +3515,11 @@ function renderAmlSectionBadge(secName) {
         if (formatted.lyricHtml && formatted.lyricHtml.trim()) {
           html += `<div class="aml-lyric-line">${formatted.lyricHtml}${inlineCommHtml}</div>`;
         }
+        lastWasInstrumental = false;
       } else {
         html += `<div class="aml-lyric-line">${escapeHtml(lineClean)}${inlineCommHtml}</div>`;
+        lastWasInstrumental = false;
       }
-      lastWasInstrumental = false;
     }
   }
 

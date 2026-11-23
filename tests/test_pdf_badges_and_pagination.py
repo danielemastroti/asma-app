@@ -358,6 +358,59 @@ Un'altra riga di testo
         self.assertNotIn("[SOLO: Chitarra]", strofa1_to_strofa2, "Consecutive solo badge must be suppressed when already in instrumental")
         self.assertEqual(strofa1_to_strofa2.count("[STRUMENTALE]"), 1)
 
+    def test_instrumental_deduplication_hanno_ucciso_luomo_ragno(self):
+        """Test that in lyrics-only view (e.g. for singer Cico), consecutive instrumental indicators
+        coming from both explicit lyric label ♪ (Strumentale) and chord grid lines are deduplicated to exactly one,
+        while in chords mode, all chords are preserved intact."""
+        aml = """{title: HANNO UCCISO L'UOMO RAGNO}
+{artist: 883}
+{key: DO}
+
+[STROFA 1]
+Hanno [LAm]ucciso l'Uomo [FA]Ragno
+non si [DO]sa neanche il [SOL]perché
+avrà [LAm]fatto qualche [FA]sgarro
+a qualche [DO]industria di [SOL]caffè
+♪ (Strumentale)
+LAm | DO | SOL | LAm | DO | SOL
+
+[STROFA 2]
+[LAm]Alla centrale [FA]della polizia
+[END]
+"""
+        song = Song(
+            uuid="test_ragno",
+            title="HANNO UCCISO L'UOMO RAGNO",
+            artist="883",
+            aml_content=aml
+        )
+        prof = DeviceProfile(
+            name="Tablet Cico",
+            columns=1,
+            font_size_lyrics=14.0,
+            font_size_chords=14.0,
+            margin_bottom_mm=12.0
+        )
+        # 1. Lyrics only: exactly one (Strumentale) between caffè and STROFA: 2
+        pdf_singer = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=False, user_name="Cico", use_cache=False)
+        doc = pymupdf.open(stream=pdf_singer, filetype="pdf")
+        text_singer = "\n".join(p.get_text() for p in doc)
+        doc.close()
+
+        caffe_to_strofa2 = text_singer[text_singer.find("caffè"):text_singer.find("[STROFA: 2]")]
+        self.assertIn("(Strumentale)", caffe_to_strofa2)
+        self.assertEqual(caffe_to_strofa2.count("(Strumentale)"), 1, "There must be exactly one (Strumentale) line without duplicates")
+        self.assertNotIn("LAm", caffe_to_strofa2, "Chords must not appear in singer text-only view")
+
+        # 2. Chords mode: chords must remain 100% intact
+        pdf_chords = PDFEngine.generate_song_pdf(song, profile=prof, include_chords=True, user_name="Band", use_cache=False)
+        doc_chords = pymupdf.open(stream=pdf_chords, filetype="pdf")
+        text_chords = "\n".join(p.get_text() for p in doc_chords)
+        doc_chords.close()
+
+        caffe_to_strofa2_chords = text_chords[text_chords.find("caffè"):text_chords.find("[STROFA: 2]")]
+        self.assertIn("LAm | DO | SOL", caffe_to_strofa2_chords, "Chords line must remain intact in chords mode")
+
 
 if __name__ == "__main__":
     unittest.main()

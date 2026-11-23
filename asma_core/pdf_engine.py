@@ -1210,9 +1210,17 @@ class PDFEngine:
                 # Band notes and comments: {c: ...} or {comment: ...}
                 if d_name in ["c", "comment", "ci", "cb"]:
                     note_text = d_val or "Nota"
+                    clean_note = re.sub(r"^[♪\u266a\u266b\u25a0■\*\-\#\s]+", "", note_text).strip()
+                    clean_note_no_parens = clean_note.strip("()[]{}").strip().lower()
+                    is_note_inst = bool(re.match(r"^(?:strumentale|instrumental|solo|assolo|intermezzo|interlude)(?:\s*[:\-–—]?\s*.*)?$", clean_note_no_parens))
+                    if not include_chords and is_note_inst:
+                        if last_was_inst_marker:
+                            continue
+                        last_was_inst_marker = True
+                    else:
+                        last_was_inst_marker = False
                     comm_p = Paragraph(f"<font color='{c_aml_hex}'><b><i>{escape(note_text)}</i></b></font>", styles["DocSubtitle"])
                     add_flowable(KeepTogether([comm_p, Spacer(1, 1.2 * mm)]), is_content=False)
-                    last_was_inst_marker = False
                     continue
 
                 # Section directives: {soc}, {start_of_chorus}, {sov}, {start_of_verse}, {sob}, {start_of_bridge}
@@ -1317,7 +1325,8 @@ class PDFEngine:
                         blank_h = base_lyrics_size * 1.3 * line_count
 
                     add_flowable(Spacer(1, blank_h), is_content=False, is_text_line=False)
-                    last_was_inst_marker = False
+                    if include_chords:
+                        last_was_inst_marker = False
                     continue
 
                 # Direttiva Scena Live Tastiere: {scena: ...}
@@ -1352,6 +1361,8 @@ class PDFEngine:
 
                 # Direttiva Stacco Strumentale / d'insieme: {stacco: ...}
                 if d_name in ["stacco"]:
+                    if not include_chords and last_was_inst_marker:
+                        continue
                     stacco_val = (d_val or "").strip()
                     badge_title = f"[STACCO: {stacco_val.upper()}]" if stacco_val else "[STACCO]"
                     sb = styles["SectionBadge"]
@@ -1555,12 +1566,28 @@ class PDFEngine:
                             add_flowable(KeepTogether([Spacer(1, 1.2 * mm), p_chords, Spacer(1, 1.5 * mm)]), is_text_line=True)
                             last_was_inst_marker = False
                     elif lyrics_str.strip():
-                        # Singer lyrics-only (or line with only lyrics)
-                        inline_comm = getattr(node, "inline_comment", None)
-                        inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
-                        p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
-                        add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.6 * mm)]), is_text_line=True)
-                        last_was_inst_marker = False
+                        clean_lyr = re.sub(r"^[♪\u266a\u266b\u25a0■\*\-\#\s]+", "", lyrics_str).strip()
+                        clean_lyr_no_parens = clean_lyr.strip("()[]{}").strip().lower()
+                        is_lyric_inst = bool(re.match(r"^(?:strumentale|instrumental|solo|assolo|intermezzo|interlude)(?:\s*[:\-–—]?\s*.*)?$", clean_lyr_no_parens))
+                        if is_lyric_inst:
+                            if not include_chords:
+                                if last_was_inst_marker:
+                                    continue
+                                p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; (Strumentale)</i></b></font>", styles["DocSubtitle"])
+                                add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
+                                last_was_inst_marker = True
+                            else:
+                                disp_title = clean_lyr_no_parens.capitalize() if clean_lyr_no_parens else "Strumentale"
+                                p_inst = Paragraph(f"<font color='{c_aml_hex}'><b><i>&#9835; ({disp_title})</i></b></font>", styles["DocSubtitle"])
+                                add_flowable(KeepTogether([p_inst, Spacer(1, 1.2 * mm)]))
+                                last_was_inst_marker = True
+                        else:
+                            # Singer lyrics-only (or line with only lyrics)
+                            inline_comm = getattr(node, "inline_comment", None)
+                            inline_comm_html = f" <font color='{c_aml_hex}'><b><i>({escape(inline_comm)})</i></b></font>" if inline_comm else ""
+                            p_lyrics = Paragraph(f"{cls._format_lyric_spaces(lyrics_str)}{inline_comm_html}", styles["LyricText"])
+                            add_flowable(KeepTogether([p_lyrics, Spacer(1, 0.6 * mm)]), is_text_line=True)
+                            last_was_inst_marker = False
                     elif chords_str.strip():
                         # Sequenza di soli accordi senza testo (es. MI | DO | LA) -> segnalato come (Strumentale)
                         if not last_was_inst_marker:
