@@ -43,7 +43,8 @@ cantato a squarciagola
         song = ImportEngine.import_from_traditional(trad_text, "Nuova Canzone Tradizionale")
         self.assertEqual(song.title, "Nuova Canzone Tradizionale")
         self.assertIn("[INTRO]", song.aml_content)
-        self.assertIn("[STROFA 1]", song.aml_content)
+        self.assertIn("[STROFA]", song.aml_content)
+        self.assertNotIn("[STROFA 1]", song.aml_content)
         self.assertIn("[RITORNELLO]", song.aml_content)
         self.assertIn("[END]", song.aml_content)
 
@@ -74,9 +75,10 @@ Intro:
         song = ImportEngine.import_from_chordpro(cpro_text)
         self.assertEqual(song.title, "Canzone ChordPro Nuova")
         self.assertIn("[INTRO]", song.aml_content)
-        self.assertIn("[STROFA 1]", song.aml_content)
+        self.assertIn("[STROFA]", song.aml_content)
+        self.assertEqual(song.aml_content.count("[STROFA]"), 2)
+        self.assertNotIn("[STROFA 1]", song.aml_content)
         self.assertIn("[RITORNELLO]", song.aml_content)
-        self.assertIn("[STROFA 2]", song.aml_content)
         self.assertIn("[BRIDGE]", song.aml_content)
         self.assertIn("[END]", song.aml_content)
         # Ensure raw closing directives were stripped
@@ -112,9 +114,10 @@ Intro:
 """
         structured = BandAIService.auto_assign_sections(raw_text)
         self.assertIn("[INTRO]", structured)
-        self.assertIn("[STROFA 1]", structured)
+        self.assertIn("[STROFA]", structured)
+        self.assertGreaterEqual(structured.count("[STROFA]"), 2)
+        self.assertNotIn("[STROFA 1]", structured)
         self.assertIn("[RITORNELLO]", structured)
-        self.assertIn("[STROFA 2]", structured)
         self.assertIn("[END]", structured)
 
     def test_storage_save_song_auto_assigns_sections_for_new_songs(self):
@@ -138,9 +141,10 @@ Intro:
         saved = self.storage.save_song(new_song, "cico@band.org", "Cico")
         try:
             self.assertEqual(saved.title, "BRANO DA SALVARE SENZA SEZIONI")
-            self.assertIn("[STROFA 1]", saved.aml_content)
+            self.assertIn("[STROFA]", saved.aml_content)
+            self.assertEqual(saved.aml_content.count("[STROFA]"), 2)
+            self.assertNotIn("[STROFA 1]", saved.aml_content)
             self.assertIn("[RITORNELLO]", saved.aml_content)
-            self.assertIn("[STROFA 2]", saved.aml_content)
             self.assertIn("[END]", saved.aml_content)
         finally:
             self.storage.purge_song_permanently(saved.uuid, "cico@band.org", "Cico")
@@ -199,9 +203,10 @@ It ain't me, it ain't me, I ain't no fortunate one, no
 """
         song = ImportEngine.import_from_traditional(trad_text, "Fortunate Son")
         self.assertIn("[INTRO]", song.aml_content)
-        self.assertIn("[STROFA 1]", song.aml_content)
+        self.assertIn("[STROFA]", song.aml_content)
+        self.assertEqual(song.aml_content.count("[STROFA]"), 2)
+        self.assertNotIn("[STROFA 1]", song.aml_content)
         self.assertIn("[RITORNELLO]", song.aml_content)
-        self.assertIn("[STROFA 2]", song.aml_content)
         self.assertIn("[END]", song.aml_content)
 
     def test_import_with_intro_multiplier_and_chordpro_directives(self):
@@ -218,7 +223,8 @@ It ain't me, it ain't me, I ain't no fortunate one, no
 """
         structured = BandAIService.auto_assign_sections(ug_raw, "FORTUNATE SON", "CCR")
         self.assertIn("[INTRO]", structured)
-        self.assertIn("[STROFA 1]", structured)
+        self.assertIn("[STROFA]", structured)
+        self.assertNotIn("[STROFA 1]", structured)
         self.assertIn("[RITORNELLO]", structured)
         self.assertIn("[END]", structured)
         self.assertNotIn("{verse: 1}", structured)

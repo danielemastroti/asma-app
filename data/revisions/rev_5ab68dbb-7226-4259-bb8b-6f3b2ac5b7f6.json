@@ -1,0 +1,11 @@
+[
+  {
+    "song_uuid": "5ab68dbb-7226-4259-bb8b-6f3b2ac5b7f6",
+    "revision_number": 1,
+    "author_email": "system@band.org",
+    "author_name": "System",
+    "comment": "Passaggio a indicazione sezione [STROFA] unificata",
+    "aml_snapshot": "[STROFA]\n[C]test\n[END]",
+    "timestamp": "2026-11-23T15:31:59.809956+00:00"
+  }
+]

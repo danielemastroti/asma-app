@@ -165,7 +165,7 @@ class BandAIService:
         prompt = (
             "Sei un assistente musicale esperto di formattazione testi e spartiti per leggio.\n"
             "Nel testo musicale seguente mancano i tag di sezione. Inserisci i badge di sezione AML standard in lingua italiana "
-            "([INTRO], [STROFA 1], [RITORNELLO], [STROFA 2], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END]) prima di ciascuna sezione logica del brano.\n"
+            "([INTRO], [STROFA], [RITORNELLO], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END]) prima di ciascuna sezione logica del brano.\n"
             "Regole vincolanti:\n"
             "1. Mantieni esattamente inalterate tutte le parole e tutti gli accordi (es. [Am], [G]).\n"
             "2. Non aggiungere spiegazioni, non commentare e non usare blocchi di codice markdown (nessun ```).\n"
@@ -426,7 +426,7 @@ class BandAIService:
     @classmethod
     def auto_assign_sections(cls, aml_text: str, song_title: str = "", artist: str = "") -> str:
         """
-        Automatically and musically assigns standard AML section badges ([INTRO], [STROFA 1],
+        Automatically and musically assigns standard AML section badges ([INTRO], [STROFA],
         [RITORNELLO], [BRIDGE], [SOLO], [STRUMENTALE], [FINALE], [END]) to imported or newly created songs.
         """
         if not aml_text or not aml_text.strip():
@@ -488,13 +488,8 @@ class BandAIService:
                 found_headings = True
                 kw = m.group(1).lower()
                 badge = cls.SECTION_BADGE_MAP.get(kw, "STROFA")
-                num = m.group(2)
                 if badge == "STROFA":
-                    if num:
-                        b_str = f"[STROFA {num}]"
-                    else:
-                        verse_count += 1
-                        b_str = f"[STROFA {verse_count}]"
+                    b_str = "[STROFA]"
                 else:
                     b_str = f"[{badge}]"
                 converted_lines.append(b_str)
@@ -623,8 +618,7 @@ class BandAIService:
             elif is_chorus[idx]:
                 assigned_blocks.append("[RITORNELLO]\n" + b)
             else:
-                verse_idx += 1
-                assigned_blocks.append(f"[STROFA {verse_idx}]\n" + b)
+                assigned_blocks.append("[STROFA]\n" + b)
 
         body_res = "\n\n".join(assigned_blocks).rstrip()
         body_res = re.sub(r"\n{3,}", "\n\n", body_res)
@@ -1119,7 +1113,7 @@ class BandAIService:
             "2. Non perdere nessuna strofa o ritornello di tutte le pagine fornite. Unisci le pagine in un unico testo ordinato e coerente.\n"
             "3. Usa le direttive di sezione ChordPro / AML:\n"
             "   - Ritornello: usa {soc} all'inizio del ritornello e {eoc} alla fine (oppure [RITORNELLO]).\n"
-            "   - Strofe: usa {sov} all'inizio e {eov} alla fine (oppure [STROFA 1], [STROFA 2]).\n"
+            "   - Strofe: usa [STROFA] (oppure {sov} e {eov}).\n"
             "   - Ponte/Speciale: usa {sob} e {eob} (oppure [SPECIALE] o [BRIDGE]).\n"
             "   - Intro/Outro/Assolo: [INTRO], [OUTRO], [ASSOLO], ♪ (Strumentale).\n"
             "   - Se ci sono commenti o indicazioni per i musicisti sul foglio (es. 'arpeggio tastiera', 'stop', 'ritmo 2 volte'): usa la direttiva {c: commento}.\n"

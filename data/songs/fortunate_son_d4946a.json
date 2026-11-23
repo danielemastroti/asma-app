@@ -14,7 +14,7 @@
   "notation_system": "INT",
   "tags": [],
   "shared_notes": "",
-  "aml_content": "[INTRO]\n| SOL | FA/SOL | DO/SOL | SOL |\n\n[STROFA 1]\n[SOL]Some folks are born [FA]made to wave the flag\n[DO]Ooh, they're red, white and [SOL]blue\nAnd when the band plays [FA]\"Hail to the chief\"\n[DO]Ooh, they point the cannon at [SOL]you, Lord\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\n\n[STROFA 2]\n[SOL]Some folks are born [FA]silver spoon in hand\n[DO]Lord, don't they help them[SOL]selves, oh\nBut when the taxman [FA]comes to the door\n[DO]Lord, the house looks like a rumma[SOL]ge sale, yes\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\n\n[SOLO]\n| SOL7 | LA/SOL | DO/SOL | SOL |\n| SOL7 | LA/SOL | DO/SOL | SOL |\n\n[STROFA 3]\nYeah! [SOL]Some folks inherit [FA]star spangled eyes\n[DO]Ooh, they send you down to [SOL]war, Lord\nAnd when you ask them, [FA]\"How much should we give?\"\n[DO]Ooh, they only answer [SOL]more! more! more! Yo\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no no no\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]son, no no no...\n\n[END]",
+  "aml_content": "[INTRO]\n| SOL | FA/SOL | DO/SOL | SOL |\n\n[STROFA]\n[SOL]Some folks are born [FA]made to wave the flag\n[DO]Ooh, they're red, white and [SOL]blue\nAnd when the band plays [FA]\"Hail to the chief\"\n[DO]Ooh, they point the cannon at [SOL]you, Lord\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\n\n[STROFA]\n[SOL]Some folks are born [FA]silver spoon in hand\n[DO]Lord, don't they help them[SOL]selves, oh\nBut when the taxman [FA]comes to the door\n[DO]Lord, the house looks like a rumma[SOL]ge sale, yes\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\n\n[SOLO]\n| SOL7 | LA/SOL | DO/SOL | SOL |\n| SOL7 | LA/SOL | DO/SOL | SOL |\n\n[STROFA]\nYeah! [SOL]Some folks inherit [FA]star spangled eyes\n[DO]Ooh, they send you down to [SOL]war, Lord\nAnd when you ask them, [FA]\"How much should we give?\"\n[DO]Ooh, they only answer [SOL]more! more! more! Yo\n\n[RITORNELLO]\nIt ain't me, [RE]it ain't [DO]me, I ain't no senator's [SOL]son, son\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]one, no no no\nIt ain't [RE]me, it ain't [DO]me, I ain't no fortunate [SOL]son, no no no...\n\n[END]",
   "lock_status": {
     "is_locked": false,
     "locked_by_email": null,
@@ -22,7 +22,7 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 1,
+  "current_revision": 2,
   "created_at": "2026-11-08T09:59:11.799612+00:00",
-  "updated_at": "2026-11-18T23:22:48.314690+00:00"
+  "updated_at": "2026-11-23T15:31:59.905956+00:00"
 }

@@ -1338,9 +1338,9 @@ function renderSongViewer() {
         </div>
         <!-- QUICK CHIPS TOOLBAR -->
         <div class="quick-chips-bar" style="display: flex; flex-direction: column; gap: 6px;">
-          <!-- RIGA 1: ACCORDI BASE & MODIFICATORI -->
+          <!-- RIGA 1: ACCORDI BASE (ITA & ANGLO) & MODIFICATORI -->
           <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
-            <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Accordi:</span>
+            <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-right: 4px;">Accordi ITA:</span>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[DO]')">[DO]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[RE]')">[RE]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[MI]')">[MI]</button>
@@ -1348,6 +1348,15 @@ function renderSongViewer() {
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SOL]')">[SOL]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[LA]')">[LA]</button>
             <button type="button" class="quick-chip" onclick="insertChordAtCursor('edit-song-aml', '[SI]')">[SI]</button>
+            <span style="font-size: 10.5px; color: #38bdf8; font-weight: 800; margin-left: 6px; margin-right: 4px;">Anglo:</span>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[C]')">[C]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[D]')">[D]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[E]')">[E]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[F]')">[F]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[G]')">[G]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[A]')">[A]</button>
+            <button type="button" class="quick-chip quick-chip-anglo" onclick="insertChordAtCursor('edit-song-aml', '[B]')">[B]</button>
+            <span style="font-size: 10.5px; color: #94a3b8; font-weight: 800; margin-left: 6px; margin-right: 4px;">Mod:</span>
             <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'm')">m</button>
             <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', '7')">7</button>
             <button type="button" class="quick-chip" onclick="insertModifierAtCursor('edit-song-aml', 'maj7')">maj7</button>

@@ -192,6 +192,10 @@ class StorageManager:
                 song.current_revision, song.created_at, song.updated_at, is_deleted, reps_str
             ))
 
+    def _delete_index_record(self, song_uuid: str) -> None:
+        with self._db_conn:
+            self._db_conn.execute("DELETE FROM songs_index WHERE uuid = ?", (song_uuid,))
+
     # --- SONGS CRUD ---
 
     def save_song(
@@ -221,7 +225,14 @@ class StorageManager:
 
             # Check existing revision number
             existing_revs = self.get_revisions_for_song(song.uuid)
-            next_rev_num = len(existing_revs) + 1
+            if existing_revs:
+                next_rev_num = max(r.revision_number for r in existing_revs) + 1
+            else:
+                song_path = os.path.join(self._songs_dir, f"{song.uuid}.json")
+                if os.path.exists(song_path) and song.current_revision and song.current_revision > 1:
+                    next_rev_num = song.current_revision + 1
+                else:
+                    next_rev_num = 1
             song.current_revision = next_rev_num
 
             # Save song JSON

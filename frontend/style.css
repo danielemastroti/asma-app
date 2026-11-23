@@ -519,6 +519,16 @@ body {
   color: #fff;
 }
 
+.quick-chip-anglo {
+  background: rgba(2, 132, 199, 0.16);
+  border-color: #0284c7;
+  color: #38bdf8;
+}
+.quick-chip-anglo:active {
+  background: #0284c7;
+  color: #fff;
+}
+
 .quick-chip-section {
   background: #78350f;
   border-color: #f59e0b;

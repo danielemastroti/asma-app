@@ -273,10 +273,10 @@ Have you [DO]ever [SOL/SI]seen the [LAm]rain  [LAm/SOL]
         doc.close()
 
         self.assertIn("[INTRO]", p1_text)
-        self.assertIn("[STROFA: 1]", p1_text)
+        self.assertIn("[STROFA]", p1_text)
         self.assertIn("[RITORNELLO]", p1_text)
         self.assertIn("[STRUMENTALE]", p1_text)
-        self.assertIn("[STROFA: 3]", p1_text)
+        self.assertEqual(p1_text.count("[STROFA]"), 3)
 
         self.assertIn("[RITORNELLO]", p2_text)
         self.assertTrue("[OUTRO]" in p2_text or "[FINALE]" in p2_text)

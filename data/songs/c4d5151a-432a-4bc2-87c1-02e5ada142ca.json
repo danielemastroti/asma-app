@@ -14,7 +14,7 @@
   "notation_system": "INT",
   "tags": [],
   "shared_notes": "",
-  "aml_content": "{title: MAMA MAÈ}\n{artist: Negrita}\n{key: B}\n\n[RITORNELLO]\nMama Maè prega perche il mondo va più veloce di me\n\n[STROFA 1]\n[Riff] * Riff is played x2 each time\n[G#m]\n[G#m]Alzo lo stereo [B]a palla [C#]per non pens[G#m]are,\n[G#m]alzo così tanto [B]da farmi [C#]male      [G#m]\ndiment[C#]icando tutt[E]o quell[F#]o che so...\n\n[STROFA 2]\n[Riff]\n[G#m]\n[G#m]Rotolo e rimbal[B]zo tra [C#]l'inferno e [G#m]il cielo\n[G#m]tra demoni priv[B]ati e sant[C#]i extravan[G#m]gelo\nperde[C#]ndo terreno [E]ma il [F#]fiato è quello che è prega un poco per me\n\n[RITORNELLO]\n[Riff]\n[G#m]\npartec[E]ipo al gioco e [C#]non so bleffare si [E]vince o si perde [C#]ma voglio giocare\n[G#m]Mama Maè prega [B]perche il [C#]mondo va [G#m]più veloce di me\n\n[STROFA 3]\n[Riff]\n[G#m]\n[G#m]Controsterzo e [B]sbando e [C#]vado di [G#m]fuori\n[G#m]cercando di [B]seguire i [C#]piloti miglio[G#m]ri\nma è [C#]un po' rimed[E]iare uno strap[F#]po e non so se mi va....no, non so se mi va,\n\n[STROFA 4]\n[Riff]\n[G#m]\nper ogni [E]partita hai un [C#]gioco da fare che [E]vinca o che perd[C#]a io voglio provare!\n\n[RITORNELLO]\nMama Maè prega perche il mondo va più veloce di me\n\n[RITORNELLO]\n| FA#o |\n[D#]\n[Riff]\n[G#m]\n[G#m]Mama Maè prega [B]perche il [C#]mondo va [G#m]più veloce di me\n[END]",
+  "aml_content": "{title: MAMA MAÈ}\n{artist: Negrita}\n{key: B}\n\n[RITORNELLO]\nMama Maè prega perche il mondo va più veloce di me\n\n[STROFA]\n[Riff] * Riff is played x2 each time\n[G#m]\n[G#m]Alzo lo stereo [B]a palla [C#]per non pens[G#m]are,\n[G#m]alzo così tanto [B]da farmi [C#]male      [G#m]\ndiment[C#]icando tutt[E]o quell[F#]o che so...\n\n[STROFA]\n[Riff]\n[G#m]\n[G#m]Rotolo e rimbal[B]zo tra [C#]l'inferno e [G#m]il cielo\n[G#m]tra demoni priv[B]ati e sant[C#]i extravan[G#m]gelo\nperde[C#]ndo terreno [E]ma il [F#]fiato è quello che è prega un poco per me\n\n[RITORNELLO]\n[Riff]\n[G#m]\npartec[E]ipo al gioco e [C#]non so bleffare si [E]vince o si perde [C#]ma voglio giocare\n[G#m]Mama Maè prega [B]perche il [C#]mondo va [G#m]più veloce di me\n\n[STROFA]\n[Riff]\n[G#m]\n[G#m]Controsterzo e [B]sbando e [C#]vado di [G#m]fuori\n[G#m]cercando di [B]seguire i [C#]piloti miglio[G#m]ri\nma è [C#]un po' rimed[E]iare uno strap[F#]po e non so se mi va....no, non so se mi va,\n\n[STROFA]\n[Riff]\n[G#m]\nper ogni [E]partita hai un [C#]gioco da fare che [E]vinca o che perd[C#]a io voglio provare!\n\n[RITORNELLO]\nMama Maè prega perche il mondo va più veloce di me\n\n[RITORNELLO]\n| FA#o |\n[D#]\n[Riff]\n[G#m]\n[G#m]Mama Maè prega [B]perche il [C#]mondo va [G#m]più veloce di me\n[END]",
   "lock_status": {
     "is_locked": false,
     "locked_by_email": null,
@@ -22,8 +22,7 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 1,
   "created_at": "2026-11-19T17:48:47.512907+00:00",
-  "updated_at": "2026-11-19T17:49:36.120512+00:00",
-  "is_deleted": false
+  "updated_at": "2026-11-23T15:32:00.022957+00:00"
 }

@@ -10,8 +10,12 @@ import re
 import json
 import urllib.parse
 from typing import Dict, Any, Optional, Tuple, List
-import requests
-from bs4 import BeautifulSoup
+try:
+    import requests
+    from bs4 import BeautifulSoup
+except ImportError:
+    requests = None
+    BeautifulSoup = None
 
 from asma_core.models import Song
 from asma_core.aml_parser import AMLParser, AMLDocument
@@ -439,14 +443,14 @@ class WebSongImporter:
 {{tempo: 120}}
 {{time: 4/4}}
 
-{{intro}}
+[INTRO]
 | G | D | Em | C |
 
-{{verse}}
+[STROFA]
 [G]Testo del brano... [D]
 [Em]Accordi posizionati da completare [C]
 
-{{chorus}}
+[RITORNELLO]
 [C]Ritornello da [D]completare con [G]la band!
 """
         from asma_core.ai_service import BandAIService
