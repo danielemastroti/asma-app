@@ -14,6 +14,26 @@ from typing import List, Dict, Any, Optional
 
 INITIAL_CHANGELOG_ENTRIES: List[Dict[str, Any]] = [
     {
+        "version": "2026.11.23",
+        "date": "23/11/2026",
+        "title": "Persistenza Offline Completa PWA con Snapshot Locale, Gestione Modifiche Offline (Caso B) & Fix Prima Pagina Vuota sui Medley",
+        "new_features": [
+            "Persistenza Offline Completa PWA con Snapshot Locale: l'applicazione memorizza automaticamente in cache locale protetta (IndexedDB / localStorage) l'intero archivio musicale (tutti i 92 brani con testi AML completi, accordi, sezioni, metadati, repertori e scalette). In assenza di connessione Internet o segnale mobile (seminterrati, sale prove o palchi all'aperto), l'applicazione si avvia a 0ms, permettendo la consultazione, ricerca istantanea, trasposizione cromatica, vista Testo Web e Modalità Palco (Teleprompter a 60 fps con pedaliere Bluetooth) senza alcuna dipendenza da rete.",
+            "Gestione Sicura delle Modifiche Offline (Caso B) & Bozze Locali: introdotta la gestione avanzata per la modifica dei brani in assenza di connessione. Se un musicista lavora su un proprio brano personale o ne crea uno nuovo mentre è offline, le modifiche vengono preservate localmente come 'Bozza Locale Offline' (con contrassegno visivo '💾 Bozza Offline' sulla card del brano). Non appena il dispositivo torna online, ASMA esegue la sincronizzazione automatica in background con il database centrale Turso Cloud, eliminando il rischio di perdere note o modifiche. I brani del Repertorio Ufficiale Band rimangono categoricamente protetti da alterazioni non connesse.",
+            "Indicatore di Stato Connessione & Modale Dettagli Snapshot: inserito nella testata dell'applicazione un pill dinamico '🟡 Offline' / '🟢 Online' con modale informativa interattiva che riepiloga il numero di brani nello snapshot locale, la data dell'ultimo salvataggio e lo stato delle eventuali bozze offline in attesa di sincronizzazione."
+        ],
+        "improvements": [
+            "Risoluzione Prima Pagina Vuota sui Medley per Tablet e Smartphone (Fix ReportLab KeepTogether): eliminata l'anomalia che provocava la comparsa di una prima pagina vuota sul MEDLEY BATTISTI e su brani concatenati visualizzati su Huawei MediaPad M5, iPad 10.2\" e smartphone. Rimosso l'involucro indivisibile outer KeepTogether che inglobava l'intero spezzone iniziale, mantenendo le protezioni atomiche delle singole sezioni ([INTRO], [STROFA], [RITORNELLO]) e la proprietà keepWithNext sui banner di titolo. La prima pagina viene ora popolata densamente a partire dalla prima riga utile su qualsiasi schermo.",
+            "Bypass Autenticazione Offline per Sessioni Pregresse: abilitato il ripristino trasparente dell'identità musicista da memoria locale in caso di assenza di rete all'avvio dell'app, evitando il blocco accidentale sulla schermata di login Google quando ci si trova in sale prove o palchi offline."
+        ],
+        "security": [
+            "Protezione del Repertorio Ufficiale da Conflitti Offline: impedita la forzatura o clonazione disconnessa del catalogo ufficiale della band, preservando l'integrità del database condiviso e garantendo che le modifiche passino unicamente dal flusso validato online."
+        ],
+        "bug_fixes": [
+            "Fix selezione brano offline: il visualizzatore e la selezione brano (selectSong) utilizzano il fallback immediato sullo snapshot locale in caso di errore di rete delle API, eliminando blocchi dell'interfaccia."
+        ]
+    },
+    {
         "version": "2026.11.22",
         "date": "22/11/2026",
         "title": "Formattazione Pagine Medley su Base Dispositivo nell'Editor, Prompt Guidato Post-Salvataggio nel Personale & Paginazione Smart",

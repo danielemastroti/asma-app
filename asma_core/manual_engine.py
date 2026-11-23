@@ -766,6 +766,25 @@ class ManualEngine:
         story.append(flowchart_table)
         story.append(Spacer(1, 3 * mm))
 
+        # Funzionamento Offline & Gestione Modifiche Offline (Caso B)
+        story.append(Paragraph("<b>Funzionamento Offline & Gestione Modifiche Offline (Caso B):</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Per garantire l'assoluta affidabilità sia in sala prove (seminterrati, cantine prive di segnale) "
+            "che sul palco (live all'aperto o locali senza Wi-Fi), ASMA implementa la <b>Persistenza Offline Completa con Snapshot Locale</b> "
+            "e la politica di sicurezza per le modifiche (<b>Caso B</b>):<br/>"
+            "&bull; <b>Snapshot Locale Automatico:</b> Ogni volta che il dispositivo è connesso a Internet, l'intero archivio "
+            "(tutti i brani del catalogo, accordi, sezioni, repertori e scalette) viene salvato localmente nel database protetto del browser. "
+            "In assenza di segnale, l'app si apre a 0ms e tutti i brani rimangono consultabili, ricercabili e suonabili sul palco a 60 fps con pedaliere.<br/>"
+            "&bull; <b>Tutela del Repertorio Ufficiale da Offline:</b> Non è possibile alterare né forzare modifiche al Repertorio Ufficiale della band "
+            "mentre si è offline, prevenendo qualsiasi rischio di desincronizzazione o disaccordo tra i componenti.<br/>"
+            "&bull; <b>Bozze Locali Offline per i Brani Personali:</b> Se un musicista apporta modifiche a una propria copia personale o crea un nuovo brano "
+            "mentre è offline, il sistema non perde il lavoro: salva una <i>Bozza Locale Offline</i> (contrassegnata con badge dorato <code>💾 Bozza Offline</code>). "
+            "Il musicista può provarla subito sul proprio leggio. Non appena il tablet o telefono rileva nuovamente una connessione Internet (4G o Wi-Fi), "
+            "ASMA effettua la sincronizzazione automatica in background salvando la versione definitiva nel database centrale Turso Cloud.",
+            body_style
+        ))
+        story.append(Spacer(1, 3 * mm))
+
         story.append(PageBreak())
 
         # =========================================================================

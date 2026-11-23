@@ -77,6 +77,201 @@ const state = {
 };
 
 // ----------------------------------------------------------------------------
+// OFFLINE SNAPSHOT & DRAFT STORAGE (PWA 100% Offline & Caso B)
+// ----------------------------------------------------------------------------
+const SNAPSHOT_KEYS = {
+  SONGS: 'asma_snapshot_songs',
+  REPERTOIRES: 'asma_snapshot_repertoires',
+  SETLISTS: 'asma_snapshot_setlists',
+  USERS: 'asma_snapshot_users',
+  DEVICES: 'asma_snapshot_devices',
+  TIMESTAMP: 'asma_snapshot_timestamp',
+  DRAFTS: 'asma_offline_drafts'
+};
+
+function saveOfflineSnapshot(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(SNAPSHOT_KEYS.TIMESTAMP, String(Date.now()));
+  } catch (e) {
+    console.warn('Error saving offline snapshot:', e);
+  }
+}
+
+function loadOfflineSnapshot(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.warn('Error loading offline snapshot:', e);
+    return null;
+  }
+}
+
+function getOfflineDrafts() {
+  return loadOfflineSnapshot(SNAPSHOT_KEYS.DRAFTS) || {};
+}
+
+function saveOfflineDraft(songUuid, draftPayload) {
+  const drafts = getOfflineDrafts();
+  drafts[songUuid] = {
+    ...draftPayload,
+    saved_at: new Date().toISOString()
+  };
+  saveOfflineSnapshot(SNAPSHOT_KEYS.DRAFTS, drafts);
+}
+
+function removeOfflineDraft(songUuid) {
+  const drafts = getOfflineDrafts();
+  if (drafts[songUuid]) {
+    delete drafts[songUuid];
+    saveOfflineSnapshot(SNAPSHOT_KEYS.DRAFTS, drafts);
+  }
+}
+
+function applyOfflineDraftsToMemory() {
+  const drafts = getOfflineDrafts();
+  const uuids = Object.keys(drafts);
+  if (uuids.length === 0 || !state.songs) return;
+  for (const uid of uuids) {
+    const d = drafts[uid];
+    const idx = state.songs.findIndex(s => s.uuid === uid);
+    if (idx !== -1) {
+      state.songs[idx] = {
+        ...state.songs[idx],
+        title: d.title || state.songs[idx].title,
+        artist: d.artist || state.songs[idx].artist,
+        key_current: d.key_current || state.songs[idx].key_current,
+        bpm: d.bpm || state.songs[idx].bpm,
+        capo: d.capo || state.songs[idx].capo,
+        aml_content: d.aml_content || state.songs[idx].aml_content,
+        _is_offline_draft: true
+      };
+    }
+  }
+}
+
+function updateConnectionStatus(isOnline) {
+  const pill = document.getElementById('offline-status-pill');
+  if (!pill) return;
+  if (!isOnline) {
+    pill.style.display = 'inline-flex';
+    pill.innerHTML = '<span>🟡 Offline</span>';
+    pill.style.background = 'rgba(234, 179, 8, 0.15)';
+    pill.style.borderColor = '#eab308';
+    pill.style.color = '#facc15';
+  } else {
+    const drafts = getOfflineDrafts();
+    const draftCount = Object.keys(drafts).length;
+    if (draftCount > 0) {
+      pill.style.display = 'inline-flex';
+      pill.innerHTML = `<span>🔄 Sincronizzo (${draftCount})...</span>`;
+      pill.style.background = 'rgba(56, 189, 248, 0.15)';
+      pill.style.borderColor = '#38bdf8';
+      pill.style.color = '#38bdf8';
+    } else {
+      pill.style.display = 'inline-flex';
+      pill.innerHTML = '<span>🟢 Online</span>';
+      pill.style.background = 'rgba(34, 197, 94, 0.15)';
+      pill.style.borderColor = '#22c55e';
+      pill.style.color = '#4ade80';
+      setTimeout(() => {
+        if (navigator.onLine && pill) {
+          pill.style.display = 'none';
+        }
+      }, 3500);
+    }
+  }
+}
+
+function showOfflineInfoModal() {
+  const modal = document.getElementById('modal-offline-info');
+  const meta = document.getElementById('offline-snapshot-meta');
+  if (meta) {
+    const ts = localStorage.getItem(SNAPSHOT_KEYS.TIMESTAMP);
+    const dateStr = ts ? new Date(parseInt(ts)).toLocaleString('it-IT') : 'Recente';
+    const songCount = (state.songs || []).length;
+    const repCount = (state.repertoires || []).length;
+    const drafts = getOfflineDrafts();
+    const draftCount = Object.keys(drafts).length;
+    meta.innerHTML = `<b>Snapshot Locale:</b> ${songCount} brani in memoria &bull; ${repCount} repertori<br/><b>Ultimo salvataggio:</b> ${dateStr}${draftCount > 0 ? `<br/><span style="color:#facc15;"><b>Bozze Offline in sospeso:</b> ${draftCount} brano/i da sincronizzare</span>` : ''}`;
+  }
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeOfflineInfoModal() {
+  const modal = document.getElementById('modal-offline-info');
+  if (modal) modal.style.display = 'none';
+}
+
+async function syncOfflineDrafts() {
+  const drafts = getOfflineDrafts();
+  const uuids = Object.keys(drafts);
+  if (uuids.length === 0) return;
+
+  console.log(`[ASMA Offline Sync] Trovate ${uuids.length} bozze offline da sincronizzare...`);
+  let synced = 0;
+  for (const uid of uuids) {
+    const payload = drafts[uid];
+    try {
+      if (uid.startsWith('offline_')) {
+        const cleanPayload = { ...payload };
+        delete cleanPayload.saved_at;
+        const res = await fetch(`${API_BASE}/api/songs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cleanPayload)
+        });
+        if (res.ok) {
+          removeOfflineDraft(uid);
+          synced++;
+        }
+      } else {
+        const cleanPayload = { ...payload };
+        delete cleanPayload.saved_at;
+        const res = await fetch(`${API_BASE}/api/songs/${uid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cleanPayload)
+        });
+        if (res.ok) {
+          removeOfflineDraft(uid);
+          synced++;
+        }
+      }
+    } catch (e) {
+      console.warn(`[ASMA Offline Sync] Errore sincronizzazione bozza ${uid}:`, e);
+    }
+  }
+
+  if (synced > 0) {
+    showToast(`🌐 Sincronizzazione completata: ${synced} bozza/e offline salvata/e nel DB centrale ✓`);
+    updateConnectionStatus(true);
+    await loadRepertoires();
+    await loadSongs({ autoSelect: false });
+    if (state.selectedSong && drafts[state.selectedSong.uuid]) {
+      selectSong(state.selectedSong.uuid);
+    }
+  }
+}
+
+function initConnectionListeners() {
+  window.addEventListener('online', () => {
+    updateConnectionStatus(true);
+    showToast('🌐 Connessione Internet ripristinata: sincronizzazione archivio...');
+    loadRepertoires();
+    loadSongs({ autoSelect: false });
+    loadSetlists();
+    syncOfflineDrafts();
+  });
+
+  window.addEventListener('offline', () => {
+    updateConnectionStatus(false);
+    showToast('📡 Sei offline: attivata Modalità Offline con snapshot locale protetto.');
+  });
+}
+
+// ----------------------------------------------------------------------------
 // INITIALIZATION
 // ----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
@@ -84,6 +279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNav();
   initHistoryNavigation();
   initKeyboardAndPedals();
+  initConnectionListeners();
+  updateConnectionStatus(navigator.onLine);
   const authed = await checkGoogleAuth();
   if (!authed) return;
   await loadUsersAndDevices();
@@ -132,14 +329,36 @@ async function checkGoogleAuth() {
         }
         if (gate) gate.style.display = 'none';
         syncAuthProfileUi();
+        updateConnectionStatus(navigator.onLine);
         return true;
       }
       if (warn) {
         warn.style.display = (data && data.google_configured === false) ? 'block' : 'none';
       }
+    } else {
+      throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    console.warn('Auth check error:', err);
+    console.warn('Auth check error (network/offline):', err);
+    // FALLBACK OFFLINE: se il dispositivo è offline ma l'utente si era già autenticato in precedenza
+    const cachedEmail = localStorage.getItem('asma_user_email');
+    const cachedName = localStorage.getItem('asma_user_name');
+    if (cachedEmail) {
+      state.currentUser = {
+        email: cachedEmail,
+        name: cachedName || cachedEmail.split('@')[0],
+        role: cachedEmail === 'danyposta@gmail.com' ? 'ADMIN' : 'BAND_MEMBER',
+        picture: ''
+      };
+      state.authenticatedUserEmail = cachedEmail;
+      const savedDev = (() => { try { return localStorage.getItem('asma_active_device'); } catch (e) { return null; } })();
+      if (savedDev) state.activeDevice = savedDev;
+      if (gate) gate.style.display = 'none';
+      syncAuthProfileUi();
+      updateConnectionStatus(false);
+      showToast('🟡 Avvio in Modalità Offline: sessione locale ripristinata ✓');
+      return true;
+    }
   }
 
   if (gate) {
@@ -439,6 +658,7 @@ async function loadUsersAndDevices() {
     if (uRes.ok) {
       const users = await uRes.json();
       state.usersList = users;
+      saveOfflineSnapshot(SNAPSHOT_KEYS.USERS, users);
       const musSelect = document.getElementById('setting-musician-select');
       if (musSelect && users.length) {
         musSelect.innerHTML = users.map(u => 
@@ -460,6 +680,7 @@ async function loadUsersAndDevices() {
     if (dRes.ok) {
       const devices = await dRes.json();
       state.devicesList = devices;
+      saveOfflineSnapshot(SNAPSHOT_KEYS.DEVICES, devices);
       const devSelect = document.getElementById('setting-device-select');
       if (devSelect && devices.length) {
         devSelect.innerHTML = devices.map(d => 
@@ -469,7 +690,28 @@ async function loadUsersAndDevices() {
       }
     }
   } catch (err) {
-    console.warn('Could not load users or devices dynamically:', err);
+    console.warn('Could not load users or devices dynamically, using cached snapshot:', err);
+    const cachedUsers = loadOfflineSnapshot(SNAPSHOT_KEYS.USERS);
+    if (cachedUsers && Array.isArray(cachedUsers)) {
+      state.usersList = cachedUsers;
+      const musSelect = document.getElementById('setting-musician-select');
+      if (musSelect && cachedUsers.length) {
+        musSelect.innerHTML = cachedUsers.map(u => 
+          `<option value="${escapeHtml(u.email)}" ${u.email === state.currentUser.email ? 'selected' : ''}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`
+        ).join('');
+      }
+    }
+    const cachedDevices = loadOfflineSnapshot(SNAPSHOT_KEYS.DEVICES);
+    if (cachedDevices && Array.isArray(cachedDevices)) {
+      state.devicesList = cachedDevices;
+      const devSelect = document.getElementById('setting-device-select');
+      if (devSelect && cachedDevices.length) {
+        devSelect.innerHTML = cachedDevices.map(d => 
+          `<option value="${escapeHtml(d.name)}" ${d.name === state.activeDevice ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
+        ).join('');
+        devSelect.value = state.activeDevice;
+      }
+    }
   }
 }
 
@@ -845,6 +1087,7 @@ async function loadRepertoires() {
     );
     if (res.ok) {
       state.repertoires = await res.json();
+      saveOfflineSnapshot(SNAPSHOT_KEYS.REPERTOIRES, state.repertoires);
       const workspaceReps = getWorkspaceRepertoires();
       const isAdmin = isCurrentUserAdmin();
       const official = workspaceReps.find(r => r.is_official);
@@ -856,9 +1099,24 @@ async function loadRepertoires() {
       }
       renderRepertoireChips();
       renderDashboard();
+    } else {
+      throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    console.warn('Repertoires offline:', err);
+    console.warn('Repertoires offline, loading from local snapshot:', err);
+    const cachedReps = loadOfflineSnapshot(SNAPSHOT_KEYS.REPERTOIRES);
+    if (cachedReps && Array.isArray(cachedReps) && cachedReps.length > 0) {
+      state.repertoires = cachedReps;
+      updateConnectionStatus(false);
+      const workspaceReps = getWorkspaceRepertoires();
+      const official = workspaceReps.find(r => r.is_official);
+      const currentExists = workspaceReps.some(r => r.uuid === state.activeRepertoire);
+      if (state.activeRepertoire === '__ALL__' || !currentExists) {
+        state.activeRepertoire = official ? official.uuid : (workspaceReps[0]?.uuid || '');
+      }
+      renderRepertoireChips();
+      renderDashboard();
+    }
   }
 }
 
@@ -937,6 +1195,27 @@ async function loadSongs({ autoSelect = true } = {}) {
     const res = await fetch(url, { cache: 'no-store' });
     if (res.ok) {
       state.songs = await res.json();
+      saveOfflineSnapshot(SNAPSHOT_KEYS.SONGS, state.songs);
+      applyOfflineDraftsToMemory();
+      renderRepertoireChips();
+      renderSongCards();
+      renderDashboard();
+      if (autoSelect && !state.selectedSong) {
+        const filtered = getFilteredSongs();
+        if (filtered.length > 0) {
+          selectSong(filtered[0].uuid);
+        }
+      }
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.warn('Songs offline, loading from local snapshot:', err);
+    const cachedSongs = loadOfflineSnapshot(SNAPSHOT_KEYS.SONGS);
+    if (cachedSongs && Array.isArray(cachedSongs) && cachedSongs.length > 0) {
+      state.songs = cachedSongs;
+      applyOfflineDraftsToMemory();
+      updateConnectionStatus(false);
       renderRepertoireChips();
       renderSongCards();
       renderDashboard();
@@ -947,8 +1226,6 @@ async function loadSongs({ autoSelect = true } = {}) {
         }
       }
     }
-  } catch (err) {
-    console.warn('Songs offline:', err);
   }
 }
 
@@ -1005,10 +1282,13 @@ function renderSongCards(searchKw = '') {
     const cardBtn = isEditingMode()
       ? `<button class="btn btn-secondary" style="min-height: 26px; padding: 2px 8px; font-size: 11px; color: #38bdf8; border-color: #38bdf8; font-weight: 800; white-space: nowrap;" onclick="event.stopPropagation(); openAddToSetlistModal('${s.uuid}')" title="Aggiungi a una scaletta">+ Scaletta</button>`
       : '';
+    const draftBadge = s._is_offline_draft
+      ? '<span style="font-size:10px; background:#eab308; color:#0f172a; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:4px;">💾 Bozza Offline</span>'
+      : '';
     return `
       <div class="song-card ${isSel}" onclick="selectSong('${s.uuid}')">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div class="song-card-title">${escapeHtml(s.title)}</div>
+          <div class="song-card-title">${escapeHtml(s.title)}${draftBadge}</div>
           ${cardBtn}
         </div>
         <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
@@ -1034,14 +1314,33 @@ async function selectSong(uuid) {
       }
       state.isEditingSong = false;
       state.selectedSong = songData;
+      const sIdx = (state.songs || []).findIndex(s => s.uuid === uuid);
+      if (sIdx !== -1) {
+        state.songs[sIdx] = Object.assign(state.songs[sIdx], songData);
+      }
+      renderSongCards();
+      renderSongViewer();
+      if (window.innerWidth < 768) {
+        document.getElementById('song-viewer')?.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn('Error fetching song details online, falling back to local snapshot:', err);
+  }
+
+  // FALLBACK OFFLINE / SNAPSHOT
+  if (seq === _selectSongSeq && state.activeRepertoire === repAtRequest) {
+    const local = (state.songs || []).find(s => s.uuid === uuid);
+    if (local) {
+      state.isEditingSong = false;
+      state.selectedSong = local;
       renderSongCards();
       renderSongViewer();
       if (window.innerWidth < 768) {
         document.getElementById('song-viewer')?.scrollIntoView({ behavior: 'smooth' });
       }
     }
-  } catch (err) {
-    console.error('Error fetching song details:', err);
   }
 }
 
@@ -1556,14 +1855,16 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
       return;
     }
     if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+      const isOff = !navigator.onLine;
       container.innerHTML = `
         <div style="padding: 24px 16px; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; margin: 16px 0;">
-          <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
-          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">Impossibile caricare l'anteprima PDF</div>
-          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Il server cloud potrebbe essere in fase di risveglio o la connessione è rallentata.</div>
+          <div style="font-size: 24px; margin-bottom: 8px;">${isOff ? '🟡' : '⚠️'}</div>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">${isOff ? 'Modalità Offline Attiva' : "Impossibile caricare l'anteprima PDF"}</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">${isOff ? 'Il rendering grafico del PDF richiede il server, ma il brano è visualizzabile subito al 100% in formato Testo Web e in Modalità Palco.' : 'Il server cloud potrebbe essere in fase di risveglio o la connessione è rallentata.'}</div>
           <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <button class="btn btn-primary" style="font-weight: 800; min-height: 36px; padding: 4px 14px;" onclick="loadSongPdfPreview('${songUuid}', 0)">🔄 Riprova Caricamento PDF</button>
-            <button class="btn btn-secondary" style="min-height: 36px; padding: 4px 14px;" onclick="setSongViewType('web')">Passa a Vista Testo</button>
+            <button class="btn btn-primary" style="font-weight: 800; min-height: 36px; padding: 4px 14px;" onclick="setSongViewType('web')">📝 Apri Vista Testo Web</button>
+            <button class="btn btn-secondary" style="min-height: 36px; padding: 4px 14px;" onclick="startSingleSongStage()">🎤 Avvia Modalità Palco</button>
+            ${!isOff ? `<button class="btn btn-secondary" style="font-weight: 700; min-height: 36px; padding: 4px 12px;" onclick="loadSongPdfPreview('${songUuid}', 0)">🔄 Riprova PDF</button>` : ''}
           </div>
         </div>
       `;
@@ -1592,6 +1893,10 @@ async function openSongEditor() {
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(state.selectedSong?.uuid);
   if (isInOfficial) {
+    if (!navigator.onLine) {
+      showToast('⚠️ Sei in modalità Offline. Non è possibile modificare o clonare il Repertorio Ufficiale sul server finché non torni online.');
+      return;
+    }
     if (confirm(`I brani del Repertorio Ufficiale non possono essere modificati direttamente.\n\nVuoi creare subito una copia personale nel tuo repertorio da modificare e poi promuovere a ufficiale?`)) {
       await forkSongToPersonalAndEdit(state.selectedSong.uuid);
     }
@@ -1642,6 +1947,12 @@ async function saveSongEdit(downloadPdfAfter = false) {
     repertoire_uuid: activeRepUuid
   };
 
+  // CASO B: Se siamo offline, salva subito in Bozza Locale Offline
+  if (!navigator.onLine) {
+    handleOfflineSaveEdit(oldUuid, payload, downloadPdfAfter);
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/songs/${oldUuid}`, {
       method: 'PUT',
@@ -1650,6 +1961,7 @@ async function saveSongEdit(downloadPdfAfter = false) {
     });
     if (res.ok) {
       const data = await res.json();
+      removeOfflineDraft(oldUuid);
       state.selectedSong = data.song;
       if (data.detached_copy || (data.song && data.song.uuid !== oldUuid)) {
         await loadRepertoires();
@@ -1662,6 +1974,7 @@ async function saveSongEdit(downloadPdfAfter = false) {
           state.songs[idx] = Object.assign(state.songs[idx], state.selectedSong);
         }
       }
+      saveOfflineSnapshot(SNAPSHOT_KEYS.SONGS, state.songs);
       state.isEditingSong = false;
       renderSongCards();
       renderSongViewer();
@@ -1677,9 +1990,46 @@ async function saveSongEdit(downloadPdfAfter = false) {
       showToast(err.detail || 'Errore durante il salvataggio del brano');
     }
   } catch (err) {
-    console.error('Song edit error:', err);
-    showToast('Errore di connessione');
+    console.warn('Network error while saving song, falling back to Offline Draft (Caso B):', err);
+    handleOfflineSaveEdit(oldUuid, payload, downloadPdfAfter);
   }
+}
+
+function handleOfflineSaveEdit(songUuid, payload, downloadPdfAfter = false) {
+  saveOfflineDraft(songUuid, payload);
+
+  if (state.selectedSong && state.selectedSong.uuid === songUuid) {
+    state.selectedSong = {
+      ...state.selectedSong,
+      title: payload.title,
+      artist: payload.artist,
+      key_current: payload.key_current,
+      bpm: payload.bpm,
+      capo: payload.capo,
+      aml_content: payload.aml_content,
+      _is_offline_draft: true
+    };
+  }
+  const idx = (state.songs || []).findIndex(x => x.uuid === songUuid);
+  if (idx !== -1) {
+    state.songs[idx] = {
+      ...state.songs[idx],
+      title: payload.title,
+      artist: payload.artist,
+      key_current: payload.key_current,
+      bpm: payload.bpm,
+      capo: payload.capo,
+      aml_content: payload.aml_content,
+      _is_offline_draft: true
+    };
+    saveOfflineSnapshot(SNAPSHOT_KEYS.SONGS, state.songs);
+  }
+
+  state.isEditingSong = false;
+  renderSongCards();
+  renderSongViewer();
+  updateConnectionStatus(false);
+  showToast(`💾 Salvato in Bozza Locale Offline! Le modifiche sono attive su questo dispositivo e verranno sincronizzate non appena tornerai online.`);
 }
 
 function insertChordAtCursor(textareaId, textToInsert) {
@@ -3010,6 +3360,12 @@ async function submitNewSong() {
     user_name: state.currentUser.name
   };
 
+  // CASO B: Se siamo offline, salva subito come Bozza Locale Offline
+  if (!navigator.onLine) {
+    handleOfflineSubmitNewSong(payload);
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/songs`, {
       method: 'POST',
@@ -3039,9 +3395,33 @@ async function submitNewSong() {
       showToast(err.detail || 'Errore creazione brano');
     }
   } catch (err) {
-    console.error('Create song error:', err);
-    showToast('Errore creazione brano');
+    console.warn('Create song error, falling back to Offline Draft (Caso B):', err);
+    handleOfflineSubmitNewSong(payload);
   }
+}
+
+function handleOfflineSubmitNewSong(payload) {
+  const tempUuid = `offline_${Date.now()}`;
+  const newSong = {
+    uuid: tempUuid,
+    title: payload.title,
+    artist: payload.artist,
+    key_current: payload.key_current,
+    bpm: payload.bpm,
+    capo: payload.capo,
+    aml_content: payload.aml_content,
+    assigned_repertoires: ['Personale (Bozza Offline)'],
+    _is_offline_draft: true
+  };
+  saveOfflineDraft(tempUuid, payload);
+  if (!state.songs) state.songs = [];
+  state.songs.unshift(newSong);
+  saveOfflineSnapshot(SNAPSHOT_KEYS.SONGS, state.songs);
+  hideNewSongForm();
+  renderSongCards();
+  selectSong(tempUuid);
+  updateConnectionStatus(false);
+  showToast(`💾 Brano "${payload.title}" salvato come Bozza Locale Offline! Verrà sincronizzato non appena tornerai online.`);
 }
 
 // Musical chords recognition for Web viewer & Stage Prompter
