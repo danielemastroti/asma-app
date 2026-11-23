@@ -3604,6 +3604,30 @@ function formatChordLyricLine(line) {
   };
 }
 
+function renderAmlSectionBadge(secName) {
+  const upper = (secName || '').toUpperCase();
+  let bg = '#2563eb';
+  let icon = '';
+  if (upper.includes('STACCO')) {
+    bg = '#dc2626';
+    icon = '⚡ ';
+  } else if (upper.includes('INTRO')) {
+    bg = '#059669';
+  } else if (upper.includes('STROFA') || upper.includes('VERSE')) {
+    bg = '#2563eb';
+  } else if (upper.includes('RITORNELLO') || upper.includes('RIT') || upper.includes('CHORUS')) {
+    bg = '#7c3aed';
+  } else if (upper.includes('BRIDGE') || upper.includes('PONTE')) {
+    bg = '#d97706';
+  } else if (upper.includes('SOLO') || upper.includes('ASSOLO')) {
+    bg = '#b45309';
+    icon = '🎸 ';
+  } else if (upper.includes('OUTRO') || upper.includes('FINALE') || upper.includes('CODA') || upper.includes('END') || upper.includes('FINE')) {
+    bg = '#475569';
+  }
+  return `<div class="aml-tag-badge" style="display:inline-block; background:${bg}; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:10px 0 4px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.35);">${icon}[${escapeHtml(secName)}]</div>`;
+}
+
 function parseAmlForWeb(aml, showChords) {
   if (!aml) return '<i>Nessun testo inserito.</i>';
 
@@ -3763,30 +3787,6 @@ function parseAmlForWeb(aml, showChords) {
         </div>`;
         continue;
       }
-
-function renderAmlSectionBadge(secName) {
-  const upper = (secName || '').toUpperCase();
-  let bg = '#2563eb';
-  let icon = '';
-  if (upper.includes('STACCO')) {
-    bg = '#dc2626';
-    icon = '⚡ ';
-  } else if (upper.includes('INTRO')) {
-    bg = '#059669';
-  } else if (upper.includes('STROFA') || upper.includes('VERSE')) {
-    bg = '#2563eb';
-  } else if (upper.includes('RITORNELLO') || upper.includes('RIT') || upper.includes('CHORUS')) {
-    bg = '#7c3aed';
-  } else if (upper.includes('BRIDGE') || upper.includes('PONTE')) {
-    bg = '#d97706';
-  } else if (upper.includes('SOLO') || upper.includes('ASSOLO')) {
-    bg = '#b45309';
-    icon = '🎸 ';
-  } else if (upper.includes('OUTRO') || upper.includes('FINALE') || upper.includes('CODA') || upper.includes('END') || upper.includes('FINE')) {
-    bg = '#475569';
-  }
-  return `<div class="aml-tag-badge" style="display:inline-block; background:${bg}; color:#ffffff; border-radius:5px; padding:2.5px 9px; font-weight:800; margin:10px 0 4px 0; font-size:12.5px; letter-spacing:0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.35);">${icon}[${escapeHtml(secName)}]</div>`;
-}
 
       // Section open directives
       let secName = null;

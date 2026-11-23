@@ -20,6 +20,7 @@
       "Protezione del Repertorio Ufficiale da Conflitti Offline: impedita la forzatura o clonazione disconnessa del catalogo ufficiale della band, preservando l'integrità del database condiviso e garantendo che le modifiche passino unicamente dal flusso validato online."
     ],
     "bug_fixes": [
+      "Fix errore Teleprompter `renderAmlSectionBadge is not a function` & Switch Testo/Accordi: spostata la dichiarazione della funzione di formattazione badge di sezione all'esterno del ciclo di parsing a livello di modulo; ripristinato il corretto funzionamento immediato del pulsante di switch '🎤 Solo Testo' / '🎸 Accordi: ON' in Modalità Palco sia online che offline.",
       "Fix Modalità Palco Offline 'Nessun testo inserito' e PDF non visibile: eliminata l'assenza del testo e il messaggio 'Nessun testo inserito' quando si attiva la Modalità Palco con il tablet disconnesso, grazie all'inclusione di `aml_content` nello snapshot e al fallback resiliente.",
       "Fix selezione brano offline: il visualizzatore e la selezione brano (selectSong) utilizzano il fallback immediato sullo snapshot locale in caso di errore di rete delle API, eliminando blocchi dell'interfaccia."
     ]
