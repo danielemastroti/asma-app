@@ -967,27 +967,11 @@ class PDFEngine:
             nonlocal fragment_flowables, in_medley_fragment
             flush_section(force=True)
             if fragment_flowables:
-                def unwrap(items):
-                    out = []
-                    for it in items:
-                        if isinstance(it, KeepTogether):
-                            out.extend(unwrap(it._content))
-                        else:
-                            out.append(it)
-                    return out
-
-                flat = unwrap(fragment_flowables)
-                while flat and isinstance(flat[0], Spacer):
-                    flat.pop(0)
-                while flat and isinstance(flat[-1], Spacer):
-                    flat.pop()
-                # Se lo spezzone del medley può stare su una singola pagina (~<= 60 flowables, ~25 righe),
-                # tienilo insieme per evitare spezzamenti non necessari.
-                if flat:
-                    if len(flat) <= 60:
-                        flowables.append(KeepTogether(flat))
-                    else:
-                        flowables.extend(flat)
+                while fragment_flowables and isinstance(fragment_flowables[0], Spacer):
+                    fragment_flowables.pop(0)
+                while fragment_flowables and isinstance(fragment_flowables[-1], Spacer):
+                    fragment_flowables.pop()
+                flowables.extend(fragment_flowables)
                 fragment_flowables = []
             in_medley_fragment = False
 
