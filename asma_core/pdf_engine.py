@@ -279,15 +279,18 @@ class PDFEngine:
             or "foglio" in (getattr(prof, "name", "") or "").lower()
         )
         if is_a4 and aml_source:
-            _, fragments = AMLParser.split_medley_fragments(aml_source)
-            if len(fragments) > 1:
-                # Re-pack fragments intelligently for A4 capacity: 1 col = 40 lines, 2 cols = 52 lines
-                target_dev_name = "Foglio a 4 stampabile" if cols == 1 else "Tablet"
-                aml_source, _ = AMLParser.format_medley_pages(
-                    aml_source,
-                    strategy="smart_fit",
-                    target_device=target_dev_name
-                )
+            # Se il brano ha già direttive esplicite di salto pagina ({np}), rispetta l'impaginazione manuale dell'autore
+            has_manual_np = bool(re.search(r'\{(?:np|new_page|page_break|salto_pagina)\}', aml_source, re.IGNORECASE))
+            if not has_manual_np:
+                _, fragments = AMLParser.split_medley_fragments(aml_source)
+                if len(fragments) > 1:
+                    # Re-pack fragments intelligently for A4 capacity: 1 col = 40 lines, 2 cols = 52 lines
+                    target_dev_name = "Foglio a 4 stampabile" if cols == 1 else "Tablet"
+                    aml_source, _ = AMLParser.format_medley_pages(
+                        aml_source,
+                        strategy="smart_fit",
+                        target_device=target_dev_name
+                    )
 
         aml_text = BandAIService.ensure_section_spacing_aml(aml_source)
         aml_doc = AMLParser.parse(aml_text)
