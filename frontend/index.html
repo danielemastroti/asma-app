@@ -44,50 +44,52 @@
     </div>
   </div>
 
-  <!-- TOP FIXED BRAND HEADER -->
-  <header class="app-header">
-    <div class="brand-container" onclick="switchTab('dashboard')" style="cursor: pointer;" title="Torna alla Dashboard">
-      <img src="/assets/band_logo.png" alt="ASMA" class="brand-logo" onerror="this.style.display='none'">
-      <div class="brand-title">
-        <span class="brand-title-text">THE New ASMA</span>
-        <span class="online-dot" title="Cloud Database Sincronizzato"></span>
+  <!-- TOP FIXED BRAND HEADER & NAV TABS WRAPPER -->
+  <div class="top-nav-sticky-wrapper" id="top-nav-sticky-wrapper">
+    <header class="app-header">
+      <div class="brand-container" onclick="switchTab('dashboard')" style="cursor: pointer;" title="Torna alla Dashboard">
+        <img src="/assets/band_logo.png" alt="ASMA" class="brand-logo" onerror="this.style.display='none'">
+        <div class="brand-title">
+          <span class="brand-title-text">THE New ASMA</span>
+          <span class="online-dot" title="Cloud Database Sincronizzato"></span>
+        </div>
       </div>
-    </div>
-    <div class="header-actions">
-      <div id="offline-status-pill" class="mode-pill" style="display: none; background: rgba(234, 179, 8, 0.15); border: 1px solid #eab308; color: #facc15; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; cursor: pointer;" onclick="showOfflineInfoModal()" title="App in modalità Offline: stai visualizzando lo snapshot salvato in locale">
-        <span>🟡 Offline</span>
+      <div class="header-actions">
+        <div id="offline-status-pill" class="mode-pill" style="display: none; background: rgba(234, 179, 8, 0.15); border: 1px solid #eab308; color: #facc15; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; cursor: pointer;" onclick="showOfflineInfoModal()" title="App in modalità Offline: stai visualizzando lo snapshot salvato in locale">
+          <span>🟡 Offline</span>
+        </div>
+        <div id="header-mode-pill" class="mode-pill mode-pill-simplified" onclick="switchTab('dashboard')" title="Tocca per cambiare modalità (Casa/Palco vs Editing)">
+          <span class="mode-pill-full">🎤 Casa / Palco</span>
+          <span class="mode-pill-short">🎤 Palco</span>
+        </div>
+        <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" onclick="downloadOfficialManualPdf()" title="Scarica il Manuale Utente Ufficiale in formato PDF autocompilato">
+          <span>📖</span> <span class="header-btn-label">Manuale PDF</span>
+        </button>
+        <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;" onclick="openChangelogModal()" title="Consulta le novità e gli aggiornamenti di ASMA">
+          <span>📋</span> <span class="header-btn-label">Novità</span>
+        </button>
+        <button id="btn-header-audit" type="button" class="btn btn-secondary header-btn" style="display: none; min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); align-items: center; gap: 5px;" onclick="openAuditLogModal()" title="Registro Operazioni &amp; Utilizzo Musicisti (Solo Admin)">
+          <span>🛡️</span> <span class="header-btn-label">Audit Log</span>
+        </button>
+        <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
+          <span>👤</span>
+          <span id="current-user-name">Cico</span>
+          <span style="font-size:10px; color:#38bdf8;">⚙️</span>
+        </div>
+        <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;" onclick="logoutGoogle()" title="Esci dall'account Google">
+          <span>🚪</span> <span class="header-btn-label">Esci</span>
+        </button>
       </div>
-      <div id="header-mode-pill" class="mode-pill mode-pill-simplified" onclick="switchTab('dashboard')" title="Tocca per cambiare modalità (Casa/Palco vs Editing)">
-        <span class="mode-pill-full">🎤 Casa / Palco</span>
-        <span class="mode-pill-short">🎤 Palco</span>
-      </div>
-      <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" onclick="downloadOfficialManualPdf()" title="Scarica il Manuale Utente Ufficiale in formato PDF autocompilato">
-        <span>📖</span> <span class="header-btn-label">Manuale PDF</span>
-      </button>
-      <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;" onclick="openChangelogModal()" title="Consulta le novità e gli aggiornamenti di ASMA">
-        <span>📋</span> <span class="header-btn-label">Novità</span>
-      </button>
-      <button id="btn-header-audit" type="button" class="btn btn-secondary header-btn" style="display: none; min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); align-items: center; gap: 5px;" onclick="openAuditLogModal()" title="Registro Operazioni &amp; Utilizzo Musicisti (Solo Admin)">
-        <span>🛡️</span> <span class="header-btn-label">Audit Log</span>
-      </button>
-      <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
-        <span>👤</span>
-        <span id="current-user-name">Cico</span>
-        <span style="font-size:10px; color:#38bdf8;">⚙️</span>
-      </div>
-      <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;" onclick="logoutGoogle()" title="Esci dall'account Google">
-        <span>🚪</span> <span class="header-btn-label">Esci</span>
-      </button>
-    </div>
-  </header>
+    </header>
 
-  <!-- NAVIGATION TABS -->
-  <nav class="nav-bar">
-    <button class="nav-tab active" data-tab="dashboard">🏠 Home</button>
-    <button class="nav-tab" data-tab="songs">🎵 Brani</button>
-    <button class="nav-tab" data-tab="setlists">📑 Scalette</button>
-    <button class="nav-tab" data-tab="settings">⚙️ Impostazioni</button>
-  </nav>
+    <!-- NAVIGATION TABS -->
+    <nav class="nav-bar">
+      <button class="nav-tab active" data-tab="dashboard">🏠 Home</button>
+      <button class="nav-tab" data-tab="songs">🎵 Brani</button>
+      <button class="nav-tab" data-tab="setlists">📑 Scalette</button>
+      <button class="nav-tab" data-tab="settings">⚙️ Impostazioni</button>
+    </nav>
+  </div>
 
   <!-- MAIN APP CONTAINER -->
   <main class="main-content">
@@ -191,22 +193,25 @@
 
     <!-- 1. VIEW: SONGS & REPERTOIRES -->
     <section id="view-songs" style="display: none;">
-      <!-- 1-TOUCH REPERTOIRE CHIPS & REPERTOIRE ACTIONS -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
-        <div id="repertoire-chips" class="repertoire-chips" style="flex: 1; margin-bottom: 0;">
-          <!-- Rendered by app.js -->
+      <!-- STICKY TOP TOOLBAR FOR SONGS VIEW -->
+      <div class="songs-sticky-toolbar" id="songs-sticky-toolbar">
+        <!-- 1-TOUCH REPERTOIRE CHIPS & REPERTOIRE ACTIONS -->
+        <div class="repertoire-toolbar-row">
+          <div id="repertoire-chips" class="repertoire-chips">
+            <!-- Rendered by app.js -->
+          </div>
+          <div class="repertoire-actions-row">
+            <button id="btn-top-download-pdf" class="btn btn-secondary btn-toolbar-action" onclick="downloadPdf()" title="Salva o scarica lo spartito PDF del brano selezionato">💾 Salva PDF</button>
+            <button id="btn-download-rep-pdf" class="btn btn-secondary btn-toolbar-action" onclick="downloadActiveRepertoirePdf()" title="Scarica Elenco PDF con la lista dei brani del repertorio selezionato">📑 Lista PDF</button>
+            <button id="btn-admin-manage-rep" class="btn btn-secondary btn-toolbar-action" style="display: none; color: #ffd600; border-color: #ffd600;" onclick="openAdminRepertoiresModal()" title="Gestione Repertori (Solo Amministratore)">⚙️ Gestisci</button>
+          </div>
         </div>
-        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-          <button id="btn-top-download-pdf" class="btn btn-secondary" style="min-height: 32px; padding: 2px 11px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8; white-space: nowrap;" onclick="downloadPdf()" title="Salva o scarica lo spartito PDF del brano selezionato">💾 Salva PDF</button>
-          <button id="btn-download-rep-pdf" class="btn btn-secondary" style="min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #38bdf8; border-color: #38bdf8; white-space: nowrap;" onclick="downloadActiveRepertoirePdf()" title="Scarica Elenco PDF con la lista dei brani del repertorio selezionato">📑 Lista PDF</button>
-          <button id="btn-admin-manage-rep" class="btn btn-secondary" style="display: none; min-height: 32px; padding: 2px 10px; font-size: 11px; font-weight: 800; color: #ffd600; border-color: #ffd600; white-space: nowrap;" onclick="openAdminRepertoiresModal()" title="Gestione Repertori (Solo Amministratore)">⚙️ Gestisci</button>
-        </div>
-      </div>
 
-      <!-- SEARCH & NEW SONG BAR -->
-      <div class="controls-bar" style="display: flex; gap: 8px;">
-        <input type="text" id="search-songs" class="search-input" style="flex: 1;" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
-        <button id="btn-open-new-song" class="btn btn-primary" style="white-space: nowrap; font-weight: 800;" onclick="showNewSongForm()">➕ Nuovo / Importa</button>
+        <!-- SEARCH & NEW SONG BAR -->
+        <div class="controls-bar" style="display: flex; gap: 8px; margin-bottom: 0;">
+          <input type="text" id="search-songs" class="search-input" style="flex: 1;" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
+          <button id="btn-open-new-song" class="btn btn-primary" style="white-space: nowrap; font-weight: 800;" onclick="showNewSongForm()">➕ Nuovo / Importa</button>
+        </div>
       </div>
 
       <!-- INLINE TOUCH FORM: NUOVO BRANO / IMPORTAZIONE RAPIDA -->

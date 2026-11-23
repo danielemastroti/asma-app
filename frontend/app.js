@@ -423,6 +423,29 @@ function initServiceWorker() {
   }
 }
 
+function syncStickyBarsHeights() {
+  try {
+    const topNav = document.getElementById('top-nav-sticky-wrapper');
+    if (topNav) {
+      const rect = topNav.getBoundingClientRect();
+      const h = rect.height || topNav.offsetHeight;
+      if (h > 0) {
+        document.documentElement.style.setProperty('--top-nav-height', `${Math.round(h)}px`);
+      }
+    }
+    const songsToolbar = document.getElementById('songs-sticky-toolbar');
+    if (songsToolbar) {
+      const rect = songsToolbar.getBoundingClientRect();
+      const sh = rect.height || songsToolbar.offsetHeight;
+      if (sh > 0) {
+        document.documentElement.style.setProperty('--songs-toolbar-height', `${Math.round(sh)}px`);
+      }
+    }
+  } catch (e) {
+    console.debug('syncStickyBarsHeights error:', e);
+  }
+}
+
 function initNav() {
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -439,6 +462,12 @@ function initNav() {
       renderSongCards(e.target.value.trim().toLowerCase());
     });
   }
+
+  window.addEventListener('resize', syncStickyBarsHeights, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(syncStickyBarsHeights, 150);
+  }, { passive: true });
+  syncStickyBarsHeights();
 }
 
 function initHistoryNavigation() {
@@ -500,6 +529,7 @@ function switchTab(tabName, { skipHistory = false } = {}) {
   } else if (tabName === 'songs') {
     loadRepertoires();
   }
+  requestAnimationFrame(() => syncStickyBarsHeights());
 }
 
 function isOwnPersonalRepertoire(rep) {
@@ -1151,6 +1181,7 @@ function renderRepertoireChips() {
     adminBtn.style.display = (isAdmin && isEditingMode()) ? 'inline-block' : 'none';
   }
   updateTopDownloadPdfButton();
+  requestAnimationFrame(() => syncStickyBarsHeights());
 }
 
 let _selectSongSeq = 0;
