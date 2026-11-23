@@ -332,12 +332,24 @@ class TestStorageManager(unittest.TestCase):
 
     def test_batch_sync_songs_bpm(self):
         """Batch sync BPM updates from SongBPM or falls back to default 120."""
+        from unittest.mock import patch
         s = Song(title="Knock On Wood", artist="Amii Stewart", bpm=120)
         self.storage.save_song(s)
-        res = self.storage.batch_sync_songs_bpm([s.uuid])
+        with patch("asma_core.ai_service.BandAIService.fetch_songbpm_info", return_value={"bpm": 140}):
+            res = self.storage.batch_sync_songs_bpm([s.uuid])
         self.assertEqual(res["total"], 1)
         s_reloaded = self.storage.get_song(s.uuid)
         self.assertEqual(s_reloaded.bpm, 140)
+
+    def test_list_songs_includes_aml_content_for_offline(self):
+        """Verifies that list_songs() returns aml_content for all indexed songs to support offline snapshot."""
+        s = Song(title="Test Offline Song", artist="Test Artist", aml_content="{title: Test Offline Song}\n[C]Test line")
+        self.storage.save_song(s)
+        songs = self.storage.list_songs()
+        found = next((item for item in songs if item["uuid"] == s.uuid), None)
+        self.assertIsNotNone(found)
+        self.assertIn("aml_content", found)
+        self.assertIn("[C]Test line", found["aml_content"])
 
 
 if __name__ == "__main__":

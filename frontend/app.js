@@ -1812,23 +1812,85 @@ function renderSongViewer() {
   }
 }
 
+// ----------------------------------------------------------------------------
+// PDF PREVIEW OFFLINE CACHE (Session & Local Cache)
+// ----------------------------------------------------------------------------
+const _pdfPreviewMemoryCache = new Map();
+
+function getPdfCacheKey(songUuid, device, hasChords, transpose = 0) {
+  return `asma_pdf_cache_${songUuid}_${device}_${hasChords ? 'chords' : 'lyrics'}_t${transpose || 0}`;
+}
+
+function savePdfPreviewCache(songUuid, device, hasChords, transpose, data) {
+  if (!songUuid || !data || !data.pages) return;
+  const key = getPdfCacheKey(songUuid, device, hasChords, transpose);
+  _pdfPreviewMemoryCache.set(key, data);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    // Quota reached or private mode; memory cache is still active
+  }
+}
+
+function getPdfPreviewCache(songUuid, device, hasChords, transpose = 0) {
+  if (!songUuid) return null;
+  const key = getPdfCacheKey(songUuid, device, hasChords, transpose);
+  if (_pdfPreviewMemoryCache.has(key)) {
+    return _pdfPreviewMemoryCache.get(key);
+  }
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      _pdfPreviewMemoryCache.set(key, parsed);
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function loadSongPdfPreview(songUuid, retryCount = 0) {
   const hasChords = state.scoreMode === 'chords';
   const container = document.getElementById('printable-lyrics');
   if (!container) return;
 
+  // 1. Check if cached PDF preview is available
+  const cachedData = getPdfPreviewCache(songUuid, state.activeDevice, hasChords, 0);
+  let renderedFromCache = false;
+
+  if (cachedData && cachedData.pages && cachedData.pages.length > 0) {
+    if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
+      container.innerHTML = `
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; font-size: 12px; color: #38bdf8; display: flex; align-items: center; justify-content: space-between;">
+          <span>📄 <b>Spartito PDF da Cache Offline</b> (${escapeHtml(cachedData.device || state.activeDevice)})</span>
+          <span style="color: #94a3b8; font-size: 11px;">Caricato dalla memoria locale</span>
+        </div>
+        <div class="pdf-pages-container">
+          ${cachedData.pages.map((b64, idx) => `
+            <div class="pdf-page-wrapper">
+              <img src="${b64}" class="pdf-page-img" alt="Pagina ${idx + 1} di ${cachedData.total_pages}" />
+              <div class="pdf-page-badge">Pagina ${idx + 1} di ${cachedData.total_pages} &bull; Profilo ${escapeHtml(cachedData.device || state.activeDevice)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      renderedFromCache = true;
+    }
+  }
+
   try {
     const p = state.userPrefs;
     const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&_v=${Date.now()}`;
     
-    // Timeout a 12s per gestire risvegli o latenze
+    // Timeout a 8s per gestire risvegli o offline
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (res.ok) {
       const data = await res.json();
+      savePdfPreviewCache(songUuid, state.activeDevice, hasChords, 0, data);
       if (state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
         if (!data.pages || data.pages.length === 0) {
           throw new Error('Nessuna pagina generata');
@@ -1849,8 +1911,9 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
     }
   } catch (err) {
     console.warn('PDF preview error:', err);
-    if (retryCount < 1 && state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf') {
-      // 1 tentativo di riprova automatica dopo 1.2s per gestire cold-start
+    if (renderedFromCache) return;
+    if (retryCount < 1 && state.selectedSong && state.selectedSong.uuid === songUuid && state.songViewType === 'pdf' && navigator.onLine) {
+      // 1 tentativo di riprova automatica dopo 1.2s se online per gestire cold-start
       setTimeout(() => loadSongPdfPreview(songUuid, retryCount + 1), 1200);
       return;
     }
@@ -1860,7 +1923,7 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
         <div style="padding: 24px 16px; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; margin: 16px 0;">
           <div style="font-size: 24px; margin-bottom: 8px;">${isOff ? '🟡' : '⚠️'}</div>
           <div style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">${isOff ? 'Modalità Offline Attiva' : "Impossibile caricare l'anteprima PDF"}</div>
-          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">${isOff ? 'Il rendering grafico del PDF richiede il server, ma il brano è visualizzabile subito al 100% in formato Testo Web e in Modalità Palco.' : 'Il server cloud potrebbe essere in fase di risveglio o la connessione è rallentata.'}</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">${isOff ? 'Il rendering grafico del PDF richiede il server o pre-cache, ma il brano è visualizzabile subito al 100% in formato Testo Web e in Modalità Palco.' : 'Il server cloud potrebbe essere in fase di risveglio o la connessione è rallentata.'}</div>
           <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
             <button class="btn btn-primary" style="font-weight: 800; min-height: 36px; padding: 4px 14px;" onclick="setSongViewType('web')">📝 Apri Vista Testo Web</button>
             <button class="btn btn-secondary" style="min-height: 36px; padding: 4px 14px;" onclick="startSingleSongStage()">🎤 Avvia Modalità Palco</button>
@@ -4659,6 +4722,13 @@ async function executeShareA4(action = 'whatsapp') {
 // ----------------------------------------------------------------------------
 function startSingleSongStage() {
   if (!state.selectedSong) return;
+  // Resilience: ensure aml_content is present from state.songs or snapshot
+  if (!state.selectedSong.aml_content && state.songs) {
+    const fullSong = state.songs.find(s => s.uuid === state.selectedSong.uuid);
+    if (fullSong && fullSong.aml_content) {
+      state.selectedSong.aml_content = fullSong.aml_content;
+    }
+  }
   state.stageSongs = [{
     ...state.selectedSong,
     _baseAml: state.selectedSong.aml_content,
@@ -4759,9 +4829,89 @@ async function transposeStageLive(semitones) {
   showToast(label);
 }
 
+function _renderPdfPagesInStageContainer(container, data, scrollToBottom, prevScroll, isFromCache = false) {
+  container.innerHTML = `
+    ${isFromCache ? `
+      <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 6px 12px; margin: 6px 12px 10px 12px; font-size: 12px; color: #38bdf8; display: flex; align-items: center; justify-content: space-between;">
+        <span>📄 <b>Spartito PDF da Cache Offline</b> (${escapeHtml(data.device || state.activeDevice)})</span>
+        <span style="color: #94a3b8; font-size: 11px;">Pronto per il palco</span>
+      </div>
+    ` : ''}
+    <div class="stage-pdf-container">
+      ${data.pages.map((b64, idx) => `
+        <div class="stage-pdf-page" id="stage-pdf-page-${idx}" data-page-index="${idx}" style="position: relative;">
+          <img src="${b64}" alt="Pagina ${idx + 1} di ${data.total_pages}" />
+          ${data.total_pages > 1 ? `
+            <div style="position: absolute; top: 10px; right: 12px; background: rgba(15, 23, 42, 0.85); color: #ffd600; font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); pointer-events: none; border: 1px solid rgba(255, 214, 0, 0.4);">
+              Pag. ${idx + 1} / ${data.total_pages}
+            </div>
+          ` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  if (scrollToBottom) {
+    setTimeout(() => {
+      const pages = container.querySelectorAll('.stage-pdf-page');
+      if (pages.length > 0) {
+        const lastPage = pages[pages.length - 1];
+        const containerRect = container.getBoundingClientRect();
+        const pageRect = lastPage.getBoundingClientRect();
+        const target = Math.max(0, container.scrollTop + (pageRect.top - containerRect.top) - 6);
+        container.scrollTop = target;
+        scrollAccumulator = target;
+      }
+    }, 40);
+  } else {
+    container.scrollTop = prevScroll;
+    scrollAccumulator = prevScroll;
+  }
+}
+
+function _renderStageOfflineFallback(container, currentSong, prevScroll, scrollToBottom) {
+  let teleprompterHtml = '';
+  try {
+    teleprompterHtml = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
+  } catch (e) {
+    teleprompterHtml = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
+  }
+  const offlineNotice = `
+    <div class="stage-offline-pill" style="background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 8px; padding: 10px 14px; margin: 10px 14px 16px 14px; color: #93c5fd; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📡</span>
+        <div>
+          <span style="font-weight: 700; color: #fff;">Modalità Palco Offline</span> &bull; Spartito PDF non pre-caricato in cache.
+          <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Teleprompter notturno attivo con accordi e testo completi al 100%.</div>
+        </div>
+      </div>
+      <button onclick="toggleStageViewType()" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap;">Passa a Teleprompter</button>
+    </div>
+  `;
+  container.innerHTML = offlineNotice + teleprompterHtml;
+  if (scrollToBottom) {
+    setTimeout(() => {
+      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+      container.scrollTop = maxScroll;
+      scrollAccumulator = maxScroll;
+    }, 40);
+  } else {
+    container.scrollTop = prevScroll;
+    scrollAccumulator = prevScroll;
+  }
+}
+
 async function renderStageSong(currentSong, { resetScroll = false, scrollToBottom = false } = {}) {
   const container = document.getElementById('stage-lyrics');
   if (!container || !currentSong) return;
+
+  // Resilience: ensure currentSong has aml_content
+  if (!currentSong.aml_content) {
+    const backup = (state.songs || []).find(s => s.uuid === currentSong.uuid) || state.selectedSong;
+    if (backup && backup.aml_content) {
+      currentSong.aml_content = backup.aml_content;
+      currentSong._baseAml = backup.aml_content;
+    }
+  }
 
   updateStageViewButton();
   updateStageScoreModeButton();
@@ -4771,65 +4921,46 @@ async function renderStageSong(currentSong, { resetScroll = false, scrollToBotto
   const prevScroll = resetScroll ? 0 : (container.scrollTop || 0);
 
   if (state.stageViewType === 'pdf') {
-    container.innerHTML = `<div style="text-align:center; padding:50px 16px; color:#94a3b8;"><div style="font-size:32px; margin-bottom:10px;">⏳</div>Caricamento spartito PDF per il palco...</div>`;
+    const hasChords = state.scoreMode === 'chords';
+    const stageDelta = currentSong._stageDelta || 0;
+
+    // Check offline cache first
+    const cachedData = getPdfPreviewCache(currentSong.uuid, state.activeDevice, hasChords, stageDelta);
+    let renderedFromCache = false;
+
+    if (cachedData && cachedData.pages && cachedData.pages.length > 0) {
+      _renderPdfPagesInStageContainer(container, cachedData, scrollToBottom, prevScroll, true);
+      renderedFromCache = true;
+    } else {
+      container.innerHTML = `<div style="text-align:center; padding:50px 16px; color:#94a3b8;"><div style="font-size:32px; margin-bottom:10px;">⏳</div>Caricamento spartito PDF per il palco...</div>`;
+    }
+
     try {
-      const hasChords = state.scoreMode === 'chords';
       const p = state.userPrefs;
-      const stageDelta = currentSong._stageDelta || 0;
       const url = `${API_BASE}/api/songs/${currentSong.uuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&transpose=${stageDelta}&_v=${Date.now()}`;
-      const res = await fetch(url);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const data = await res.json();
-        container.innerHTML = `
-          <div class="stage-pdf-container">
-            ${data.pages.map((b64, idx) => `
-              <div class="stage-pdf-page" id="stage-pdf-page-${idx}" data-page-index="${idx}" style="position: relative;">
-                <img src="${b64}" alt="Pagina ${idx + 1} di ${data.total_pages}" />
-                ${data.total_pages > 1 ? `
-                  <div style="position: absolute; top: 10px; right: 12px; background: rgba(15, 23, 42, 0.85); color: #ffd600; font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); pointer-events: none; border: 1px solid rgba(255, 214, 0, 0.4);">
-                    Pag. ${idx + 1} / ${data.total_pages}
-                  </div>
-                ` : ''}
-              </div>
-            `).join('')}
-          </div>
-        `;
-        if (scrollToBottom) {
-          setTimeout(() => {
-            const pages = container.querySelectorAll('.stage-pdf-page');
-            if (pages.length > 0) {
-              const lastPage = pages[pages.length - 1];
-              const containerRect = container.getBoundingClientRect();
-              const pageRect = lastPage.getBoundingClientRect();
-              const target = Math.max(0, container.scrollTop + (pageRect.top - containerRect.top) - 6);
-              container.scrollTop = target;
-              scrollAccumulator = target;
-            }
-          }, 40);
-        } else {
-          container.scrollTop = prevScroll;
-          scrollAccumulator = prevScroll;
-        }
+        savePdfPreviewCache(currentSong.uuid, state.activeDevice, hasChords, stageDelta, data);
+        _renderPdfPagesInStageContainer(container, data, scrollToBottom, prevScroll, false);
       } else {
-        try {
-          container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
-        } catch (e) {
-          container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
+        if (!renderedFromCache) {
+          _renderStageOfflineFallback(container, currentSong, prevScroll, scrollToBottom);
         }
-        container.scrollTop = prevScroll;
-        scrollAccumulator = prevScroll;
       }
     } catch (err) {
-      console.error('Stage PDF preview error:', err);
-      try {
-        container.innerHTML = parseAmlForWeb(currentSong.aml_content, state.scoreMode === 'chords');
-      } catch (e) {
-        container.innerHTML = `<pre style="padding: 20px; color: #fff;">${escapeHtml(currentSong.aml_content || '')}</pre>`;
+      console.warn('Stage PDF preview fetch failed (offline or network error):', err);
+      if (!renderedFromCache) {
+        _renderStageOfflineFallback(container, currentSong, prevScroll, scrollToBottom);
       }
-      container.scrollTop = prevScroll;
-      scrollAccumulator = prevScroll;
     }
   } else {
+    // TELEPROMPTER VIEW
     try {
       const savedStageSize = localStorage.getItem('asma_stage_font_size');
       if (savedStageSize) {
@@ -5322,11 +5453,18 @@ async function loadSetlists() {
     const res = await fetch(`${API_BASE}/api/setlists?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
       state.setlists = await res.json();
+      saveOfflineSnapshot(SNAPSHOT_KEYS.SETLISTS, state.setlists);
       renderSetlists();
       renderDashboard();
     }
   } catch (err) {
-    console.warn('Setlists error:', err);
+    console.warn('Setlists error, loading from local snapshot:', err);
+    const cached = loadOfflineSnapshot(SNAPSHOT_KEYS.SETLISTS);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      state.setlists = cached;
+      renderSetlists();
+      renderDashboard();
+    }
   }
 }
 
@@ -5778,34 +5916,58 @@ async function deleteSetlist(uuid) {
 }
 
 async function loadAndPlaySetlist(uuid) {
+  let data = null;
   try {
     const res = await fetch(`${API_BASE}/api/setlists/${uuid}`);
     if (res.ok) {
-      const data = await res.json();
-      state.selectedSetlist = data;
-      state.stageSongs = [];
-      for (let item of data.items) {
-        const sRes = await fetch(`${API_BASE}/api/songs/${item.song_uuid}`);
-        if (sRes.ok) {
-          const sObj = await sRes.json();
-          state.stageSongs.push({
-            ...sObj,
-            _baseAml: sObj.aml_content,
-            _baseKey: sObj.key_current,
-            _stageDelta: 0
-          });
-        }
-      }
-      if (state.stageSongs.length > 0) {
-        state.stageIndex = 0;
-        openStageModal();
-        showToast(`Scaletta caricata: ${data.title} (${state.stageSongs.length} brani)`);
-      } else {
-        showToast('Questa scaletta non contiene brani');
-      }
+      data = await res.json();
     }
   } catch (err) {
-    console.error('Setlist play error:', err);
+    console.warn('Setlist play fetch failed (offline), falling back to snapshot:', err);
+  }
+
+  if (!data) {
+    data = (state.setlists || []).find(s => s.uuid === uuid);
+  }
+  if (!data) {
+    const cachedSetlists = loadOfflineSnapshot(SNAPSHOT_KEYS.SETLISTS);
+    if (cachedSetlists && Array.isArray(cachedSetlists)) {
+      data = cachedSetlists.find(s => s.uuid === uuid);
+    }
+  }
+
+  if (data) {
+    state.selectedSetlist = data;
+    state.stageSongs = [];
+    for (let item of (data.items || [])) {
+      let sObj = null;
+      try {
+        const sRes = await fetch(`${API_BASE}/api/songs/${item.song_uuid}`);
+        if (sRes.ok) sObj = await sRes.json();
+      } catch (e) {}
+
+      if (!sObj) {
+        sObj = (state.songs || []).find(s => s.uuid === item.song_uuid);
+      }
+
+      if (sObj) {
+        state.stageSongs.push({
+          ...sObj,
+          _baseAml: sObj.aml_content,
+          _baseKey: sObj.key_current,
+          _stageDelta: 0
+        });
+      }
+    }
+    if (state.stageSongs.length > 0) {
+      state.stageIndex = 0;
+      openStageModal();
+      showToast(`Scaletta caricata: ${data.title} (${state.stageSongs.length} brani)`);
+    } else {
+      showToast('Questa scaletta non contiene brani');
+    }
+  } else {
+    showToast('Impossibile caricare la scaletta');
   }
 }
 

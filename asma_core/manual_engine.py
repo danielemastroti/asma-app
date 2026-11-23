@@ -1119,6 +1119,7 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Pedaliere Bluetooth HID:</b> Supporto nativo per AirTurn, PageFlip, BlueTurn e tastiere (PageDown/PageUp, frecce, tasti 1 e 2).", bullet_style))
         story.append(Paragraph("&bull; <b>Keep Screen Awake:</b> Mantiene lo schermo sempre acceso per l'intera durata dell'esibizione.", bullet_style))
         story.append(Paragraph("&bull; <b>Metronomo Audio & Visivo:</b> Click Web Audio API a latenza zero (<1 ms) con indicatore a lampeggio visivo del quarto.", bullet_style))
+        story.append(Paragraph("&bull; <b>Operatività Palco 100% Offline & Cache PDF:</b> In assenza di rete (seminterrati, sale prove o palchi all'aperto), la Modalità Palco garantisce l'avvio a latenza zero. L'intero catalogo viene caricato dallo snapshot locale con accordi e testi completi. Se lo spartito PDF è stato pre-caricato sul dispositivo, viene renderizzato all'istante dalla cache offline; se non ancora in cache, il sistema attiva automaticamente la visualizzazione Teleprompter notturno OLED ad alto contrasto con accordi e autoscroll fluido senza mai mostrare schermate vuote.", bullet_style))
 
         # Embedded screenshot: palco
         fig_palco_path = _resolve_asset_path("frontend/assets/manual/fig_modalita_palco.png")
