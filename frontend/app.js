@@ -1870,6 +1870,7 @@ function renderSongViewer() {
   const officialRep = state.repertoires.find(r => r.is_official);
   const isInOfficial = officialRep && officialRep.song_uuids && officialRep.song_uuids.includes(s.uuid);
   const editing = isEditingMode();
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
   const promoteBtn = (editing && !isInOfficial && officialRep) ? 
     `<button class="btn btn-secondary" style="color: #ffd600; border-color: #ffd600; font-weight: 800;" onclick="promoteSongToOfficial('${s.uuid}')" title="Sposta nel Repertorio Ufficiale Band (se già presente su Ufficiale lo sovrascrive ed elimina questa copia personale)">⭐ Promuovi a Ufficiale</button>` : '';
 
@@ -1881,7 +1882,7 @@ function renderSongViewer() {
   let editingActionsHtml = '';
   if (editing) {
     if (isInOfficial) {
-      const adminDeleteBtn = (typeof isCurrentUserAdmin === 'function' && isCurrentUserAdmin()) ? `
+      const adminDeleteBtn = isAdmin ? `
         <button class="btn btn-danger" onclick="deleteSongWithUndo('${s.uuid}')" title="Elimina brano dal Repertorio Ufficiale Band (Richiede conferma Admin)">🗑️ Elimina dall'Ufficiale</button>` : '';
       editingActionsHtml = `
         <button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="openAddToSetlistModal('${s.uuid}')" title="Aggiungi questo brano a una scaletta">📑 + Scaletta</button>
@@ -2050,8 +2051,11 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
   }
 
   try {
-    const p = state.userPrefs;
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(state.activeDevice)}&email=${encodeURIComponent(state.currentUser.email)}&user_name=${encodeURIComponent(state.currentUser.name || '')}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&_v=${Date.now()}`;
+    const p = state.userPrefs || {};
+    const userEmail = (state.currentUser && state.currentUser.email) || '';
+    const userName = (state.currentUser && state.currentUser.name) || '';
+    const dev = state.activeDevice || 'Huawei MediaPad M5';
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(dev)}&email=${encodeURIComponent(userEmail)}&user_name=${encodeURIComponent(userName)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&_v=${Date.now()}`;
     
     // Timeout a 8s per gestire risvegli o offline
     const controller = new AbortController();
