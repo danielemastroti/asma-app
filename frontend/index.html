@@ -73,7 +73,8 @@
         </button>
         <div class="user-badge" onclick="switchTab('settings')" title="Tocca per configurare profilo e spartiti">
           <span>👤</span>
-          <span id="current-user-name">Cico</span>
+          <span id="current-user-name"></span>
+          <script>try{var _u=localStorage.getItem('asma_user_name');if(_u)document.getElementById('current-user-name').textContent=_u;}catch(e){}</script>
           <span style="font-size:10px; color:#38bdf8;">⚙️</span>
         </div>
         <button type="button" class="btn btn-secondary header-btn" style="min-height: 30px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;" onclick="logoutGoogle()" title="Esci dall'account Google">
@@ -99,7 +100,8 @@
       <div class="dash-hero">
         <div class="dash-hero-text">
           <div class="dash-eyebrow">⚡ BAND LIVE WORKSPACE</div>
-          <h1 class="dash-title">Ciao, <span id="dash-user-name">Cico</span> 👋</h1>
+          <h1 class="dash-title">Ciao, <span id="dash-user-name"></span> 👋</h1>
+          <script>try{var _u=localStorage.getItem('asma_user_name');if(_u)document.getElementById('dash-user-name').textContent=_u;}catch(e){}</script>
           <p class="dash-subtitle">
             Profilo hardware attivo: <strong id="dash-device-name" style="color: var(--accent-cyan);">Huawei MediaPad M5</strong>
             &bull; Archivio sincronizzato in cloud
@@ -523,7 +525,7 @@ girano in centro sfiorando i novanta"></textarea>
             <div id="setting-musician-row" class="control-row">
               <label class="control-label">Musicista:</label>
               <select id="setting-musician-select" class="search-input" style="flex:1; max-width:200px;" onchange="onMusicianChange(this.value)">
-                <option value="acicchelli65@gmail.com" selected>Cico (Cantante)</option>
+                <option value="acicchelli65@gmail.com">Cico (Cantante)</option>
                 <option value="danyposta@gmail.com">Sentimental (Admin)</option>
                 <option value="maurobovolenta4@gmail.com">Maurino</option>
                 <option value="gv.drummer69@gmail.com">Mingo</option>

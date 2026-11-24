@@ -32,8 +32,12 @@ const state = {
   selectedSong: null,
   setlists: [],
   selectedSetlist: null,
-  scoreMode: savedScoreMode || 'lyrics', // Default to 'lyrics' for Cico/singer
-  currentUser: { email: savedUserEmail || 'acicchelli65@gmail.com', name: savedUserName || 'Cico', role: 'BAND_MEMBER' },
+  scoreMode: savedScoreMode || 'chords',
+  currentUser: {
+    email: savedUserEmail || '',
+    name: savedUserName || '',
+    role: (savedUserEmail === 'danyposta@gmail.com' || savedUserEmail === 'danyposta@yahoo.it') ? 'ADMIN' : 'BAND_MEMBER'
+  },
   activeDevice: savedDevice || (() => {
     try {
       const cp = localStorage.getItem('asma_user_prefs');
@@ -281,6 +285,13 @@ function initConnectionListeners() {
 // INITIALIZATION
 // ----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
+  const initialName = state.currentUser.name || savedUserName;
+  if (initialName) {
+    const nameSpan = document.getElementById('current-user-name');
+    if (nameSpan) nameSpan.textContent = initialName;
+    const dashUser = document.getElementById('dash-user-name');
+    if (dashUser) dashUser.textContent = initialName;
+  }
   initServiceWorker();
   initNav();
   initHistoryNavigation();
@@ -3077,8 +3088,8 @@ async function saveAndApplyMedleyFormatting() {
         device: targetDev,
         custom_breaks: Array.from(medleyFormatterState.activeBreaks),
         aml_content: formattedAml,
-        user_email: state.currentUser?.email || 'cico@band.org',
-        user_name: state.currentUser?.name || 'Cico',
+        user_email: state.currentUser?.email || 'musicista@band.org',
+        user_name: state.currentUser?.name || 'Musicista',
         repertoire_uuid: state.activeRepertoire !== '__ALL__' ? state.activeRepertoire : null,
         save_to_db: true
       };
@@ -3283,8 +3294,8 @@ async function executeVisionTranscription() {
 
     const payload = {
       images: processedImages,
-      user_email: state.currentUser ? state.currentUser.email : 'cico@band.org',
-      user_name: state.currentUser ? state.currentUser.name : 'Cico'
+      user_email: state.currentUser ? state.currentUser.email : 'musicista@band.org',
+      user_name: state.currentUser ? state.currentUser.name : 'Musicista'
     };
 
     const res = await fetch(`${API_BASE}/api/songs/import-vision`, {
