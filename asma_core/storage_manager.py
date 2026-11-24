@@ -114,7 +114,8 @@ class StorageManager:
                     completeness_ratio REAL,
                     official_lyrics TEXT,
                     previous_content TEXT,
-                    previous_status TEXT
+                    previous_status TEXT,
+                    previous_ratio REAL
                 )
             """)
             for col_name, col_type in [
@@ -124,6 +125,7 @@ class StorageManager:
                 ("official_lyrics", "TEXT"),
                 ("previous_content", "TEXT"),
                 ("previous_status", "TEXT"),
+                ("previous_ratio", "REAL"),
             ]:
                 try:
                     self._db_conn.execute(f"ALTER TABLE songs_index ADD COLUMN {col_name} {col_type}")
@@ -209,8 +211,8 @@ class StorageManager:
                     key_original, key_current, notation_system, tags,
                     current_revision, created_at, updated_at, is_deleted,
                     repertoire_uuids, aml_content, completeness_status, completeness_ratio,
-                    official_lyrics, previous_content, previous_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    official_lyrics, previous_content, previous_status, previous_ratio
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 song.uuid, clean_title, song.artist, song.author, song.genre, song.year,
                 song.duration_seconds, song.bpm, song.time_signature, song.capo,
@@ -221,7 +223,8 @@ class StorageManager:
                 ratio_val,
                 getattr(song, "official_lyrics", "") or "",
                 getattr(song, "previous_content", "") or "",
-                getattr(song, "previous_status", "") or ""
+                getattr(song, "previous_status", "") or "",
+                getattr(song, "previous_ratio", None)
             ))
 
     def _delete_index_record(self, song_uuid: str) -> None:

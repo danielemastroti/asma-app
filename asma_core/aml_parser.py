@@ -348,6 +348,11 @@ class AMLParser:
                     idx += 1
                     continue
 
+            # Ignore AI autocompletion boundary markers in PDF and AST parsing
+            if re.match(r"^\[/?AUTO-COMPLETATO(?:\s*.*)?\]$", line, re.IGNORECASE):
+                idx += 1
+                continue
+
             # Check for bracketed section header on its own line: [INTRO], [STROFA], [RIT], [RITORNELLO], [VERSE], [CHORUS], etc.
             bracket_sec_match = re.match(
                 r"^\[(INTRO|STROFA|VERSE|RITORNELLO|RIT\.?|CHORUS|BRIDGE|PONTE|SOLO|ASSOLO|STACCO|OUTRO|FINALE|CODA|INTERLUDE|PRE-CHORUS|STRUMENTALE|INTERMEZZO|END|FINE)(?:\s*[:\-]?\s*(.*?))?\](?:\s*\(?[xX]?\d+[xX]?\)?)?$",

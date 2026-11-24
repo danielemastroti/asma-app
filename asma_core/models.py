@@ -63,6 +63,7 @@ class Song:
     official_lyrics: Optional[str] = None
     previous_content: Optional[str] = None
     previous_status: Optional[str] = None
+    previous_ratio: Optional[float] = None
     created_at: str = field(default_factory=current_iso_timestamp)
     updated_at: str = field(default_factory=current_iso_timestamp)
 

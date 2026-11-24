@@ -132,7 +132,8 @@ class TursoClient:
                     completeness_ratio REAL,
                     official_lyrics TEXT,
                     previous_content TEXT,
-                    previous_status TEXT
+                    previous_status TEXT,
+                    previous_ratio REAL
                 );
                 """,
                 """
@@ -242,7 +243,8 @@ class TursoClient:
                 "ALTER TABLE songs ADD COLUMN completeness_ratio REAL;",
                 "ALTER TABLE songs ADD COLUMN official_lyrics TEXT;",
                 "ALTER TABLE songs ADD COLUMN previous_content TEXT;",
-                "ALTER TABLE songs ADD COLUMN previous_status TEXT;"
+                "ALTER TABLE songs ADD COLUMN previous_status TEXT;",
+                "ALTER TABLE songs ADD COLUMN previous_ratio REAL;"
             ]:
                 try:
                     client.execute(col_sql)
@@ -328,8 +330,8 @@ class TursoClient:
                 time_signature, capo, key_original, key_current, notation_system,
                 tags, shared_notes, aml_content, lock_status, current_revision,
                 created_at, updated_at, is_deleted, completeness_status, completeness_ratio,
-                official_lyrics, previous_content, previous_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                official_lyrics, previous_content, previous_status, previous_ratio
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(uuid) DO UPDATE SET
                 title=excluded.title,
                 artist=excluded.artist,
@@ -354,7 +356,8 @@ class TursoClient:
                 completeness_ratio=excluded.completeness_ratio,
                 official_lyrics=excluded.official_lyrics,
                 previous_content=excluded.previous_content,
-                previous_status=excluded.previous_status;
+                previous_status=excluded.previous_status,
+                previous_ratio=excluded.previous_ratio;
             """
             client.execute(sql, [
                 song_dict.get("uuid"),
@@ -382,7 +385,8 @@ class TursoClient:
                 song_dict.get("completeness_ratio"),
                 song_dict.get("official_lyrics", "") or "",
                 song_dict.get("previous_content", "") or "",
-                song_dict.get("previous_status", "") or ""
+                song_dict.get("previous_status", "") or "",
+                song_dict.get("previous_ratio")
             ])
             client.close()
             return True, f"Brano '{song_dict.get('title')}' salvato su Turso."
@@ -410,7 +414,7 @@ class TursoClient:
                    time_signature, capo, key_original, key_current, notation_system,
                    tags, shared_notes, aml_content, lock_status, current_revision,
                    created_at, updated_at, is_deleted, completeness_status,
-                   completeness_ratio, official_lyrics, previous_content, previous_status
+                   completeness_ratio, official_lyrics, previous_content, previous_status, previous_ratio
             FROM songs
             WHERE is_deleted = 0;
             """
@@ -445,7 +449,8 @@ class TursoClient:
                     "completeness_ratio": float(r[22]) if len(r) > 22 and r[22] is not None else None,
                     "official_lyrics": r[23] if len(r) > 23 and r[23] else "",
                     "previous_content": r[24] if len(r) > 24 and r[24] else "",
-                    "previous_status": r[25] if len(r) > 25 and r[25] else ""
+                    "previous_status": r[25] if len(r) > 25 and r[25] else "",
+                    "previous_ratio": float(r[26]) if len(r) > 26 and r[26] is not None else None
                 })
             client.close()
             return songs

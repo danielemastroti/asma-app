@@ -273,6 +273,7 @@ class PDFEngine:
 
         # 2. Parse AML Document and Render Flowables
         aml_source = song.aml_content or ""
+        aml_source = re.sub(r'\[/?AUTO-COMPLETATO\]\n?', '', aml_source, flags=re.IGNORECASE)
         is_a4 = (
             getattr(prof, "target_device", "") == "pc_a4"
             or getattr(prof, "device_type", "") == "printable_a4"
@@ -468,6 +469,7 @@ class PDFEngine:
             story.append(Spacer(1, 4 * mm))
 
             aml_text = BandAIService.ensure_section_spacing_aml(s.aml_content)
+            aml_text = re.sub(r'\[/?AUTO-COMPLETATO\]\n?', '', aml_text, flags=re.IGNORECASE)
             aml_doc = AMLParser.parse(aml_text)
             # If item has custom transposition key, transpose document
             if item.custom_key and item.custom_key != s.key_current:

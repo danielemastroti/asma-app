@@ -331,6 +331,7 @@ REGOLE TASSATIVE:
    [/AUTO-COMPLETATO]
 6. Restituisci l'INTERO spartito AML finale (lo spartito originale inalterato seguito dal blocco completato [AUTO-COMPLETATO]...[/AUTO-COMPLETATO]).
 7. Non aggiungere commenti introduttivi né conclusivi, rispondi ESCLUSIVAMENTE con il testo AML completo.
+8. Se lo SPARTITO ATTUALE conteneva il tag [END] prima delle sezioni mancanti, rimuovilo dalla posizione intermedia e posizionalo esclusivamente alla fine assoluta del brano dopo le sezioni aggiunte.
 """
 
         payload = {
@@ -365,12 +366,14 @@ REGOLE TASSATIVE:
                                 out_text = re.sub(r"^```[a-zA-Z]*\n", "", out_text)
                                 out_text = re.sub(r"\n```$", "", out_text).strip()
                                 if "[AUTO-COMPLETATO]" in out_text:
-                                    return out_text, True
+                                    final_text = cls.ensure_end_tag_at_bottom(out_text)
+                                    return final_text, True
                                 # If LLM forgot the tag but added content, append the tag around the newly added tail
                                 if len(out_text.strip()) > len(aml_content.strip()) + 20:
                                     tail = out_text[len(aml_content):].strip()
                                     wrapped = aml_content.rstrip() + "\n\n[AUTO-COMPLETATO]\n" + tail + "\n[/AUTO-COMPLETATO]\n"
-                                    return wrapped, True
+                                    final_text = cls.ensure_end_tag_at_bottom(wrapped)
+                                    return final_text, True
                                 # If output matches or has no new sections, no modification needed
                                 return aml_content, False
             except urllib.error.HTTPError as he:
@@ -401,3 +404,18 @@ REGOLE TASSATIVE:
         # Clean extra redundant blank lines caused by tag removals
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip() + "\n"
+
+    @classmethod
+    def ensure_end_tag_at_bottom(cls, aml_content: str) -> str:
+        """
+        Ensures [END] is removed from any intermediate position in the song
+        (e.g. before [AUTO-COMPLETATO] or inside earlier sections) and placed at the very end.
+        """
+        if not aml_content:
+            return aml_content
+        has_end = bool(re.search(r'^\s*(\[END\]|\[FINE\]|\{end\}|\{fine\})\s*$', aml_content, re.IGNORECASE | re.MULTILINE))
+        if not has_end:
+            return aml_content
+        cleaned = re.sub(r'^\s*(\[END\]|\[FINE\]|\{end\}|\{fine\})\s*$\n?', '', aml_content, flags=re.IGNORECASE | re.MULTILINE)
+        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned).rstrip()
+        return cleaned + "\n\n[END]\n"

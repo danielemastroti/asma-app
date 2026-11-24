@@ -2778,12 +2778,30 @@ def undo_song_changes(uuid: str, req: UndoSongRequest):
 
     prev_c = song.previous_content
     prev_s = song.previous_status or "INCOMPLETO"
+    prev_r = getattr(song, "previous_ratio", None)
 
     # Save current as previous to allow toggle/redo
-    song.previous_content = song.aml_content
-    song.previous_status = song.completeness_status
+    curr_c = song.aml_content
+    curr_s = song.completeness_status
+    curr_r = song.completeness_ratio
+
     song.aml_content = prev_c
-    song.completeness_status = prev_s
+    song.previous_content = curr_c
+    song.previous_status = curr_s
+    song.previous_ratio = curr_r
+
+    if prev_r is not None:
+        song.completeness_ratio = prev_r
+        song.completeness_status = prev_s
+    elif CompletenessChecker.is_medley(song.title, song.aml_content):
+        song.completeness_status = "MEDLEY"
+        song.completeness_ratio = 1.0
+    else:
+        chk = CompletenessChecker.check_completeness(song.title, song.artist, song.aml_content)
+        song.completeness_status = chk["status"]
+        song.completeness_ratio = chk["completeness_ratio"]
+        if chk.get("official_lyrics"):
+            song.official_lyrics = chk["official_lyrics"]
 
     saved = storage.save_song(song, req.user_email, req.user_name or "Musicista", "Ripristino snapshot precedente (UNDO)")
     audit.log(
@@ -2919,6 +2937,7 @@ def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
         # Save snapshot for UNDO before modifying
         s.previous_content = s.aml_content
         s.previous_status = s.completeness_status
+        s.previous_ratio = s.completeness_ratio
 
         off_lyrics = s.official_lyrics or CompletenessChecker.fetch_official_lyrics_lrclib(s.title, s.artist) or ""
 
@@ -2995,6 +3014,7 @@ def admin_batch_finalize_songs(req: AdminBatchFinalizeRequest):
         # Save snapshot for UNDO before modifying
         s.previous_content = s.aml_content
         s.previous_status = s.completeness_status
+        s.previous_ratio = s.completeness_ratio
 
         # Clean tags and consolidate
         s.aml_content = CompletenessChecker.clean_autocompleted_tags(s.aml_content)

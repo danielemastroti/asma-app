@@ -46,8 +46,40 @@ Line 3"""
         self.assertIn("[MIm]Line added by AI", cleaned)
         self.assertIn("Line 1", cleaned)
 
+    def test_ensure_end_tag_at_bottom(self):
+        """Verifies [END] is moved from intermediate position to the end of the song."""
+        content = """[INTRO]
+[DO] [SOL]
+[END]
+[AUTO-COMPLETATO]
+[STROFA]
+[DO]Nuova strofa
+[/AUTO-COMPLETATO]"""
+        result = CompletenessChecker.ensure_end_tag_at_bottom(content)
+        self.assertTrue(result.endswith("[END]\n") or result.endswith("[END]"))
+        # Verify [END] is not in the middle before [AUTO-COMPLETATO]
+        middle = result[:result.rfind("[END]")]
+        self.assertNotIn("[END]", middle)
+
+    def test_aml_parser_ignores_autocompleted_tags(self):
+        """AML parser skips [AUTO-COMPLETATO] and [/AUTO-COMPLETATO] in AST generation."""
+        from asma_core.aml_parser import AMLParser, SectionNode, ChordLyricLineNode
+        aml = """[STROFA]
+[DO]Prima riga
+[AUTO-COMPLETATO]
+[SOL]Seconda riga
+[/AUTO-COMPLETATO]
+[END]"""
+        doc = AMLParser.parse(aml)
+        for node in doc.nodes:
+            if isinstance(node, SectionNode):
+                self.assertNotIn("AUTO-COMPLETATO", node.section_name.upper())
+            elif isinstance(node, ChordLyricLineNode):
+                for seg in node.segments:
+                    self.assertNotIn("AUTO-COMPLETATO", (seg.text or "").upper())
+
     def test_song_model_and_storage_persistence(self):
-        """Verifies new completeness and snapshot fields persist in StorageManager."""
+        """Verifies new completeness and snapshot fields (including previous_ratio) persist in StorageManager."""
         temp_dir = tempfile.mkdtemp()
         StorageManager._instance = None
         try:
@@ -60,7 +92,8 @@ Line 3"""
                 completeness_ratio=0.65,
                 official_lyrics="Official lyrics full version",
                 previous_content="[DO]Original content before AI",
-                previous_status="INCOMPLETO"
+                previous_status="INCOMPLETO",
+                previous_ratio=0.59
             )
             saved = storage.save_song(song, user_email="admin@test.com", user_name="Admin")
             loaded = storage.get_song(saved.uuid)
@@ -70,6 +103,7 @@ Line 3"""
             self.assertEqual(loaded.official_lyrics, "Official lyrics full version")
             self.assertEqual(loaded.previous_content, "[DO]Original content before AI")
             self.assertEqual(loaded.previous_status, "INCOMPLETO")
+            self.assertEqual(loaded.previous_ratio, 0.59)
         finally:
             StorageManager._instance = None
             shutil.rmtree(temp_dir, ignore_errors=True)

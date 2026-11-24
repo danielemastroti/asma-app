@@ -4367,21 +4367,9 @@ function parseAmlForWeb(aml, showChords) {
       continue;
     }
 
-    // AI Autocompletion markers
-    if (trimmed.toUpperCase() === '[AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[AUTO-COMPLETATO]')) {
-      if (inSection) {
-        html += '</div>';
-        inSection = false;
-      }
-      html += `<div class="ai-autocompleted-block"><div class="ai-autocompleted-badge">🤖 Sezione Aggiunta con AI (Verifica accordi)</div>`;
-      inSection = true;
-      continue;
-    }
-    if (trimmed.toUpperCase() === '[/AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[/AUTO-COMPLETATO]')) {
-      if (inSection) {
-        html += '</div>';
-        inSection = false;
-      }
+    // AI Autocompletion markers: visible ONLY in EDIT mode (textarea), suppressed in teleprompter, palco & web viewer
+    if (trimmed.toUpperCase() === '[AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[AUTO-COMPLETATO]') ||
+        trimmed.toUpperCase() === '[/AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[/AUTO-COMPLETATO]')) {
       continue;
     }
 
