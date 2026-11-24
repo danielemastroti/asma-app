@@ -2851,9 +2851,17 @@ def admin_audit_repertoire_completeness(req: AdminAuditCompletenessRequest):
             updated_songs.append(s.to_dict())
             continue
 
-        # Skip DEFINITIVO
-        if s.completeness_status == "DEFINITIVO":
-            skipped_definitivo += 1
+        # Skip DEFINITIVO and already COMPLETO songs (including those with [AUTO-COMPLETATO])
+        # This protects AI-completed songs and verified complete songs from automated LRCLIB ratio downgrades.
+        if s.completeness_status in ("DEFINITIVO", "COMPLETO") or "[AUTO-COMPLETATO]" in (s.aml_content or ""):
+            if s.completeness_status == "DEFINITIVO":
+                skipped_definitivo += 1
+            else:
+                if s.completeness_status != "COMPLETO":
+                    s.completeness_status = "COMPLETO"
+                    s.completeness_ratio = 1.0
+                    storage.save_song(s, req.user_email, "Admin", "Preservato stato COMPLETO (contiene sezioni AI)")
+                complete_count += 1
             updated_songs.append(s.to_dict())
             continue
 

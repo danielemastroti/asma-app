@@ -418,7 +418,24 @@ class TursoClient:
             FROM songs
             WHERE is_deleted = 0;
             """
-            res = client.execute(sql)
+            try:
+                res = client.execute(sql)
+            except Exception:
+                # If schema lacks new columns, run init_schema to migrate and retry
+                try:
+                    self.init_schema()
+                    res = client.execute(sql)
+                except Exception:
+                    fallback_sql = """
+                    SELECT uuid, title, artist, author, genre, year, duration_seconds, bpm,
+                           time_signature, capo, key_original, key_current, notation_system,
+                           tags, shared_notes, aml_content, lock_status, current_revision,
+                           created_at, updated_at, is_deleted, completeness_status,
+                           completeness_ratio, official_lyrics
+                    FROM songs
+                    WHERE is_deleted = 0;
+                    """
+                    res = client.execute(fallback_sql)
             songs = []
             for r in res.rows:
                 tags = json.loads(r[13]) if r[13] else []

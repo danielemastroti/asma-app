@@ -82,6 +82,8 @@ class StorageManager:
         default_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
         if data_dir is None and os.path.abspath(self._base_dir) == default_base and (self.turso_client.is_configured or self.gist_client.is_configured):
             try:
+                if self.turso_client.is_configured:
+                    self.turso_client.init_schema()
                 self.sync_from_cloud()
             except Exception:
                 pass
