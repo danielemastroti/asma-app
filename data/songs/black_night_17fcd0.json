@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 3,
+  "current_revision": 4,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.11,
+  "official_lyrics": "Black night\nIs not right\nI don't feel\nSo bright\nI don't care\nTo sit tight\nMaybe I'll find on the way down the line\nThat I'm free\nFree to be me\nBlack night is a long way from home\nI don't need\nA dark tree\nI don't want\nA rough sea\nI can't feel,\nI can't see.\nMaybe I'll find on the way down the line\nThat I'm free,\nFree to be me.\nBlack night is a long way from home.\n\nBlack night,\nBlack night\nI don't need\nBlack night\nI can't see\nDark night.\nMaybe I'll find on the way down the line\nThat I'm free,\nFree to be me.\nBlack night is a long way from home.",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.784798+00:00",
-  "updated_at": "2026-11-23T15:31:59.865956+00:00"
+  "updated_at": "2026-11-24T18:20:20.394800+00:00"
 }

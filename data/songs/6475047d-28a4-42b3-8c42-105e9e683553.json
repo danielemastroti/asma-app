@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.07,
+  "official_lyrics": "Apro gli occhi e ti penso\nEd ho in mente te\nEd ho in mente te\nIo cammino per le strade\nMa ho in mente te\nEd ho in mente te\n\nOgni mattina ed ogni sera\nEd ogni notte te\nIo lavoro più forte\nMa ho in mente te\nMa ho in mente te\nOgni mattina ed ogni sera\nEd ogni notte, te\n\nChe cos'ho nella testa\nChe cos'ho nelle scarpe\nNo, non so cos'è\nHo voglia di andare\nDi andarmene via\nNon voglio pensar\nMa poi ti penso\n\nApro gli occhi e ti penso\nEd ho in mente te\nEd ho in mente te\nEd ogni mattina ed ogni sera\nEd ogni notte, te",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-12T22:49:29.816807+00:00",
-  "updated_at": "2026-11-23T15:31:59.975958+00:00"
+  "updated_at": "2026-11-24T18:20:35.088363+00:00"
 }

@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 3,
+  "current_revision": 4,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.0,
+  "official_lyrics": "I see trees of green, red roses too\nI see them bloom for me and you\nAnd I think to myself\n\"What a wonderful world\"\n\nI see skies of blue and clouds of white\nThe bright blessed days, the dark sacred nights\nAnd I think to myself\n\"What a wonderful world\"\n\nThe colors of the rainbow\nSo pretty in the sky\nAre also on the faces\nOf people going by\nI see friends shaking hands, saying, \"How do you do?\"\nThey're really saying, \"I love you\"\n\nI hear babies cry\nI watch them grow\nThey'll learn much more\nThan I'll ever know\nAnd I think to myself\n\"What a wonderful world\"\nYes, I think to myself\n\"What a wonderful world\"\n\nOoh, yeah",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.796306+00:00",
-  "updated_at": "2026-11-23T15:32:00.147958+00:00"
+  "updated_at": "2026-11-24T18:20:29.638047+00:00"
 }

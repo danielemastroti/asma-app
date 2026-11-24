@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 4,
+  "current_revision": 5,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.01,
+  "official_lyrics": "Come on\nOh, baby don't you wanna go\nCome on\nOh, baby don't you wanna go\nBack to that same old place\nSweet home Chicago\n\nCome on\nBaby don't you wanna go\nHidehey\nBaby don't you wanna go\nBack to that same old place\nSweet home Chicago\n\nWell, one and one is two\nSix and two is eight\nCome on baby don't ya make me late\nHidehey\nBaby don't you wanna go\nBack to that same old place\nSweet home Chicago\n\nCome on\nBaby don't you wanna go\nOh, come on\nBaby don't you wanna go\nBack to that same old place\nSweet home Chicago\n\nSix and three is nine\nNine and nine is eighteen\nLook there brother baby and see what I've seen\nHidehey\nBaby don't you wanna go\nBack to that same old place\nSweet home Chicago\nOh, come on\nBaby don't you wanna go\nCome on\nBaby don't you wanna go\nBack to that same old place\nMy sweet home Chicago",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.730809+00:00",
-  "updated_at": "2026-11-23T15:32:00.119957+00:00"
+  "updated_at": "2026-11-24T18:20:28.800672+00:00"
 }

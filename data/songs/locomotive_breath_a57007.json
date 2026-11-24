@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 0.89,
+  "official_lyrics": "In the shuffling madness\nOf the locomotive breath\nRuns the all time loser\nHeadlong to his death\n\nOh, he feels the pistons screaming\nSteam breaking on his brow\nOld Charlie stole the handle\nAnd the train, it won't stop going\nNo way, it could slow down\n\nHe sees his children jumpin' off\nAt stations one by one\nHis woman and his best friend\nIn bed and having fun\n\nSo he's crawling down the corridor\nOn his hands and knees\nOld Charlie stole the handle\nAnd the train, it won't stop going\nNo way, it could slow down\n\nHe hears the silence howling\nCatches angels as they fall\nAnd the all time winner\nHas got him by the balls\n\nOh, he picks up Gideon's Bible\nOpen at page one\nI thank God, he stole the handle\nAnd the train, it won't stop going\nNo way, it could slow down\n\nNo way, it could slow down\nNo way, it could slow down\nNo way, it could slow down\nNo way, it could slow down\nNo way, it could slow down\nNo way, it could slow down",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.765830+00:00",
-  "updated_at": "2026-11-23T15:32:00.007958+00:00"
+  "updated_at": "2026-11-24T18:20:25.909661+00:00"
 }

@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 3,
+  "current_revision": 4,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.0,
+  "official_lyrics": "Siamo della stessa pasta, bionda non la bevo sai\nCe l'hai scritto che la vita non ti viene come vuoi\nMa è la tua, per me è speciale se ti può bastare, sai\nChe se hai voglia di ballare, uno pronto qui ce l'hai\n\nBalliamo sul mondo\nVa bene qualsiasi musica\nCadremo ballando\nSul mondo,lo sai, si scivola\nFacciamo un fandango\nLà sotto qualcuno riderà\nBalliamo sul mondo\n\nNon ti offro grandi cose, però quelle lì le avrai\nNiente case né futuro né certezze, forse guai\nMa se dall'Atlantide all'Everest non c'è posto per noi\nGuido io in questo tango, ci facciamo posto, dai\n\nBalliamo sul mondo\nMi porto le scarpe da tip tap\nCadremo ballando\nPerò il mondo non si fermerà\nFacciamo un fandango\nLà sotto qualcuno fischierà\nBalliamo sul mondo\n\nFred e Ginger sono su una supernova sopra noi\nChiudi gli occhi e tieni il tempo e sarà quasi fatta ormai\nC'è chi vince e c'è chi perde, noi balliamo casomai\nNon avremo classe, ma abbiamo gambe e fiato finchè vuoi\n\nBallando, ballando sul, ballando sul mondo\nFacendo, facendo un, facendo un fandango\nBallando, ballando sul, ballando sul mondo\nBallando, ballando sul, ballando sul\n\nBalliamo sul mondo\nPossiamo anche senza musica\nCadremo ballando\nNessuno però si ferirà\nFacciamo un fandango\nLà sotto qualcuno applaudirà\nBalliamo sul mondo",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.773353+00:00",
-  "updated_at": "2026-11-23T15:31:59.860956+00:00"
+  "updated_at": "2026-11-24T18:20:20.118365+00:00"
 }

@@ -9,7 +9,10 @@ import re
 import json
 import urllib.parse
 import urllib.request
+import logging
 from typing import Dict, Any, Optional, Tuple, List
+
+logger = logging.getLogger(__name__)
 
 
 class CompletenessChecker:

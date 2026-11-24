@@ -194,6 +194,13 @@ class StorageManager:
                 clean_title = "I'M A BELIEVER"
             elif "HANNO UCCISO LUOMO RAGNO" in clean_title:
                 clean_title = "HANNO UCCISO L'UOMO RAGNO"
+        status_val = getattr(song, "completeness_status", "NON_VERIFICATO") or "NON_VERIFICATO"
+        ratio_val = getattr(song, "completeness_ratio", None)
+        if clean_title and "medley" in clean_title.lower():
+            status_val = "MEDLEY"
+            if ratio_val is None:
+                ratio_val = 1.0
+
         with self._db_conn:
             self._db_conn.execute("""
                 INSERT OR REPLACE INTO songs_index (
@@ -210,8 +217,8 @@ class StorageManager:
                 song.key_original, song.key_current, song.notation_system, tags_str,
                 song.current_revision, song.created_at, song.updated_at, is_deleted, reps_str,
                 song.aml_content or "",
-                getattr(song, "completeness_status", "NON_VERIFICATO") or "NON_VERIFICATO",
-                getattr(song, "completeness_ratio", None),
+                status_val,
+                ratio_val,
                 getattr(song, "official_lyrics", "") or "",
                 getattr(song, "previous_content", "") or "",
                 getattr(song, "previous_status", "") or ""
@@ -237,6 +244,9 @@ class StorageManager:
             song.updated_at = current_iso_timestamp()
             if song.title:
                 song.title = song.title.strip().upper()
+                if "medley" in song.title.lower():
+                    song.completeness_status = "MEDLEY"
+                    song.completeness_ratio = 1.0
             if song.aml_content:
                 song.aml_content = re.sub(
                     r'\{(?:title|t):\s*([^}]+)\}',

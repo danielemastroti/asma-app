@@ -24,7 +24,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.01,
+  "official_lyrics": "Wow, I feel good\nI knew that I would, now\nI feel good\nI knew that I would, now\nSo good, so good, I got you\n\nWow, I feel nice\nLike sugar and spice\nI feel nice\nLike sugar and spice\nSo nice, so nice, I got you\n\nWhen I hold you in my arms\nI know that I can't do no wrong\nAnd when I hold you in my arms\nMy love won't do you no harm\n\nAnd I feel nice\nLike sugar and spice\nI feel nice\nLike sugar and spice\nSo nice, so nice, I got you\n\nWhen I hold you in my arms\nI know that I can't do no wrong\nAnd when I hold you in my arms\nMy love can't do me no harm\n\nAnd I feel nice\nLike sugar and spice\nI feel nice\nLike sugar and spice\nSo nice, so nice, I got you\n\nWow, I feel good\nI knew that I would, now\nI feel good\nI knew that I would\nSo good, so good, cuz I got you\nSo good, so good, cuz I got you\nSo good, so good, cüz I got you\n\nHey!\nOh-whoo!",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-09T12:42:32.827743+00:00",
-  "updated_at": "2026-11-23T15:31:59.951956+00:00"
+  "updated_at": "2026-11-24T18:20:31.339438+00:00"
 }

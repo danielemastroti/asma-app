@@ -24,7 +24,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.17,
+  "official_lyrics": "Left for a job in the city\nWorkin' for the man ev'ry night and day\nThen I never lost one minute of sleepin'\nWorryin' 'bout the way things might've been\nBig wheels keep on turnin'\nProud Mary keep on burnin'\nRollin', rollin', rollin' on the river\nCleaned a lot of plates in Memphis\nPumped a lot of pain down in New Orleans\nBut I never saw the good side of the city\n'Til I hitched a ride on a river boat queen\nBig wheels keep on turnin'\nProud Mary keep on burnin'\nRollin', rollin', rollin' on the river\n\nRollin', rollin', rollin' on the river\n\nIf you come down to the river\nBet ya gonna find some people who live\nYou don't have to worry, that you have no money\nPeople on the river, happy to give\nBig wheels keep on turnin'\nProud Mary keep on burnin'\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river\nRollin', rollin', rollin' on the river",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-09T22:34:39.077911+00:00",
-  "updated_at": "2026-11-23T15:32:00.099956+00:00"
+  "updated_at": "2026-11-24T18:20:33.658866+00:00"
 }

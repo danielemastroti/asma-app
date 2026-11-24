@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 1,
+  "current_revision": 2,
+  "completeness_status": "MEDLEY",
+  "completeness_ratio": 1.0,
+  "official_lyrics": null,
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-20T16:40:50.253390+00:00",
-  "updated_at": "2026-11-20T16:40:50.258883+00:00"
+  "updated_at": "2026-11-24T18:20:35.816234+00:00"
 }

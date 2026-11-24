@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.07,
+  "official_lyrics": "Love me two time, baby\nLove me twice today\nLove me two time, girl\nI'm goin' away\n\nLove me two time, girl\nOne for tomorrow, one just for today\nLove me two times, I'm goin' away\n\nLove me one time\nCould not speak\nLove me one time\nYeah, my knees got weak\n\nLove me two time, girl\nLast me all through the week\nLove me two times, I'm goin' away\nLove me two times, I'm goin' away\nAll right, yeah\n\nLove me one time\nCould not speak\nLove me one time, baby\nYeah, my knees got weak\n\nLove me two time, girl\nLast me all through the week\nLove me two times, I'm goin' away\nLove me two time, babe\nLove me twice today\nLove me two time, baby\n'Cause I'm goin' away\n\nLove me two time, girl\nOne for tomorrow\nOne just for today\nLove me two times, I'm goin' away\nLove me two times, I'm goin' away\nLove me two times, I'm goin' away",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.782789+00:00",
-  "updated_at": "2026-11-23T15:32:00.012958+00:00"
+  "updated_at": "2026-11-24T18:20:26.204469+00:00"
 }

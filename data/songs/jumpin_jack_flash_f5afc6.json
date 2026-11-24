@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 3,
+  "current_revision": 4,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 0.98,
+  "official_lyrics": "One, two!\n\nI was born in a crossfire hurricane\nAnd I howled at the morning drivin' rain\n\nBut it's all right now, in fact it's a gas\nBut it's all right, I'm jumpin' jack flash\nIt's a gas, gas, gas\n\nI was raised by a toothless, bearded hag\nI was schooled with a strap right across my back\n\nBut it's all right now, in fact it's a gas\nBut it's all right, I'm jumpin' jack flash\nIt's a gas, gas, gas (oh)\n\nI was drowned, I was washed up and left for dead\nI fell down to my feet and I saw they bled\nYeah, yeah\nI frowned at the crumbs of a crust of bread\nYeah, yeah, yeah\nI was crowned with a spike right through my head\nMy, my, yeah\n\nBut it's all right now, in fact it's a gas\nBut it's all right, I'm jumpin' jack flash\nIt's a gas, gas, gas\n\nJumpin' jack flash, it's a gas\nJumpin' jack flash, it's a gas\nJumpin' jack flash, it's a gas\nJumpin' jack flash, it's a gas\nJumpin' jack flash, it's a gas\nJumpin' jack flash, it's a gas",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.780380+00:00",
-  "updated_at": "2026-11-23T15:58:47.000921+00:00"
+  "updated_at": "2026-11-24T18:20:25.016798+00:00"
 }

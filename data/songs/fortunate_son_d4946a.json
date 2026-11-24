@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 1.05,
+  "official_lyrics": "Some folks are born made to wave the flag\nThey're red, white and blue\nAnd when the band plays \"Hail to the Chief\"\nThey point the cannon at you, Lord\n\nIt ain't me, it ain't me\nI ain't no senator's son, son\nIt ain't me, it ain't me\nI ain't no fortunate one\n\nSome folks are born, silver spoon in hand\nLord, don't they help themselves, yeah\nBut when the taxman comes to the door\nThe house look a like a rummage sale\n\nIt ain't me, it ain't me\nI ain't no millionaire's son, no, no\nIt ain't me, it ain't me\nI ain't no fortunate one\n\nYeah, some folks inherit star-spangled eyes\nThey send you down to war\nAnd when you ask 'em, \"How much should we give?\"\nThey only answer, \"More, more, more\"\n\nIt ain't me, it ain't me\nI ain't no military son, son\nIt ain't me, it ain't me\nI ain't no fortunate one, one\n\nIt ain't me, it ain't me\nI ain't no fortunate one\nIt ain't me, it ain't me\nI ain't no fortunate one",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.799612+00:00",
-  "updated_at": "2026-11-23T15:31:59.905956+00:00"
+  "updated_at": "2026-11-24T18:20:21.655348+00:00"
 }

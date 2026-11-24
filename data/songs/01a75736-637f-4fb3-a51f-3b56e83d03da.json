@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 1,
+  "current_revision": 2,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 0.98,
+  "official_lyrics": "Inseguendo una libellula in un prato\nUn giorno che avevo rotto col passato\nQuando già credevo di esserci riuscito\nSon caduto\n\nUna frase sciocca, un volgare doppio senso\nMi ha allarmato, non è come io la penso\nMa il sentimento era già un po' troppo denso\nE son restato\n\nChissà, chissà chi sei\nChissà che sarai\nChissà che sarà di noi\nLo scopriremo solo vivendo\n\nComunque adesso ho un po' paura\nOra che quest'avventura\nSta diventando una storia vera\nSpero tanto tu sia sincera\n\nIl magazzino che contiene tante casse\nAlcune nere, alcune gialle, alcune rosse\nDovendo scegliere e studiare le mie mosse\nSono all'impasse\n\nMi sto accorgendo che son giunto dentro casa\nCon la mia cassa ancora con il nastro rosa\nE non vorrei aver sbagliato la mia spesa\nO la mia sposa\n\nChissà, chissà chi sei\nChissà che sarai\nChissà che sarà di noi\nLo scopriremo solo vivendo\n\nComunque adesso ho un po' paura\nOra che quest'avventura\nSta diventando una storia vera\nSpero tanto tu sia sincera\n\nChissà chi sei\nChissà chi sei\n\nChissà chi sei\nChissà chi sei\n\nChissà chi sei\nChissà chi sei\n\nChissà chi sei\nChissà chi sei",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-19T21:53:28.308158+00:00",
-  "updated_at": "2026-11-23T15:31:59.881957+00:00"
+  "updated_at": "2026-11-24T18:20:35.682826+00:00"
 }

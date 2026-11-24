@@ -25,7 +25,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 2,
+  "current_revision": 3,
+  "completeness_status": "INCOMPLETO",
+  "completeness_ratio": 0.59,
+  "official_lyrics": "(Hey)\nWell my temperature's rising and my feet on the floor\nCrazy people knocking 'cause they're wanting some more\nLet me in, baby, I don't know what you got\nBut you better take it easy, this place is hot\n\nAnd I'm so glad we made it\nSo glad we made it\nI want, gimme some-a lovin'\nGimme some-a lovin'\nGimme some-a lovin', every day\n\n(Hey)\nWell, my head's a-spinning and I'm floating to sound\nToo much is happening 'cause you're not around\nIt's been a hard day and nothing went too good\nI'm gonna relax like-a everybody should\n\nAnd I'm so glad we made it\nSo glad we made it\nI want you, gimme some-a lovin'\nGimme some-a lovin'\nGimme some-a lovin', everyday\n\n(Hey)\nWell, I feel so good, everything is getting higher\nYou better take some time off 'cause the place is on fire\nBetter stop baby 'cause I have so much to do\nWe made it, baby, and it happened to you\n\nAnd I'm so glad we made it\nSo glad we made it\n(Gimme some a-lovin') Every day\n(Gimme some a-lovin') Every night\n(Gimme some a-lovin') Ooh-hoo\n(Gimme some-a lovin') Gimme some a-lovin' every day\n(Gimme some a-lovin') Hey, hey, baby\n(Gimme some a-lovin') Ooh-hoo\n(Gimme some a-lovin'), Oh, every day\n(Gimme some a-lovin'), Give your love",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T23:33:26.633283+00:00",
-  "updated_at": "2026-11-23T15:31:59.910957+00:00"
+  "updated_at": "2026-11-24T18:20:21.955500+00:00"
 }

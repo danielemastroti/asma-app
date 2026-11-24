@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 3,
+  "current_revision": 4,
+  "completeness_status": "COMPLETO",
+  "completeness_ratio": 0.84,
+  "official_lyrics": "Niente di nuovo\nTranne l'affitto per me\nChe mi ritrovo\nE mi riperdo perché\nNon ho più un Dio non ho\nE ho perso l'anima\nVago nel vento\nVado però!\n\nNiente di nuovo\nTranne l'affitto per me\nChe ci riprovo\nE non capisco cos'è\nTi amo perché ne ho bisogno\nNon perché ho bisogno di te\nIo vago nel vento\nVado però!\n\nMama salvami l'anima\nMama salvami l'anima\nMama salvami l'anima\nMama salvami l'anima\n\nNiente di nuovo man\nTranne l'affitto per me\nE non è per caso che\nVengo in ginocchio da te\nMadre dolcissima\nCarezzami la testa\nChe vado nel vento\nVago però!\n\nMama salvami l'anima\nMama salvami l'anima\nMama salvami l'anima\nMama salvami l'anima\n\nJesus is breaking\nJesus is breaking\nJesus is breaking\nJesus is breaking\n\nMama salvami l'anima\nMama salvami l'anima\nMama salvami l'anima\nHey Mama salvami l'anima",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-08T09:59:11.770999+00:00",
-  "updated_at": "2026-11-23T15:32:00.017956+00:00"
+  "updated_at": "2026-11-24T18:20:26.480610+00:00"
 }

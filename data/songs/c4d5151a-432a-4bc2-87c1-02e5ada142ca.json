@@ -22,7 +22,12 @@
     "locked_at": null,
     "session_id": null
   },
-  "current_revision": 1,
+  "current_revision": 2,
+  "completeness_status": "INCOMPLETO",
+  "completeness_ratio": 0.76,
+  "official_lyrics": "Mama Mae, prega perché,\nIl mondo va più veloce di me, wow!\nAlzo stereo a palla per non pensare\nAlzo così tanto da farmi male,\nDimenticando tutto quello che sò.\nTutto quello che sò.\nRotolo e rimbalzo\nTra l'inferno ed il cielo,\nTra demoni privati\nE santi extra vangelo.\nPerdendo terreno, ma il fiato è quello che è,\nPrega un poco per me.\nPartecipo al gioco e non so bleffare,\nSi vince o si perde,\nOrmai voglio giocare.\nMama Mae, prega perché\nIl mondo va più veloce di me.\nControsterzo, sbando e vado di fuori,\nCercando di seguire piloti migliori.\nMa è un po' ricucire uno strappo\nE non so se mi va.\nNo, non so se mi va.\nPer ogni partita, è un gioco da fare\nChe vinca o che perda\nIo voglio provare.\nMama Mae, prega perché\nIl mondo va più veloce di me.\nMama Mae, prega perché\nIl mondo va più veloce di me.\nWoooooooW!\nMama Mae, prega perché\nIl mondo va più veloce di me.\nSeeee!\nMama Mae, prega perché\nIl mondo va più veloce di me.\nMama Mae, prega perché\nIl mondo va più veloce di me.\nMama Mae, Mama Mae,\nMama, Mama, Mama Maè\nMama Mae, Mama Mae,\nOhhhh!\nMama, Mama, Mama Maè\nFine.",
+  "previous_content": null,
+  "previous_status": null,
   "created_at": "2026-11-19T17:48:47.512907+00:00",
-  "updated_at": "2026-11-23T15:32:00.022957+00:00"
+  "updated_at": "2026-11-24T18:20:35.379064+00:00"
 }
