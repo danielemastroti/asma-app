@@ -215,6 +215,60 @@ class CompletenessChecker:
         }
 
     @classmethod
+    def discover_gemini_models(cls, api_key: str) -> List[Tuple[str, str]]:
+        """
+        Queries Google Generative Language API ListModels to find active models supporting generateContent.
+        Returns a list of (api_version, model_name) tuples, prioritizing fast Flash models.
+        """
+        discovered: List[Tuple[str, str]] = []
+        for ver in ["v1", "v1beta"]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/{ver}/models?key={api_key}"
+                req = urllib.request.Request(url, headers={"User-Agent": cls.USER_AGENT})
+                with urllib.request.urlopen(req, timeout=4.0) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        for m in data.get("models", []):
+                            methods = m.get("supportedGenerationMethods", [])
+                            if "generateContent" in methods:
+                                name = m.get("name", "")
+                                if name.startswith("models/"):
+                                    name = name[7:]
+                                if name:
+                                    discovered.append((ver, name))
+                        if discovered:
+                            break
+            except Exception as e:
+                logger.debug(f"ListModels failed for {ver}: {e}")
+
+        def model_priority(item: Tuple[str, str]) -> int:
+            ver, name = item
+            nl = name.lower()
+            if "flash" in nl:
+                if "2.0" in nl or "1.5" in nl:
+                    return 0
+                return 1
+            if "pro" in nl:
+                return 2
+            return 3
+
+        if discovered:
+            discovered.sort(key=model_priority)
+            return discovered
+
+        # Fallback matrix across v1 and v1beta
+        return [
+            ("v1", "gemini-1.5-flash"),
+            ("v1beta", "gemini-1.5-flash"),
+            ("v1beta", "gemini-2.0-flash"),
+            ("v1beta", "gemini-2.0-flash-lite"),
+            ("v1", "gemini-1.5-flash-latest"),
+            ("v1beta", "gemini-1.5-flash-latest"),
+            ("v1", "gemini-1.5-pro"),
+            ("v1beta", "gemini-1.5-pro")
+        ]
+
+    @classmethod
     def complete_song_with_llm(
         cls,
         title: str,
@@ -225,6 +279,7 @@ class CompletenessChecker:
     ) -> Tuple[str, bool]:
         """
         Calls the LLM (Gemini) to complete missing verses/outro of a truncated song.
+        Dynamically discovers models via ListModels and falls back across v1/v1beta.
         Constraints:
         - Must NOT alter existing lines and chords.
         - Adds ONLY missing parts, wrapping them in [AUTO-COMPLETATO] ... [/AUTO-COMPLETATO].
@@ -286,11 +341,11 @@ REGOLE TASSATIVE:
             }
         }
 
-        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]
+        models_to_try = cls.discover_gemini_models(api_key)
         last_error = None
 
-        for model in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        for ver, model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/{ver}/models/{model}:generateContent?key={api_key}"
             try:
                 req = urllib.request.Request(
                     url,
@@ -324,12 +379,12 @@ REGOLE TASSATIVE:
                     err_body = he.read().decode("utf-8")
                 except Exception:
                     pass
-                last_error = f"HTTP {he.code} ({model}): {err_body[:100]}"
-                logger.warning(f"Gemini API HTTPError {he.code} for model {model}: {err_body}")
+                last_error = f"HTTP {he.code} ({ver}/{model}): {err_body[:100]}"
+                logger.warning(f"Gemini API HTTPError {he.code} for {ver}/{model}: {err_body}")
                 continue
             except Exception as e:
-                last_error = f"{type(e).__name__} ({model}): {str(e)}"
-                logger.warning(f"Gemini API Error for model {model}: {e}")
+                last_error = f"{type(e).__name__} ({ver}/{model}): {str(e)}"
+                logger.warning(f"Gemini API Error for {ver}/{model}: {e}")
                 continue
 
         if last_error:

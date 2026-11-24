@@ -91,5 +91,12 @@ Line 3"""
             if old_key:
                 os.environ["GEMINI_API_KEY"] = old_key
 
+    def test_discover_gemini_models_returns_fallbacks_on_invalid_key(self):
+        """Verifies discover_gemini_models returns valid (ver, model) fallbacks if API call fails."""
+        models = CompletenessChecker.discover_gemini_models("invalid_mock_key")
+        self.assertTrue(len(models) > 0)
+        self.assertTrue(any(ver == "v1" for ver, _ in models))
+        self.assertTrue(any("flash" in name for _, name in models))
+
 if __name__ == "__main__":
     unittest.main()
