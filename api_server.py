@@ -2759,19 +2759,15 @@ def complete_single_song_ai(req: CompleteAiRequest):
 def undo_song_changes(uuid: str, req: UndoSongRequest):
     """
     Restores the previous snapshot (content and completeness status) of a song.
-    Open to the song owner or Admin.
+    Open exclusively to Admin users.
     """
+    # RBAC: Only Admin can undo changes (non-admins copy to personal to edit)
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo agli amministratori.")
+
     song = storage.get_song(uuid)
     if not song:
         raise HTTPException(status_code=404, detail="Brano non trovato.")
-
-    all_reps = storage.list_repertoires()
-    official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
-    is_in_official = bool(official_rep and song.uuid in official_rep.song_uuids)
-
-    # RBAC: Only Admin can undo changes on Official Repertoire songs
-    if is_in_official and not is_admin_email(req.user_email):
-        raise HTTPException(status_code=403, detail="Operazione consentita solo agli amministratori sul Repertorio Ufficiale.")
 
     if not song.previous_content:
         raise HTTPException(status_code=400, detail="Nessuno snapshot precedente disponibile per questo brano.")

@@ -1889,10 +1889,13 @@ function renderSongViewer() {
   const completenessBadgeHtml = renderCompletenessBadge(s);
 
   let completenessViewerActions = '';
-  if (s.previous_content) {
+  // Info versione precedente / UNDO: visibile SOLO agli amministratori
+  if (isAdmin && s.previous_content) {
     completenessViewerActions += `<button class="btn btn-secondary" style="color: #fbbf24; border-color: #f59e0b; font-weight: 800;" onclick="undoSongInViewer('${s.uuid}')" title="Ripristina il contenuto e lo stato precedenti all'intervento AI">↩️ UNDO Versione Precedente</button>`;
   }
-  if (!isMedleySong(s) && s.completeness_status === 'INCOMPLETO') {
+  // Completa con AI: visibile su brani personali O su brani ufficiali SOLO se Admin
+  const canModifySong = !isInOfficial || isAdmin;
+  if (canModifySong && !isMedleySong(s) && s.completeness_status === 'INCOMPLETO') {
     completenessViewerActions += `<button class="btn btn-primary" style="font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;" onclick="completeSongInViewerAi('${s.uuid}')" title="Completa le sezioni mancanti con AI Gemini confrontando con LRCLIB">🤖 Completa con AI</button>`;
   }
   if (!isMedleySong(s) && s.completeness_status !== 'DEFINITIVO' && (typeof isCurrentUserAdmin === 'function' && isCurrentUserAdmin())) {
@@ -3700,6 +3703,11 @@ async function adminBatchFinalizeSelected() {
 }
 
 async function undoSongInViewer(uuid) {
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  if (!isAdmin) {
+    showToast('Operazione consentita solo agli amministratori');
+    return;
+  }
   if (!confirm('Ripristinare il contenuto e lo stato precedenti all\'intervento dell\'AI?')) {
     return;
   }
