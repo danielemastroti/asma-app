@@ -236,18 +236,24 @@ class CompletenessChecker:
         if not api_key:
             raise RuntimeError("Chiave API Gemini non configurata. Configura GEMINI_API_KEY per abilitare il completamento AI.")
 
+        if official_lyrics and official_lyrics.strip():
+            ref_block = f"""TESTO UFFICIALE DI RIFERIMENTO (COMPLETO):
+---
+{official_lyrics.strip()}
+---"""
+        else:
+            ref_block = f"""TESTO UFFICIALE DI RIFERIMENTO:
+Non disponibile nell'archivio esterno LRCLIB. Utilizza la tua conoscenza del brano discografico '{title}' dell'artista '{artist}' per identificare strofe, bridge, ritornelli o outro mancanti nello spartito attuale. Se il brano è già completo o non conosci il testo di questo brano, restituisci lo spartito inalterato senza marcatori."""
+
         prompt = f"""Sei un assistente musicale professionista per una band live.
-Il seguente brano con accordi in formato AML/ChordPro risulta TRONCATO rispetto al testo ufficiale originale.
+Il seguente brano con accordi in formato AML/ChordPro risulta TRONCATO rispetto al testo originale.
 
 DATI DEL BRANO:
 Titolo: {title}
 Artista: {artist}
 Tonalità: {key or 'C'}
 
-TESTO UFFICIALE DI RIFERIMENTO (COMPLETO):
----
-{official_lyrics}
----
+{ref_block}
 
 SPARTITO ACCORDI ATTUALE (TRONCATO O INCOMPLETO IN FORMATO AML):
 ---
@@ -256,7 +262,7 @@ SPARTITO ACCORDI ATTUALE (TRONCATO O INCOMPLETO IN FORMATO AML):
 
 REGOLE TASSATIVE:
 1. NON modificare, NON cancellare e NON alterare nessuna riga né gli accordi già presenti nello SPARTITO ATTUALE.
-2. Identifica esclusivamente le parti (strofe, bridge, ritornelli finali, outro o code) presenti nel TESTO UFFICIALE ma MANCANTI nello SPARTITO ATTUALE.
+2. Identifica esclusivamente le parti (strofe, bridge, ritornelli finali, outro o code) presenti nel brano originale ma MANCANTI nello SPARTITO ATTUALE.
 3. Genera e aggiungi in fondo allo spartito (o nel punto corretto in cui il testo si interrompe) le sezioni mancanti nel corretto formato AML (es. [STROFA], [RITORNELLO], [BRIDGE], [FINALE]).
 4. Assegna gli accordi corretti tra parentesi quadre (es. [DO], [SOL], [LAm], [FA] o notazione anglosassone [C], [G], [Am], [F] coerente con lo spartito attuale):
    - Se il testo mancante è una ripetizione di strofe o ritornelli precedenti, copia fedelmente la medesima sequenza di accordi.
@@ -277,7 +283,9 @@ REGOLE TASSATIVE:
             }
         }
 
-        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]
+        last_error = None
+
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             try:
@@ -301,14 +309,28 @@ REGOLE TASSATIVE:
                                 if "[AUTO-COMPLETATO]" in out_text:
                                     return out_text, True
                                 # If LLM forgot the tag but added content, append the tag around the newly added tail
-                                if len(out_text) > len(aml_content) + 20:
-                                    # Fallback tag wrapping
+                                if len(out_text.strip()) > len(aml_content.strip()) + 20:
                                     tail = out_text[len(aml_content):].strip()
                                     wrapped = aml_content.rstrip() + "\n\n[AUTO-COMPLETATO]\n" + tail + "\n[/AUTO-COMPLETATO]\n"
                                     return wrapped, True
-                                return out_text, True
-            except Exception:
+                                # If output matches or has no new sections, no modification needed
+                                return aml_content, False
+            except urllib.error.HTTPError as he:
+                err_body = ""
+                try:
+                    err_body = he.read().decode("utf-8")
+                except Exception:
+                    pass
+                last_error = f"HTTP {he.code} ({model}): {err_body[:100]}"
+                logger.warning(f"Gemini API HTTPError {he.code} for model {model}: {err_body}")
                 continue
+            except Exception as e:
+                last_error = f"{type(e).__name__} ({model}): {str(e)}"
+                logger.warning(f"Gemini API Error for model {model}: {e}")
+                continue
+
+        if last_error:
+            raise RuntimeError(f"Errore chiamata AI Gemini: {last_error}")
 
         return aml_content, False
 

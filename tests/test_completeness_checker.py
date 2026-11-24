@@ -74,5 +74,22 @@ Line 3"""
             StorageManager._instance = None
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def test_complete_song_with_llm_raises_when_no_api_key(self):
+        """Verifies that missing GEMINI_API_KEY raises a descriptive RuntimeError."""
+        old_key = os.environ.pop("GEMINI_API_KEY", None)
+        try:
+            with self.assertRaises(RuntimeError) as ctx:
+                CompletenessChecker.complete_song_with_llm(
+                    title="Canzone",
+                    artist="Artista",
+                    key="C",
+                    aml_content="[DO]Testo",
+                    official_lyrics=""
+                )
+            self.assertIn("Chiave API Gemini non configurata", str(ctx.exception))
+        finally:
+            if old_key:
+                os.environ["GEMINI_API_KEY"] = old_key
+
 if __name__ == "__main__":
     unittest.main()

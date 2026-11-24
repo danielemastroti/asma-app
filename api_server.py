@@ -2729,9 +2729,7 @@ def complete_single_song_ai(req: CompleteAiRequest):
 
     official_lyrics = req.official_lyrics
     if not official_lyrics:
-        official_lyrics = CompletenessChecker.fetch_official_lyrics_lrclib(req.title, req.artist or "")
-    if not official_lyrics:
-        raise HTTPException(status_code=422, detail="Impossibile recuperare il testo ufficiale da LRCLIB per guidare il completamento AI.")
+        official_lyrics = CompletenessChecker.fetch_official_lyrics_lrclib(req.title, req.artist or "") or ""
 
     try:
         completed_aml, ok = CompletenessChecker.complete_song_with_llm(
@@ -2741,8 +2739,15 @@ def complete_single_song_ai(req: CompleteAiRequest):
             aml_content=req.aml,
             official_lyrics=official_lyrics
         )
+        if not ok:
+            return {
+                "status": "unchanged",
+                "completed_aml": completed_aml,
+                "official_lyrics": official_lyrics,
+                "message": "Nessuna sezione mancante rilevata o brano non indicizzato su LRCLIB."
+            }
         return {
-            "status": "success" if ok else "partial",
+            "status": "success",
             "completed_aml": completed_aml,
             "official_lyrics": official_lyrics
         }
@@ -2915,10 +2920,7 @@ def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
         s.previous_content = s.aml_content
         s.previous_status = s.completeness_status
 
-        off_lyrics = s.official_lyrics or CompletenessChecker.fetch_official_lyrics_lrclib(s.title, s.artist)
-        if not off_lyrics:
-            skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "Testo ufficiale non trovato su LRCLIB."})
-            continue
+        off_lyrics = s.official_lyrics or CompletenessChecker.fetch_official_lyrics_lrclib(s.title, s.artist) or ""
 
         try:
             completed_aml, ok = CompletenessChecker.complete_song_with_llm(
@@ -2930,13 +2932,15 @@ def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
             )
             if ok:
                 s.aml_content = completed_aml
-                s.official_lyrics = off_lyrics
+                if off_lyrics:
+                    s.official_lyrics = off_lyrics
                 s.completeness_status = "COMPLETO"
                 s.completeness_ratio = 1.0
                 storage.save_song(s, req.user_email, req.user_name or "Admin", "Completamento automatico AI [AUTO-COMPLETATO]")
                 completed_list.append(s.uuid)
             else:
-                skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "L'LLM non ha generato modifiche."})
+                reason = "L'AI ha confrontato il testo con LRCLIB e non sono necessarie modifiche." if off_lyrics else "Testo ufficiale non disponibile su LRCLIB e nessuna sezione mancante dedotta dall'AI."
+                skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": reason})
         except Exception as e:
             skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": str(e)})
 
@@ -2954,7 +2958,9 @@ def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
         "completed_count": len(completed_list),
         "skipped_count": len(skipped_list),
         "completed_uuids": completed_list,
-        "skipped_details": skipped_list
+        "completed_songs": completed_list,
+        "skipped_details": skipped_list,
+        "skipped_songs": skipped_list
     }
 
 
@@ -2997,7 +3003,8 @@ def admin_batch_finalize_songs(req: AdminBatchFinalizeRequest):
     return {
         "status": "success",
         "finalized_count": len(finalized_list),
-        "finalized_uuids": finalized_list
+        "finalized_uuids": finalized_list,
+        "finalized_songs": finalized_list
     }
 
 

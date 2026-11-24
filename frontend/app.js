@@ -3562,9 +3562,19 @@ async function adminBatchCompleteSelectedAi() {
 
     if (res.ok) {
       const data = await res.json();
-      const nCompleted = (data.completed_songs || []).length;
-      const nSkipped = (data.skipped_songs || []).length;
-      showToast(`Completamento AI terminato: ${nCompleted} brani completati, ${nSkipped} saltati ✓`);
+      const nCompleted = data.completed_count !== undefined
+        ? data.completed_count
+        : ((data.completed_songs || data.completed_uuids || []).length);
+      const nSkipped = data.skipped_count !== undefined
+        ? data.skipped_count
+        : ((data.skipped_songs || data.skipped_details || []).length);
+      if (nCompleted > 0) {
+        showToast(`Completamento AI terminato: ${nCompleted} brani completati, ${nSkipped} saltati ✓`);
+      } else {
+        const firstSkip = (data.skipped_details || data.skipped_songs || [])[0];
+        const skipReason = firstSkip && firstSkip.reason ? `: ${firstSkip.reason}` : '';
+        showToast(`Nessun brano modificato (${nSkipped} saltati${skipReason})`);
+      }
       state.selectedSongUuids.clear();
       await loadSongs({ autoSelect: false });
     } else {
@@ -3618,7 +3628,9 @@ async function adminBatchFinalizeSelected() {
 
     if (res.ok) {
       const data = await res.json();
-      const nFinal = (data.finalized_songs || []).length;
+      const nFinal = data.finalized_count !== undefined
+        ? data.finalized_count
+        : ((data.finalized_songs || data.finalized_uuids || []).length);
       showToast(`${nFinal} brani resi DEFINITIVI ✓`);
       state.selectedSongUuids.clear();
       await loadSongs({ autoSelect: false });
@@ -3735,13 +3747,16 @@ async function completeSongInViewerAi(uuid) {
 
     if (res.ok) {
       const data = await res.json();
-      if ((data.completed_songs || []).length > 0) {
+      const nCompleted = data.completed_count !== undefined
+        ? data.completed_count
+        : ((data.completed_songs || data.completed_uuids || []).length);
+      if (nCompleted > 0) {
         showToast('Brano completato con AI ✓ Snapshot UNDO salvato');
         await selectSong(uuid);
         await loadSongs({ autoSelect: false });
       } else {
-        const skipped = (data.skipped_songs || [])[0];
-        showToast((skipped && skipped.reason) || 'Nessuna modifica necessaria');
+        const skipped = (data.skipped_details || data.skipped_songs || [])[0];
+        showToast((skipped && skipped.reason) || 'Nessuna sezione mancante rilevata');
       }
     } else {
       const err = await res.json();
@@ -3852,6 +3867,17 @@ async function completeImportedSongAi() {
 
     if (res.ok) {
       const data = await res.json();
+      if (data.status === 'unchanged') {
+        showToast(data.message || 'Nessuna sezione mancante rilevata');
+        if (textEl) {
+          textEl.innerHTML = `<span style="color: #60a5fa; font-weight: 800;">ℹ️ Verifica AI:</span> ${data.message || 'Nessuna sezione aggiuntiva necessaria.'}`;
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 Completa con AI';
+        }
+        return;
+      }
       if (!state.importOriginalAml) {
         state.importOriginalAml = aml;
       }
