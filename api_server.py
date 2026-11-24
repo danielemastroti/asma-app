@@ -2939,8 +2939,19 @@ def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
                 storage.save_song(s, req.user_email, req.user_name or "Admin", "Completamento automatico AI [AUTO-COMPLETATO]")
                 completed_list.append(s.uuid)
             else:
-                reason = "L'AI ha confrontato il testo con LRCLIB e non sono necessarie modifiche." if off_lyrics else "Testo ufficiale non disponibile su LRCLIB e nessuna sezione mancante dedotta dall'AI."
-                skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": reason})
+                # If the AI checked the song and determined that no sections are missing,
+                # then any previous INCOMPLETO flag was a false-positive (e.g. foreign spoken intro/duet on LRCLIB).
+                # The song is validated as COMPLETO!
+                if s.completeness_status == "INCOMPLETO":
+                    s.completeness_status = "COMPLETO"
+                    s.completeness_ratio = 1.0
+                    if off_lyrics:
+                        s.official_lyrics = off_lyrics
+                    storage.save_song(s, req.user_email, req.user_name or "Admin", "Convalida AI: sezioni musicali già integre e complete")
+                    completed_list.append(s.uuid)
+                else:
+                    reason = "L'AI ha confrontato il testo con LRCLIB: tutte le sezioni risultano già presenti." if off_lyrics else "Testo ufficiale non disponibile su LRCLIB e nessuna sezione mancante dedotta dall'AI."
+                    skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": reason})
         except Exception as e:
             skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": str(e)})
 

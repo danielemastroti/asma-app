@@ -660,16 +660,66 @@ function openSetlistFromDashboard(setlistUuid) {
 // ----------------------------------------------------------------------------
 // TOAST NOTIFICATIONS (No blocking popovers!)
 // ----------------------------------------------------------------------------
-function showToast(message) {
+function showToast(message, customDuration) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.textContent = message;
+
+  const textSpan = document.createElement('span');
+  textSpan.style.flex = '1';
+  textSpan.textContent = message;
+  toast.appendChild(textSpan);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'toast-close-btn';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.title = 'Chiudi';
+  toast.appendChild(closeBtn);
+
   container.appendChild(toast);
-  setTimeout(() => {
-    if (toast.parentNode) toast.parentNode.removeChild(toast);
-  }, 2400);
+
+  let duration = customDuration;
+  if (!duration) {
+    const len = (message || '').length;
+    if (len > 70 || /errore|http|fallit/i.test(message)) {
+      duration = 8000;
+    } else if (len > 35 || /completat|verificat|convalidat|necessari/i.test(message)) {
+      duration = 6000;
+    } else {
+      duration = 4500;
+    }
+  }
+
+  let dismissTimer = null;
+  const dismiss = () => {
+    if (toast.classList.contains('toast-hiding')) return;
+    toast.classList.add('toast-hiding');
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  };
+
+  const startTimer = () => {
+    clearTimeout(dismissTimer);
+    dismissTimer = setTimeout(dismiss, duration);
+  };
+
+  startTimer();
+
+  toast.addEventListener('mouseenter', () => clearTimeout(dismissTimer));
+  toast.addEventListener('mouseleave', () => startTimer());
+  toast.addEventListener('touchstart', () => clearTimeout(dismissTimer), { passive: true });
+
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearTimeout(dismissTimer);
+    dismiss();
+  });
+  toast.addEventListener('click', () => {
+    clearTimeout(dismissTimer);
+    dismiss();
+  });
 }
 
 function isCurrentUserAdmin() {
@@ -3751,12 +3801,12 @@ async function completeSongInViewerAi(uuid) {
         ? data.completed_count
         : ((data.completed_songs || data.completed_uuids || []).length);
       if (nCompleted > 0) {
-        showToast('Brano completato con AI ✓ Snapshot UNDO salvato');
+        showToast('✓ Convalida AI completata: brano aggiornato a COMPLETO (Snapshot salvato)', 6000);
         await selectSong(uuid);
         await loadSongs({ autoSelect: false });
       } else {
         const skipped = (data.skipped_details || data.skipped_songs || [])[0];
-        showToast((skipped && skipped.reason) || 'Nessuna sezione mancante rilevata');
+        showToast((skipped && skipped.reason) || 'L\'AI ha verificato il brano: nessuna sezione mancante rilevata.', 6500);
       }
     } else {
       const err = await res.json();
