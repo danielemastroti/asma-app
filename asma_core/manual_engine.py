@@ -116,9 +116,9 @@ class ManualEngine:
             {"num": 2, "title": "Login & Modalità Operative (Palco vs Editing)", "desc": "Accesso semplificato casa/palco, modalità editing completa, Google OAuth e sessioni persistenti."},
             {"num": 3, "title": "Elenco Utenti e Pseudonimi Autorizzati (Band)", "desc": "Componenti della band (Cico, Mingo, Puma, Red, Maurino, Sentimental) e ruoli di sicurezza."},
             {"num": 4, "title": "Preferenze Utente, Profili Hardware & Persistenza Cloud", "desc": "Multi-dispositivo (iPad, MediaPad, MatePad, Pixel, A4), font, colonne, margini e salvataggio Turso."},
-            {"num": 5, "title": "Lista Brani, Anteprima PDF, Stampa A4 & Download Dispositivo", "desc": "Ricerca 0ms, schede brani, Repertorio Ufficiale vs Personale, rendering fedele e stampa."},
-            {"num": 6, "title": "Importazione Brani & Scansione da Fotocamera", "desc": "Cerca sul Web, Incolla Testo, ChordPro, URL diretti e Scansione Fotocamera OCR multi-pagina con Gemini Vision AI."},
-            {"num": 7, "title": "Creazione Brani Autoprodotti", "desc": "Barra metadati essenziali compatti e repertorio personale protetto."},
+            {"num": 5, "title": "Lista Brani, Anteprima PDF, Stampa A4 & Download Dispositivo", "desc": "Ricerca 0ms, schede brani, Repertorio Ufficiale vs Personale, rendering fedele, stampa e stati di completezza (COMPLETO, INCOMPLETO, DEFINITIVO, MEDLEY, NON VERIFICATO)."},
+            {"num": 6, "title": "Importazione Brani, Verifica Completezza (LRCLIB & AI) & Scansione OCR", "desc": "Cerca sul Web, Incolla Testo, ChordPro, URL diretti, Scansione Fotocamera OCR con Gemini Vision AI, controllo completezza LRCLIB, autocompletamento sezioni con AI, rollback UNDO ed eccezione Medley."},
+            {"num": 7, "title": "Creazione Brani Autoprodotti & Inediti della Band", "desc": "Barra metadati compatti, gestione brani inediti non indicizzati, tutela dell'arrangiamento originale ed esenzione da allucinazioni AI."},
             {"num": 8, "title": "Flusso di Lavoro Modifica Brani (Ufficiale vs Personale)", "desc": "Protezione del repertorio ufficiale, copia nel personale, schema grafico di flusso e promozione con sovrascrittura."},
             {"num": 9, "title": "AML (ASMA Markup Language) — Sintassi, Direttive & Guida Autonoma", "desc": "Tabella completa di tutte le direttive, esempi pratici per scrivere un intero brano da zero o un medley autonomamente."},
             {"num": 10, "title": "Modalità Editing, Nuove Direttive Scena/Stacco & Medley", "desc": "Direttiva {Scena: X} per tastiere, {stacco: strumento}, Medley fino a 20 brani e Impaginazione Pagine su base Dispositivo / Stampa A4."},
@@ -522,6 +522,18 @@ class ManualEngine:
         story.append(Paragraph("&bull; <b>Scarica Elenco PDF Repertorio (Pulsante '📑 Lista PDF'):</b> Genera e scarica un catalogo PDF professionale con l'elenco ordinato e pulito dei brani del Repertorio Ufficiale Band (o del repertorio attivo), con numerazione progressiva (#), Titolo Brano, Artista, Tonalità in notazione italiana (DO, REm, ecc.), BPM, Durata e intestazioni ripetute su tutte le pagine. Il sistema include filtri automatici rigorosi che deduplicano i titoli ed escludono categoricamente brani di test/default (es. Albachiara) o copie personali orfane.", bullet_style))
         story.append(Paragraph("&bull; <b>Barre Superiori Fisse durante lo Scorrimento (Sticky Navigation & Toolbar):</b> L'intera testata dell'applicazione (Header con Logo e pulsante Palco, linguette di navigazione, filtri di Repertorio Band e Personale, pulsanti '💾 Salva PDF' rapido e '📑 Lista PDF', e campo di ricerca istantanea) rimane permanentemente ancorata in cima allo schermo durante lo scorrimento della lista dei brani. Su tablet, smartphone e computer è quindi possibile in qualsiasi istante cambiare raccolta, digitare un titolo per la ricerca o salvare il PDF del brano selezionato con un singolo tocco, senza dover scorrere a ritroso decine di schede.", bullet_style))
         story.append(Paragraph("&bull; <b>Vista 'Solo Testo' per Cantante (Cico) & Deduplicazione Strumentali:</b> Nella modalità senza accordi, il motore ripulisce e ottimizza la lettura per il cantante eliminando griglie armoniche e compattando le indicazioni strumentali consecutive (badge <code>[STRUMENTALE]</code>, <code>[SOLO]</code> o direttive <code>(Strumentale)</code> prive di versi intermedi), che vengono emesse una sola volta per la massima chiarezza e scorrevolezza sul leggio.", bullet_style))
+        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph("<b>Gli Stati di Completezza sulla Lista Brani (Badge Visivi & Significato):</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Ciascuna scheda brano nella lista del repertorio e nell'intestazione del visualizzatore presenta un badge "
+            "colorato che ne certifica l'integrità del testo cantato rispetto alla traccia discografica ufficiale:",
+            body_style
+        ))
+        story.append(Paragraph("&bull; <b>COMPLETO (Badge Verde):</b> Lo spartito contiene un testo cantato pari ad almeno l'80% (fino al 100% o oltre) rispetto al testo depositato nella discografia ufficiale esterna (LRCLIB), oppure è stato completato e convalidato con l'AI. Indica che il brano possiede tutte le sezioni necessarie (strofe, ritornelli, bridge, code) ed è pronto per essere suonato sul palco senza parti mancanti.", bullet_style))
+        story.append(Paragraph("&bull; <b>INCOMPLETO con Percentuale (Badge Giallo/Arancione, es. INCOMPLETO 53%):</b> Lo spartito presenta un testo inferiore all'80% rispetto alla traccia discografica ufficiale registrata (ad esempio per via di strofe omesse, bridge saltati o mancata trascrizione della coda/outro finale). Il badge espone la percentuale esatta calcolata. Nel visualizzatore è attivo il pulsante 'Completa con AI' per colmare le lacune.", bullet_style))
+        story.append(Paragraph("&bull; <b>DEFINITIVO (Badge Blu con Lucchetto):</b> Stato consolidato e permanente, attribuito dall'Amministratore o salvato in modo definitivo. Questo stato rimuove i tag temporanei [AUTO-COMPLETATO] e blinda categoricamente il brano: durante gli audit periodici del repertorio, i brani DEFINITIVO vengono saltati e protetti al 100% da qualsiasi alterazione o declassamento automatico.", bullet_style))
+        story.append(Paragraph("&bull; <b>MEDLEY (Badge Viola):</b> Stato esclusivo e protetto per tutti i brani contenenti spezzoni multipli (es. Medley Rock, Medley Battisti). I Medley sono totalmente immuni da controlli o alterazioni esterne.", bullet_style))
+        story.append(Paragraph("&bull; <b>NON VERIFICATO (Badge Grigio Neutro):</b> Brano non ancora confrontato con il database centrale LRCLIB (ad esempio brani appena inseriti offline, o brani per i quali il server esterno non era temporaneamente raggiungibile).", bullet_style))
 
         # Embedded screenshot: lista brani
         fig_brani_path = _resolve_asset_path("frontend/assets/manual/fig_repertorio_brani.png")
@@ -572,12 +584,19 @@ class ManualEngine:
 
         story.append(Paragraph(
             "<b>Verifica Integrità Testi (LRCLIB Check), Autocompletamento AI Sezioni Mancanti & UNDO:</b> "
-            "Durante l'importazione (da ricerca web o incolla testo), il sistema confronta automaticamente il testo cantato con i testi ufficiali tramite le API di <b>LRCLIB</b>. "
-            "Se il testo scaricato risulta incompleto (rapporto inferiore all'80%), un banner arancione avvisa l'utente e mette a disposizione il pulsante <b>'🤖 Completa con AI'</b> "
-            "per integrare strofe, bridge o outro mancanti senza toccare quanto già presente. Le sezioni aggiunte vengono evidenziate visivamente tra tag <code>[AUTO-COMPLETATO]</code>. "
-            "L'utente può verificare il risultato e, se non soddisfatto, premere in qualsiasi momento <b>'↩️ UNDO / Ripristina Originale'</b> per tornare al testo grezzo scaricato. "
-            "I tag di marcatura vengono rimossi automaticamente al salvataggio definitivo.<br/>"
-            "<i>Regola di Protezione Medley:</i> Qualsiasi brano con 'MEDLEY' nel titolo è rigorosamente escluso da verifiche o alterazioni automatiche per preservare gli arrangiamenti personalizzati.",
+            "Durante l'importazione (sia da ricerca web che da incolla testo o link diretto), ASMA effettua un controllo automatico di qualità "
+            "interrogando in background le API pubbliche di <b>LRCLIB</b>, il database internazionale di testi discografici ufficiali.<br/>"
+            "&bull; <b>Come Funziona il Confronto:</b> Il motore estrae dallo spartito importato il puro testo cantato (rimuovendo accordi, battute '|', direttive e commenti) "
+            "e ne misura la lunghezza rispetto al testo discografico di riferimento, calcolando il rapporto percentuale di completezza (<i>completeness_ratio</i>). "
+            "Se il testo scaricato dal web è parziale o troncato (rapporto inferiore all'80%), compare un banner arancione ben visibile che avvisa l'utente.<br/>"
+            "&bull; <b>Autocompletamento con AI (Google Gemini):</b> Toccando il pulsante <b>'🤖 Completa con AI'</b>, l'intelligenza artificiale (con fallback dinamico tra versioni e modelli Gemini 1.5 e 2.0 Flash) "
+            "analizza il testo ufficiale completo e lo spartito AML attuale. Secondo una <u>regola tassativa</u>, l'AI <b>non modifica e non cancella alcuna riga o accordo già presente</b>, "
+            "ma deduce e genera esclusivamente le sezioni mancanti (strofe saltate, bridge o outro) nel corretto formato AML, assegnando accordi armonici perfettamente coerenti con la tonalità del brano.<br/>"
+            "&bull; <b>Marcatura & Tag [AUTO-COMPLETATO]:</b> Tutte le parti aggiunte dall'AI vengono racchiuse tra i tag <code>[AUTO-COMPLETATO] ... [/AUTO-COMPLETATO]</code>. "
+            "Nel visualizzatore, queste sezioni appaiono in evidenza con badge verde '🤖 Sezione Aggiunta con AI', mentre sul teleprompter di palco e nella stampa PDF i tag vengono mascherati automaticamente.<br/>"
+            "&bull; <b>Posizionamento della Direttiva [END]:</b> Il sistema assicura che il tag di fine brano <code>[END]</code> sia sempre spostato alla fine assoluta dello spartito, dopo le sezioni autocompletate.<br/>"
+            "&bull; <b>Meccanismo di UNDO Istantaneo:</b> L'utente può verificare il risultato e, se preferisce mantenere lo spartito originale, premere in qualsiasi momento <b>'↩️ UNDO / Ripristina Originale'</b> per ripristinare il testo grezzo scaricato.<br/>"
+            "&bull; <b>Eccezione Medley (Protezione Assoluta):</b> Qualsiasi brano il cui titolo o testo contiene 'MEDLEY' (es. MEDLEY-ROCK, MEDLEY-BATTISTI) è <u>categoricamente escluso</u> dai controlli di completezza LRCLIB e da qualsiasi alterazione automatica LLM. I Medley uniscono parti parziali di canzoni differenti con arrangiamenti personalizzati della band: un confronto discografico produrrebbe falsi allarmi e tagli distruttivi. Mantengono quindi lo stato dedicato 'MEDLEY' (badge viola) e sono protetti da sovrascritture.",
             body_style
         ))
 
@@ -625,13 +644,27 @@ class ManualEngine:
         story.append(Spacer(1, 2 * mm))
 
         # =========================================================================
-        # CAPITOLO 7: CREAZIONE BRANI AUTOPRODOTTI
+        # CAPITOLO 7: CREAZIONE BRANI AUTOPRODOTTI & INEDITI DELLA BAND
         # =========================================================================
-        story.append(Paragraph("Capitolo 7 &bull; Creazione Brani Autoprodotti", ch_title_style))
+        story.append(Paragraph("Capitolo 7 &bull; Creazione Brani Autoprodotti & Inediti della Band", ch_title_style))
         story.append(Paragraph(
-            "Per inserire brani inediti o composizioni della band, è disponibile la barra metadati essenziali a 6 campi: "
+            "Per inserire brani inediti o composizioni originali della band, è disponibile la barra metadati essenziali a 6 campi: "
             "<b>Titolo, Artista, Tonalità, BPM, Genere e Capotasto</b>. I brani autoprodotti vengono salvati nel repertorio "
-            "personale dell'autore, pronti per essere provati e promossi al repertorio ufficiale.",
+            "personale dell'autore, pronti per essere provati e promossi al repertorio ufficiale comune.",
+            body_style
+        ))
+        story.append(Paragraph("<b>Eccezione Brani Autoprodotti & Inediti (Assenza su Database Discografici):</b>", ch_sub_style))
+        story.append(Paragraph(
+            "Per i brani composti direttamente dalla band o arrangiamenti originali mai pubblicati su scala discografica:<br/>"
+            "&bull; <b>Assenza di Riscontro LRCLIB:</b> Il database internazionale LRCLIB non troverà alcuna corrispondenza per i testi inediti. "
+            "In questo caso, ASMA non genera alcun blocco né errore: il brano viene accolto regolarmente con stato <i>'NON VERIFICATO'</i> o <i>'COMPLETO'</i>.<br/>"
+            "&bull; <b>Protezione Contro Allucinazioni AI:</b> Se si invoca l'autocompletamento AI su un brano inedito o sconosciuto a LRCLIB, "
+            "il prompt di sistema impone all'AI di <u>non inventare strofe arbitrarie</u> se non conosce la traccia o se il brano è già completo, "
+            "restituendo lo spartito originale inalterato senza marcatori.<br/>"
+            "&bull; <b>Consolidamento Diretto (DEFINITIVO):</b> L'autore o l'Admin può consolidare immediatamente il brano tramite il pulsante <b>'🔒 Rendi Definitivo'</b> "
+            "o confermarne lo stato nel salvataggio. Il brano riceve lo stato <i>DEFINITIVO</i> o <i>COMPLETO (100%)</i> e viene blindato per sempre: "
+            "nessun audit massivo futuro potrà declassarlo o forzarne la conformità a canzoni omonime registrate sul web, "
+            "tutelando al 100% l'arrangiamento e l'opera originale della band.",
             body_style
         ))
 
@@ -1212,7 +1245,7 @@ class ManualEngine:
             "Gli amministratori dispongono di strumenti completi per la protezione dell'archivio:",
             body_style
         ))
-        story.append(Paragraph("&bull; <b>Audit Massivo Completezza Repertorio & Batch AI (Solo Admin):</b> Barra dedicata per gli Amministratori sul Repertorio Ufficiale Band con pulsante <i>'Analizza Completezza Repertorio'</i> (scansione batch LRCLIB con gestione rate-limit), filtro <i>'Mostra solo Incompleti'</i>, selezione multipla (checkbox) per completamento batch con AI, e pulsante <i>'Rendi Definitivo'</i> per consolidare i brani ed escluderli da futuri audit. Ogni operazione automatica crea uno snapshot storico nel database (previous_content e previous_status), consentendo in qualunque momento il ripristino immediato tramite il pulsante <i>'↩️ UNDO'</i>.", bullet_style))
+        story.append(Paragraph("&bull; <b>Audit Massivo Completezza Repertorio & Batch AI (Solo Admin):</b> Barra dedicata per gli Amministratori sul Repertorio Ufficiale Band con pulsante <i>'Analizza Completezza Repertorio'</i> (scansione batch LRCLIB con gestione rate-limit), filtro <i>'Mostra solo Incompleti'</i>, selezione multipla (checkbox) per completamento batch con AI, e pulsante <i>'Rendi Definitivo'</i> per consolidare i brani ed escluderli da futuri audit. L'algoritmo di audit preserva ed esclude rigorosamente tutti i brani già in stato DEFINITIVO, COMPLETO o MEDLEY, garantendo che nessun brano consolidato o integrato con l'AI venga mai declassato per via di minori ripetizioni testuali. Ogni operazione automatica crea uno snapshot storico nel database (previous_content e previous_status), consentendo in qualunque momento il ripristino immediato tramite il pulsante <i>'↩️ UNDO'</i>.", bullet_style))
         story.append(Paragraph("&bull; <b>Cestino con Retention 30 Giorni:</b> Nessuna cancellazione è distruttiva. I brani eliminati possono essere ripristinati in qualunque momento entro 30 giorni con un clic.", bullet_style))
         story.append(Paragraph("&bull; <b>Backup DB Integrale in Formato JSON:</b> Con un solo tocco viene esportato un dump JSON compatto contenente brani, scalette, utenti, preferenze e changelog.", bullet_style))
         story.append(Paragraph("&bull; <b>Ripristino Database:</b> Importa il dump per migrare o recuperare l'archivio su qualunque server o istanza Turso Cloud.", bullet_style))
