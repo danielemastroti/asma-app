@@ -5537,8 +5537,8 @@ function updateStageHeaderMeta(currentSong) {
 
   const prevSongBtn = document.getElementById('stage-btn-prev-song');
   const nextSongBtn = document.getElementById('stage-btn-next-song');
-  if (prevSongBtn) prevSongBtn.style.display = isMultiSong ? 'inline-block' : 'none';
-  if (nextSongBtn) nextSongBtn.style.display = isMultiSong ? 'inline-block' : 'none';
+  if (prevSongBtn) prevSongBtn.style.display = isMultiSong ? 'inline-flex' : 'none';
+  if (nextSongBtn) nextSongBtn.style.display = isMultiSong ? 'inline-flex' : 'none';
 }
 
 function updateStageTransposeBadge(currentSong) {
@@ -5793,12 +5793,12 @@ function updateStageViewButton() {
 
   if (topBtn) {
     if (isPdf) {
-      topBtn.innerHTML = '🎤 Passa a Teleprompter';
+      topBtn.innerHTML = '🎤 <span class="stage-view-full-text">Passa a </span>Teleprompter';
       topBtn.style.color = '#ffd600';
       topBtn.style.borderColor = '#ffd600';
       topBtn.title = 'Passa a Teleprompter testo (sfondo scuro ad alto contrasto)';
     } else {
-      topBtn.innerHTML = '📄 Passa a Spartito PDF';
+      topBtn.innerHTML = '📄 <span class="stage-view-full-text">Passa a </span>Spartito PDF';
       topBtn.style.color = '#38bdf8';
       topBtn.style.borderColor = '#38bdf8';
       topBtn.title = 'Passa a visualizzazione Spartito PDF originale';

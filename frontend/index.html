@@ -755,19 +755,20 @@ girano in centro sfiorando i novanta"></textarea>
 
   <!-- FULLSCREEN LIVE STAGE MODAL (TELEPROMPTER 60FPS) -->
   <div id="stage-modal" class="stage-fullscreen" style="display: none;">
-    <!-- TOP HEADER: TITLE & NAVIGATION (NEVER OVERFLOWS) -->
+    <!-- TOP HEADER: TITLE & NAVIGATION (RESPONSIVE NO-OVERFLOW) -->
     <div class="stage-header">
-      <div style="flex: 1; min-width: 0; overflow: hidden; padding-right: 8px;">
-        <div id="stage-song-title" style="font-size: 19px; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
-        <div id="stage-song-meta" style="font-size: 12px; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+      <div class="stage-header-info">
+        <div id="stage-song-title" class="stage-song-title"></div>
+        <div id="stage-song-meta" class="stage-song-meta"></div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-        <button id="stage-header-view-btn" class="btn btn-secondary" style="min-height: 38px; padding: 4px 11px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="toggleStageViewType()" title="Passa da Teleprompter testo a Spartito PDF reale">📄 Passa a Spartito PDF</button>
-        <button id="stage-btn-prev-song" class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px; font-size: 11.5px; display: none;" onclick="stagePrevSong()" title="Salta al brano precedente della scaletta">⏮⏮ Brano</button>
-        <button id="stage-btn-prev" class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 700;" onclick="stagePrevPage()" title="Pagina precedente (o brano prec.)">⏮️ Prec</button>
-        <button id="stage-btn-next" class="btn btn-secondary" style="min-height: 38px; padding: 4px 12px; font-weight: 700;" onclick="stageNextPage()" title="Pagina successiva (o brano succ.)">Succ ⏭️</button>
-        <button id="stage-btn-next-song" class="btn btn-secondary" style="min-height: 38px; padding: 4px 10px; font-size: 11.5px; display: none;" onclick="stageNextSong()" title="Salta al brano successivo della scaletta">Brano ⏭⏭</button>
-        <button class="btn btn-danger" style="min-height: 38px; padding: 4px 14px; font-weight: 900;" onclick="closeStageModal()">✕ Esci</button>
+      <button class="btn btn-danger stage-btn-close-mobile" onclick="closeStageModal()" title="Chiudi modalità palco">✕ Esci</button>
+      <div class="stage-header-actions">
+        <button id="stage-header-view-btn" class="btn btn-secondary stage-nav-btn stage-btn-view" onclick="toggleStageViewType()" title="Passa tra Teleprompter testo e Spartito PDF reale">📄 <span class="stage-view-full-text">Passa a </span>Spartito PDF</button>
+        <button id="stage-btn-prev-song" class="btn btn-secondary stage-nav-btn" onclick="stagePrevSong()" title="Salta al brano precedente della scaletta" style="display: none;">⏮⏮<span class="stage-nav-label"> Brano</span></button>
+        <button id="stage-btn-prev" class="btn btn-secondary stage-nav-btn" onclick="stagePrevPage()" title="Pagina precedente (o brano prec.)">⏮️<span class="stage-nav-label"> Prec</span></button>
+        <button id="stage-btn-next" class="btn btn-secondary stage-nav-btn" onclick="stageNextPage()" title="Pagina successiva (o brano succ.)"><span class="stage-nav-label">Succ </span>⏭️</button>
+        <button id="stage-btn-next-song" class="btn btn-secondary stage-nav-btn" onclick="stageNextSong()" title="Salta al brano successivo della scaletta" style="display: none;"><span class="stage-nav-label">Brano </span>⏭⏭</button>
+        <button class="btn btn-danger stage-nav-btn stage-btn-close-desktop" onclick="closeStageModal()" title="Chiudi modalità palco">✕ Esci</button>
       </div>
     </div>
 
