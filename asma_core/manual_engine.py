@@ -571,6 +571,17 @@ class ManualEngine:
         ))
 
         story.append(Paragraph(
+            "<b>Verifica Integrità Testi (LRCLIB Check), Autocompletamento AI Sezioni Mancanti & UNDO:</b> "
+            "Durante l'importazione (da ricerca web o incolla testo), il sistema confronta automaticamente il testo cantato con i testi ufficiali tramite le API di <b>LRCLIB</b>. "
+            "Se il testo scaricato risulta incompleto (rapporto inferiore all'80%), un banner arancione avvisa l'utente e mette a disposizione il pulsante <b>'🤖 Completa con AI'</b> "
+            "per integrare strofe, bridge o outro mancanti senza toccare quanto già presente. Le sezioni aggiunte vengono evidenziate visivamente tra tag <code>[AUTO-COMPLETATO]</code>. "
+            "L'utente può verificare il risultato e, se non soddisfatto, premere in qualsiasi momento <b>'↩️ UNDO / Ripristina Originale'</b> per tornare al testo grezzo scaricato. "
+            "I tag di marcatura vengono rimossi automaticamente al salvataggio definitivo.<br/>"
+            "<i>Regola di Protezione Medley:</i> Qualsiasi brano con 'MEDLEY' nel titolo è rigorosamente escluso da verifiche o alterazioni automatiche per preservare gli arrangiamenti personalizzati.",
+            body_style
+        ))
+
+        story.append(Paragraph(
             "<b>Regola Rigorosa di Destinazione &mdash; Sempre nel Repertorio Personale:</b> "
             "L'importazione dei brani <u>non va mai direttamente sul Repertorio Ufficiale Band</u>. "
             "Qualsiasi brano creato o importato da qualunque canale (ricerca web, fotocamera OCR, incolla testo, link diretto o editor AML) "
@@ -1201,6 +1212,7 @@ class ManualEngine:
             "Gli amministratori dispongono di strumenti completi per la protezione dell'archivio:",
             body_style
         ))
+        story.append(Paragraph("&bull; <b>Audit Massivo Completezza Repertorio & Batch AI (Solo Admin):</b> Barra dedicata per gli Amministratori sul Repertorio Ufficiale Band con pulsante <i>'Analizza Completezza Repertorio'</i> (scansione batch LRCLIB con gestione rate-limit), filtro <i>'Mostra solo Incompleti'</i>, selezione multipla (checkbox) per completamento batch con AI, e pulsante <i>'Rendi Definitivo'</i> per consolidare i brani ed escluderli da futuri audit. Ogni operazione automatica crea uno snapshot storico nel database (previous_content e previous_status), consentendo in qualunque momento il ripristino immediato tramite il pulsante <i>'↩️ UNDO'</i>.", bullet_style))
         story.append(Paragraph("&bull; <b>Cestino con Retention 30 Giorni:</b> Nessuna cancellazione è distruttiva. I brani eliminati possono essere ripristinati in qualunque momento entro 30 giorni con un clic.", bullet_style))
         story.append(Paragraph("&bull; <b>Backup DB Integrale in Formato JSON:</b> Con un solo tocco viene esportato un dump JSON compatto contenente brani, scalette, utenti, preferenze e changelog.", bullet_style))
         story.append(Paragraph("&bull; <b>Ripristino Database:</b> Importa il dump per migrare o recuperare l'archivio su qualunque server o istanza Turso Cloud.", bullet_style))

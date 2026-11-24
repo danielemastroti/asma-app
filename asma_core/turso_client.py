@@ -127,7 +127,12 @@ class TursoClient:
                     current_revision INTEGER,
                     created_at TEXT,
                     updated_at TEXT,
-                    is_deleted INTEGER DEFAULT 0
+                    is_deleted INTEGER DEFAULT 0,
+                    completeness_status TEXT DEFAULT 'NON_VERIFICATO',
+                    completeness_ratio REAL,
+                    official_lyrics TEXT,
+                    previous_content TEXT,
+                    previous_status TEXT
                 );
                 """,
                 """
@@ -232,6 +237,17 @@ class TursoClient:
                 client.execute("ALTER TABLE repertoires ADD COLUMN is_official BOOLEAN DEFAULT 0;")
             except Exception:
                 pass
+            for col_sql in [
+                "ALTER TABLE songs ADD COLUMN completeness_status TEXT DEFAULT 'NON_VERIFICATO';",
+                "ALTER TABLE songs ADD COLUMN completeness_ratio REAL;",
+                "ALTER TABLE songs ADD COLUMN official_lyrics TEXT;",
+                "ALTER TABLE songs ADD COLUMN previous_content TEXT;",
+                "ALTER TABLE songs ADD COLUMN previous_status TEXT;"
+            ]:
+                try:
+                    client.execute(col_sql)
+                except Exception:
+                    pass
             client.close()
             return True, "Schema Turso inizializzato con successo."
         except Exception as e:
@@ -311,8 +327,9 @@ class TursoClient:
                 uuid, title, artist, author, genre, year, duration_seconds, bpm,
                 time_signature, capo, key_original, key_current, notation_system,
                 tags, shared_notes, aml_content, lock_status, current_revision,
-                created_at, updated_at, is_deleted
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, updated_at, is_deleted, completeness_status, completeness_ratio,
+                official_lyrics, previous_content, previous_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(uuid) DO UPDATE SET
                 title=excluded.title,
                 artist=excluded.artist,
@@ -332,7 +349,12 @@ class TursoClient:
                 lock_status=excluded.lock_status,
                 current_revision=excluded.current_revision,
                 updated_at=excluded.updated_at,
-                is_deleted=excluded.is_deleted;
+                is_deleted=excluded.is_deleted,
+                completeness_status=excluded.completeness_status,
+                completeness_ratio=excluded.completeness_ratio,
+                official_lyrics=excluded.official_lyrics,
+                previous_content=excluded.previous_content,
+                previous_status=excluded.previous_status;
             """
             client.execute(sql, [
                 song_dict.get("uuid"),
@@ -355,7 +377,12 @@ class TursoClient:
                 song_dict.get("current_revision", 1),
                 song_dict.get("created_at"),
                 song_dict.get("updated_at"),
-                1 if song_dict.get("is_deleted") else 0
+                1 if song_dict.get("is_deleted") else 0,
+                song_dict.get("completeness_status", "NON_VERIFICATO") or "NON_VERIFICATO",
+                song_dict.get("completeness_ratio"),
+                song_dict.get("official_lyrics", "") or "",
+                song_dict.get("previous_content", "") or "",
+                song_dict.get("previous_status", "") or ""
             ])
             client.close()
             return True, f"Brano '{song_dict.get('title')}' salvato su Turso."
@@ -382,7 +409,8 @@ class TursoClient:
             SELECT uuid, title, artist, author, genre, year, duration_seconds, bpm,
                    time_signature, capo, key_original, key_current, notation_system,
                    tags, shared_notes, aml_content, lock_status, current_revision,
-                   created_at, updated_at, is_deleted
+                   created_at, updated_at, is_deleted, completeness_status,
+                   completeness_ratio, official_lyrics, previous_content, previous_status
             FROM songs
             WHERE is_deleted = 0;
             """
@@ -412,7 +440,12 @@ class TursoClient:
                     "current_revision": r[17],
                     "created_at": r[18],
                     "updated_at": r[19],
-                    "is_deleted": bool(r[20])
+                    "is_deleted": bool(r[20]),
+                    "completeness_status": r[21] if len(r) > 21 and r[21] else "NON_VERIFICATO",
+                    "completeness_ratio": float(r[22]) if len(r) > 22 and r[22] is not None else None,
+                    "official_lyrics": r[23] if len(r) > 23 and r[23] else "",
+                    "previous_content": r[24] if len(r) > 24 and r[24] else "",
+                    "previous_status": r[25] if len(r) > 25 and r[25] else ""
                 })
             client.close()
             return songs

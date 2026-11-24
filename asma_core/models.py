@@ -58,6 +58,11 @@ class Song:
     aml_content: str = ""
     lock_status: LockStatus = field(default_factory=LockStatus)
     current_revision: int = 1
+    completeness_status: str = "NON_VERIFICATO"
+    completeness_ratio: Optional[float] = None
+    official_lyrics: Optional[str] = None
+    previous_content: Optional[str] = None
+    previous_status: Optional[str] = None
     created_at: str = field(default_factory=current_iso_timestamp)
     updated_at: str = field(default_factory=current_iso_timestamp)
 
@@ -84,6 +89,9 @@ class Song:
                 elif "HANNO UCCISO LUOMO RAGNO" in cleaned:
                     cleaned = "HANNO UCCISO L'UOMO RAGNO"
                 filtered["title"] = cleaned
+            if "medley" in filtered["title"].lower():
+                filtered["completeness_status"] = "MEDLEY"
+                filtered["completeness_ratio"] = 1.0
         return cls(**filtered)
 
 

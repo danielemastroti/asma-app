@@ -330,16 +330,24 @@ class WebSongImporter:
             extracted_title = h1_text
 
         # 2. Extract Song Body Content
+        # Decompose ad banners, scripts, navigation, and noise to avoid text truncation
+        for tag in soup(["script", "style", "noscript", "iframe", "nav", "footer", "aside"]):
+            tag.decompose()
+        for ad in soup.find_all(class_=re.compile(r"\b(?:ad|ads|banner|sponsor|cookie|share|social|newsletter|widget-ad)\b", re.IGNORECASE)):
+            ad.decompose()
+
         raw_content = ""
 
-        # Priority 1: <pre> tags
-        pre_tags = soup.find_all("pre")
-        if pre_tags:
-            largest_pre = max(pre_tags, key=lambda p: len(p.get_text()))
-            if len(largest_pre.get_text()) > 200:
-                raw_content = largest_pre.get_text()
+        # Priority 1: <pre> and <code> tags (concatenate ALL matching blocks in sequence, preventing truncation across ads)
+        pre_tags = soup.find_all(["pre", "code"])
+        valid_pres = [
+            p.get_text() for p in pre_tags 
+            if len(p.get_text().strip()) > 25 and re.search(r"[a-zA-Z\u00C0-\u017F]", p.get_text())
+        ]
+        if valid_pres and sum(len(p) for p in valid_pres) > 150:
+            raw_content = "\n\n".join(valid_pres)
 
-        # Priority 2: Specific portal classes
+        # Priority 2: Specific portal classes (concatenate all matching elements to preserve full song across multiple sections)
         if not raw_content:
             target_selectors = [
                 ".entry-content", ".testo_canzone", ".tab-content",
@@ -347,17 +355,24 @@ class WebSongImporter:
                 "article", ".song-content", ".chords-body"
             ]
             for sel in target_selectors:
-                element = soup.select_one(sel)
-                if element and len(element.get_text()) > 200:
-                    for br in element.find_all("br"):
-                        br.replace_with("\n")
-                    raw_content = element.get_text()
-                    break
+                elements = soup.select(sel)
+                if elements:
+                    matched_texts = []
+                    for el in elements:
+                        if len(el.get_text().strip()) > 80:
+                            for br in el.find_all("br"):
+                                br.replace_with("\n")
+                            matched_texts.append(el.get_text())
+                    if matched_texts and sum(len(t) for t in matched_texts) > 150:
+                        raw_content = "\n\n".join(matched_texts)
+                        break
 
         # Priority 3: Fallback to all body paragraphs
         if not raw_content:
             body = soup.find("body")
             if body:
+                for br in body.find_all("br"):
+                    br.replace_with("\n")
                 raw_content = body.get_text(separator="\n")
 
         if not raw_content or len(raw_content.strip()) < 50:

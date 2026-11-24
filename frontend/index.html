@@ -212,6 +212,31 @@
           <input type="text" id="search-songs" class="search-input" style="flex: 1;" placeholder="🔍 Cerca per titolo o artista (0ms istantaneo)...">
           <button id="btn-open-new-song" class="btn btn-primary" style="white-space: nowrap; font-weight: 800;" onclick="showNewSongForm()">➕ Nuovo / Importa</button>
         </div>
+
+        <!-- ADMIN REPERTOIRE AUDIT & COMPLETENESS BATCH TOOLBAR (ADMIN ONLY) -->
+        <div id="admin-completeness-toolbar" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.25); align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="btn-admin-audit-completeness" class="btn btn-secondary" style="min-height: 30px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8; display: flex; align-items: center; gap: 4px;" onclick="adminAuditRepertoireCompleteness()" title="Analizza la completezza di tutti i brani del Repertorio Ufficiale confrontandoli con LRCLIB">
+              <span>🔍</span> <span>Analizza Completezza Repertorio</span>
+            </button>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: #f59e0b; cursor: pointer; user-select: none; background: rgba(245, 158, 11, 0.12); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
+              <input type="checkbox" id="chk-filter-incomplete" onchange="toggleFilterIncomplete(this.checked)" style="cursor: pointer;">
+              <span>Mostra solo Incompleti</span>
+            </label>
+            <button type="button" id="btn-admin-select-all-incomplete" class="btn btn-secondary" style="min-height: 28px; padding: 1px 8px; font-size: 11px; font-weight: 700; display: none;" onclick="toggleSelectAllIncomplete()">
+              Seleziona Tutti
+            </button>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span id="admin-selected-count-badge" style="display: none; font-size: 11px; font-weight: 800; color: #38bdf8; padding: 2px 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px;">0 selezionati</span>
+            <button type="button" id="btn-admin-batch-complete-ai" class="btn btn-primary" style="display: none; min-height: 30px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;" onclick="adminBatchCompleteSelectedAi()">
+              🤖 Completa Selezionati con AI
+            </button>
+            <button type="button" id="btn-admin-batch-finalize" class="btn btn-secondary" style="display: none; min-height: 30px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; color: #38bdf8; border-color: #38bdf8;" onclick="adminBatchFinalizeSelected()" title="Rimuove i tag di autocompletamento e imposta lo stato su DEFINITIVO">
+              🔒 Rendi Definitivo
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- INLINE TOUCH FORM: NUOVO BRANO / IMPORTAZIONE RAPIDA -->
@@ -304,6 +329,23 @@ girano in centro sfiorando i novanta"></textarea>
               ⏳ Elaborazione con Vision AI in corso... attendi qualche secondo.
             </div>
             <div id="camera-thumbnails-container" class="camera-thumbnails"></div>
+          </div>
+        </div>
+
+        <!-- COMPLETENESS & AI AUTO-COMPLETION ALERT BANNER (OPEN TO ALL USERS) -->
+        <div id="import-completeness-banner" style="display: none; margin-bottom: 12px; border-radius: 8px; padding: 12px; border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.12);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div id="import-completeness-text" style="font-size: 13px; font-weight: 700; color: #fbbf24; flex: 1; min-width: 200px;">
+              <!-- Populated dynamically -->
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <button type="button" id="btn-import-complete-ai" class="btn btn-primary" style="font-weight: 800; min-height: 32px; padding: 4px 14px; font-size: 12px; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;" onclick="completeImportedSongAi()">
+                🤖 Completa con AI
+              </button>
+              <button type="button" id="btn-import-undo-ai" class="btn btn-secondary" style="display: none; font-weight: 800; min-height: 32px; padding: 4px 14px; font-size: 12px; color: #fbbf24; border-color: #f59e0b;" onclick="undoImportedSongAi()">
+                ↩️ UNDO / Ripristina Originale
+              </button>
+            </div>
           </div>
         </div>
 

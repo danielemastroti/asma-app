@@ -73,7 +73,13 @@ const state = {
   scrollSpeed: 28, // px per second
   scrollIntervalId: null,
   stageSongs: [],
-  stageIndex: 0
+  stageIndex: 0,
+  selectedSongUuids: new Set(),
+  filterOnlyIncomplete: false,
+  importOriginalAml: '',
+  importOfficialLyrics: '',
+  importCompletenessStatus: '',
+  importCompletenessRatio: 0
 };
 
 // ----------------------------------------------------------------------------
@@ -1181,6 +1187,7 @@ function renderRepertoireChips() {
     adminBtn.style.display = (isAdmin && isEditingMode()) ? 'inline-block' : 'none';
   }
   updateTopDownloadPdfButton();
+  updateAdminCompletenessToolbar();
   requestAnimationFrame(() => syncStickyBarsHeights());
 }
 
@@ -1295,7 +1302,36 @@ function getFilteredSongs(searchKw = '') {
       (s.author && s.author.toLowerCase().includes(searchKw))
     );
   }
+  if (state.filterOnlyIncomplete) {
+    list = list.filter(s => !isMedleySong(s) && s.completeness_status === 'INCOMPLETO');
+  }
   return list;
+}
+
+function isMedleySong(s) {
+  if (!s) return false;
+  const t = (s.title || '').toLowerCase();
+  return t.includes('medley') || s.completeness_status === 'MEDLEY';
+}
+
+function renderCompletenessBadge(s) {
+  if (!s) return '';
+  if (isMedleySong(s)) {
+    return `<span class="badge badge-medley" title="Medley manuale - Escluso da verifiche e modifiche AI">🎵 MEDLEY</span>`;
+  }
+  const status = (s.completeness_status || 'NON_VERIFICATO').toUpperCase();
+  if (status === 'DEFINITIVO') {
+    return `<span class="badge badge-definitivo" title="Brano verificato e consolidato">🔒 DEFINITIVO</span>`;
+  }
+  if (status === 'COMPLETO') {
+    return `<span class="badge badge-completo" title="Testo completo verificato con LRCLIB">✓ COMPLETO</span>`;
+  }
+  if (status === 'INCOMPLETO') {
+    const pct = s.completeness_ratio ? Math.round(s.completeness_ratio * 100) : 0;
+    const pctStr = pct > 0 ? ` (${pct}%)` : '';
+    return `<span class="badge badge-incompleto" title="Testo apparentemente tronco rispetto all'originale">⚠️ INCOMPLETO${pctStr}</span>`;
+  }
+  return `<span class="badge badge-unverified" title="Completezza non ancora verificata con LRCLIB">❓ NON VERIFICATO</span>`;
 }
 
 function renderSongCards(searchKw = '') {
@@ -1305,8 +1341,13 @@ function renderSongCards(searchKw = '') {
   const filtered = getFilteredSongs(searchKw);
   if (filtered.length === 0) {
     container.innerHTML = `<div style="grid-column: 1/-1; padding: 24px; text-align: center; color: #94a3b8;">Nessun brano presente in questa vista.</div>`;
+    updateAdminCompletenessToolbar();
     return;
   }
+
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  const official = (state.repertoires || []).find(r => r.is_official);
+  const isOfficialRep = official && (state.activeRepertoire === official.uuid || state.activeRepertoire === '__ALL__');
 
   container.innerHTML = filtered.map(s => {
     const isSel = state.selectedSong && state.selectedSong.uuid === s.uuid ? 'selected' : '';
@@ -1317,10 +1358,24 @@ function renderSongCards(searchKw = '') {
     const draftBadge = s._is_offline_draft
       ? '<span style="font-size:10px; background:#eab308; color:#0f172a; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:4px;">💾 Bozza Offline</span>'
       : '';
+
+    let batchCheckbox = '';
+    if (isAdmin && isOfficialRep) {
+      if (isMedleySong(s)) {
+        batchCheckbox = `<span style="display:inline-block; font-size:10px; color:#c084fc; font-weight:800; margin-right:6px;" title="Medley protetto da verifiche e modifiche batch">[Protetto]</span>`;
+      } else {
+        const isChecked = state.selectedSongUuids && state.selectedSongUuids.has(s.uuid) ? 'checked' : '';
+        batchCheckbox = `<input type="checkbox" style="width: 17px; height: 17px; margin-right: 8px; cursor: pointer; accent-color: #38bdf8;" ${isChecked} onclick="event.stopPropagation(); toggleSongBatchSelect('${s.uuid}')" title="Seleziona brano per operazione batch">`;
+      }
+    }
+
     return `
       <div class="song-card ${isSel}" onclick="selectSong('${s.uuid}')">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div class="song-card-title">${escapeHtml(s.title)}${draftBadge}</div>
+          <div class="song-card-title" style="display: flex; align-items: center; flex-wrap: wrap;">
+            ${batchCheckbox}
+            <span>${escapeHtml(s.title)}</span>${draftBadge}
+          </div>
           ${cardBtn}
         </div>
         <div class="song-card-artist">${escapeHtml(s.artist || 'Band')} &bull; ${escapeHtml(s.author || '')}</div>
@@ -1328,10 +1383,12 @@ function renderSongCards(searchKw = '') {
           <span class="badge">Tonalità: ${toLatinKey(s.key_current)}</span>
           <span class="badge">${s.bpm || 120} BPM</span>
           <span class="badge">📁 ${escapeHtml(repsStr)}</span>
+          ${renderCompletenessBadge(s)}
         </div>
       </div>
     `;
   }).join('');
+  updateAdminCompletenessToolbar();
 }
 
 async function selectSong(uuid) {
@@ -1779,11 +1836,27 @@ function renderSongViewer() {
   }
 
   const officialBadgeHtml = isInOfficial ? '<span style="display:inline-block; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); border-radius:4px; padding:1px 6px; font-size:11px; font-weight:800; margin-left:6px;">🔒 Ufficiale Protetto</span>' : '';
+  const completenessBadgeHtml = renderCompletenessBadge(s);
+
+  let completenessViewerActions = '';
+  if (s.previous_content) {
+    completenessViewerActions += `<button class="btn btn-secondary" style="color: #fbbf24; border-color: #f59e0b; font-weight: 800;" onclick="undoSongInViewer('${s.uuid}')" title="Ripristina il contenuto e lo stato precedenti all'intervento AI">↩️ UNDO Versione Precedente</button>`;
+  }
+  if (!isMedleySong(s) && s.completeness_status === 'INCOMPLETO') {
+    completenessViewerActions += `<button class="btn btn-primary" style="font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;" onclick="completeSongInViewerAi('${s.uuid}')" title="Completa le sezioni mancanti con AI Gemini confrontando con LRCLIB">🤖 Completa con AI</button>`;
+  }
+  if (!isMedleySong(s) && s.completeness_status !== 'DEFINITIVO' && (typeof isCurrentUserAdmin === 'function' && isCurrentUserAdmin())) {
+    completenessViewerActions += `<button class="btn btn-secondary" style="color: #38bdf8; border-color: #38bdf8; font-weight: 800;" onclick="finalizeSongInViewer('${s.uuid}')" title="Rimuove i tag di autocompletamento e imposta lo stato a DEFINITIVO">🔒 Rendi Definitivo</button>`;
+  }
 
   const headerHtml = `
     <div class="viewer-header">
       <div>
-        <h2 style="font-size: 22px; font-weight: 900; color: #fff;">${escapeHtml(s.title)}${officialBadgeHtml}</h2>
+        <h2 style="font-size: 22px; font-weight: 900; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span>${escapeHtml(s.title)}</span>
+          ${officialBadgeHtml}
+          ${completenessBadgeHtml}
+        </h2>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
           <b>${escapeHtml(s.artist || 'Band')}</b> &bull; Tonalità: <code style="color:#ffd600; font-weight:700;">${toLatinKey(s.key_current)}</code>
           &bull; Tempo: <code style="color:#00e5ff;">${s.bpm || 120} BPM</code> &bull; Capo: <b>${s.capo || 0}°</b>
@@ -1792,6 +1865,7 @@ function renderSongViewer() {
       </div>
       <div class="viewer-tools">
         ${editingToolsHtml}
+        ${completenessViewerActions}
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', -1)" title="Riduci dimensione caratteri">A−</button>
         <button class="btn btn-secondary" onclick="adjustFontSize('lyrics', 1)" title="Ingrandisci dimensione caratteri">A+</button>
         <button class="btn btn-secondary" onclick="toggleScoreMode()">${modeLabel}</button>
@@ -2024,6 +2098,9 @@ async function saveSongEdit(downloadPdfAfter = false) {
 
   const newKeyVal = keyInput ? keyInput.value.trim() : state.selectedSong.key_current;
   let newAmlVal = amlInput ? amlInput.value : state.selectedSong.aml_content;
+  if (newAmlVal) {
+    newAmlVal = newAmlVal.replace(/\[\/?AUTO-COMPLETATO\]/gi, '').trim();
+  }
   if (newKeyVal && newAmlVal) {
     newAmlVal = newAmlVal.replace(/^(\{(?:key|tonalita)\s*:\s*)([^\}]+)(\})/gmi, `$1${newKeyVal}$3`);
   }
@@ -2167,6 +2244,12 @@ function showNewSongForm() {
   if (!requireEditingMode()) return;
   const form = document.getElementById('new-song-form');
   if (form) {
+    const banner = document.getElementById('import-completeness-banner');
+    if (banner) banner.style.display = 'none';
+    state.importOriginalAml = '';
+    state.importOfficialLyrics = '';
+    state.importCompletenessStatus = '';
+    state.importCompletenessRatio = 0;
     const repSelect = document.getElementById('new-song-repertoire');
     const workspaceReps = getWorkspaceRepertoires();
     // CRITICAL: Newly created or imported songs NEVER go to "Repertorio Ufficiale Band"!
@@ -2191,6 +2274,12 @@ function showNewSongForm() {
 function hideNewSongForm() {
   const form = document.getElementById('new-song-form');
   if (form) form.style.display = 'none';
+  const banner = document.getElementById('import-completeness-banner');
+  if (banner) banner.style.display = 'none';
+  state.importOriginalAml = '';
+  state.importOfficialLyrics = '';
+  state.importCompletenessStatus = '';
+  state.importCompletenessRatio = 0;
 }
 
 function insertDirectiveAtCursor(textareaId, type) {
@@ -3305,6 +3394,517 @@ async function executeWebSearch() {
   }
 }
 
+// ----------------------------------------------------------------------------
+// COMPLETENESS, LRCLIB CHECK, AI AUTO-COMPLETION & ADMIN BATCH AUDIT
+// ----------------------------------------------------------------------------
+
+function updateAdminCompletenessToolbar() {
+  const tb = document.getElementById('admin-completeness-toolbar');
+  if (!tb) return;
+
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  const official = (state.repertoires || []).find(r => r.is_official);
+  const isOfficialRep = official && (state.activeRepertoire === official.uuid || state.activeRepertoire === '__ALL__');
+
+  if (!isAdmin || !isOfficialRep) {
+    tb.style.display = 'none';
+    return;
+  }
+
+  tb.style.display = 'flex';
+
+  const chkFilter = document.getElementById('chk-filter-incomplete');
+  if (chkFilter) chkFilter.checked = !!state.filterOnlyIncomplete;
+
+  const countBadge = document.getElementById('admin-selected-count-badge');
+  const btnBatchComplete = document.getElementById('btn-admin-batch-complete-ai');
+  const btnBatchFinalize = document.getElementById('btn-admin-batch-finalize');
+  const btnSelectAll = document.getElementById('btn-admin-select-all-incomplete');
+
+  const selCount = state.selectedSongUuids ? state.selectedSongUuids.size : 0;
+  if (countBadge) {
+    countBadge.style.display = selCount > 0 ? 'inline-block' : 'none';
+    countBadge.textContent = `${selCount} selezionat${selCount === 1 ? 'o' : 'i'}`;
+  }
+  if (btnBatchComplete) {
+    btnBatchComplete.style.display = selCount > 0 ? 'inline-block' : 'none';
+  }
+  if (btnBatchFinalize) {
+    btnBatchFinalize.style.display = selCount > 0 ? 'inline-block' : 'none';
+  }
+  if (btnSelectAll) {
+    btnSelectAll.style.display = 'inline-block';
+  }
+}
+
+function toggleFilterIncomplete(checked) {
+  state.filterOnlyIncomplete = !!checked;
+  renderSongCards();
+}
+
+function toggleSongBatchSelect(uuid) {
+  if (!state.selectedSongUuids) state.selectedSongUuids = new Set();
+  if (state.selectedSongUuids.has(uuid)) {
+    state.selectedSongUuids.delete(uuid);
+  } else {
+    state.selectedSongUuids.add(uuid);
+  }
+  renderSongCards();
+  updateAdminCompletenessToolbar();
+}
+
+function toggleSelectAllIncomplete() {
+  if (!state.selectedSongUuids) state.selectedSongUuids = new Set();
+  const list = getFilteredSongs().filter(s => {
+    const isMedley = isMedleySong(s);
+    return !isMedley && s.completeness_status === 'INCOMPLETO';
+  });
+
+  if (list.length === 0) {
+    showToast('Nessun brano incompleto presente nella vista attuale');
+    return;
+  }
+
+  const allSelected = list.every(s => state.selectedSongUuids.has(s.uuid));
+  if (allSelected) {
+    list.forEach(s => state.selectedSongUuids.delete(s.uuid));
+  } else {
+    list.forEach(s => state.selectedSongUuids.add(s.uuid));
+  }
+  renderSongCards();
+  updateAdminCompletenessToolbar();
+}
+
+async function adminAuditRepertoireCompleteness() {
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  if (!isAdmin) {
+    showToast('Azione riservata all\'Amministratore');
+    return;
+  }
+
+  const btn = document.getElementById('btn-admin-audit-completeness');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ <span>Analisi LRCLIB in corso...</span>';
+  }
+  showToast('🔍 Scansione brani con LRCLIB in corso... attendere');
+
+  try {
+    const official = (state.repertoires || []).find(r => r.is_official);
+    const res = await fetch(`${API_BASE}/api/admin/repertoire/audit-completeness`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        repertoire_uuid: official ? official.uuid : null
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Audit completato: ${data.processed_count} brani analizzati (${data.incomplete_count} incompleti, ${data.complete_count} completi, ${data.skipped_count} saltati/medley)`);
+      await loadSongs({ autoSelect: false });
+      if (data.incomplete_count > 0) {
+        state.filterOnlyIncomplete = true;
+        const chk = document.getElementById('chk-filter-incomplete');
+        if (chk) chk.checked = true;
+        renderSongCards();
+      }
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante l\'audit del repertorio');
+    }
+  } catch (e) {
+    console.error('Audit repertoire error:', e);
+    showToast('Errore di connessione durante l\'audit');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🔍</span> <span>Analizza Completezza Repertorio</span>';
+    }
+  }
+}
+
+async function adminBatchCompleteSelectedAi() {
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  if (!isAdmin) {
+    showToast('Azione riservata all\'Amministratore');
+    return;
+  }
+
+  const count = state.selectedSongUuids ? state.selectedSongUuids.size : 0;
+  if (count === 0) {
+    showToast('Nessun brano selezionato');
+    return;
+  }
+
+  if (!confirm(`Sei sicuro di voler completare con AI ${count} brani selezionati?\nI brani Medley verranno automaticamente saltati e protetti.\nPer ogni brano modificato verrà salvato uno snapshot per eventuale UNDO.`)) {
+    return;
+  }
+
+  const btn = document.getElementById('btn-admin-batch-complete-ai');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Elaborazione AI in corso...';
+  }
+  showToast(`🤖 Elaborazione AI di ${count} brani in corso...`);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/repertoire/batch-complete-ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name || 'Admin',
+        song_uuids: Array.from(state.selectedSongUuids)
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const nCompleted = (data.completed_songs || []).length;
+      const nSkipped = (data.skipped_songs || []).length;
+      showToast(`Completamento AI terminato: ${nCompleted} brani completati, ${nSkipped} saltati ✓`);
+      state.selectedSongUuids.clear();
+      await loadSongs({ autoSelect: false });
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante il completamento AI batch');
+    }
+  } catch (e) {
+    console.error('Batch complete AI error:', e);
+    showToast('Errore di connessione durante il completamento AI');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '🤖 Completa Selezionati con AI';
+    }
+  }
+}
+
+async function adminBatchFinalizeSelected() {
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  if (!isAdmin) {
+    showToast('Azione riservata all\'Amministratore');
+    return;
+  }
+
+  const count = state.selectedSongUuids ? state.selectedSongUuids.size : 0;
+  if (count === 0) {
+    showToast('Nessun brano selezionato');
+    return;
+  }
+
+  if (!confirm(`Vuoi rendere DEFINITIVI ${count} brani selezionati?\nVerranno rimossi tutti i tag [AUTO-COMPLETATO] e lo stato sarà impostato su DEFINITIVO (escluso da futuri audit). Snapshot salvato per UNDO.`)) {
+    return;
+  }
+
+  const btn = document.getElementById('btn-admin-batch-finalize');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Consolidamento...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/repertoire/batch-finalize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name || 'Admin',
+        song_uuids: Array.from(state.selectedSongUuids)
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const nFinal = (data.finalized_songs || []).length;
+      showToast(`${nFinal} brani resi DEFINITIVI ✓`);
+      state.selectedSongUuids.clear();
+      await loadSongs({ autoSelect: false });
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante il consolidamento dei brani');
+    }
+  } catch (e) {
+    console.error('Batch finalize error:', e);
+    showToast('Errore di connessione');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '🔒 Rendi Definitivo';
+    }
+  }
+}
+
+async function undoSongInViewer(uuid) {
+  if (!confirm('Ripristinare il contenuto e lo stato precedenti all\'intervento dell\'AI?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/${uuid}/undo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name || 'Musicista'
+      })
+    });
+
+    if (res.ok) {
+      showToast('Versione precedente ripristinata con successo (UNDO eseguito) ✓');
+      await selectSong(uuid);
+      await loadSongs({ autoSelect: false });
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Impossibile ripristinare la versione precedente');
+    }
+  } catch (e) {
+    console.error('Undo song error:', e);
+    showToast('Errore durante il ripristino UNDO');
+  }
+}
+
+async function finalizeSongInViewer(uuid) {
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  if (!isAdmin) {
+    showToast('Solo gli amministratori possono rendere un brano definitivo');
+    return;
+  }
+
+  if (!confirm('Rendere questo brano DEFINITIVO? Verranno rimossi i tag [AUTO-COMPLETATO] e non sarà più modificato dagli audit automatici.')) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/repertoire/batch-finalize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name || 'Admin',
+        song_uuids: [uuid]
+      })
+    });
+
+    if (res.ok) {
+      showToast('Brano reso DEFINITIVO ✓');
+      await selectSong(uuid);
+      await loadSongs({ autoSelect: false });
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante il consolidamento');
+    }
+  } catch (e) {
+    console.error('Finalize song error:', e);
+    showToast('Errore di connessione');
+  }
+}
+
+async function completeSongInViewerAi(uuid) {
+  const s = state.selectedSong;
+  if (!s || s.uuid !== uuid) return;
+
+  if (isMedleySong(s)) {
+    showToast('I brani Medley sono protetti e non possono essere modificati dall\'AI');
+    return;
+  }
+
+  const isAdmin = typeof isCurrentUserAdmin === 'function' ? isCurrentUserAdmin() : false;
+  const official = (state.repertoires || []).find(r => r.is_official);
+  const isInOfficial = official && official.song_uuids && official.song_uuids.includes(s.uuid);
+
+  if (isInOfficial && !isAdmin) {
+    showToast('Modifica consentita solo agli amministratori sul Repertorio Ufficiale');
+    return;
+  }
+
+  showToast('🤖 Completamento sezioni mancanti con AI in corso... attendere');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/repertoire/batch-complete-ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: state.currentUser.email,
+        user_name: state.currentUser.name || 'Admin',
+        song_uuids: [uuid]
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if ((data.completed_songs || []).length > 0) {
+        showToast('Brano completato con AI ✓ Snapshot UNDO salvato');
+        await selectSong(uuid);
+        await loadSongs({ autoSelect: false });
+      } else {
+        const skipped = (data.skipped_songs || [])[0];
+        showToast((skipped && skipped.reason) || 'Nessuna modifica necessaria');
+      }
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore completamento AI');
+    }
+  } catch (e) {
+    console.error('Complete song in viewer AI error:', e);
+    showToast('Errore di connessione completamento AI');
+  }
+}
+
+function updateImportCompletenessBanner(completeness, title, artist, originalAml) {
+  const banner = document.getElementById('import-completeness-banner');
+  const textEl = document.getElementById('import-completeness-text');
+  const completeAiBtn = document.getElementById('btn-import-complete-ai');
+  const undoBtn = document.getElementById('btn-import-undo-ai');
+  if (!banner || !textEl) return;
+
+  state.importOriginalAml = originalAml || '';
+  state.importOfficialLyrics = (completeness && completeness.official_lyrics) || '';
+  state.importCompletenessStatus = (completeness && completeness.status) || 'NON_VERIFICATO';
+  state.importCompletenessRatio = (completeness && completeness.ratio) || 0;
+
+  if (undoBtn) undoBtn.style.display = 'none';
+
+  if (!completeness || completeness.status === 'NON_VERIFICATO') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const isMedley = completeness.is_medley || (title && title.toLowerCase().includes('medley')) || completeness.status === 'MEDLEY';
+
+  if (isMedley) {
+    banner.style.display = 'block';
+    banner.style.borderColor = '#a855f7';
+    banner.style.background = 'rgba(168, 85, 247, 0.12)';
+    textEl.innerHTML = `<span style="color: #c084fc; font-weight: 800;">🎵 MEDLEY Rilevato:</span> Questo brano è escluso automaticamente da verifiche e modifiche AI per proteggere gli arrangiamenti manuali.`;
+    if (completeAiBtn) completeAiBtn.style.display = 'none';
+    if (undoBtn) undoBtn.style.display = 'none';
+    return;
+  }
+
+  if (completeness.status === 'INCOMPLETO') {
+    banner.style.display = 'block';
+    banner.style.borderColor = '#f59e0b';
+    banner.style.background = 'rgba(245, 158, 11, 0.15)';
+    const pct = Math.round((completeness.ratio || 0) * 100);
+    textEl.innerHTML = `<span style="color: #fbbf24; font-weight: 800;">⚠️ Attenzione: Brano apparentemente incompleto (${pct}% del testo ufficiale LRCLIB).</span> Mancano strofe, bridge o outro rispetto all'originale. Clicca sul pulsante a fianco per completarlo automaticamente con l'AI.`;
+    if (completeAiBtn) {
+      completeAiBtn.style.display = 'inline-block';
+      completeAiBtn.disabled = false;
+      completeAiBtn.innerHTML = '🤖 Completa con AI';
+    }
+    return;
+  }
+
+  if (completeness.status === 'COMPLETO') {
+    banner.style.display = 'block';
+    banner.style.borderColor = '#10b981';
+    banner.style.background = 'rgba(16, 185, 129, 0.12)';
+    textEl.innerHTML = `<span style="color: #34d399; font-weight: 800;">✓ Testo Completo:</span> Confrontato con il testo ufficiale LRCLIB, tutte le sezioni principali risultano presenti.`;
+    if (completeAiBtn) completeAiBtn.style.display = 'none';
+    if (undoBtn) undoBtn.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'none';
+}
+
+async function completeImportedSongAi() {
+  const btn = document.getElementById('btn-import-complete-ai');
+  const undoBtn = document.getElementById('btn-import-undo-ai');
+  const textEl = document.getElementById('import-completeness-text');
+  const titleField = document.getElementById('new-song-title');
+  const artistField = document.getElementById('new-song-artist');
+  const amlField = document.getElementById('new-song-aml');
+
+  const title = (titleField?.value || '').trim();
+  const artist = (artistField?.value || '').trim();
+  const aml = amlField?.value || '';
+
+  if (!title) {
+    showToast('Inserisci prima il titolo del brano');
+    return;
+  }
+
+  if (title.toLowerCase().includes('medley')) {
+    showToast('I brani Medley sono protetti e non possono essere modificati dall\'AI');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ AI in elaborazione...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/songs/complete-ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        artist: artist,
+        aml: aml,
+        official_lyrics: state.importOfficialLyrics || ''
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (!state.importOriginalAml) {
+        state.importOriginalAml = aml;
+      }
+      if (amlField) {
+        amlField.value = data.completed_aml;
+      }
+      if (textEl) {
+        textEl.innerHTML = `<span style="color: #34d399; font-weight: 800;">🤖 Brano completato con successo dall'AI!</span> Le sezioni aggiunte sono evidenziate con <code>[AUTO-COMPLETATO]</code>. Puoi verificare gli accordi, modificarli o cliccare <b>UNDO</b> per ripristinare il testo originale.`;
+      }
+      if (btn) btn.style.display = 'none';
+      if (undoBtn) undoBtn.style.display = 'inline-block';
+      showToast('Brano completato con AI ✓ Nuove sezioni marcate');
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'Errore durante il completamento AI');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '🤖 Completa con AI';
+      }
+    }
+  } catch (e) {
+    console.error('Error completing song with AI:', e);
+    showToast('Errore di connessione durante il completamento AI');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '🤖 Completa con AI';
+    }
+  }
+}
+
+function undoImportedSongAi() {
+  const amlField = document.getElementById('new-song-aml');
+  const btn = document.getElementById('btn-import-complete-ai');
+  const undoBtn = document.getElementById('btn-import-undo-ai');
+  const textEl = document.getElementById('import-completeness-text');
+
+  if (state.importOriginalAml && amlField) {
+    amlField.value = state.importOriginalAml;
+    state.importOriginalAml = '';
+    if (undoBtn) undoBtn.style.display = 'none';
+    if (btn) {
+      btn.style.display = 'inline-block';
+      btn.disabled = false;
+      btn.innerHTML = '🤖 Completa con AI';
+    }
+    if (textEl) {
+      const pct = Math.round((state.importCompletenessRatio || 0) * 100);
+      textEl.innerHTML = `<span style="color: #fbbf24; font-weight: 800;">↩️ Versione originale ripristinata (${pct}% del testo LRCLIB).</span> Puoi completare di nuovo con AI se desideri.`;
+    }
+    showToast('Ripristinato testo originale scaricato ✓');
+  }
+}
+
 async function importCandidateUrl(encodedUrl) {
   const url = decodeURIComponent(encodedUrl);
   showToast('Download ed elaborazione spartito...');
@@ -3329,6 +3929,10 @@ async function importCandidateUrl(encodedUrl) {
       if (capoField) capoField.value = data.capo || 0;
       const amlField = document.getElementById('new-song-aml');
       if (amlField) amlField.value = data.aml;
+
+      if (data.completeness) {
+        updateImportCompletenessBanner(data.completeness, data.title, data.artist, data.aml);
+      }
 
       // Scroll smoothly down to the form fields
       if (tField) tField.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3374,6 +3978,10 @@ async function convertPastedText() {
       const amlField = document.getElementById('new-song-aml');
       if (amlField) amlField.value = data.aml;
 
+      if (data.completeness) {
+        updateImportCompletenessBanner(data.completeness, data.title || '', data.artist || '', data.aml);
+      }
+
       showToast('Testo convertito con successo in AML ✓');
     }
   } catch (err) {
@@ -3410,6 +4018,10 @@ async function fetchSongFromUrl() {
       const amlField = document.getElementById('new-song-aml');
       if (amlField) amlField.value = data.aml;
 
+      if (data.completeness) {
+        updateImportCompletenessBanner(data.completeness, data.title, data.artist, data.aml);
+      }
+
       showToast(`Brano "${data.title}" estratto dal web ✓`);
     } else {
       const err = await res.json();
@@ -3434,7 +4046,8 @@ async function submitNewSong() {
   const key = (document.getElementById('new-song-key')?.value || 'C').trim();
   const bpm = parseInt(document.getElementById('new-song-bpm')?.value) || 120;
   const capo = parseInt(document.getElementById('new-song-capo')?.value) || 0;
-  const aml = document.getElementById('new-song-aml')?.value || '';
+  let aml = document.getElementById('new-song-aml')?.value || '';
+  aml = aml.replace(/\[\/?AUTO-COMPLETATO\]/gi, '').trim();
 
   const repSelect = document.getElementById('new-song-repertoire');
   let targetRepertoire = repSelect?.value;
@@ -3675,6 +4288,24 @@ function parseAmlForWeb(aml, showChords) {
     const trimmed = line.trim();
 
     if (!trimmed) {
+      continue;
+    }
+
+    // AI Autocompletion markers
+    if (trimmed.toUpperCase() === '[AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[AUTO-COMPLETATO]')) {
+      if (inSection) {
+        html += '</div>';
+        inSection = false;
+      }
+      html += `<div class="ai-autocompleted-block"><div class="ai-autocompleted-badge">🤖 Sezione Aggiunta con AI (Verifica accordi)</div>`;
+      inSection = true;
+      continue;
+    }
+    if (trimmed.toUpperCase() === '[/AUTO-COMPLETATO]' || trimmed.toUpperCase().startsWith('[/AUTO-COMPLETATO]')) {
+      if (inSection) {
+        html += '</div>';
+        inSection = false;
+      }
       continue;
     }
 

@@ -1,5 +1,23 @@
 # Registro delle Modifiche (Changelog Ufficiale)
 
+## Versione 2026.11.24 (24/11/2026) — Verifica Completezza Brani con LRCLIB, Autocompletamento LLM Sezioni Mancanti, Flusso Importazione Aperto con UNDO & Strumenti Audit Massivo Repertorio per Amministratori
+
+### Nuove Funzionalità (New Features)
+- Verifica Integrità e Completezza Testi con LRCLIB API: integrazione del controllo automatico tramite l'API gratuita LRCLIB (get e fallback search) per confrontare il testo cantato estratto dallo spartito con i testi ufficiali discografici. Calcolo del rapporto di completezza (completeness_ratio): se inferiore all'80%, il brano viene automaticamente contrassegnato come 'INCOMPLETO' con indicazione percentuale visiva.
+- Flusso Importazione Brani con Banner di Completezza e Autocompletamento AI (Aperto a Tutti gli Utenti): durante l'importazione da web (ricerca link o incolla testo), il sistema verifica istantaneamente la completezza con LRCLIB. Se il brano risulta incompleto, un banner dedicato avvisa l'utente e offre il pulsante '🤖 Completa con AI' per integrare strofe, bridge o outro mancanti senza toccare le sezioni già presenti.
+- Sistema di Evidenziazione Sezioni e Rollback Immediato (UNDO): le sezioni integrate dall'intelligenza artificiale vengono marcate con [AUTO-COMPLETATO] e visualizzate in verde con badge '🤖 Sezione Aggiunta con AI'. L'utente può cliccare in qualunque momento su '↩️ UNDO / Ripristina Originale' per scartare l'intervento dell'AI e ripristinare il testo grezzo scaricato. I tag vengono ripuliti automaticamente al momento del salvataggio definitivo.
+- Toolbar e Strumenti di Audit Massivo del Repertorio Ufficiale (Riservato agli Amministratori): barra strumenti dedicata per gli Admin con funzionalità di: 'Analizza Completezza Repertorio' per la scansione massiva con gestione rate-limit, filtro rapido 'Mostra solo Incompleti', selezione multipla di brani incompleti, pulsante '🤖 Completa Selezionati con AI' e '🔒 Rendi Definitivo' per consolidare i brani ed escluderli da futuri audit.
+- Sistema di Snapshot Storico & UNDO su Singolo Brano: prima di qualsiasi modifica automatica AI o cambio di stato, viene salvato uno snapshot di backup (previous_content e previous_status) sia nel database locale SQLite che su Turso Cloud, permettendo all'utente e all'Admin di effettuare il rollback in qualsiasi momento dal visualizzatore dello spartito.
+- Regola di Esclusione Assoluta & Protezione Medley: qualsiasi brano il cui titolo contiene la parola 'MEDLEY' (es. MEDLEY-ROCK, MEDLEY-BATTISTI) è escluso categoricamente da verifiche LRCLIB e alterazioni LLM, mantenendo lo stato dedicato 'MEDLEY' con badge visivo viola '🎵 MEDLEY' e disabilitazione dei controlli di modifica massiva per tutelare gli arrangiamenti manuali.
+
+### Miglioramenti (Improvements)
+- Risoluzione Troncamenti Scraper Web: corretto l'algoritmo di estrazione HTML (web_importer.py) per concatenare sequenzialmente tutti i tag <pre>, <code> e sezioni divise da banner pubblicitari o div intermedi, evitando il troncamento all'origine degli spartiti importati.
+- Badge Visivi di Completezza nella Griglia e nel Visualizzatore: visualizzazione immediata dello stato del brano tramite badge colorati: COMPLETO (verde), INCOMPLETO con percentuale (arancione), DEFINITIVO (blu), MEDLEY (viola) e NON VERIFICATO (grigio).
+- Persistenza Completa su Turso Cloud & SQLite: schema del database arricchito con le colonne completeness_status, completeness_ratio, official_lyrics, previous_content e previous_status per garantire la persistenza dei dati e degli snapshot anche su architettura effimera Render.
+
+### Sicurezza (Security)
+- Protezione Accessi RBAC su Operazioni Massive (HTTP 403 Forbidden): tutti gli endpoint di audit massivo, completamento batch e consolidamento del repertorio ufficiale (/api/admin/repertoire/*) sono rigidamente protetti sia nel frontend che nel backend, restituendo HTTP 403 Forbidden in caso di invocazione da parte di utenti non amministratori.
+
 ## Versione 2026.11.23 (23/11/2026) — Barre Superiori Fisse durante Scorrimento Lista Brani (Sticky UI), Persistenza Offline Completa PWA con Snapshot Locale, Risoluzione Modalità Palco Offline & Cache Anteprime PDF, Gestione Modifiche Offline (Caso B) & Fix Medley
 
 ### Nuove Funzionalità (New Features)

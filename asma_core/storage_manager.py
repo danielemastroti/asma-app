@@ -109,13 +109,26 @@ class StorageManager:
                     updated_at TEXT,
                     is_deleted INTEGER DEFAULT 0,
                     repertoire_uuids TEXT,
-                    aml_content TEXT
+                    aml_content TEXT,
+                    completeness_status TEXT DEFAULT 'NON_VERIFICATO',
+                    completeness_ratio REAL,
+                    official_lyrics TEXT,
+                    previous_content TEXT,
+                    previous_status TEXT
                 )
             """)
-            try:
-                self._db_conn.execute("ALTER TABLE songs_index ADD COLUMN aml_content TEXT")
-            except Exception:
-                pass
+            for col_name, col_type in [
+                ("aml_content", "TEXT"),
+                ("completeness_status", "TEXT DEFAULT 'NON_VERIFICATO'"),
+                ("completeness_ratio", "REAL"),
+                ("official_lyrics", "TEXT"),
+                ("previous_content", "TEXT"),
+                ("previous_status", "TEXT"),
+            ]:
+                try:
+                    self._db_conn.execute(f"ALTER TABLE songs_index ADD COLUMN {col_name} {col_type}")
+                except Exception:
+                    pass
             self._db_conn.execute("CREATE INDEX IF NOT EXISTS idx_title ON songs_index(title)")
             self._db_conn.execute("CREATE INDEX IF NOT EXISTS idx_key ON songs_index(key_current)")
             self._db_conn.execute("CREATE INDEX IF NOT EXISTS idx_bpm ON songs_index(bpm)")
@@ -188,14 +201,20 @@ class StorageManager:
                     duration_seconds, bpm, time_signature, capo,
                     key_original, key_current, notation_system, tags,
                     current_revision, created_at, updated_at, is_deleted,
-                    repertoire_uuids, aml_content
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    repertoire_uuids, aml_content, completeness_status, completeness_ratio,
+                    official_lyrics, previous_content, previous_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 song.uuid, clean_title, song.artist, song.author, song.genre, song.year,
                 song.duration_seconds, song.bpm, song.time_signature, song.capo,
                 song.key_original, song.key_current, song.notation_system, tags_str,
                 song.current_revision, song.created_at, song.updated_at, is_deleted, reps_str,
-                song.aml_content or ""
+                song.aml_content or "",
+                getattr(song, "completeness_status", "NON_VERIFICATO") or "NON_VERIFICATO",
+                getattr(song, "completeness_ratio", None),
+                getattr(song, "official_lyrics", "") or "",
+                getattr(song, "previous_content", "") or "",
+                getattr(song, "previous_status", "") or ""
             ))
 
     def _delete_index_record(self, song_uuid: str) -> None:

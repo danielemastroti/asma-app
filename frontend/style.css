@@ -413,6 +413,61 @@ body {
   font-weight: 600;
 }
 
+.badge-medley {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+  border: 1px solid #a855f7 !important;
+  font-weight: 800 !important;
+}
+
+.badge-definitivo {
+  background: rgba(2, 132, 199, 0.2) !important;
+  color: #38bdf8 !important;
+  border: 1px solid #0284c7 !important;
+  font-weight: 800 !important;
+}
+
+.badge-completo {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border: 1px solid #10b981 !important;
+  font-weight: 800 !important;
+}
+
+.badge-incompleto {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fbbf24 !important;
+  border: 1px solid #f59e0b !important;
+  font-weight: 800 !important;
+}
+
+.badge-unverified {
+  background: rgba(148, 163, 184, 0.15) !important;
+  color: #94a3b8 !important;
+  border: 1px solid #64748b !important;
+  font-weight: 700 !important;
+}
+
+.ai-autocompleted-block {
+  border-left: 3px solid #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 8px 12px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.ai-autocompleted-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
 /* SONG VIEWER (SPARTITO) */
 .song-viewer {
   background: var(--bg-surface);

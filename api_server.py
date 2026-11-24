@@ -31,6 +31,7 @@ from asma_core.printer_engine import PrinterEngine
 from asma_core.export_engine import ExportEngine
 from asma_core.import_engine import ImportEngine
 from asma_core.web_importer import WebSongImporter
+from asma_core.completeness_checker import CompletenessChecker
 from asma_core.auth_manager import AuthManager
 from asma_core.preferences_manager import PreferencesManager
 from asma_core.device_manager import DeviceManager
@@ -1202,6 +1203,7 @@ def create_song(req: SongCreateRequest):
     Imported and newly created songs NEVER enter the official band repertoire directly.
     They enter the official repertoire only after explicit promotion ('/api/repertoires/promote-song').
     """
+    clean_aml = CompletenessChecker.clean_autocompleted_tags(req.aml_content or "{verse}\n[DO]Testo iniziale...\n")
     song = Song(
         title=req.title.strip().upper(),
         artist=req.artist.strip() if req.artist else "Band",
@@ -1212,8 +1214,11 @@ def create_song(req: SongCreateRequest):
         capo=req.capo or 0,
         key_original=req.key_current or "C",
         key_current=req.key_current or "C",
-        aml_content=req.aml_content or "{verse}\n[DO]Testo iniziale...\n"
+        aml_content=clean_aml
     )
+    if CompletenessChecker.is_medley(song.title, clean_aml):
+        song.completeness_status = "MEDLEY"
+        song.completeness_ratio = 1.0
 
     all_reps = storage.list_repertoires()
     target_rep_uuid = req.repertoire_uuid
@@ -1286,9 +1291,12 @@ def update_song(uuid: str, req: SongUpdateRequest):
     if req.key_current is not None:
         song.key_current = req.key_current
     if req.aml_content is not None:
-        song.aml_content = req.aml_content
+        song.aml_content = CompletenessChecker.clean_autocompleted_tags(req.aml_content)
     if req.tags is not None:
         song.tags = req.tags
+    if CompletenessChecker.is_medley(song.title, song.aml_content):
+        song.completeness_status = "MEDLEY"
+        song.completeness_ratio = 1.0
 
     saved = storage.save_song(song, req.user_email, req.user_name, req.comment or "Modifica brano")
     return {"status": "success", "song": saved.to_dict(), "detached_copy": was_detached}
@@ -1350,14 +1358,18 @@ def convert_raw_text(req: ConvertTextRequest):
     else:
         song = ImportEngine.import_from_traditional(text, default_title=req.title or "Nuovo Brano")
 
+    song_title = song.title or req.title or "Nuovo Brano"
+    song_artist = song.artist or req.artist or "Band"
+    chk = CompletenessChecker.check_completeness(song_title, song_artist, song.aml_content or "")
     return {
         "status": "success",
-        "title": song.title or req.title or "Nuovo Brano",
-        "artist": song.artist or req.artist or "Band",
+        "title": song_title,
+        "artist": song_artist,
         "key": song.key_current or "C",
         "bpm": song.bpm or 120,
         "capo": song.capo or 0,
-        "aml": song.aml_content
+        "aml": song.aml_content,
+        "completeness": chk
     }
 
 @app.post("/api/songs/import-url")
@@ -1367,14 +1379,18 @@ def import_song_from_url(req: ImportUrlRequest):
         raise HTTPException(status_code=400, detail="URL non valido")
     try:
         song = WebSongImporter.fetch_from_url(req.url)
+        song_title = song.title or "Nuovo Brano"
+        song_artist = song.artist or "Band"
+        chk = CompletenessChecker.check_completeness(song_title, song_artist, song.aml_content or "")
         return {
             "status": "success",
-            "title": song.title or "Nuovo Brano",
-            "artist": song.artist or "Band",
+            "title": song_title,
+            "artist": song_artist,
             "key": song.key_current or "C",
             "bpm": song.bpm or 120,
             "capo": song.capo or 0,
-            "aml": song.aml_content
+            "aml": song.aml_content,
+            "completeness": chk
         }
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Errore importazione web: {str(e)}")
@@ -2657,6 +2673,332 @@ def download_audit_log(
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename=audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"}
         )
+
+
+# -----------------------------------------------------------------------------
+# 7.6. SONG COMPLETENESS (LRCLIB), AI AUTO-COMPLETION, UNDO & ADMIN BATCH OPS
+# -----------------------------------------------------------------------------
+
+class CheckCompletenessRequest(BaseModel):
+    title: str
+    artist: Optional[str] = ""
+    aml: str
+
+class CompleteAiRequest(BaseModel):
+    title: str
+    artist: Optional[str] = ""
+    key: Optional[str] = "C"
+    aml: str
+    official_lyrics: Optional[str] = None
+
+class UndoSongRequest(BaseModel):
+    user_email: str
+    user_name: Optional[str] = "Musicista"
+
+class AdminAuditCompletenessRequest(BaseModel):
+    user_email: str
+    repertoire_uuid: Optional[str] = None
+
+class AdminBatchCompleteAiRequest(BaseModel):
+    user_email: str
+    user_name: Optional[str] = "Admin"
+    song_uuids: List[str]
+
+class AdminBatchFinalizeRequest(BaseModel):
+    user_email: str
+    user_name: Optional[str] = "Admin"
+    song_uuids: List[str]
+
+
+@app.post("/api/songs/check-completeness")
+def check_single_song_completeness(req: CheckCompletenessRequest):
+    """Checks song lyric completeness against LRCLIB API. Open to all users."""
+    res = CompletenessChecker.check_completeness(req.title, req.artist or "", req.aml)
+    return {"status": "success", "result": res}
+
+
+@app.post("/api/songs/complete-ai")
+def complete_single_song_ai(req: CompleteAiRequest):
+    """
+    Autocompletes truncated chord sheet using Gemini LLM.
+    Wraps newly added sections in [AUTO-COMPLETATO]...[/AUTO-COMPLETATO].
+    Open to all users during import and personal editing.
+    """
+    if CompletenessChecker.is_medley(req.title, req.aml):
+        raise HTTPException(status_code=400, detail="I brani Medley sono protetti e non possono essere modificati dall'AI.")
+
+    official_lyrics = req.official_lyrics
+    if not official_lyrics:
+        official_lyrics = CompletenessChecker.fetch_official_lyrics_lrclib(req.title, req.artist or "")
+    if not official_lyrics:
+        raise HTTPException(status_code=422, detail="Impossibile recuperare il testo ufficiale da LRCLIB per guidare il completamento AI.")
+
+    try:
+        completed_aml, ok = CompletenessChecker.complete_song_with_llm(
+            title=req.title,
+            artist=req.artist or "",
+            key=req.key or "C",
+            aml_content=req.aml,
+            official_lyrics=official_lyrics
+        )
+        return {
+            "status": "success" if ok else "partial",
+            "completed_aml": completed_aml,
+            "official_lyrics": official_lyrics
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore autocompletamento AI: {str(e)}")
+
+
+@app.post("/api/songs/{uuid}/undo")
+def undo_song_changes(uuid: str, req: UndoSongRequest):
+    """
+    Restores the previous snapshot (content and completeness status) of a song.
+    Open to the song owner or Admin.
+    """
+    song = storage.get_song(uuid)
+    if not song:
+        raise HTTPException(status_code=404, detail="Brano non trovato.")
+
+    all_reps = storage.list_repertoires()
+    official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+    is_in_official = bool(official_rep and song.uuid in official_rep.song_uuids)
+
+    # RBAC: Only Admin can undo changes on Official Repertoire songs
+    if is_in_official and not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo agli amministratori sul Repertorio Ufficiale.")
+
+    if not song.previous_content:
+        raise HTTPException(status_code=400, detail="Nessuno snapshot precedente disponibile per questo brano.")
+
+    prev_c = song.previous_content
+    prev_s = song.previous_status or "INCOMPLETO"
+
+    # Save current as previous to allow toggle/redo
+    song.previous_content = song.aml_content
+    song.previous_status = song.completeness_status
+    song.aml_content = prev_c
+    song.completeness_status = prev_s
+
+    saved = storage.save_song(song, req.user_email, req.user_name or "Musicista", "Ripristino snapshot precedente (UNDO)")
+    audit.log(
+        action="SONG_UNDO_RESTORE",
+        entity_type="song",
+        entity_id=song.uuid,
+        user_email=req.user_email,
+        user_name=req.user_name or "Musicista",
+        details={"restored_status": prev_s}
+    )
+    return {"status": "success", "song": saved.to_dict()}
+
+
+@app.post("/api/admin/repertoire/audit-completeness")
+def admin_audit_repertoire_completeness(req: AdminAuditCompletenessRequest):
+    """
+    Scans songs in the Official Repertoire against LRCLIB.
+    Skips DEFINITIVO and MEDLEY (marks MEDLEY as 'MEDLEY').
+    Admin only (HTTP 403 Forbidden for non-admins).
+    """
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo agli utenti con ruolo Amministratore.")
+
+    all_reps = storage.list_repertoires()
+    official_rep = next((r for r in all_reps if getattr(r, "is_official", False)), None)
+    target_rep = next((r for r in all_reps if r.uuid == req.repertoire_uuid), official_rep) if req.repertoire_uuid else official_rep
+
+    if not target_rep:
+        raise HTTPException(status_code=404, detail="Repertorio Ufficiale non trovato.")
+
+    audited_count = 0
+    incomplete_count = 0
+    complete_count = 0
+    medley_count = 0
+    unverified_count = 0
+    skipped_definitivo = 0
+    updated_songs = []
+
+    for s_uuid in target_rep.song_uuids:
+        s = storage.get_song(s_uuid)
+        if not s:
+            continue
+
+        # 0. Rule: Medley songs are strictly excluded and protected
+        if CompletenessChecker.is_medley(s.title, s.aml_content):
+            if s.completeness_status != "MEDLEY":
+                s.completeness_status = "MEDLEY"
+                s.completeness_ratio = 1.0
+                storage.save_song(s, req.user_email, "Admin", "Contrassegno automatico Medley")
+            medley_count += 1
+            updated_songs.append(s.to_dict())
+            continue
+
+        # Skip DEFINITIVO
+        if s.completeness_status == "DEFINITIVO":
+            skipped_definitivo += 1
+            updated_songs.append(s.to_dict())
+            continue
+
+        # 1. Run check against LRCLIB
+        chk = CompletenessChecker.check_completeness(s.title, s.artist, s.aml_content)
+        s.completeness_status = chk["status"]
+        s.completeness_ratio = chk["completeness_ratio"]
+        if chk.get("official_lyrics"):
+            s.official_lyrics = chk["official_lyrics"]
+
+        storage.save_song(s, req.user_email, "Admin", f"Audit completezza LRCLIB: {chk['status']}")
+        audited_count += 1
+        if chk["status"] == "INCOMPLETO":
+            incomplete_count += 1
+        elif chk["status"] == "COMPLETO":
+            complete_count += 1
+        elif chk["status"] == "NON_VERIFICATO":
+            unverified_count += 1
+
+        updated_songs.append(s.to_dict())
+        time.sleep(0.12)  # Gentle rate-limit pause for LRCLIB
+
+    audit.log(
+        action="ADMIN_AUDIT_COMPLETENESS",
+        entity_type="repertoire",
+        entity_id=target_rep.uuid,
+        user_email=req.user_email,
+        user_name="Admin",
+        details={
+            "audited": audited_count,
+            "incomplete": incomplete_count,
+            "complete": complete_count,
+            "medley": medley_count,
+            "unverified": unverified_count
+        }
+    )
+
+    return {
+        "status": "success",
+        "audited_count": audited_count,
+        "incomplete_count": incomplete_count,
+        "complete_count": complete_count,
+        "medley_count": medley_count,
+        "unverified_count": unverified_count,
+        "skipped_definitivo": skipped_definitivo,
+        "songs": updated_songs
+    }
+
+
+@app.post("/api/admin/repertoire/batch-complete-ai")
+def admin_batch_complete_ai(req: AdminBatchCompleteAiRequest):
+    """
+    Completes selected incomplete songs using LLM.
+    Strictly skips any MEDLEY songs and saves UNDO snapshot for each song.
+    Admin only (HTTP 403 Forbidden for non-admins).
+    """
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo agli utenti con ruolo Amministratore.")
+
+    completed_list: List[str] = []
+    skipped_list: List[Dict[str, str]] = []
+
+    for s_uuid in req.song_uuids:
+        s = storage.get_song(s_uuid)
+        if not s:
+            continue
+
+        # Rule: Medleys are NEVER autocompleted
+        if CompletenessChecker.is_medley(s.title, s.aml_content):
+            skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "Medley escluso categoricamente da modifiche AI."})
+            continue
+
+        if s.completeness_status == "DEFINITIVO":
+            skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "Brano già contrassegnato come DEFINITIVO."})
+            continue
+
+        # Save snapshot for UNDO before modifying
+        s.previous_content = s.aml_content
+        s.previous_status = s.completeness_status
+
+        off_lyrics = s.official_lyrics or CompletenessChecker.fetch_official_lyrics_lrclib(s.title, s.artist)
+        if not off_lyrics:
+            skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "Testo ufficiale non trovato su LRCLIB."})
+            continue
+
+        try:
+            completed_aml, ok = CompletenessChecker.complete_song_with_llm(
+                title=s.title,
+                artist=s.artist,
+                key=s.key_current,
+                aml_content=s.aml_content,
+                official_lyrics=off_lyrics
+            )
+            if ok:
+                s.aml_content = completed_aml
+                s.official_lyrics = off_lyrics
+                s.completeness_status = "COMPLETO"
+                s.completeness_ratio = 1.0
+                storage.save_song(s, req.user_email, req.user_name or "Admin", "Completamento automatico AI [AUTO-COMPLETATO]")
+                completed_list.append(s.uuid)
+            else:
+                skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": "L'LLM non ha generato modifiche."})
+        except Exception as e:
+            skipped_list.append({"uuid": s_uuid, "title": s.title, "reason": str(e)})
+
+    audit.log(
+        action="ADMIN_BATCH_COMPLETE_AI",
+        entity_type="repertoire",
+        entity_id="batch",
+        user_email=req.user_email,
+        user_name=req.user_name or "Admin",
+        details={"completed_count": len(completed_list), "skipped_count": len(skipped_list)}
+    )
+
+    return {
+        "status": "success",
+        "completed_count": len(completed_list),
+        "skipped_count": len(skipped_list),
+        "completed_uuids": completed_list,
+        "skipped_details": skipped_list
+    }
+
+
+@app.post("/api/admin/repertoire/batch-finalize")
+def admin_batch_finalize_songs(req: AdminBatchFinalizeRequest):
+    """
+    Consolidates selected songs by stripping [AUTO-COMPLETATO] tags and setting status to DEFINITIVO.
+    Saves snapshot for UNDO before finalizing.
+    Admin only (HTTP 403 Forbidden for non-admins).
+    """
+    if not is_admin_email(req.user_email):
+        raise HTTPException(status_code=403, detail="Operazione consentita solo agli utenti con ruolo Amministratore.")
+
+    finalized_list: List[str] = []
+
+    for s_uuid in req.song_uuids:
+        s = storage.get_song(s_uuid)
+        if not s:
+            continue
+
+        # Save snapshot for UNDO before modifying
+        s.previous_content = s.aml_content
+        s.previous_status = s.completeness_status
+
+        # Clean tags and consolidate
+        s.aml_content = CompletenessChecker.clean_autocompleted_tags(s.aml_content)
+        s.completeness_status = "DEFINITIVO"
+        storage.save_song(s, req.user_email, req.user_name or "Admin", "Brano reso Definitivo (tag rimossi)")
+        finalized_list.append(s.uuid)
+
+    audit.log(
+        action="ADMIN_BATCH_FINALIZE",
+        entity_type="repertoire",
+        entity_id="batch",
+        user_email=req.user_email,
+        user_name=req.user_name or "Admin",
+        details={"finalized_count": len(finalized_list)}
+    )
+
+    return {
+        "status": "success",
+        "finalized_count": len(finalized_list),
+        "finalized_uuids": finalized_list
+    }
 
 
 # -----------------------------------------------------------------------------
