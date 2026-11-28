@@ -67,7 +67,7 @@ class StorageManager:
         self._events_file = os.path.join(self._base_dir, "live_events.json")
         self._config_file = os.path.join(self._base_dir, "system_config.json")
 
-        self.audit = AuditLogger()
+        self.audit = AuditLogger(os.path.join(self._base_dir, "audit_trail.jsonl"))
         self.lock_mgr = LockManager()
         self.gist_client = GistClient()
         self.turso_client = TursoClient()

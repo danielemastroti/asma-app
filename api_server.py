@@ -373,6 +373,70 @@ def get_current_auth_user(request: Request):
     }
 
 
+def ensure_user_personal_repertoire(user_email: str, user_name: Optional[str] = None) -> Optional[Repertoire]:
+    """Assicura che al primo collegamento del musicista venga creato il suo repertorio personale vuoto.
+    Se esiste già un repertorio associato a questa email (controllo case-insensitive), restituisce quello esistente.
+    Altrimenti crea un nuovo repertorio personale vuoto (song_uuids=[]), lo salva su disco e registra l'evento nell'audit log.
+    """
+    if not user_email or not user_email.strip():
+        return None
+    clean_email = user_email.strip().lower()
+
+    all_reps = storage.list_repertoires()
+    for r in all_reps:
+        if not getattr(r, "is_official", False) and (getattr(r, "owner_email", None) or "").strip().lower() == clean_email:
+            return r
+
+    # Non trovato: determina nome/pseudonimo per il repertorio personale
+    u = auth_mgr.get_user_by_email(clean_email)
+    pseudonym = auth_mgr.BAND_PSEUDONYMS.get(clean_email)
+    display_name = (
+        pseudonym
+        or user_name
+        or (u.name if u else None)
+        or clean_email.split("@")[0].capitalize()
+    )
+
+    # Assicura unicità del nome repertorio
+    existing_names = {(r.name or "").strip().lower() for r in all_reps}
+    candidate_name = display_name
+    if candidate_name.lower() in existing_names:
+        candidate_name = f"{display_name} (Personale)"
+    counter = 2
+    while candidate_name.lower() in existing_names:
+        candidate_name = f"{display_name} (Personale {counter})"
+        counter += 1
+
+    new_personal = Repertoire(
+        name=candidate_name,
+        description=f"Repertorio personale di {display_name}",
+        is_official=False,
+        owner_email=clean_email,
+        song_uuids=[]
+    )
+    try:
+        saved = storage.save_repertoire(new_personal, clean_email, display_name)
+        try:
+            audit.log(
+                action="CREATE",
+                entity_type="REPERTOIRE",
+                entity_id=saved.uuid,
+                user_email=clean_email,
+                user_name=display_name,
+                details={
+                    "name": saved.name,
+                    "reason": "auto_create_first_login",
+                    "is_official": False
+                }
+            )
+        except Exception:
+            pass
+        return saved
+    except Exception as e:
+        print(f"[REPERTOIRE] Errore creazione repertorio personale per {clean_email}: {e}")
+        return None
+
+
 @app.get("/api/auth/google/login")
 def google_oauth_login(request: Request, mode: str = Query("simplified")):
     """Redirects top-level browser to Google OAuth2 account selection."""
@@ -440,6 +504,12 @@ def google_oauth_callback(
     picture = str(user_info.get("picture") or "").strip()
     u = auth_mgr.authenticate_or_register_google(email, name=name, picture_url=picture)
     display_name = auth_mgr.BAND_PSEUDONYMS.get(email) or u.name
+
+    # Assicura la creazione automatica del repertorio personale vuoto al primo accesso del musicista
+    try:
+        ensure_user_personal_repertoire(u.email, display_name)
+    except Exception as e:
+        print(f"[AUTH] Errore creazione repertorio personale al primo accesso per {u.email}: {e}")
 
     payload = {
         "email": u.email,
@@ -511,32 +581,34 @@ def list_repertoires(user_email: Optional[str] = Query(None)):
        - Personal repertoire: visible only to owner and admin.
        - Admin: sees all repertoires.
     """
+    clean_user_email = user_email.strip().lower() if user_email else None
+
+    # Se un musicista si collega per la prima volta, assicura la creazione del suo repertorio personale vuoto
+    if clean_user_email:
+        ensure_user_personal_repertoire(clean_user_email)
+
     all_reps = storage.list_repertoires()
     all_songs = storage.list_songs()
     valid_song_uuids = {s["uuid"] for s in all_songs}
 
     is_admin = False
-    if user_email:
-        u = auth_mgr.get_user_by_email(user_email)
+    if clean_user_email:
+        u = auth_mgr.get_user_by_email(clean_user_email)
         if u and u.can_admin():
             is_admin = True
-        elif user_email in ["danyposta@gmail.com", "danyposta@yahoo.it"]:
+        elif clean_user_email in ["danyposta@gmail.com", "danyposta@yahoo.it"]:
             is_admin = True
     else:
         is_admin = True
 
     result = []
-    has_user_personal = False
     for r in all_reps:
         is_off = getattr(r, "is_official", False)
-        owner = getattr(r, "owner_email", None)
+        owner = (getattr(r, "owner_email", None) or "").strip().lower()
 
-        if not is_admin and user_email:
-            if not is_off and owner != user_email:
+        if not is_admin and clean_user_email:
+            if not is_off and owner != clean_user_email:
                 continue
-
-        if owner == user_email:
-            has_user_personal = True
 
         valid_count = len([uid for uid in r.song_uuids if uid in valid_song_uuids])
         result.append({
@@ -544,39 +616,16 @@ def list_repertoires(user_email: Optional[str] = Query(None)):
             "name": r.name,
             "description": r.description,
             "is_official": is_off,
-            "owner_email": owner,
+            "owner_email": getattr(r, "owner_email", None),
             "song_count": valid_count,
             "song_uuids": [uid for uid in r.song_uuids if uid in valid_song_uuids],
             "updated_at": r.updated_at
         })
 
-    # If user is a logged-in band member and doesn't have a personal repertoire yet, auto-create one
-    if user_email and not has_user_personal and not is_admin:
-        u = auth_mgr.get_user_by_email(user_email)
-        u_name = u.name if u else user_email.split("@")[0].capitalize()
-        new_personal = Repertoire(
-            name=f"{u_name}",
-            description=f"Repertorio personale di {u_name}",
-            is_official=False,
-            owner_email=user_email,
-            song_uuids=[]
-        )
-        saved = storage.save_repertoire(new_personal, user_email, u_name)
-        result.append({
-            "uuid": saved.uuid,
-            "name": saved.name,
-            "description": saved.description,
-            "is_official": False,
-            "owner_email": user_email,
-            "song_count": 0,
-            "song_uuids": [],
-            "updated_at": saved.updated_at
-        })
-
     def _rep_sort_key(x):
         if x["is_official"]:
             return (0, x["name"])
-        if user_email and x.get("owner_email") == user_email:
+        if clean_user_email and (x.get("owner_email") or "").strip().lower() == clean_user_email:
             return (1, x["name"])
         return (2, x["name"])
 
@@ -796,23 +845,14 @@ def _resolve_personal_repertoire(user_email: Optional[str], user_name: Optional[
     """Finds or creates a personal repertoire for the user.
     New and imported songs are strictly placed in personal repertoires, never directly into Official Band.
     """
-    all_reps = storage.list_repertoires()
-    # 1. Match by owner_email
     if user_email:
-        clean_email = user_email.strip().lower()
-        personal = next(
-            (r for r in all_reps if not getattr(r, "is_official", False) and getattr(r, "owner_email", None) and getattr(r, "owner_email", "").strip().lower() == clean_email),
-            None
-        )
-        if personal:
-            return personal
+        rep = ensure_user_personal_repertoire(user_email, user_name)
+        if rep:
+            return rep
 
+    all_reps = storage.list_repertoires()
     # 2. Match by user_name / pseudonym
     effective_name = (user_name or "").strip()
-    if user_email and not effective_name:
-        u = auth_mgr.get_user_by_email(user_email)
-        if u and u.name:
-            effective_name = u.name.strip()
     if effective_name:
         clean_name = effective_name.lower()
         personal = next(
@@ -822,12 +862,7 @@ def _resolve_personal_repertoire(user_email: Optional[str], user_name: Optional[
         if personal:
             return personal
 
-    # 3. Fallback: first non-official repertoire
-    personal = next((r for r in all_reps if not getattr(r, "is_official", False)), None)
-    if personal:
-        return personal
-
-    # 4. Create personal repertoire if none exists
+    # 3. Create personal repertoire if none exists
     rep_name = effective_name or "Personale"
     new_rep = Repertoire(
         name=rep_name,
@@ -1031,7 +1066,7 @@ def delete_repertoire(uuid: str, user_email: str = "cico@band.org", user_name: s
         raise HTTPException(status_code=400, detail="Il Repertorio Ufficiale della Band non può essere eliminato")
 
     is_admin = is_admin_email(user_email)
-    is_owner = getattr(rep, "owner_email", None) == user_email
+    is_owner = (getattr(rep, "owner_email", None) or "").strip().lower() == (user_email or "").strip().lower()
     if not (is_admin or is_owner):
         raise HTTPException(status_code=403, detail="Solo l'amministratore può eliminare questo repertorio")
 
@@ -1094,11 +1129,12 @@ def list_songs(
 
     is_admin = is_admin_email(user_email) if user_email else True
 
-    if user_email and not is_admin:
+    clean_user_email = user_email.strip().lower() if user_email else None
+    if clean_user_email and not is_admin:
         # Non-admin musician: can ONLY see songs in Official Repertoire and their own Personal Repertoire
         visible_reps = [
             r for r in all_reps
-            if getattr(r, "is_official", False) or getattr(r, "owner_email", None) == user_email
+            if getattr(r, "is_official", False) or (getattr(r, "owner_email", None) or "").strip().lower() == clean_user_email
         ]
         visible_song_uuids = set()
         for r in visible_reps:
