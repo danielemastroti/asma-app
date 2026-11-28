@@ -1394,6 +1394,8 @@ class StorageManager:
                 needs_reindex = False
                 turso_deleted = self.turso_client.fetch_deleted_song_map() if hasattr(self.turso_client, "fetch_deleted_song_map") else {}
                 turso_songs = self.turso_client.fetch_all_songs()
+                turso_song_map = {s.get("uuid"): s for s in turso_songs if s.get("uuid")}
+
                 for s_dict in turso_songs:
                     s_id = s_dict.get("uuid")
                     if not s_id:
@@ -1401,7 +1403,13 @@ class StorageManager:
                     s_path = os.path.join(self._songs_dir, f"{s_id}.json")
                     trash_path = os.path.join(self._trash_dir, f"song_{s_id}.json")
                     remote_dt = _parse_iso_ts(s_dict.get("updated_at"))
+                    remote_rev = int(s_dict.get("current_revision", 1) or 1)
+                    remote_title = str(s_dict.get("title", "")).strip().upper()
+                    remote_aml = str(s_dict.get("aml_content", ""))
+
                     should_write = False
+                    should_push_local_to_turso = False
+
                     if not os.path.exists(s_path):
                         if not os.path.exists(trash_path):
                             should_write = True
@@ -1409,15 +1417,75 @@ class StorageManager:
                         try:
                             with open(s_path, "r", encoding="utf-8") as lf:
                                 local_data = json.load(lf)
-                            if remote_dt > _parse_iso_ts(local_data.get("updated_at")):
+                            local_dt = _parse_iso_ts(local_data.get("updated_at"))
+                            local_rev = int(local_data.get("current_revision", 1) or 1)
+                            local_title = str(local_data.get("title", "")).strip().upper()
+                            local_aml = str(local_data.get("aml_content", ""))
+
+                            # Check if remote has obsolete Medley / incomplete fragments
+                            is_remote_obsolete_medley = False
+                            if s_id in ("3131717c-0968-4a55-83f1-e4cb8bbade6b", "df8cb9ca-c685-472e-9350-2400728f1d34") or "MEDLEY" in local_title:
+                                if "CANZONIERE ROCK" in remote_title or "CANZONIERE ROCK" in remote_aml.upper():
+                                    is_remote_obsolete_medley = True
+                                elif "12. HEY JUDE" in local_aml.upper() and ("12. HEY JUDE" not in remote_aml.upper() and "HEY JUDE" not in remote_aml.upper()):
+                                    is_remote_obsolete_medley = True
+
+                            if is_remote_obsolete_medley:
+                                # Authoritative local Medley wins over obsolete Turso Medley
+                                should_push_local_to_turso = True
+                            elif local_rev > remote_rev:
+                                # Local has strictly higher revision; local wins and updates cloud
+                                should_push_local_to_turso = True
+                            elif remote_rev > local_rev:
+                                # Remote has strictly higher revision; remote wins and updates local
                                 should_write = True
+                            else:
+                                # Equal revision:
+                                if remote_dt > local_dt:
+                                    should_write = True
+                                elif local_dt > remote_dt:
+                                    should_push_local_to_turso = True
                         except Exception:
                             should_write = True
+
                     if should_write:
                         with open(s_path, "w", encoding="utf-8") as sf:
                             json.dump(s_dict, sf, indent=2, ensure_ascii=False)
                         synced_from_turso += 1
                         needs_reindex = True
+                    elif should_push_local_to_turso:
+                        try:
+                            self.turso_client.push_song(local_data)
+                        except Exception:
+                            pass
+
+                # Also push any local songs that exist on disk but are missing from Turso (and not deleted)
+                if os.path.exists(self._songs_dir):
+                    for fname in os.listdir(self._songs_dir):
+                        if not fname.endswith(".json"):
+                            continue
+                        loc_id = fname[:-5]
+                        if loc_id not in turso_song_map and loc_id not in turso_deleted:
+                            loc_path = os.path.join(self._songs_dir, fname)
+                            try:
+                                with open(loc_path, "r", encoding="utf-8") as lf:
+                                    loc_dict = json.load(lf)
+                                self.turso_client.push_song(loc_dict)
+                            except Exception:
+                                pass
+
+                # Enforce that authoritative 11-page MEDLEY-ROCK seed is always pushed to Turso if cloud differs
+                for m_id in ("3131717c-0968-4a55-83f1-e4cb8bbade6b", "df8cb9ca-c685-472e-9350-2400728f1d34"):
+                    m_path = os.path.join(self._songs_dir, f"{m_id}.json")
+                    if os.path.exists(m_path):
+                        try:
+                            with open(m_path, "r", encoding="utf-8") as lf:
+                                m_dict = json.load(lf)
+                            cloud_s = turso_song_map.get(m_id)
+                            if not cloud_s or "12. HEY JUDE" not in str(cloud_s.get("aml_content", "")).upper() or "CANZONIERE" in str(cloud_s.get("title", "")).upper():
+                                self.turso_client.push_song(m_dict)
+                        except Exception:
+                            pass
 
                 # Propagate Turso soft-deletes over stale Git-seeded song files
                 for del_id, del_ts in turso_deleted.items():

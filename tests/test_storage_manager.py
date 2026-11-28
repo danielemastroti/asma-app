@@ -351,6 +351,49 @@ class TestStorageManager(unittest.TestCase):
         self.assertIn("aml_content", found)
         self.assertIn("[C]Test line", found["aml_content"])
 
+    def test_turso_sync_prioritizes_higher_local_revision_and_authoritative_medley(self):
+        """Verifies that sync_from_cloud never overwrites a higher revision or full Medley with stale cloud data."""
+        from unittest.mock import MagicMock
+        local_medley = Song(
+            uuid="3131717c-0968-4a55-83f1-e4cb8bbade6b",
+            title="MEDLEY-ROCK",
+            artist="Vari",
+            current_revision=3,
+            updated_at="2026-11-23T18:20:00.000000+00:00",
+            aml_content="{title: MEDLEY-ROCK}\n1. THE WALL\n...\n12. HEY JUDE"
+        )
+        self.storage.save_song(local_medley, preserve_timestamps=True, bump_revision=False)
+
+        mock_turso = MagicMock()
+        mock_turso.is_configured = True
+        mock_turso.fetch_deleted_song_map.return_value = {}
+        mock_turso.fetch_repertoires.return_value = []
+        mock_turso.fetch_setlists.return_value = []
+        # Cloud has stale rev 2 CANZONIERE ROCK with a newer timestamp (e.g. from an automated audit on 24/11)
+        mock_turso.fetch_all_songs.return_value = [{
+            "uuid": "3131717c-0968-4a55-83f1-e4cb8bbade6b",
+            "title": "CANZONIERE ROCK",
+            "artist": "Vari",
+            "current_revision": 2,
+            "updated_at": "2026-11-24T22:14:31.000000+00:00",
+            "aml_content": "{title: CANZONIERE ROCK}\n[INTRO]\nOld incomplete text"
+        }]
+
+        self.storage.turso_client = mock_turso
+        self.storage.sync_from_cloud()
+
+        # Local must NOT be overwritten
+        song_after_sync = self.storage.get_song("3131717c-0968-4a55-83f1-e4cb8bbade6b")
+        self.assertIsNotNone(song_after_sync)
+        self.assertEqual(song_after_sync.title, "MEDLEY-ROCK")
+        self.assertEqual(song_after_sync.current_revision, 3)
+        self.assertIn("12. HEY JUDE", song_after_sync.aml_content)
+
+        # Cloud push_song must be called with local authoritative data
+        mock_turso.push_song.assert_called()
+        pushed_titles = [call.args[0].get("title") for call in mock_turso.push_song.call_args_list if call.args]
+        self.assertIn("MEDLEY-ROCK", pushed_titles)
+
 
 if __name__ == "__main__":
     unittest.main()

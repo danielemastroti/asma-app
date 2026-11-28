@@ -2019,8 +2019,23 @@ function renderSongViewer() {
 // ----------------------------------------------------------------------------
 const _pdfPreviewMemoryCache = new Map();
 
+// Purge any legacy stale unversioned PDF caches across user sessions
+try {
+  const stalePdfKeys = [];
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith('asma_pdf_cache_') && !k.startsWith('asma_pdf_cache_v4_')) {
+      stalePdfKeys.push(k);
+    }
+  }
+  stalePdfKeys.forEach(k => sessionStorage.removeItem(k));
+} catch (e) {}
+
 function getPdfCacheKey(songUuid, device, hasChords, transpose = 0) {
-  return `asma_pdf_cache_${songUuid}_${device}_${hasChords ? 'chords' : 'lyrics'}_t${transpose || 0}`;
+  const song = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
+  const rev = (song && song.current_revision) || 1;
+  const upd = (song && song.updated_at) ? song.updated_at.replace(/[^a-zA-Z0-9]/g, '_') : '';
+  return `asma_pdf_cache_v4_${songUuid}_r${rev}_${upd}_${device}_${hasChords ? 'chords' : 'lyrics'}_t${transpose || 0}`;
 }
 
 function savePdfPreviewCache(songUuid, device, hasChords, transpose, data) {
@@ -2085,7 +2100,9 @@ async function loadSongPdfPreview(songUuid, retryCount = 0) {
     const userEmail = (state.currentUser && state.currentUser.email) || '';
     const userName = (state.currentUser && state.currentUser.name) || '';
     const dev = state.activeDevice || 'Huawei MediaPad M5';
-    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(dev)}&email=${encodeURIComponent(userEmail)}&user_name=${encodeURIComponent(userName)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&_v=${Date.now()}`;
+    const currentSongObj = (state.songs || []).find(s => s.uuid === songUuid) || state.selectedSong;
+    const currentSongRev = (currentSongObj && currentSongObj.current_revision) || 1;
+    const url = `${API_BASE}/api/songs/${songUuid}/pdf/preview?chords=${hasChords}&device=${encodeURIComponent(dev)}&email=${encodeURIComponent(userEmail)}&user_name=${encodeURIComponent(userName)}&columns=${p.layout_columns || 1}&font_size=${p.layout_font_size || 12}&font_size_chords=${p.layout_font_size_chords || 13}&margin_lateral=${p.layout_margin_lateral || 10}&margin_top=${p.layout_margin_top || 10}&margin_bottom=${p.layout_margin_bottom || 14}&rev=${currentSongRev}&_v=${Date.now()}`;
     
     // Timeout a 8s per gestire risvegli o offline
     const controller = new AbortController();
