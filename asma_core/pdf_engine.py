@@ -173,9 +173,9 @@ class NumberedCanvas(canvas.Canvas):
 
         # Left footer: metadata (preserves the actual song modification date instead of application restart date)
         if getattr(self, "song_updated_date", None):
-            date_str = f"Modificato: {self.song_updated_date}"
+            date_str = f"Generato: {self.song_updated_date}"
         else:
-            date_str = f"Data: {datetime.now().strftime('%d/%m/%Y')}"
+            date_str = f"Generato: {datetime.now().strftime('%d/%m/%Y')}"
         footer_left = f"{date_str} {self.version_str}"
         self.drawString(foot_m_side, foot_text_y, footer_left)
 
