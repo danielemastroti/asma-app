@@ -240,13 +240,16 @@ class StorageManager:
         song: Song,
         user_email: str = "system",
         user_name: str = "System",
-        revision_comment: str = "Salvataggio brano"
+        revision_comment: str = "Salvataggio brano",
+        preserve_timestamps: bool = False,
+        bump_revision: bool = True
     ) -> Song:
         """
         Saves a song, registers an immutable revision, updates in-memory index, and writes to disk.
         """
         with self._mutex:
-            song.updated_at = current_iso_timestamp()
+            if not preserve_timestamps:
+                song.updated_at = current_iso_timestamp()
             if song.title:
                 song.title = song.title.strip().upper()
                 if "medley" in song.title.lower():
@@ -263,34 +266,37 @@ class StorageManager:
                 if not BandAIService.has_explicit_sections(song.aml_content):
                     song.aml_content = BandAIService.auto_assign_sections(song.aml_content, song.title, song.artist)
 
-            # Check existing revision number
-            existing_revs = self.get_revisions_for_song(song.uuid)
-            if existing_revs:
-                next_rev_num = max(r.revision_number for r in existing_revs) + 1
-            else:
-                song_path = os.path.join(self._songs_dir, f"{song.uuid}.json")
-                if os.path.exists(song_path) and song.current_revision and song.current_revision > 1:
-                    next_rev_num = song.current_revision + 1
+            if bump_revision:
+                existing_revs = self.get_revisions_for_song(song.uuid)
+                if existing_revs:
+                    next_rev_num = max(r.revision_number for r in existing_revs) + 1
                 else:
-                    next_rev_num = 1
-            song.current_revision = next_rev_num
+                    song_path = os.path.join(self._songs_dir, f"{song.uuid}.json")
+                    if os.path.exists(song_path) and song.current_revision and song.current_revision > 1:
+                        next_rev_num = song.current_revision + 1
+                    else:
+                        next_rev_num = 1
+                song.current_revision = next_rev_num
+            else:
+                next_rev_num = song.current_revision or 1
 
             # Save song JSON
             song_path = os.path.join(self._songs_dir, f"{song.uuid}.json")
             with open(song_path, "w", encoding="utf-8") as f:
                 json.dump(song.to_dict(), f, indent=2, ensure_ascii=False)
 
-            # Save revision snapshot
-            rev = Revision(
-                song_uuid=song.uuid,
-                revision_number=next_rev_num,
-                author_email=user_email,
-                author_name=user_name,
-                comment=revision_comment,
-                aml_snapshot=song.aml_content,
-                timestamp=song.updated_at
-            )
-            self._save_revision(rev)
+            # Save revision snapshot if revision is bumped
+            if bump_revision:
+                rev = Revision(
+                    song_uuid=song.uuid,
+                    revision_number=next_rev_num,
+                    author_email=user_email,
+                    author_name=user_name,
+                    comment=revision_comment,
+                    aml_snapshot=song.aml_content,
+                    timestamp=song.updated_at
+                )
+                self._save_revision(rev)
 
             # Preserve existing repertoire memberships in SQLite Index
             song_reps = [r.uuid for r in self.list_repertoires() if song.uuid in r.song_uuids]

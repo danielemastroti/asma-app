@@ -171,9 +171,12 @@ class NumberedCanvas(canvas.Canvas):
         self.setLineWidth(0.5)
         self.line(foot_m_side, foot_line_y, page_w - foot_m_side, foot_line_y)
 
-        # Left footer: metadata
-        date_str = datetime.now().strftime("%d/%m/%Y")
-        footer_left = f"Generato: {date_str} {self.version_str}"
+        # Left footer: metadata (preserves the actual song modification date instead of application restart date)
+        if getattr(self, "song_updated_date", None):
+            date_str = f"Modificato: {self.song_updated_date}"
+        else:
+            date_str = f"Data: {datetime.now().strftime('%d/%m/%Y')}"
+        footer_left = f"{date_str} {self.version_str}"
         self.drawString(foot_m_side, foot_text_y, footer_left)
 
         # Right footer: Page X of Y
@@ -304,6 +307,15 @@ class PDFEngine:
             c.watermark_text = watermark
             c.document_title = song.title
             c.version_str = f"| Rev #{song.current_revision}"
+            updated_raw = getattr(song, "updated_at", None) or getattr(song, "created_at", None)
+            if updated_raw:
+                try:
+                    dt = datetime.fromisoformat(str(updated_raw).replace("Z", "+00:00"))
+                    c.song_updated_date = dt.strftime("%d/%m/%Y")
+                except Exception:
+                    c.song_updated_date = None
+            else:
+                c.song_updated_date = None
             c.margin_bottom_mm = float(getattr(prof, "margin_bottom_mm", 12.0) or 12.0)
             c.margin_side_mm = max(float(getattr(prof, "margin_left_mm", 10.0) or 10.0), float(getattr(prof, "margin_right_mm", 10.0) or 10.0))
             if user_name:

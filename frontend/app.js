@@ -553,8 +553,17 @@ function switchTab(tabName, { skipHistory = false } = {}) {
 }
 
 function isOwnPersonalRepertoire(rep) {
-  if (!rep || rep.is_official || !rep.owner_email || !state.currentUser?.email) return false;
-  return rep.owner_email.toLowerCase() === state.currentUser.email.toLowerCase();
+  if (!rep || rep.is_official || !rep.owner_email) return false;
+  const currentEmail = (state.currentUser?.email || '').toLowerCase().trim();
+  const ownerEmail = (rep.owner_email || '').toLowerCase().trim();
+  if (!currentEmail || !ownerEmail) return false;
+  if (ownerEmail === currentEmail) return true;
+  // Admin alias: danyposta@gmail.com and danyposta@yahoo.it represent the same administrator (Daniele / Sentimental)
+  const adminEmails = ['danyposta@gmail.com', 'danyposta@yahoo.it'];
+  if (adminEmails.includes(currentEmail) && adminEmails.includes(ownerEmail)) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -563,7 +572,18 @@ function isOwnPersonalRepertoire(rep) {
  */
 function getWorkspaceRepertoires() {
   const reps = Array.isArray(state.repertoires) ? state.repertoires : [];
-  return reps.filter(r => r.is_official || !r.owner_email || isOwnPersonalRepertoire(r));
+  const isAdmin = isCurrentUserAdmin();
+  const adminEmails = ['danyposta@gmail.com', 'danyposta@yahoo.it'];
+
+  return reps.filter(r => {
+    if (r.is_official) return true;
+    if (isOwnPersonalRepertoire(r)) return true;
+    if (!r.owner_email) return true;
+    if (isAdmin && (adminEmails.includes((r.owner_email || '').toLowerCase().trim()) || (r.name || '').toLowerCase() === 'daniele')) {
+      return true;
+    }
+    return false;
+  });
 }
 
 /**
@@ -1244,7 +1264,7 @@ function renderRepertoireChips() {
       icon = '🌟';
       label = `<b>${escapeHtml(r.name)}</b>`;
       extraStyle = 'border-color: #ffd600; color: #ffd600; font-weight: 800;';
-    } else if (isOwnPersonalRepertoire(r)) {
+    } else if (isOwnPersonalRepertoire(r) || (isAdmin && (r.owner_email || '').toLowerCase().includes('danyposta'))) {
       icon = '👤';
       label = `Personale (${escapeHtml(r.name)})`;
     }
@@ -7893,6 +7913,48 @@ function logAuditEvent(action, entityType = 'SYSTEM', entityId = '', details = {
   } catch (e) {}
 }
 
+let currentAuditView = 'events';
+
+function switchAuditView(view) {
+  currentAuditView = view;
+  const tabEvents = document.getElementById('tab-audit-events');
+  const tabStats = document.getElementById('tab-audit-stats');
+  const kpiContainer = document.getElementById('audit-kpi-container');
+  const eventsSection = document.getElementById('audit-events-section');
+
+  if (view === 'events') {
+    if (tabEvents) {
+      tabEvents.style.borderBottomColor = '#38bdf8';
+      tabEvents.style.color = '#38bdf8';
+      tabEvents.style.background = 'rgba(56, 189, 248, 0.1)';
+    }
+    if (tabStats) {
+      tabStats.style.borderBottomColor = 'transparent';
+      tabStats.style.color = '#94a3b8';
+      tabStats.style.background = 'transparent';
+    }
+    if (kpiContainer) kpiContainer.classList.add('mobile-hidden-kpi');
+    if (eventsSection) eventsSection.style.display = 'flex';
+  } else {
+    if (tabStats) {
+      tabStats.style.borderBottomColor = '#ffd600';
+      tabStats.style.color = '#ffd600';
+      tabStats.style.background = 'rgba(255, 214, 0, 0.1)';
+    }
+    if (tabEvents) {
+      tabEvents.style.borderBottomColor = 'transparent';
+      tabEvents.style.color = '#94a3b8';
+      tabEvents.style.background = 'transparent';
+    }
+    if (kpiContainer) kpiContainer.classList.remove('mobile-hidden-kpi');
+    if (window.innerWidth <= 768 && eventsSection) {
+      eventsSection.style.display = 'none';
+    } else if (eventsSection) {
+      eventsSection.style.display = 'flex';
+    }
+  }
+}
+
 async function openAuditLogModal() {
   if (!isCurrentUserAdmin()) {
     showToast('⚠️ Accesso riservato esclusivamente all\'Amministratore.');
@@ -7901,6 +7963,7 @@ async function openAuditLogModal() {
   const modal = document.getElementById('audit-log-modal');
   if (!modal) return;
   modal.style.display = 'flex';
+  switchAuditView('events');
   await loadAuditLog(false);
 
   // Setup 5-minute autorefresh for logged-in Admin
@@ -7990,8 +8053,10 @@ function renderAuditStats(stats) {
   const actEl = document.getElementById('audit-stat-actions');
   const lastTimeEl = document.getElementById('audit-stat-last-time');
   const lastDescEl = document.getElementById('audit-stat-last-desc');
+  const badgeCountEl = document.getElementById('audit-badge-event-count');
 
   if (totalEl) totalEl.textContent = stats.total_events || 0;
+  if (badgeCountEl) badgeCountEl.textContent = stats.total_events || cachedAuditEntries.length || 0;
   if (dailyEl) dailyEl.textContent = `Media: ${stats.avg_events_per_day || 0} op/giorno (${stats.period_days || 15} gg)`;
 
   if (musEl) {

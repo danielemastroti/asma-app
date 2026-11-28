@@ -120,6 +120,7 @@ class AuthManager:
 
     BAND_MEMBERS = {
         "danyposta@gmail.com": {"pseudonym": "Sentimental", "instrument": "Tastiera", "role": UserRole.ADMIN, "display_role": "Admin / Tastiera"},
+        "danyposta@yahoo.it": {"pseudonym": "Sentimental", "instrument": "Tastiera", "role": UserRole.ADMIN, "display_role": "Admin / Tastiera"},
         "acicchelli65@gmail.com": {"pseudonym": "Cico", "instrument": "Voce", "role": UserRole.BAND_MEMBER, "display_role": "Voce"},
         "maurobovolenta4@gmail.com": {"pseudonym": "Maurino", "instrument": "Chitarra ritmica", "role": UserRole.BAND_MEMBER, "display_role": "Chitarra ritmica"},
         "marcoerario2@gmail.com": {"pseudonym": "Red", "instrument": "Chitarra elettrica", "role": UserRole.BAND_MEMBER, "display_role": "Chitarra elettrica"},
@@ -129,6 +130,7 @@ class AuthManager:
 
     BAND_PSEUDONYMS = {
         "danyposta@gmail.com": "Sentimental",
+        "danyposta@yahoo.it": "Sentimental",
         "maurobovolenta4@gmail.com": "Maurino",
         "marcoerario2@gmail.com": "Red",
         "gv.drummer69@gmail.com": "Mingo",
@@ -433,7 +435,7 @@ class AuthManager:
 
     @classmethod
     def get_admin_emails(cls) -> list:
-        return ["danyposta@gmail.com"]
+        return ["danyposta@gmail.com", "danyposta@yahoo.it"]
 
     def exchange_google_code_for_user(self, code: str, client_id: str, client_secret: str, redirect_uri: str):
         import urllib.request

@@ -383,9 +383,14 @@ def ensure_user_personal_repertoire(user_email: str, user_name: Optional[str] = 
     clean_email = user_email.strip().lower()
 
     all_reps = storage.list_repertoires()
+    admin_emails = {"danyposta@gmail.com", "danyposta@yahoo.it"}
     for r in all_reps:
-        if not getattr(r, "is_official", False) and (getattr(r, "owner_email", None) or "").strip().lower() == clean_email:
-            return r
+        if not getattr(r, "is_official", False):
+            owner = (getattr(r, "owner_email", None) or "").strip().lower()
+            if owner == clean_email:
+                return r
+            if clean_email in admin_emails and owner in admin_emails:
+                return r
 
     # Non trovato: determina nome/pseudonimo per il repertorio personale
     u = auth_mgr.get_user_by_email(clean_email)
@@ -625,7 +630,8 @@ def list_repertoires(user_email: Optional[str] = Query(None)):
     def _rep_sort_key(x):
         if x["is_official"]:
             return (0, x["name"])
-        if clean_user_email and (x.get("owner_email") or "").strip().lower() == clean_user_email:
+        owner = (x.get("owner_email") or "").strip().lower()
+        if clean_user_email and (owner == clean_user_email or (clean_user_email in ("danyposta@gmail.com", "danyposta@yahoo.it") and owner in ("danyposta@gmail.com", "danyposta@yahoo.it"))):
             return (1, x["name"])
         return (2, x["name"])
 
@@ -2882,7 +2888,7 @@ def admin_audit_repertoire_completeness(req: AdminAuditCompletenessRequest):
             if s.completeness_status != "MEDLEY":
                 s.completeness_status = "MEDLEY"
                 s.completeness_ratio = 1.0
-                storage.save_song(s, req.user_email, "Admin", "Contrassegno automatico Medley")
+                storage.save_song(s, req.user_email, "Admin", "Contrassegno automatico Medley", preserve_timestamps=True, bump_revision=False)
             medley_count += 1
             updated_songs.append(s.to_dict())
             continue
@@ -2896,7 +2902,7 @@ def admin_audit_repertoire_completeness(req: AdminAuditCompletenessRequest):
                 if s.completeness_status != "COMPLETO":
                     s.completeness_status = "COMPLETO"
                     s.completeness_ratio = 1.0
-                    storage.save_song(s, req.user_email, "Admin", "Preservato stato COMPLETO (contiene sezioni AI)")
+                    storage.save_song(s, req.user_email, "Admin", "Preservato stato COMPLETO (contiene sezioni AI)", preserve_timestamps=True, bump_revision=False)
                 complete_count += 1
             updated_songs.append(s.to_dict())
             continue
