@@ -412,8 +412,11 @@ function syncAuthProfileUi() {
                       state.currentUser.role === 'ADMIN' || state.currentUser.role === 'admin' || state.currentUser.role === 'BAND_LEADER';
   const musRow = document.getElementById('setting-musician-row');
   const nonAdminNote = document.getElementById('auth-nonadmin-note');
-  if (musRow) musRow.style.display = 'flex';
-  if (nonAdminNote) nonAdminNote.style.display = 'none';
+  if (musRow) musRow.style.display = isAuthAdmin ? 'flex' : 'none';
+  if (nonAdminNote) {
+    nonAdminNote.style.display = isAuthAdmin ? 'none' : 'block';
+    nonAdminNote.innerHTML = `ℹ️ Profilo attivo: <strong style="color: #ffd600;">${escapeHtml(state.currentUser.name || '')}</strong> (<span style="color: #38bdf8;">${escapeHtml(authEmail)}</span>). Il cambio profilo è riservato esclusivamente all'Amministratore.`;
+  }
 
   const adminDbCard = document.getElementById('admin-db-card');
   if (adminDbCard) adminDbCard.style.display = isAuthAdmin ? 'block' : 'none';
@@ -766,13 +769,14 @@ async function loadUsersAndDevices() {
       if (matched) {
         state.currentUser.name = matched.name;
         state.currentUser.role = matched.role;
-      } else if (users.length) {
+      } else if (!state.currentUser.email && users.length) {
         state.currentUser.email = users[0].email;
         state.currentUser.name = users[0].name;
         state.currentUser.role = users[0].role;
       }
       const nameSpan = document.getElementById('current-user-name');
       if (nameSpan) nameSpan.textContent = state.currentUser.name;
+      syncAuthProfileUi();
     }
     if (dRes.ok) {
       const devices = await dRes.json();
@@ -1073,6 +1077,12 @@ async function autosaveUserPreferences() {
 }
 
 async function onMusicianChange(email) {
+  if (!isCurrentUserAdmin()) {
+    showToast('⚠️ Solo l\'amministratore può commutare il profilo musicista.');
+    const musSelect = document.getElementById('setting-musician-select');
+    if (musSelect && state.currentUser?.email) musSelect.value = state.currentUser.email;
+    return;
+  }
   state.currentUser.email = email;
   try { localStorage.setItem('asma_user_email', email); } catch (e) {}
   const user = (state.usersList || []).find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -5088,17 +5098,7 @@ function resetShareA4Button() {
 
 function onShareA4MusicianChanged(val) {
   if (!val) return;
-  state.currentUser.name = val;
-  try { localStorage.setItem('asma_user_name', val); } catch (e) {}
-  const matched = (state.usersList || []).find(u => u.name && u.name.toLowerCase() === val.toLowerCase());
-  if (matched) {
-    state.currentUser.email = matched.email;
-    try { localStorage.setItem('asma_user_email', matched.email); } catch (e) {}
-  }
-  const nameSpan = document.getElementById('current-user-name');
-  if (nameSpan) nameSpan.textContent = val;
-  const musSelectSetting = document.getElementById('setting-musician-select');
-  if (musSelectSetting && matched) musSelectSetting.value = matched.email;
+  // Non altera mai l'utente autenticato: aggiorna solo la formattazione A4
   onShareA4OptionsChanged();
 }
 
