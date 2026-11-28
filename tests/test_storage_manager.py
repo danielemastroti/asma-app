@@ -358,8 +358,8 @@ class TestStorageManager(unittest.TestCase):
             uuid="3131717c-0968-4a55-83f1-e4cb8bbade6b",
             title="MEDLEY-ROCK",
             artist="Vari",
-            current_revision=3,
-            updated_at="2026-11-23T18:20:00.000000+00:00",
+            current_revision=4,
+            updated_at="2026-11-28T20:10:00.000000+00:00",
             aml_content="{title: MEDLEY-ROCK}\n1. THE WALL\n...\n12. HEY JUDE"
         )
         self.storage.save_song(local_medley, preserve_timestamps=True, bump_revision=False)
@@ -386,7 +386,7 @@ class TestStorageManager(unittest.TestCase):
         song_after_sync = self.storage.get_song("3131717c-0968-4a55-83f1-e4cb8bbade6b")
         self.assertIsNotNone(song_after_sync)
         self.assertEqual(song_after_sync.title, "MEDLEY-ROCK")
-        self.assertEqual(song_after_sync.current_revision, 3)
+        self.assertEqual(song_after_sync.current_revision, 4)
         self.assertIn("12. HEY JUDE", song_after_sync.aml_content)
 
         # Cloud push_song must be called with local authoritative data
