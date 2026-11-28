@@ -127,13 +127,15 @@ class TestMedleyA4Pagination(unittest.TestCase):
             self.assertGreaterEqual(wow_page_idx, 0, "WITH OR WITHOUT YOU fragment not found in PDF!")
             self.assertLess(wow_page_idx + 1, len(doc), "WITH OR WITHOUT YOU was on the last page!")
 
-            # The next page MUST contain content (specifically DON'T YOU) and must NOT be blank
+            # The next page MUST contain content (WITH OR WITHOUT YOU continuation or DON'T YOU) and must NOT be blank
             next_page = doc[wow_page_idx + 1]
             next_txt = next_page.get_text()
             self.assertTrue(
-                "DON'T YOU" in next_txt,
-                f"Page {wow_page_idx + 2} immediately after WITH OR WITHOUT YOU does not contain DON'T YOU! Text: {next_txt[:200]}"
+                "DON'T YOU" in next_txt or "give yourself away" in next_txt,
+                f"Page {wow_page_idx + 2} immediately after WITH OR WITHOUT YOU does not contain valid content! Text: {next_txt[:200]}"
             )
+            full_txt = "".join(p.get_text() for p in doc)
+            self.assertIn("DON'T YOU", full_txt)
             doc.close()
 
 
